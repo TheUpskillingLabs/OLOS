@@ -38,8 +38,9 @@ export async function proxy(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // Redirect unauthenticated users to login (except public routes)
-    const publicPaths = ["/login", "/api/auth", "/api/registrations", "/register"];
+    // Redirect unauthenticated users to login (except public routes and API routes)
+    // API routes handle their own auth via withAuth/withAdminAuth wrappers
+    const publicPaths = ["/login", "/api/", "/register"];
     const isPublicPath = publicPaths.some((path) =>
       request.nextUrl.pathname.startsWith(path)
     );
