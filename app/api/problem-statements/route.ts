@@ -11,7 +11,7 @@ export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
     const body = await parseBody(request, problemStatementSchema);
     if (isErrorResponse(body)) return body;
-    const { cycle_id, statement_text } = body;
+    const { cycle_id, statement_text, proposal_data } = body;
     const participant_id = auth.user.participantId;
 
     if (!participant_id) {
@@ -29,9 +29,12 @@ export const POST = withAuth(
       return NextResponse.json({ error: "You must be an active participant in this cycle" }, { status: 403 });
     }
 
+    const row: Record<string, unknown> = { cycle_id, participant_id, statement_text };
+    if (proposal_data) row.proposal_data = proposal_data;
+
     const { data, error } = await auth.supabase
       .from("problem_statements")
-      .insert({ cycle_id, participant_id, statement_text })
+      .insert(row)
       .select("id, created_at")
       .single();
 

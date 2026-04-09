@@ -35,6 +35,24 @@ export default async function ProposePage({
     now >= new Date(config.problem_statement_open) &&
     now <= new Date(config.problem_statement_close);
 
+  // Get user's name for pre-filling
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let participantName = "";
+  if (user) {
+    const { data: participant } = await supabase
+      .from("participants")
+      .select("first_name, last_name, preferred_name")
+      .eq("auth_user_id", user.id)
+      .single();
+    if (participant) {
+      participantName =
+        `${participant.preferred_name || participant.first_name || ""} ${participant.last_name || ""}`.trim();
+    }
+  }
+
   return (
     <div>
       <div className="mb-8">
@@ -45,15 +63,22 @@ export default async function ProposePage({
           &larr; {cycle.name}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-white">
-          Submit a Problem Statement
+          Open Cycle Problem Proposal
         </h1>
-        <p className="mt-1 text-sm text-cloud/50">
-          Propose a problem for the community to explore during this cycle.
+        <p className="mt-2 text-sm leading-relaxed text-cloud/50">
+          The Open Cycle accepts problem proposals year-round. At the start of
+          each Cycle, active participants vote to shortlist the strongest
+          proposals. Shortlisted proposals open for registration. If a Research
+          Pod reaches the minimum number of registrants, it officially forms.
+        </p>
+        <p className="mt-2 text-sm font-medium text-cloud/60">
+          Take your time with Part 2 — it&rsquo;s the most important section.
+          Everything else supports it.
         </p>
       </div>
 
       {isOpen ? (
-        <ProposeForm cycleId={cycleId} />
+        <ProposeForm cycleId={cycleId} participantName={participantName} />
       ) : (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
           <p className="text-cloud/60">
@@ -65,7 +90,12 @@ export default async function ProposePage({
                 Opens{" "}
                 {new Date(config.problem_statement_open).toLocaleDateString(
                   "en-US",
-                  { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
+                  {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  }
                 )}
               </p>
             )}

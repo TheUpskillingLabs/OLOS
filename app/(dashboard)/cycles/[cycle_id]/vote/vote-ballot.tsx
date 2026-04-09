@@ -2,10 +2,23 @@
 
 import { useState, useEffect } from "react";
 
+interface ProposalData {
+  about?: { background?: string; experience?: string };
+  problem?: { who?: string; need?: string; barrier?: string; success?: string };
+  statement?: { text?: string; question?: string };
+  voter_context?: {
+    tried?: string;
+    scale?: string;
+    pod_work?: string;
+    skills_needed?: string;
+  };
+}
+
 interface ProblemStatement {
   id: number;
   participant_id: number;
   statement_text: string;
+  proposal_data: ProposalData | null;
   created_at: string;
 }
 
@@ -32,6 +45,7 @@ export default function VoteBallot({
   const [error, setError] = useState("");
   const [successId, setSuccessId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -44,12 +58,10 @@ export default function VoteBallot({
     });
   }, [cycleId]);
 
-  // Determine budget based on whether user has submitted a problem statement
-  // (We approximate: if the API rejects with budget error, we'll show it)
-  // The actual budget enforcement happens server-side
-
   function getTallyFor(stmtId: number): number {
-    return tallies.find((t) => t.problem_statement_id === stmtId)?.total_votes ?? 0;
+    return (
+      tallies.find((t) => t.problem_statement_id === stmtId)?.total_votes ?? 0
+    );
   }
 
   async function castVote(problemStatementId: number) {
@@ -110,7 +122,7 @@ export default function VoteBallot({
   const remaining = budget - totalUsed;
 
   if (loading) {
-    return <p className="text-cloud/50">Loading problem statements...</p>;
+    return <p className="text-cloud/50">Loading proposals...</p>;
   }
 
   if (statements.length === 0) {
@@ -144,52 +156,157 @@ export default function VoteBallot({
         </p>
       )}
 
-      {/* Problem statements list */}
+      {/* Proposals list */}
       <div className="space-y-4">
-        {statements.map((stmt) => (
-          <div
-            key={stmt.id}
-            className="rounded-md border border-whisper bg-white/[0.02] p-4"
-          >
-            <p className="text-sm text-cloud/80">{stmt.statement_text}</p>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs text-cloud/40">
-                {getTallyFor(stmt.id)} vote{getTallyFor(stmt.id) !== 1 ? "s" : ""}
-              </span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  max={remaining}
-                  value={pendingVotes[stmt.id] || ""}
-                  onChange={(e) =>
-                    setPendingVotes((prev) => ({
-                      ...prev,
-                      [stmt.id]: parseInt(e.target.value, 10) || 0,
-                    }))
-                  }
-                  placeholder="0"
-                  className="w-16 rounded border border-whisper bg-white/[0.04] px-2 py-1 text-center text-sm text-white placeholder:text-cloud/30 focus:border-teal focus:outline-none"
-                />
-                <button
-                  onClick={() => castVote(stmt.id)}
-                  disabled={
-                    submitting !== null ||
-                    !pendingVotes[stmt.id] ||
-                    pendingVotes[stmt.id] < 1
-                  }
-                  className="rounded bg-teal/20 px-3 py-1 text-xs font-medium text-aqua transition-colors hover:bg-teal/30 disabled:opacity-40"
-                >
-                  {submitting === stmt.id ? "..." : "Vote"}
-                </button>
-                {successId === stmt.id && (
-                  <span className="text-xs text-aqua">Voted!</span>
+        {statements.map((stmt) => {
+          const pd = stmt.proposal_data;
+          const isExpanded = expandedId === stmt.id;
+          const hasDetails = pd?.problem || pd?.voter_context;
+
+          return (
+            <div
+              key={stmt.id}
+              className="rounded-md border border-whisper bg-white/[0.02]"
+            >
+              <div className="p-4">
+                {/* Problem statement */}
+                <p className="font-medium text-white">
+                  {stmt.statement_text}
+                </p>
+
+                {/* HMW question */}
+                {pd?.statement?.question && (
+                  <p className="mt-2 text-sm italic text-cloud/50">
+                    {pd.statement.question}
+                  </p>
                 )}
+
+                {/* Submitter background */}
+                {pd?.about?.background && (
+                  <p className="mt-2 text-xs text-cloud/40">
+                    Submitted by: {pd.about.background}
+                  </p>
+                )}
+
+                {/* Expand toggle */}
+                {hasDetails && (
+                  <button
+                    onClick={() =>
+                      setExpandedId(isExpanded ? null : stmt.id)
+                    }
+                    className="mt-2 text-xs text-aqua hover:underline"
+                  >
+                    {isExpanded ? "Show less" : "Read full proposal"}
+                  </button>
+                )}
+
+                {/* Expanded details */}
+                {isExpanded && pd && (
+                  <div className="mt-4 space-y-3 border-t border-white/5 pt-4">
+                    {pd.problem?.who && (
+                      <DetailBlock
+                        label="Who is struggling"
+                        text={pd.problem.who}
+                      />
+                    )}
+                    {pd.problem?.need && (
+                      <DetailBlock
+                        label="What they need to do"
+                        text={pd.problem.need}
+                      />
+                    )}
+                    {pd.problem?.barrier && (
+                      <DetailBlock
+                        label="Why they can't do it now"
+                        text={pd.problem.barrier}
+                      />
+                    )}
+                    {pd.problem?.success && (
+                      <DetailBlock
+                        label="What success looks like"
+                        text={pd.problem.success}
+                      />
+                    )}
+                    {pd.voter_context?.tried && (
+                      <DetailBlock
+                        label="What has been tried"
+                        text={pd.voter_context.tried}
+                      />
+                    )}
+                    {pd.voter_context?.scale && (
+                      <DetailBlock
+                        label="Why it matters beyond the individual"
+                        text={pd.voter_context.scale}
+                      />
+                    )}
+                    {pd.voter_context?.pod_work && (
+                      <DetailBlock
+                        label="What the Research Pod would do"
+                        text={pd.voter_context.pod_work}
+                      />
+                    )}
+                    {pd.voter_context?.skills_needed && (
+                      <DetailBlock
+                        label="Skills & people needed"
+                        text={pd.voter_context.skills_needed}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Vote controls */}
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-xs text-cloud/40">
+                    {getTallyFor(stmt.id)} vote
+                    {getTallyFor(stmt.id) !== 1 ? "s" : ""}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={remaining}
+                      value={pendingVotes[stmt.id] || ""}
+                      onChange={(e) =>
+                        setPendingVotes((prev) => ({
+                          ...prev,
+                          [stmt.id]: parseInt(e.target.value, 10) || 0,
+                        }))
+                      }
+                      placeholder="0"
+                      className="w-16 rounded border border-whisper bg-white/[0.04] px-2 py-1 text-center text-sm text-white placeholder:text-cloud/30 focus:border-teal focus:outline-none"
+                    />
+                    <button
+                      onClick={() => castVote(stmt.id)}
+                      disabled={
+                        submitting !== null ||
+                        !pendingVotes[stmt.id] ||
+                        pendingVotes[stmt.id] < 1
+                      }
+                      className="rounded bg-teal/20 px-3 py-1 text-xs font-medium text-aqua transition-colors hover:bg-teal/30 disabled:opacity-40"
+                    >
+                      {submitting === stmt.id ? "..." : "Vote"}
+                    </button>
+                    {successId === stmt.id && (
+                      <span className="text-xs text-aqua">Voted!</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+function DetailBlock({ label, text }: { label: string; text: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wider text-cloud/40">
+        {label}
+      </p>
+      <p className="mt-0.5 text-sm text-cloud/70">{text}</p>
     </div>
   );
 }
