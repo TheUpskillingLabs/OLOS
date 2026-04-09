@@ -16,11 +16,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Fetch participant profile for avatar and name
+  // Fetch participant profile for name
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("preferred_name, first_name, last_name, profile_image_url")
+    .select("preferred_name, first_name, last_name")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -30,7 +30,8 @@ export default async function DashboardLayout({
       ? `${participant.first_name} ${participant.last_name}`
       : user.email);
 
-  const avatarUrl = participant?.profile_image_url;
+  // Avatar comes from Google OAuth metadata — no DB column needed
+  const avatarUrl: string | null = user.user_metadata?.avatar_url ?? null;
   const initials = participant
     ? `${participant.first_name[0]}${participant.last_name[0]}`
     : (user.email?.[0] ?? "?").toUpperCase();

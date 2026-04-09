@@ -50,7 +50,6 @@ export default function RegisterForm({
       auth_user_id: authUserId,
       google_id: email,
       email,
-      profile_image_url: profileImageUrl,
       first_name: form.get("first_name"),
       last_name: form.get("last_name"),
       preferred_name: form.get("preferred_name") || undefined,
