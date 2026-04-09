@@ -16,7 +16,6 @@ export async function GET(request: Request) {
       if (user) {
         const serviceClient = createServiceClient();
         const email = user.email;
-        const avatarUrl = user.user_metadata?.avatar_url || null;
 
         // Check if a participant record exists for this email
         const { data: participant } = await serviceClient
@@ -26,18 +25,11 @@ export async function GET(request: Request) {
           .maybeSingle();
 
         if (participant) {
-          // Link auth_user_id and update profile image if needed
-          const updates: Record<string, unknown> = {};
+          // Link auth_user_id if not yet set
           if (!participant.auth_user_id) {
-            updates.auth_user_id = user.id;
-          }
-          if (avatarUrl) {
-            updates.profile_image_url = avatarUrl;
-          }
-          if (Object.keys(updates).length > 0) {
             await serviceClient
               .from("participants")
-              .update(updates)
+              .update({ auth_user_id: user.id })
               .eq("id", participant.id);
           }
           return NextResponse.redirect(`${origin}/`);

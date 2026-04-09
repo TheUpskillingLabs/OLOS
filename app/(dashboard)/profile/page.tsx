@@ -19,7 +19,7 @@ export default async function ProfilePage() {
        state, neighborhood, dcpl_card,
        work_situation, main_focus, sector, current_title, linkedin,
        ai_tool_familiarity, participation_commitment, primary_expertise, volunteer_interest,
-       profile_image_url, created_at`
+       created_at`
     )
     .eq("auth_user_id", user.id)
     .single();
@@ -52,14 +52,17 @@ export default async function ProfilePage() {
     participant.preferred_name ||
     `${participant.first_name} ${participant.last_name}`;
 
+  // Avatar from Google OAuth metadata
+  const avatarUrl: string | null = user.user_metadata?.avatar_url ?? null;
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="rounded-xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
         {/* Header with avatar */}
         <div className="flex items-center gap-6 border-b border-zinc-200 pb-6 dark:border-zinc-800">
-          {participant.profile_image_url ? (
+          {avatarUrl ? (
             <img
-              src={participant.profile_image_url}
+              src={avatarUrl}
               alt={displayName}
               className="h-20 w-20 rounded-full"
             />
