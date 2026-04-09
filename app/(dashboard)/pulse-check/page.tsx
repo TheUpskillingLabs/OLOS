@@ -18,15 +18,24 @@ interface PulseCheckEntry {
   completed_at: string;
   survey_responses: {
     accomplishment: string;
+    energy_level?: number;
+    highlight?: string;
+    challenge?: string;
   };
 }
+
+type Mode = "cycle" | "standalone";
+
+const ENERGY_LABELS = ["Very Low", "Low", "Moderate", "High", "Very High"];
 
 export default function PulseCheckPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
+  const [mode, setMode] = useState<Mode>("standalone");
   const [aiTools, setAiTools] = useState<Option[]>([]);
   const [pulseBenefits, setPulseBenefits] = useState<Option[]>([]);
   const [history, setHistory] = useState<PulseCheckEntry[]>([]);
+  const [energyLevel, setEnergyLevel] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -40,8 +49,6 @@ export default function PulseCheckPage() {
       setAiTools(options.ai_tools || []);
       setPulseBenefits(options.pulse_benefits || []);
 
-      // Fetch enrollments client-side — use cycles to identify active ones
-      // For now, set cycles as enrollment options
       if (Array.isArray(cycles)) {
         const activeCycles = cycles.filter(
           (c: { status: string }) => c.status === "active"
@@ -55,21 +62,29 @@ export default function PulseCheckPage() {
         );
         if (activeCycles.length > 0) {
           setSelectedCycleId(activeCycles[0].id);
+          setMode("cycle");
         }
       }
       setLoading(false);
     });
   }, []);
 
-  // Fetch history when cycle changes
+  // Fetch history when mode or cycle changes
   useEffect(() => {
-    if (!selectedCycleId) return;
-    fetch(`/api/pulse-checks/${selectedCycleId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setHistory(data);
-      });
-  }, [selectedCycleId, success]);
+    if (mode === "cycle" && selectedCycleId) {
+      fetch(`/api/pulse-checks/${selectedCycleId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) setHistory(data);
+        });
+    } else if (mode === "standalone") {
+      fetch("/api/pulse-checks/me")
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) setHistory(data);
+        });
+    }
+  }, [mode, selectedCycleId, success]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -92,39 +107,56 @@ export default function PulseCheckPage() {
       accomplishment: form.get("accomplishment"),
     };
 
-    if (toolsUsed.length > 0) survey_responses.tools_used = toolsUsed;
-    if (benefits.length > 0) survey_responses.benefits = benefits;
+    // Reflective fields (both modes)
+    if (energyLevel) survey_responses.energy_level = energyLevel;
 
-    const newConnections = form.get("new_connections");
-    if (newConnections) {
-      survey_responses.new_connections = Number(newConnections);
-    }
+    const highlight = form.get("highlight");
+    if (highlight) survey_responses.highlight = highlight;
 
-    const helpNeeded = form.get("help_needed");
-    if (helpNeeded) survey_responses.help_needed = helpNeeded;
+    const challenge = form.get("challenge");
+    if (challenge) survey_responses.challenge = challenge;
 
-    if (form.get("help_attempted") === "on") {
-      survey_responses.help_attempted = true;
-    }
+    // Cycle-specific fields
+    if (mode === "cycle") {
+      if (toolsUsed.length > 0) survey_responses.tools_used = toolsUsed;
+      if (benefits.length > 0) survey_responses.benefits = benefits;
 
-    if (form.get("network_referral") === "on") {
-      survey_responses.network_referral = true;
+      const newConnections = form.get("new_connections");
+      if (newConnections) {
+        survey_responses.new_connections = Number(newConnections);
+      }
+
+      const helpNeeded = form.get("help_needed");
+      if (helpNeeded) survey_responses.help_needed = helpNeeded;
+
+      if (form.get("help_attempted") === "on") {
+        survey_responses.help_attempted = true;
+      }
+
+      if (form.get("network_referral") === "on") {
+        survey_responses.network_referral = true;
+      }
     }
 
     const today = new Date().toISOString().split("T")[0];
 
+    const payload: Record<string, unknown> = {
+      scheduled_date: today,
+      survey_responses,
+    };
+    if (mode === "cycle" && selectedCycleId) {
+      payload.cycle_id = selectedCycleId;
+    }
+
     const res = await fetch("/api/pulse-checks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cycle_id: selectedCycleId,
-        scheduled_date: today,
-        survey_responses,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
       setSuccess(true);
+      setEnergyLevel(null);
       (e.target as HTMLFormElement).reset();
     } else {
       const data = await res.json();
@@ -164,7 +196,36 @@ export default function PulseCheckPage() {
         Share what you accomplished this week and how things are going.
       </p>
 
-      {enrollments.length > 1 && (
+      {/* Mode toggle — only shown when the user has active cycles */}
+      {hasCycles && (
+        <div className="mb-6 flex rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
+          <button
+            type="button"
+            onClick={() => setMode("cycle")}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              mode === "cycle"
+                ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
+                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            }`}
+          >
+            Cycle Check-in
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("standalone")}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              mode === "standalone"
+                ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
+                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            }`}
+          >
+            Personal Reflection
+          </button>
+        </div>
+      )}
+
+      {/* Cycle selector — only in cycle mode with multiple cycles */}
+      {mode === "cycle" && enrollments.length > 1 && (
         <div className="mb-6">
           <label className="block text-sm font-medium text-cloud">
             Cycle
@@ -199,6 +260,37 @@ export default function PulseCheckPage() {
         onSubmit={handleSubmit}
         className="space-y-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 backdrop-blur-sm"
       >
+        {/* === Reflective fields (both modes) === */}
+
+        {/* Energy level */}
+        <div>
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            How&rsquo;s your energy this week?
+          </span>
+          <div className="mt-2 flex gap-2">
+            {ENERGY_LABELS.map((label, i) => {
+              const level = i + 1;
+              const selected = energyLevel === level;
+              return (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setEnergyLevel(selected ? null : level)}
+                  className={`flex flex-1 flex-col items-center rounded-lg border px-2 py-2 text-xs transition-colors ${
+                    selected
+                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+                      : "border-zinc-200 text-zinc-500 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-400"
+                  }`}
+                >
+                  <span className="text-base font-semibold">{level}</span>
+                  <span className="mt-0.5 leading-tight">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Accomplishment — the core narrative */}
         <label className="block">
           <span className="text-sm font-medium text-cloud">
             What did you accomplish this week? *
@@ -272,41 +364,119 @@ export default function PulseCheckPage() {
           />
         </label>
 
+        {/* Challenge */}
         <label className="block">
-          <span className="text-sm font-medium text-cloud">
-            Do you need any help?
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            What&rsquo;s challenging you right now?
           </span>
           <textarea
-            name="help_needed"
+            name="challenge"
             maxLength={1000}
-            rows={3}
-            className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
-            placeholder="Describe any support or resources you need..."
+            rows={2}
+            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+            placeholder="Anything blocking you, frustrating you, or keeping you up at night..."
           />
         </label>
 
-        <div className="space-y-3">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="help_attempted"
-              className="rounded border-white/20 bg-white/[0.05] text-teal"
-            />
-            <span className="text-sm text-cloud">
-              I have already sought help for this
-            </span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="network_referral"
-              className="rounded border-white/20 bg-white/[0.05] text-teal"
-            />
-            <span className="text-sm text-cloud">
-              I am interested in a network referral
-            </span>
-          </label>
-        </div>
+        {/* === Cycle-specific fields (only in cycle mode) === */}
+        {mode === "cycle" && (
+          <>
+            {aiTools.length > 0 && (
+              <div>
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  AI Tools Used
+                </span>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  {aiTools.map((tool) => (
+                    <label key={tool.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="tools_used"
+                        value={tool.id}
+                        className="rounded border-zinc-300"
+                      />
+                      <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                        {tool.value}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pulseBenefits.length > 0 && (
+              <div>
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Benefits this week (max 3)
+                </span>
+                <div className="mt-2 space-y-2">
+                  {pulseBenefits.map((b) => (
+                    <label key={b.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="benefits"
+                        value={b.id}
+                        className="rounded border-zinc-300"
+                      />
+                      <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                        {b.value}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <label className="block">
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                New connections made
+              </span>
+              <input
+                name="new_connections"
+                type="number"
+                min={0}
+                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                placeholder="Number of new collaborators you met"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Do you need any help?
+              </span>
+              <textarea
+                name="help_needed"
+                maxLength={1000}
+                rows={3}
+                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                placeholder="Describe any support or resources you need..."
+              />
+            </label>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="help_attempted"
+                  className="rounded border-zinc-300"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  I have already sought help for this
+                </span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="network_referral"
+                  className="rounded border-zinc-300"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  I am interested in a network referral
+                </span>
+              </label>
+            </div>
+          </>
+        )}
 
         <button
           type="submit"
@@ -330,17 +500,29 @@ export default function PulseCheckPage() {
                 className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-cloud">
-                    {new Date(entry.scheduled_date).toLocaleDateString(
-                      "en-US",
-                      {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      }
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {new Date(entry.scheduled_date).toLocaleDateString(
+                        "en-US",
+                        {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        }
+                      )}
+                    </span>
+                    {entry.survey_responses.energy_level && (
+                      <span
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                        title={`Energy: ${ENERGY_LABELS[entry.survey_responses.energy_level - 1]}`}
+                      >
+                        {entry.survey_responses.energy_level <= 2
+                          ? "Energy " + entry.survey_responses.energy_level + "/5"
+                          : "Energy " + entry.survey_responses.energy_level + "/5"}
+                      </span>
                     )}
-                  </span>
-                  <span className="text-xs text-cloud/60">
+                  </div>
+                  <span className="text-xs text-zinc-400">
                     {new Date(entry.completed_at).toLocaleTimeString("en-US", {
                       hour: "numeric",
                       minute: "2-digit",
@@ -350,6 +532,18 @@ export default function PulseCheckPage() {
                 <p className="mt-2 text-sm text-cloud/80">
                   {entry.survey_responses.accomplishment}
                 </p>
+                {entry.survey_responses.highlight && (
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
+                    <span className="font-medium">Highlight:</span>{" "}
+                    {entry.survey_responses.highlight}
+                  </p>
+                )}
+                {entry.survey_responses.challenge && (
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
+                    <span className="font-medium">Challenge:</span>{" "}
+                    {entry.survey_responses.challenge}
+                  </p>
+                )}
               </div>
             ))}
           </div>
