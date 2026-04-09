@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-sm space-y-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-8 backdrop-blur-sm">
+      <div className="w-full max-w-sm space-y-6 rounded-md border border-whisper bg-white/[0.02] p-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight text-white">
             The Upskilling Labs
@@ -26,7 +26,7 @@ export default function LoginPage() {
         </div>
         <button
           onClick={handleLogin}
-          className="flex w-full items-center justify-center gap-3 rounded-full border border-white/20 bg-white/[0.05] px-4 py-3 text-sm font-medium text-white transition-all hover:border-aqua hover:text-aqua"
+          className="flex w-full items-center justify-center gap-3 rounded-md border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition-colors hover:border-aqua hover:text-aqua"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path

@@ -64,17 +64,17 @@ export default async function CycleDetailPage({
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
           <p className="text-sm text-cloud/60">Total Enrolled</p>
           <p className="text-2xl font-bold text-white">
             {enrollments?.length || 0}
           </p>
         </div>
-        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
           <p className="text-sm text-cloud/60">Active</p>
           <p className="text-2xl font-bold text-aqua">{activeCount}</p>
         </div>
-        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
           <p className="text-sm text-cloud/60">Pods</p>
           <p className="text-2xl font-bold text-white">
             {pods?.length || 0}
@@ -92,7 +92,7 @@ export default async function CycleDetailPage({
               <Link
                 key={pod.id}
                 href={`/pods/${pod.id}`}
-                className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm transition-all hover:border-white/10 hover:bg-white/[0.04]"
+                className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-white">

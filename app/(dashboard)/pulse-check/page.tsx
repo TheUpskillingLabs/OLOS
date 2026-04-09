@@ -186,11 +186,11 @@ export default function PulseCheckPage() {
 
       {/* Mode toggle — only shown when the user has active cycles */}
       {hasCycles && (
-        <div className="mb-6 flex rounded-xl border border-white/10 p-1">
+        <div className="mb-6 flex rounded-md border border-whisper p-1">
           <button
             type="button"
             onClick={() => setMode("cycle")}
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded px-3 py-2 text-sm font-medium transition-colors ${
               mode === "cycle"
                 ? "bg-aqua text-midnight"
                 : "text-cloud/60 hover:text-aqua"
@@ -201,7 +201,7 @@ export default function PulseCheckPage() {
           <button
             type="button"
             onClick={() => setMode("standalone")}
-            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded px-3 py-2 text-sm font-medium transition-colors ${
               mode === "standalone"
                 ? "bg-aqua text-midnight"
                 : "text-cloud/60 hover:text-aqua"
@@ -221,7 +221,7 @@ export default function PulseCheckPage() {
           <select
             value={selectedCycleId ?? ""}
             onChange={(e) => setSelectedCycleId(Number(e.target.value))}
-            className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white"
+            className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white"
           >
             {enrollments.map((en) => (
               <option key={en.cycle_id} value={en.cycle_id}>
@@ -233,20 +233,20 @@ export default function PulseCheckPage() {
       )}
 
       {success && (
-        <div className="mb-4 rounded-xl border border-teal/20 bg-teal/10 p-3 text-sm text-aqua">
+        <div className="mb-4 rounded-md border border-teal/20 bg-teal/10 p-3 text-sm text-aqua">
           Pulse check submitted successfully!
         </div>
       )}
 
       {error && (
-        <div className="mb-4 rounded-xl border border-red/20 bg-red/10 p-3 text-sm text-red-300">
+        <div className="mb-4 rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 backdrop-blur-sm"
+        className="space-y-6 rounded-md border border-whisper bg-white/[0.02] p-6"
       >
         {/* === Reflective fields (both modes) === */}
 
@@ -264,10 +264,10 @@ export default function PulseCheckPage() {
                   key={level}
                   type="button"
                   onClick={() => setEnergyLevel(selected ? null : level)}
-                  className={`flex flex-1 flex-col items-center rounded-lg border px-2 py-2 text-xs transition-colors ${
+                  className={`flex flex-1 flex-col items-center rounded-md border px-2 py-2 text-xs transition-colors ${
                     selected
                       ? "border-aqua bg-aqua text-midnight"
-                      : "border-white/10 text-cloud/60 hover:border-white/20"
+                      : "border-whisper text-cloud/60 hover:border-white/[0.15]"
                   }`}
                 >
                   <span className="text-base font-semibold">{level}</span>
@@ -288,7 +288,7 @@ export default function PulseCheckPage() {
             required
             maxLength={1000}
             rows={4}
-            className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+            className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             placeholder="Describe your progress, wins, or what you worked on..."
           />
         </label>
@@ -302,7 +302,7 @@ export default function PulseCheckPage() {
             name="highlight"
             maxLength={1000}
             rows={2}
-            className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+            className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             placeholder="A win, a moment of clarity, something that made you smile..."
           />
         </label>
@@ -316,7 +316,7 @@ export default function PulseCheckPage() {
             name="challenge"
             maxLength={1000}
             rows={2}
-            className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+            className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             placeholder="Anything blocking you, frustrating you, or keeping you up at night..."
           />
         </label>
@@ -378,7 +378,7 @@ export default function PulseCheckPage() {
                 name="new_connections"
                 type="number"
                 min={0}
-                className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+                className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
                 placeholder="Number of new collaborators you met"
               />
             </label>
@@ -391,7 +391,7 @@ export default function PulseCheckPage() {
                 name="help_needed"
                 maxLength={1000}
                 rows={3}
-                className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+                className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
                 placeholder="Describe any support or resources you need..."
               />
             </label>
@@ -424,7 +424,7 @@ export default function PulseCheckPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-full bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+          className="w-full rounded-md bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-colors hover:bg-teal disabled:opacity-50"
         >
           {submitting ? "Submitting..." : "Submit Pulse Check"}
         </button>
@@ -440,7 +440,7 @@ export default function PulseCheckPage() {
             {history.map((entry) => (
               <div
                 key={entry.scheduled_date}
-                className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm"
+                className="rounded-md border border-whisper bg-white/[0.02] p-4"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
