@@ -14,13 +14,7 @@ export default async function ProfilePage() {
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select(
-      `id, email, first_name, last_name, preferred_name, gender,
-       state, neighborhood, dcpl_card,
-       work_situation, main_focus, sector, current_title, linkedin,
-       ai_tool_familiarity, participation_commitment, primary_expertise, volunteer_interest,
-       created_at`
-    )
+    .select("*")
     .eq("auth_user_id", user.id)
     .single();
 
@@ -60,7 +54,7 @@ export default async function ProfilePage() {
       <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-8 backdrop-blur-sm">
         {/* Header with avatar */}
         <div className="flex items-center gap-6 border-b border-white/[0.05] pb-6">
-          {participant.profile_image_url ? (
+          {avatarUrl ? (
             <img
               src={avatarUrl}
               alt={displayName}

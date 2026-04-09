@@ -198,14 +198,14 @@ export default function PulseCheckPage() {
 
       {/* Mode toggle — only shown when the user has active cycles */}
       {hasCycles && (
-        <div className="mb-6 flex rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
+        <div className="mb-6 flex rounded-xl border border-white/10 p-1">
           <button
             type="button"
             onClick={() => setMode("cycle")}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               mode === "cycle"
-                ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                ? "bg-aqua text-midnight"
+                : "text-cloud/60 hover:text-aqua"
             }`}
           >
             Cycle Check-in
@@ -213,10 +213,10 @@ export default function PulseCheckPage() {
           <button
             type="button"
             onClick={() => setMode("standalone")}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               mode === "standalone"
-                ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                ? "bg-aqua text-midnight"
+                : "text-cloud/60 hover:text-aqua"
             }`}
           >
             Personal Reflection
@@ -264,7 +264,7 @@ export default function PulseCheckPage() {
 
         {/* Energy level */}
         <div>
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <span className="text-sm font-medium text-cloud">
             How&rsquo;s your energy this week?
           </span>
           <div className="mt-2 flex gap-2">
@@ -278,8 +278,8 @@ export default function PulseCheckPage() {
                   onClick={() => setEnergyLevel(selected ? null : level)}
                   className={`flex flex-1 flex-col items-center rounded-lg border px-2 py-2 text-xs transition-colors ${
                     selected
-                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                      : "border-zinc-200 text-zinc-500 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-400"
+                      ? "border-aqua bg-aqua text-midnight"
+                      : "border-white/10 text-cloud/60 hover:border-white/20"
                   }`}
                 >
                   <span className="text-base font-semibold">{level}</span>
@@ -366,14 +366,14 @@ export default function PulseCheckPage() {
 
         {/* Challenge */}
         <label className="block">
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <span className="text-sm font-medium text-cloud">
             What&rsquo;s challenging you right now?
           </span>
           <textarea
             name="challenge"
             maxLength={1000}
             rows={2}
-            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+            className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             placeholder="Anything blocking you, frustrating you, or keeping you up at night..."
           />
         </label>
@@ -383,7 +383,7 @@ export default function PulseCheckPage() {
           <>
             {aiTools.length > 0 && (
               <div>
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="text-sm font-medium text-cloud">
                   AI Tools Used
                 </span>
                 <div className="mt-2 flex flex-wrap gap-3">
@@ -393,9 +393,9 @@ export default function PulseCheckPage() {
                         type="checkbox"
                         name="tools_used"
                         value={tool.id}
-                        className="rounded border-zinc-300"
+                        className="rounded border-white/20 bg-white/[0.05] text-teal"
                       />
-                      <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="text-sm text-cloud">
                         {tool.value}
                       </span>
                     </label>
@@ -406,7 +406,7 @@ export default function PulseCheckPage() {
 
             {pulseBenefits.length > 0 && (
               <div>
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="text-sm font-medium text-cloud">
                   Benefits this week (max 3)
                 </span>
                 <div className="mt-2 space-y-2">
@@ -416,9 +416,9 @@ export default function PulseCheckPage() {
                         type="checkbox"
                         name="benefits"
                         value={b.id}
-                        className="rounded border-zinc-300"
+                        className="rounded border-white/20 bg-white/[0.05] text-teal"
                       />
-                      <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="text-sm text-cloud">
                         {b.value}
                       </span>
                     </label>
@@ -428,27 +428,27 @@ export default function PulseCheckPage() {
             )}
 
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 New connections made
               </span>
               <input
                 name="new_connections"
                 type="number"
                 min={0}
-                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
                 placeholder="Number of new collaborators you met"
               />
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 Do you need any help?
               </span>
               <textarea
                 name="help_needed"
                 maxLength={1000}
                 rows={3}
-                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
                 placeholder="Describe any support or resources you need..."
               />
             </label>
@@ -458,9 +458,9 @@ export default function PulseCheckPage() {
                 <input
                   type="checkbox"
                   name="help_attempted"
-                  className="rounded border-zinc-300"
+                  className="rounded border-white/20 bg-white/[0.05] text-teal"
                 />
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                <span className="text-sm text-cloud">
                   I have already sought help for this
                 </span>
               </label>
@@ -468,9 +468,9 @@ export default function PulseCheckPage() {
                 <input
                   type="checkbox"
                   name="network_referral"
-                  className="rounded border-zinc-300"
+                  className="rounded border-white/20 bg-white/[0.05] text-teal"
                 />
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                <span className="text-sm text-cloud">
                   I am interested in a network referral
                 </span>
               </label>
@@ -501,7 +501,7 @@ export default function PulseCheckPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm font-medium text-cloud">
                       {new Date(entry.scheduled_date).toLocaleDateString(
                         "en-US",
                         {
@@ -522,7 +522,7 @@ export default function PulseCheckPage() {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-cloud/60">
                     {new Date(entry.completed_at).toLocaleTimeString("en-US", {
                       hour: "numeric",
                       minute: "2-digit",
@@ -533,13 +533,13 @@ export default function PulseCheckPage() {
                   {entry.survey_responses.accomplishment}
                 </p>
                 {entry.survey_responses.highlight && (
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
+                  <p className="mt-1 text-sm text-cloud/60">
                     <span className="font-medium">Highlight:</span>{" "}
                     {entry.survey_responses.highlight}
                   </p>
                 )}
                 {entry.survey_responses.challenge && (
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
+                  <p className="mt-1 text-sm text-cloud/60">
                     <span className="font-medium">Challenge:</span>{" "}
                     {entry.survey_responses.challenge}
                   </p>
