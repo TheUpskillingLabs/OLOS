@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 
 export default async function DashboardLayout({
   children,
@@ -23,6 +24,9 @@ export default async function DashboardLayout({
     .select("preferred_name, first_name, last_name")
     .eq("auth_user_id", user.id)
     .maybeSingle();
+
+  const userRoles = await resolveUserRoles(serviceClient, user.id);
+  const adminUser = isAdmin(userRoles);
 
   const displayName =
     participant?.preferred_name ||
@@ -59,6 +63,14 @@ export default async function DashboardLayout({
             >
               Pulse Check
             </Link>
+            {adminUser && (
+              <Link
+                href="/admin"
+                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                Admin
+              </Link>
+            )}
             <Link
               href="/profile"
               className="flex items-center gap-2 text-sm text-cloud transition-colors hover:text-aqua"
