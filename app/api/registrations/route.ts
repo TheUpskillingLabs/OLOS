@@ -6,8 +6,10 @@ export async function POST(request: NextRequest) {
   const supabase = createServiceClient();
 
   const {
+    auth_user_id,
     google_id,
     email,
+    profile_image_url,
     first_name,
     last_name,
     preferred_name,
@@ -45,8 +47,10 @@ export async function POST(request: NextRequest) {
   const { data: participant, error: pError } = await supabase
     .from("participants")
     .insert({
+      auth_user_id: auth_user_id || null,
       google_id,
       email,
+      profile_image_url: profile_image_url || null,
       first_name,
       last_name,
       preferred_name,

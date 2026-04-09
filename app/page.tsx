@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -9,6 +9,18 @@ export default async function Home() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  // Check if user has completed Upskiller registration
+  const serviceClient = createServiceClient();
+  const { data: participant } = await serviceClient
+    .from("participants")
+    .select("id")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (!participant) {
+    redirect("/register");
   }
 
   redirect("/cycles");
