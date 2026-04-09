@@ -1,4 +1,4 @@
-# The Upskilling Labs (TUL) — WIN Challenge MVP Spec
+# The Upskilling Labs (TUL)
 
 ## Overview
 Build a system to manage **4 core touchpoints** across a Build Cycle and reduce manual effort to coordinate Upskillers in a cycle.
