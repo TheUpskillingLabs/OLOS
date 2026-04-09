@@ -7,7 +7,7 @@ Build a system to manage **4 core touchpoints** across a Build Cycle and reduce 
 3. Weekly pulse checks (custom form → DB)
 4. Access revocation automation (Slack, Drive, GitHub)
 
-**Stack:** PostgreSQL, Python/FastAPI, custom React forms + dashboard
+**Stack:** PostgreSQL, Python/FastAPI, Next.js (frontend), Supabase (Google OAuth + PostgreSQL hosting)
 
 ---
 
@@ -37,7 +37,7 @@ Roles can stack: a person can be both a Moderator and an active Participant simu
 
 **All users — including Admins and Observers — have a row in `participants`.** The `participants` table is the system-wide user record. Admins and Observers are not enrolled in cycles (`cycle_enrollments` has no row for them), while Participants are.
 
-**JWT claims:** At token issuance (`POST /auth/google`), the backend resolves the full role set for the user:
+**JWT claims:** At token issuance (`POST /auth/google` — Supabase token exchanged for FastAPI JWT), the backend resolves the full role set for the user:
 1. Query `user_roles` for any `owner` / `admin` / `observer` grants (`revoked_at IS NULL`)
 2. Query `moderator_assignments` for active pod assignments (`removed_at IS NULL`) — encoded as a list of pod IDs for the current cycle
 3. Query `cycle_enrollments` for active cycle participation and status
@@ -464,11 +464,26 @@ CREATE TABLE access_revocations (
 ### Authentication
 ```
 POST /auth/google
-  Input: { google_token }
-  Output: { user_id, email, jwt_token }
-  Purpose: Exchange Google OAuth token for session
+  Input: { supabase_token }
+  Output: { user_id, email, jwt_token, roles: [...] }
+  Purpose: Validate a Supabase session token, resolve the user's roles, and issue a FastAPI JWT
   Auth: None (public)
-  Roles: Any unauthenticated user
+  Steps:
+    1. Validate supabase_token using Supabase service role key
+    2. Extract email and google_id from the validated token
+    3. Look up or create participant row in participants table by google_id/email
+    4. Query user_roles for owner/admin/observer grants (revoked_at IS NULL)
+    5. Query moderator_assignments for active pod assignments in current cycles (removed_at IS NULL)
+    6. Query cycle_enrollments for active cycle participation
+    7. Encode all role and enrollment data into a signed FastAPI JWT
+    8. Return JWT + resolved roles to frontend
+  Notes:
+    - Registration (POST /api/registrations) is a separate public flow for new participants
+      who do not yet have a Google account linked. After registration, participants sign in
+      via Google OAuth and are matched by email.
+    - If no participant row exists for the Google account, return 404 with message
+      "No account found. Please complete registration first."
+  Roles: Public (unauthenticated)
 ```
 
 ### Cycle Management
@@ -1164,6 +1179,35 @@ Restoration applies regardless of current pod or project status. If an external 
 - UNIQUE constraints for vote deduplication
 - Timestamps for audit trail
 
+### Frontend & Authentication Architecture
+
+#### Frontend: Next.js
+- **Framework:** Next.js (App Router)
+- Handles all UI: registration form, voting dashboard, cycle dashboard, pod/project browsing, pulse check form
+- Server-side rendering used for near-real-time dashboard polling (no websockets required)
+- Routing: each form and dashboard view is a distinct Next.js route
+- Communicates with FastAPI backend via REST API calls
+- Deployed separately from the FastAPI backend
+
+#### Authentication: Supabase Auth + Google OAuth
+- Supabase Auth handles Google OAuth provider configuration and session management
+- **Flow:**
+  1. User clicks "Sign in with Google" on the frontend
+  2. Supabase Auth redirects to Google OAuth consent screen
+  3. On success, Supabase issues a session token
+  4. Next.js frontend passes the Supabase session token to FastAPI via `POST /auth/google`
+  5. FastAPI validates the token against Supabase, resolves the user's roles from `user_roles` and `moderator_assignments`, and issues a FastAPI JWT for all subsequent API calls
+  6. All authenticated API calls use the FastAPI JWT — not the Supabase session token
+- **Supabase project required:** configure Google OAuth credentials (Google Cloud Console client ID + secret) in Supabase Auth settings
+- **Library (frontend):** `@supabase/supabase-js`, `@supabase/auth-helpers-nextjs`
+- **Library (backend):** `supabase-py` for token validation
+
+#### Database Hosting: Supabase PostgreSQL
+- Supabase hosts the PostgreSQL database
+- All schema, migrations, and seed data run against the Supabase PostgreSQL instance
+- FastAPI connects via standard PostgreSQL connection string (not Supabase client library — direct DB connection for performance)
+- Connection string provided via `DATABASE_URL` environment variable
+
 ### Backend: Python/FastAPI
 - Fast, async, minimal boilerplate
 - Easy webhook validation + signature verification
@@ -1245,10 +1289,23 @@ When a project transitions to `active` status (registrant count reaches `project
 
 ### Environment Variables
 ```
+# Supabase
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=  # used by FastAPI backend for server-side token validation
+
+# Next.js (public — safe to expose to browser)
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# External integrations
 SLACK_BOT_TOKEN=
 GOOGLE_SERVICE_ACCOUNT=  # used for both Drive (Files API) and Google Groups (Admin SDK Directory API). Confirm the service account has domain-wide delegation enabled with both scopes.
 GITHUB_TOKEN=
 ANTHROPIC_API_KEY=  # used for pod/project name generation and any other LLM calls in the application
+
+# Database
+DATABASE_URL=  # Supabase PostgreSQL connection string; used by FastAPI for direct DB connection
 ```
 
 ---
