@@ -12,9 +12,10 @@ export const POST = withAuth(
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
 
-    if (!cycle_id || !scheduled_date || !survey_responses) {
+    // cycle_id is optional — omit it for standalone / personal reflection entries
+    if (!scheduled_date || !survey_responses) {
       return NextResponse.json(
-        { error: "cycle_id, scheduled_date, and survey_responses are required" },
+        { error: "scheduled_date and survey_responses are required" },
         { status: 400 }
       );
     }
@@ -42,14 +43,42 @@ export const POST = withAuth(
       );
     }
 
+    // Validate new reflective fields
+    if (survey_responses.energy_level != null) {
+      const e = Number(survey_responses.energy_level);
+      if (!Number.isInteger(e) || e < 1 || e > 5) {
+        return NextResponse.json(
+          { error: "energy_level must be an integer between 1 and 5" },
+          { status: 400 }
+        );
+      }
+    }
+
+    for (const field of ["highlight", "challenge"] as const) {
+      if (survey_responses[field] != null) {
+        if (typeof survey_responses[field] !== "string" || survey_responses[field].length > 1000) {
+          return NextResponse.json(
+            { error: `${field} must be a string of 1000 characters or fewer` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Check for duplicate submission
-    const { data: existing } = await auth.supabase
+    const dupeQuery = auth.supabase
       .from("pulse_checks")
       .select("id")
-      .eq("cycle_id", cycle_id)
       .eq("participant_id", participant_id)
-      .eq("scheduled_date", scheduled_date)
-      .maybeSingle();
+      .eq("scheduled_date", scheduled_date);
+
+    if (cycle_id) {
+      dupeQuery.eq("cycle_id", cycle_id);
+    } else {
+      dupeQuery.is("cycle_id", null);
+    }
+
+    const { data: existing } = await dupeQuery.maybeSingle();
 
     if (existing) {
       return NextResponse.json(
@@ -61,7 +90,7 @@ export const POST = withAuth(
     const { data, error } = await auth.supabase
       .from("pulse_checks")
       .insert({
-        cycle_id,
+        cycle_id: cycle_id || null,
         participant_id,
         scheduled_date,
         completed_at: new Date().toISOString(),
