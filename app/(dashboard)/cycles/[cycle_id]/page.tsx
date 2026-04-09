@@ -1,6 +1,19 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+
+const WINDOW_ROUTES: {
+  label: string;
+  field: string;
+  route: string;
+}[] = [
+  { label: "Submit Problem Statements", field: "problem_statement", route: "propose" },
+  { label: "Vote on Problem Statements", field: "voting", route: "vote" },
+  { label: "Register for Pods", field: "pod_registration", route: "register-pods" },
+  { label: "Submit Solution Proposals", field: "solution_proposal", route: "solutions" },
+  { label: "Vote on Solutions", field: "solution_voting", route: "solution-vote" },
+  { label: "Register for Projects", field: "project_registration", route: "register-projects" },
+];
 
 export default async function CycleDetailPage({
   params,
@@ -32,6 +45,29 @@ export default async function CycleDetailPage({
   const activeCount =
     enrollments?.filter((e) => e.status === "active").length || 0;
 
+  // Fetch active windows
+  const serviceClient = createServiceClient();
+  const { data: config } = await serviceClient
+    .from("cycle_config")
+    .select(
+      "problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+    )
+    .eq("cycle_id", cycle.id)
+    .single();
+
+  const now = new Date();
+  const activeWindows: { label: string; route: string; closesAt: string }[] = [];
+  if (config) {
+    for (const w of WINDOW_ROUTES) {
+      const configRecord = config as Record<string, string | null>;
+      const openVal = configRecord[`${w.field}_open`];
+      const closeVal = configRecord[`${w.field}_close`];
+      if (openVal && closeVal && now >= new Date(openVal) && now <= new Date(closeVal)) {
+        activeWindows.push({ label: w.label, route: w.route, closesAt: closeVal });
+      }
+    }
+  }
+
   return (
     <div>
       <div className="mb-8">
@@ -62,6 +98,34 @@ export default async function CycleDetailPage({
           </span>
         </div>
       </div>
+
+      {/* Active window CTAs */}
+      {activeWindows.length > 0 && (
+        <div className="mb-8 space-y-3">
+          {activeWindows.map((w) => (
+            <Link
+              key={w.route}
+              href={`/cycles/${cycle.id}/${w.route}`}
+              className="flex items-center justify-between rounded-md border border-teal/20 bg-teal/[0.04] p-4 transition-colors hover:border-teal/40 hover:bg-teal/[0.07]"
+            >
+              <div className="flex items-center gap-3">
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-aqua" />
+                <span className="font-medium text-white">{w.label}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-cloud/50">
+                <span>
+                  closes{" "}
+                  {new Date(w.closesAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+                <span className="text-aqua">&rarr;</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <div className="rounded-md border border-whisper bg-white/[0.02] p-4">

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type CycleConfig = {
   phase_2_start: string | null;
   phase_3_start: string | null;
@@ -16,6 +18,7 @@ type CycleConfig = {
 };
 
 type Cycle = {
+  id: number;
   name: string;
   start_date: string;
   end_date: string;
@@ -53,12 +56,12 @@ const PHASES = [
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
 const OPERATIONAL_WINDOWS = [
-  { label: "Problem Statements", field: "problem_statement" },
-  { label: "Voting", field: "voting" },
-  { label: "Pod Registration", field: "pod_registration" },
-  { label: "Solution Proposals", field: "solution_proposal" },
-  { label: "Solution Voting", field: "solution_voting" },
-  { label: "Project Registration", field: "project_registration" },
+  { label: "Problem Statements", field: "problem_statement", route: "propose" },
+  { label: "Voting", field: "voting", route: "vote" },
+  { label: "Pod Registration", field: "pod_registration", route: "register-pods" },
+  { label: "Solution Proposals", field: "solution_proposal", route: "solutions" },
+  { label: "Solution Voting", field: "solution_voting", route: "solution-vote" },
+  { label: "Project Registration", field: "project_registration", route: "register-projects" },
 ] as const;
 
 function formatDate(iso: string): string {
@@ -85,8 +88,8 @@ function getCurrentWeek(now: Date, start: Date, end: Date): number {
 function getActiveWindows(
   config: CycleConfig,
   now: Date
-): { label: string; closesAt: string }[] {
-  const active: { label: string; closesAt: string }[] = [];
+): { label: string; closesAt: string; route: string }[] {
+  const active: { label: string; closesAt: string; route: string }[] = [];
   for (const w of OPERATIONAL_WINDOWS) {
     const openKey = `${w.field}_open` as keyof CycleConfig;
     const closeKey = `${w.field}_close` as keyof CycleConfig;
@@ -94,7 +97,7 @@ function getActiveWindows(
     const closeVal = config[closeKey];
     if (openVal && closeVal) {
       if (now >= new Date(openVal) && now <= new Date(closeVal)) {
-        active.push({ label: w.label, closesAt: closeVal });
+        active.push({ label: w.label, closesAt: closeVal, route: w.route });
       }
     }
   }
@@ -354,13 +357,15 @@ export default function CyclePhaseIndicator({
       {(activeWindows.length > 0 || upcomingWindow) && (
         <div className="mt-4 flex flex-wrap gap-2">
           {activeWindows.map((w) => (
-            <span
+            <Link
               key={w.label}
-              className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-3 py-1 text-xs font-medium text-aqua"
+              href={`/cycles/${cycle.id}/${w.route}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-3 py-1 text-xs font-medium text-aqua transition-colors hover:bg-teal/20"
             >
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-aqua" />
               {w.label} &middot; closes {formatDate(w.closesAt)}
-            </span>
+              <span className="ml-0.5">&rarr;</span>
+            </Link>
           ))}
           {upcomingWindow && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1 text-xs text-cloud/50">
