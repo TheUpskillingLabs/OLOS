@@ -21,6 +21,37 @@ type Cycle = {
   end_date: string;
 };
 
+/* ── The 13-week Build Cycle model ─────────────────────────────────── */
+
+const WEEKS: {
+  num: number;
+  label: string;
+  milestone: boolean;
+  phase: 1 | 2 | 3;
+}[] = [
+  { num: 1, label: "Kickoff\n+ Summit", milestone: true, phase: 1 },
+  { num: 2, label: "Problem\nProposals", milestone: false, phase: 1 },
+  { num: 3, label: "Problem\nVoting", milestone: false, phase: 1 },
+  { num: 4, label: "Pod\nCreation", milestone: false, phase: 1 },
+  { num: 5, label: "Meet The\nPods", milestone: true, phase: 2 },
+  { num: 6, label: "Experiments", milestone: false, phase: 2 },
+  { num: 7, label: "Project\nPitches", milestone: false, phase: 2 },
+  { num: 8, label: "Project\nVoting", milestone: false, phase: 2 },
+  { num: 9, label: "Meet The\nProjects", milestone: true, phase: 3 },
+  { num: 10, label: "Mentor\nIntensive", milestone: false, phase: 3 },
+  { num: 11, label: "Mentor\nIntensive", milestone: false, phase: 3 },
+  { num: 12, label: "Rehearsal", milestone: false, phase: 3 },
+  { num: 13, label: "Showcase\n+ Summit", milestone: true, phase: 3 },
+];
+
+const PHASES = [
+  { num: 1, title: "Problem Discovery & Definition", weeks: "1–4" },
+  { num: 2, title: "Exploration & Experimentation", weeks: "5–8" },
+  { num: 3, title: "Prototype Building & Iterating", weeks: "9–13" },
+];
+
+/* ── Helpers ───────────────────────────────────────────────────────── */
+
 const OPERATIONAL_WINDOWS = [
   { label: "Problem Statements", field: "problem_statement" },
   { label: "Voting", field: "voting" },
@@ -37,26 +68,18 @@ function formatDate(iso: string): string {
   });
 }
 
-function formatDateLong(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+function daysUntil(from: Date, to: Date): number {
+  return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
 }
 
-function getCurrentPhase(
-  now: Date,
-  startDate: Date,
-  phase2Start: Date,
-  phase3Start: Date,
-  endDate: Date
-): number {
-  if (now < startDate) return 0;
-  if (now < phase2Start) return 1;
-  if (now < phase3Start) return 2;
-  if (now <= endDate) return 3;
-  return 4;
+function getCurrentWeek(now: Date, start: Date, end: Date): number {
+  if (now < start) return 0;
+  if (now > end) return 14;
+  const totalMs = end.getTime() - start.getTime();
+  const elapsed = now.getTime() - start.getTime();
+  // 13 equal segments
+  const week = Math.floor((elapsed / totalMs) * 13) + 1;
+  return Math.min(week, 13);
 }
 
 function getActiveWindows(
@@ -92,14 +115,7 @@ function getUpcomingWindow(
   return null;
 }
 
-function daysUntil(from: Date, to: Date): number {
-  return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
-}
-
-function pct(date: Date, start: Date, total: number): number {
-  if (total <= 0) return 0;
-  return Math.max(0, Math.min(100, ((date.getTime() - start.getTime()) / total) * 100));
-}
+/* ── Component ─────────────────────────────────────────────────────── */
 
 export default function CyclePhaseIndicator({
   cycle,
@@ -114,188 +130,227 @@ export default function CyclePhaseIndicator({
 
   const now = new Date();
   const startDate = new Date(cycle.start_date);
-  const phase2Start = new Date(config.phase_2_start);
-  const phase3Start = new Date(config.phase_3_start);
   const endDate = new Date(cycle.end_date);
-  const totalMs = endDate.getTime() - startDate.getTime();
 
-  const currentPhase = getCurrentPhase(now, startDate, phase2Start, phase3Start, endDate);
-  const daysToShowcase = daysUntil(now, endDate);
-  const progressPct = pct(now, startDate, totalMs);
-  const phase2Pct = pct(phase2Start, startDate, totalMs);
-  const phase3Pct = pct(phase3Start, startDate, totalMs);
+  const currentWeek = getCurrentWeek(now, startDate, endDate);
+  const daysLeft = daysUntil(now, endDate);
+  const cycleActive = now >= startDate && now <= endDate;
+  const cycleComplete = now > endDate;
 
   const activeWindows = getActiveWindows(config, now);
-  const upcomingWindow = activeWindows.length === 0 ? getUpcomingWindow(config, now) : null;
+  const upcomingWindow =
+    activeWindows.length === 0 ? getUpcomingWindow(config, now) : null;
 
-  // Milestones for the timeline track
-  const milestones = [
-    {
-      label: "Kickoff",
-      date: cycle.start_date,
-      leftPct: 0,
-      passed: now >= startDate,
-      current: currentPhase === 1,
-    },
-    {
-      label: "Meet The Pods",
-      date: config.phase_2_start,
-      leftPct: phase2Pct,
-      passed: now >= phase2Start,
-      current: currentPhase === 2,
-    },
-    {
-      label: "Meet The Projects",
-      date: config.phase_3_start,
-      leftPct: phase3Pct,
-      passed: now >= phase3Start,
-      current: currentPhase === 3,
-    },
-    {
-      label: "Showcase",
-      date: cycle.end_date,
-      leftPct: 100,
-      passed: now > endDate,
-      current: false,
-    },
-  ];
-
-  const phaseLabels = ["Phase 1", "Phase 2", "Phase 3"];
+  // Which phase are we in?
+  const currentPhaseNum =
+    currentWeek <= 4 ? 1 : currentWeek <= 8 ? 2 : currentWeek <= 13 ? 3 : 0;
 
   return (
     <div className="mb-10">
-      {/* Countdown hero */}
-      <div className="mb-6 flex flex-col items-center gap-1 text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
+      {/* ── Countdown headline ────────────────────────────────────── */}
+      <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
-            {cycle.name}
+            The Build Cycle
           </p>
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
-            {currentPhase >= 1 && currentPhase <= 3 ? (
+            {cycleActive ? (
               <>
-                <span className="text-aqua">{daysToShowcase}</span>{" "}
-                day{daysToShowcase !== 1 ? "s" : ""} to Showcase
+                <span className="text-aqua">{daysLeft}</span>{" "}
+                day{daysLeft !== 1 ? "s" : ""} to Showcase
               </>
-            ) : currentPhase === 0 ? (
-              <>Cycle starts {formatDateLong(cycle.start_date)}</>
-            ) : (
+            ) : cycleComplete ? (
               <>Cycle complete</>
+            ) : (
+              <>
+                Cycle starts{" "}
+                {formatDate(cycle.start_date)}
+              </>
             )}
           </h2>
         </div>
-        {currentPhase >= 1 && currentPhase <= 3 && (
-          <span className="rounded-full bg-teal/20 px-4 py-1.5 text-sm font-semibold text-aqua">
-            {phaseLabels[currentPhase - 1]}
-          </span>
+        {cycleActive && (
+          <div className="flex items-center gap-3">
+            <span className="rounded-full bg-teal/20 px-4 py-1.5 text-sm font-semibold text-aqua">
+              Week {currentWeek}
+            </span>
+            {currentPhaseNum > 0 && (
+              <span className="text-sm text-cloud/50">
+                Month {currentPhaseNum}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Timeline track */}
-      <div className="relative rounded-xl border border-whisper bg-white/[0.02] px-4 py-8 sm:px-8">
-        {/* Rail */}
-        <div className="relative mx-auto h-1.5 rounded-full bg-white/[0.06]">
-          {/* Filled portion */}
-          <div
-            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-teal to-aqua"
-            style={{ width: `${progressPct}%` }}
-          />
-
-          {/* Phase segment backgrounds (subtle) */}
-          <div
-            className="absolute inset-y-0 left-0 rounded-l-full border-r border-white/10"
-            style={{ width: `${phase2Pct}%` }}
-          />
-          <div
-            className="absolute inset-y-0 border-r border-white/10"
-            style={{ left: `${phase2Pct}%`, width: `${phase3Pct - phase2Pct}%` }}
-          />
+      {/* ── Timeline card ─────────────────────────────────────────── */}
+      <div className="overflow-x-auto rounded-xl border border-whisper bg-white/[0.02] px-4 pb-4 pt-5 sm:px-6">
+        {/* Month / phase headers */}
+        <div className="mb-6 flex min-w-[700px]">
+          {PHASES.map((p) => (
+            <div
+              key={p.num}
+              className={`${p.num === 3 ? "flex-[5]" : "flex-[4]"} ${
+                p.num > 1 ? "border-l border-white/10 pl-4" : ""
+              }`}
+            >
+              <p
+                className={`text-[11px] font-medium uppercase tracking-wider ${
+                  currentPhaseNum === p.num ? "text-aqua" : "text-cloud/30"
+                }`}
+              >
+                Month {p.num}
+              </p>
+              <p
+                className={`text-sm font-semibold leading-tight ${
+                  currentPhaseNum === p.num ? "text-white" : "text-cloud/50"
+                }`}
+              >
+                {p.title}
+              </p>
+            </div>
+          ))}
         </div>
 
-        {/* Milestone nodes + labels */}
-        <div className="relative mt-0">
-          {milestones.map((m, i) => {
-            // Determine if this is the "active" milestone (the next one coming up)
-            const isNext =
-              !m.passed && (i === 0 || milestones[i - 1].passed);
-
-            return (
+        {/* Week timeline — staggered above/below rail */}
+        <div className="relative min-w-[700px]">
+          {/* ── Top labels (odd weeks: 1,3,5,7,9,11,13) ───────── */}
+          <div className="mb-1 flex">
+            {WEEKS.map((w) => (
               <div
-                key={m.label}
-                className="absolute"
-                style={{
-                  left: `${m.leftPct}%`,
-                  transform: "translateX(-50%)",
-                  top: "-22px",
-                }}
+                key={w.num}
+                className="flex flex-1 flex-col items-center"
               >
-                {/* Node dot */}
-                <div
-                  className={`mx-auto h-4 w-4 rounded-full border-2 ${
-                    m.passed
-                      ? "border-aqua bg-teal"
-                      : isNext
-                        ? "border-aqua bg-midnight"
-                        : "border-white/20 bg-midnight"
-                  }`}
-                />
-                {/* Label */}
-                <div className="mt-2 whitespace-nowrap text-center">
-                  <div
-                    className={`text-xs font-semibold ${
-                      m.passed
-                        ? "text-cloud/50"
-                        : isNext
+                {w.num % 2 === 1 ? (
+                  <>
+                    <p
+                      className={`mb-1 text-center text-[10px] font-semibold leading-tight ${
+                        w.milestone ? "uppercase" : ""
+                      } ${
+                        w.num === currentWeek
                           ? "text-aqua"
-                          : "text-cloud/40"
-                    }`}
+                          : w.num < currentWeek
+                            ? "text-cloud/40"
+                            : "text-cloud/30"
+                      }`}
+                    >
+                      Week {w.num}
+                    </p>
+                    <p
+                      className={`text-center text-[10px] leading-tight whitespace-pre-line ${
+                        w.milestone ? "font-bold" : "font-medium"
+                      } ${
+                        w.num === currentWeek
+                          ? w.milestone
+                            ? "text-white"
+                            : "text-aqua"
+                          : w.num < currentWeek
+                            ? "text-cloud/35"
+                            : "text-cloud/45"
+                      }`}
+                    >
+                      {w.label}
+                    </p>
+                  </>
+                ) : (
+                  /* Spacer for even weeks */
+                  <div className="h-8" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* ── Rail + week nodes ──────────────────────────────── */}
+          <div className="relative flex items-center">
+            {/* Background rail line */}
+            <div className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-teal/30 via-teal/20 to-teal/10" />
+
+            {/* Progress fill */}
+            {cycleActive && (
+              <div
+                className="absolute top-1/2 left-0 h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-teal to-aqua"
+                style={{
+                  width: `${((currentWeek - 0.5) / 13) * 100}%`,
+                }}
+              />
+            )}
+
+            {/* Week number boxes */}
+            {WEEKS.map((w) => {
+              const isPast = w.num < currentWeek;
+              const isCurrent = w.num === currentWeek;
+              const isFuture = w.num > currentWeek;
+
+              let boxClasses: string;
+              if (isCurrent) {
+                boxClasses =
+                  "border-aqua bg-aqua text-midnight shadow-[0_0_12px_rgba(77,187,194,0.4)]";
+              } else if (isPast) {
+                boxClasses = "border-teal/60 bg-teal/80 text-white/90";
+              } else {
+                boxClasses =
+                  "border-white/15 bg-midnight text-cloud/40";
+              }
+
+              return (
+                <div key={w.num} className="relative z-10 flex flex-1 justify-center">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-md border-2 text-xs font-bold ${boxClasses}`}
                   >
-                    {m.label}
-                  </div>
-                  <div className="text-[11px] text-cloud/30">
-                    {formatDate(m.date)}
+                    {w.num}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        {/* Phase labels centered in each segment */}
-        <div className="relative mt-14 flex">
-          <div style={{ width: `${phase2Pct}%` }} className="text-center">
-            <span
-              className={`text-xs font-medium ${
-                currentPhase === 1 ? "text-aqua" : "text-cloud/25"
-              }`}
-            >
-              Phase 1
-            </span>
-          </div>
-          <div
-            style={{ width: `${phase3Pct - phase2Pct}%` }}
-            className="text-center"
-          >
-            <span
-              className={`text-xs font-medium ${
-                currentPhase === 2 ? "text-aqua" : "text-cloud/25"
-              }`}
-            >
-              Phase 2
-            </span>
-          </div>
-          <div style={{ width: `${100 - phase3Pct}%` }} className="text-center">
-            <span
-              className={`text-xs font-medium ${
-                currentPhase === 3 ? "text-aqua" : "text-cloud/25"
-              }`}
-            >
-              Phase 3
-            </span>
+          {/* ── Bottom labels (even weeks: 2,4,6,8,10,12) ─────── */}
+          <div className="mt-1 flex">
+            {WEEKS.map((w) => (
+              <div
+                key={w.num}
+                className="flex flex-1 flex-col items-center"
+              >
+                {w.num % 2 === 0 ? (
+                  <>
+                    <p
+                      className={`mt-1 text-center text-[10px] font-semibold leading-tight ${
+                        w.num === currentWeek
+                          ? "text-aqua"
+                          : w.num < currentWeek
+                            ? "text-cloud/40"
+                            : "text-cloud/30"
+                      }`}
+                    >
+                      Week {w.num}
+                    </p>
+                    <p
+                      className={`text-center text-[10px] leading-tight whitespace-pre-line ${
+                        w.milestone ? "font-bold" : "font-medium"
+                      } ${
+                        w.num === currentWeek
+                          ? w.milestone
+                            ? "text-white"
+                            : "text-aqua"
+                          : w.num < currentWeek
+                            ? "text-cloud/35"
+                            : "text-cloud/45"
+                      }`}
+                    >
+                      {w.label}
+                    </p>
+                  </>
+                ) : (
+                  /* Spacer for odd weeks */
+                  <div className="h-8" />
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Active / upcoming windows */}
+      {/* ── Active / upcoming window chips ────────────────────────── */}
       {(activeWindows.length > 0 || upcomingWindow) && (
         <div className="mt-4 flex flex-wrap gap-2">
           {activeWindows.map((w) => (
