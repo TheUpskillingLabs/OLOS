@@ -71,7 +71,8 @@ INSERT INTO cycle_config (
   pod_registration_open, pod_registration_close,
   solution_proposal_open, solution_proposal_close,
   solution_voting_open, solution_voting_close,
-  project_registration_open, project_registration_close
+  project_registration_open, project_registration_close,
+  phase_2_start, phase_3_start
 ) VALUES (
   1, 1,
   3, 1, 5, 8, 5,
@@ -82,7 +83,8 @@ INSERT INTO cycle_config (
   '2026-03-29 09:00:00', '2026-04-02 23:59:59',
   '2026-04-03 09:00:00', '2026-04-07 23:59:59',
   '2026-04-08 09:00:00', '2026-04-10 23:59:59',
-  '2026-04-11 09:00:00', '2026-04-16 23:59:59'
+  '2026-04-11 09:00:00', '2026-04-16 23:59:59',
+  '2026-04-13 00:00:00', '2026-05-11 00:00:00'
 );
 
 -- 3. Participants (20 DC-area profiles)
