@@ -38,30 +38,30 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-midnight/85 backdrop-blur-lg">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <Link
             href="/cycles"
-            className="text-lg font-bold text-zinc-900 dark:text-zinc-50"
+            className="text-lg font-bold text-white"
           >
             The Upskilling Labs
           </Link>
           <nav className="flex items-center gap-6">
             <Link
               href="/cycles"
-              className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+              className="text-sm text-cloud transition-colors hover:text-aqua"
             >
               Cycles
             </Link>
             <Link
               href="/pulse-check"
-              className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+              className="text-sm text-cloud transition-colors hover:text-aqua"
             >
               Pulse Check
             </Link>
             <Link
               href="/profile"
-              className="flex items-center gap-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+              className="flex items-center gap-2 text-sm text-cloud transition-colors hover:text-aqua"
             >
               {avatarUrl ? (
                 <img
@@ -70,7 +70,7 @@ export default async function DashboardLayout({
                   className="h-7 w-7 rounded-full"
                 />
               ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-shadow text-xs font-medium text-cloud">
                   {initials}
                 </span>
               )}

@@ -37,14 +37,14 @@ export default async function CycleDetailPage({
       <div className="mb-8">
         <Link
           href="/cycles"
-          className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          className="text-sm text-cloud/60 hover:text-aqua"
         >
           &larr; All Cycles
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="mt-2 text-2xl font-bold text-white">
           {cycle.name}
         </h1>
-        <div className="mt-1 flex items-center gap-4 text-sm text-zinc-500">
+        <div className="mt-1 flex items-center gap-4 text-sm text-cloud/60">
           <span>
             {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
             {new Date(cycle.end_date).toLocaleDateString()}
@@ -52,10 +52,10 @@ export default async function CycleDetailPage({
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
               cycle.status === "active"
-                ? "bg-green-100 text-green-800"
+                ? "bg-teal/20 text-aqua"
                 : cycle.status === "closed"
-                  ? "bg-zinc-100 text-zinc-600"
-                  : "bg-yellow-100 text-yellow-800"
+                  ? "bg-white/10 text-cloud/60"
+                  : "bg-yellow-500/20 text-yellow-300"
             }`}
           >
             {cycle.status}
@@ -64,19 +64,19 @@ export default async function CycleDetailPage({
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">Total Enrolled</p>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
+          <p className="text-sm text-cloud/60">Total Enrolled</p>
+          <p className="text-2xl font-bold text-white">
             {enrollments?.length || 0}
           </p>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">Active</p>
-          <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
+          <p className="text-sm text-cloud/60">Active</p>
+          <p className="text-2xl font-bold text-aqua">{activeCount}</p>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">Pods</p>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
+          <p className="text-sm text-cloud/60">Pods</p>
+          <p className="text-2xl font-bold text-white">
             {pods?.length || 0}
           </p>
         </div>
@@ -84,7 +84,7 @@ export default async function CycleDetailPage({
 
       {pods && pods.length > 0 && (
         <div>
-          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <h2 className="mb-4 text-lg font-semibold text-white">
             Pods
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -92,19 +92,19 @@ export default async function CycleDetailPage({
               <Link
                 key={pod.id}
                 href={`/pods/${pod.id}`}
-                className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm transition-all hover:border-white/10 hover:bg-white/[0.04]"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  <span className="font-medium text-white">
                     {pod.name || `Pod ${pod.id}`}
                   </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
                       pod.status === "active"
-                        ? "bg-green-100 text-green-800"
+                        ? "bg-teal/20 text-aqua"
                         : pod.status === "forming"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-zinc-100 text-zinc-600"
+                          ? "bg-teal/10 text-teal"
+                          : "bg-white/10 text-cloud/60"
                     }`}
                   >
                     {pod.status}

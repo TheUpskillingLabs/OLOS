@@ -14,19 +14,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-      <div className="w-full max-w-sm space-y-6 rounded-xl bg-white p-8 shadow-lg dark:bg-zinc-900">
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-sm space-y-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-8 backdrop-blur-sm">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             The Upskilling Labs
           </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-cloud/80">
             Sign in to continue
           </p>
         </div>
         <button
           onClick={handleLogin}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+          className="flex w-full items-center justify-center gap-3 rounded-full border border-white/20 bg-white/[0.05] px-4 py-3 text-sm font-medium text-white transition-all hover:border-aqua hover:text-aqua"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path

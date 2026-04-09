@@ -91,80 +91,80 @@ export default function RegisterForm({
   return (
     <>
       {error && (
-        <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+        <div className="mb-4 rounded-xl border border-red/20 bg-red/10 p-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <legend className="text-lg font-semibold text-white">
             Identity
           </legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 First Name *
               </span>
               <input
                 name="first_name"
                 required
-                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 Last Name *
               </span>
               <input
                 name="last_name"
                 required
-                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+                className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
               />
             </label>
           </div>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Email
             </span>
             <input
               value={email}
               readOnly
-              className="mt-1 block w-full rounded-md border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400"
+              className="mt-1 block w-full rounded-xl border border-white/[0.05] bg-white/[0.03] px-3 py-2 text-sm text-cloud/60"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Preferred Name
             </span>
             <input
               name="preferred_name"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Gender
             </span>
             <input
               name="gender"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <legend className="text-lg font-semibold text-white">
             Location
           </legend>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               State *
             </span>
             <select
               name="state"
               required
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white"
             >
               <option value="">Select...</option>
               <option value="MD">Maryland</option>
@@ -174,29 +174,29 @@ export default function RegisterForm({
             </select>
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Neighborhood *
             </span>
             <input
               name="neighborhood"
               required
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <legend className="text-lg font-semibold text-white">
             DCPL
           </legend>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Do you have a DCPL library card? *
             </span>
             <select
               name="dcpl_card"
               required
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white"
             >
               <option value="">Select...</option>
               <option value="yes">Yes</option>
@@ -207,17 +207,17 @@ export default function RegisterForm({
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <legend className="text-lg font-semibold text-white">
             Professional Context
           </legend>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Work Situation *
             </span>
             <select
               name="work_situation"
               required
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white"
             >
               <option value="">Select...</option>
               <option value="employed full time">Employed full time</option>
@@ -234,13 +234,13 @@ export default function RegisterForm({
             </select>
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Main Focus *
             </span>
             <select
               name="main_focus"
               required
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white"
             >
               <option value="">Select...</option>
               <option value="finding a new role">Finding a new role</option>
@@ -259,41 +259,41 @@ export default function RegisterForm({
             </select>
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Sector
             </span>
             <input
               name="sector"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Current Title
             </span>
             <input
               name="current_title"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               LinkedIn URL
             </span>
             <input
               name="linkedin"
               type="url"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <legend className="text-lg font-semibold text-white">
             AI Background
           </legend>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               AI Tool Familiarity (1-5) *
             </span>
             <input
@@ -302,12 +302,12 @@ export default function RegisterForm({
               min={1}
               max={5}
               required
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
           {options.ai_tools && (
             <div>
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 AI Tools Used
               </span>
               <div className="mt-2 space-y-2">
@@ -317,9 +317,9 @@ export default function RegisterForm({
                       type="checkbox"
                       name="ai_tools"
                       value={opt.id}
-                      className="rounded border-zinc-300"
+                      className="rounded border-white/20 bg-white/[0.05] text-teal"
                     />
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm text-cloud">
                       {opt.value}
                     </span>
                   </label>
@@ -330,12 +330,12 @@ export default function RegisterForm({
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <legend className="text-lg font-semibold text-white">
             Labs Fit
           </legend>
           {options.labs_goals && (
             <div>
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 What are your goals for the Labs?
               </span>
               <div className="mt-2 space-y-2">
@@ -345,9 +345,9 @@ export default function RegisterForm({
                       type="checkbox"
                       name="labs_goals"
                       value={opt.id}
-                      className="rounded border-zinc-300"
+                      className="rounded border-white/20 bg-white/[0.05] text-teal"
                     />
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm text-cloud">
                       {opt.value}
                     </span>
                   </label>
@@ -357,7 +357,7 @@ export default function RegisterForm({
           )}
           {options.availability && (
             <div>
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 Availability
               </span>
               <div className="mt-2 space-y-2">
@@ -367,9 +367,9 @@ export default function RegisterForm({
                       type="checkbox"
                       name="availability"
                       value={opt.id}
-                      className="rounded border-zinc-300"
+                      className="rounded border-white/20 bg-white/[0.05] text-teal"
                     />
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm text-cloud">
                       {opt.value}
                     </span>
                   </label>
@@ -379,7 +379,7 @@ export default function RegisterForm({
           )}
           {options.work_style && (
             <div>
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 Work Style
               </span>
               <div className="mt-2 space-y-2">
@@ -389,9 +389,9 @@ export default function RegisterForm({
                       type="checkbox"
                       name="work_style"
                       value={opt.id}
-                      className="rounded border-zinc-300"
+                      className="rounded border-white/20 bg-white/[0.05] text-teal"
                     />
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm text-cloud">
                       {opt.value}
                     </span>
                   </label>
@@ -401,7 +401,7 @@ export default function RegisterForm({
           )}
           {options.group_strengths && (
             <div>
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <span className="text-sm font-medium text-cloud">
                 Group Strengths
               </span>
               <div className="mt-2 space-y-2">
@@ -411,9 +411,9 @@ export default function RegisterForm({
                       type="checkbox"
                       name="group_strengths"
                       value={opt.id}
-                      className="rounded border-zinc-300"
+                      className="rounded border-white/20 bg-white/[0.05] text-teal"
                     />
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm text-cloud">
                       {opt.value}
                     </span>
                   </label>
@@ -422,12 +422,12 @@ export default function RegisterForm({
             </div>
           )}
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Participation Commitment
             </span>
             <select
               name="participation_commitment"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white"
             >
               <option value="">Select...</option>
               <option value="yes">Yes</option>
@@ -435,36 +435,36 @@ export default function RegisterForm({
             </select>
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Primary Expertise
             </span>
             <input
               name="primary_expertise"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm font-medium text-cloud">
               Volunteer Interest
             </span>
             <input
               name="volunteer_interest"
-              className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              className="mt-1 block w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <legend className="text-lg font-semibold text-white">
             Consent
           </legend>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
               name="text_updates"
-              className="rounded border-zinc-300"
+              className="rounded border-white/20 bg-white/[0.05] text-teal"
             />
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm text-cloud">
               I agree to receive text updates
             </span>
           </label>
@@ -473,9 +473,9 @@ export default function RegisterForm({
               type="checkbox"
               name="photo_video_consent"
               defaultChecked
-              className="rounded border-zinc-300"
+              className="rounded border-white/20 bg-white/[0.05] text-teal"
             />
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+            <span className="text-sm text-cloud">
               I consent to photo/video usage
             </span>
           </label>
@@ -484,7 +484,7 @@ export default function RegisterForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="w-full rounded-full bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
         >
           {submitting ? "Submitting..." : "Become an Upskiller"}
         </button>
