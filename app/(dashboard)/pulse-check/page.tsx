@@ -173,6 +173,8 @@ export default function PulseCheckPage() {
     );
   }
 
+  const hasCycles = enrollments.length > 0;
+
   if (enrollments.length === 0) {
     return (
       <div className="mx-auto max-w-2xl text-center py-20">
