@@ -60,8 +60,9 @@ export default async function DashboardLayout({
             </Link>
             <Link
               href="/pulse-check"
-              className="text-sm text-cloud transition-colors hover:text-aqua"
+              className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 px-3 py-1 text-sm font-medium text-yellow-300 transition-colors hover:bg-yellow-500/20"
             >
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400" />
               Pulse Check
             </Link>
             {adminUser && (

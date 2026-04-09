@@ -34,6 +34,26 @@ export default async function CyclesPage() {
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
+      {/* Pulse Check CTA — always-on requirement */}
+      {activeCycle && (
+        <Link
+          href="/pulse-check"
+          className="mb-4 flex items-center justify-between rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors hover:border-yellow-500/40 hover:bg-yellow-500/[0.07]"
+        >
+          <div className="flex items-center gap-3">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
+            <div>
+              <span className="font-medium text-white">Weekly Pulse Check</span>
+              <p className="text-sm text-cloud/50">
+                Stay active &mdash; complete your check-in to keep access to
+                cycle tools
+              </p>
+            </div>
+          </div>
+          <span className="text-sm font-medium text-yellow-300">&rarr;</span>
+        </Link>
+      )}
+
       {/* Active cycle quick-link */}
       {activeCycle && (
         <Link
