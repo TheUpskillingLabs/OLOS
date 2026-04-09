@@ -1,4 +1,5 @@
--- Seed data for option_lists per TUL_MVP_Spec.md
+-- Seed data for OLOS / The Upskilling Labs
+BEGIN;
 
 -- ai_tools
 INSERT INTO option_lists (list_name, value, display_order) VALUES
@@ -54,7 +55,6 @@ INSERT INTO option_lists (list_name, value, display_order) VALUES
 -- =============================================
 -- Cycle Dummy Data for Testing
 -- =============================================
-BEGIN;
 
 -- 1. Cycle
 INSERT INTO cycles (id, name, slug, start_date, end_date, status) VALUES
