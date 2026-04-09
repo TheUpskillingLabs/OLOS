@@ -1,25 +1,24 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { nameUpdateSchema } from "@/lib/validations/pods";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const PATCH = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
 
     if (!isAdmin(auth.user) && !isModeratorForPod(auth.user, podId)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await parseBody(request, nameUpdateSchema);
+    if (isErrorResponse(body)) return body;
     const { name } = body;
-
-    if (!name || name.length > 40 || name.trim().split(/\s+/).length > 3) {
-      return NextResponse.json(
-        { error: "Name must be 3 words or fewer and 40 characters or fewer" },
-        { status: 400 }
-      );
-    }
 
     const { data, error } = await auth.supabase
       .from("pods")
@@ -29,7 +28,7 @@ export const PATCH = withAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(data);

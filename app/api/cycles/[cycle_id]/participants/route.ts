@@ -2,10 +2,13 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const cycleId = parseInt(params.cycle_id);
+    const cycleId = parseIntParam(params.cycle_id, "cycle_id");
+    if (cycleId instanceof NextResponse) return cycleId;
 
     if (!isAdmin(auth.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -24,7 +27,7 @@ export const GET = withAuth(
       .eq("cycle_id", cycleId);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     // Get pod memberships for this cycle

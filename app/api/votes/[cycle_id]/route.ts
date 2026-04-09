@@ -1,11 +1,14 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const cycleId = parseInt(params.cycle_id);
+    const cycleId = parseIntParam(params.cycle_id, "cycle_id");
+    if (cycleId instanceof NextResponse) return cycleId;
 
     // Tallies — visible to all
     const { data: votes, error } = await auth.supabase
@@ -14,7 +17,7 @@ export const GET = withAuth(
       .eq("cycle_id", cycleId);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     // Aggregate tallies
@@ -26,7 +29,7 @@ export const GET = withAuth(
 
     const tallies = Object.entries(tallyMap)
       .map(([id, total]) => ({
-        problem_statement_id: parseInt(id),
+        problem_statement_id: parseInt(id, 10),
         total_votes: total,
       }))
       .sort((a, b) => b.total_votes - a.total_votes);

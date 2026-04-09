@@ -1,0 +1,38 @@
+import { z } from "zod";
+
+export const createCycleSchema = z.object({
+  name: z.string().min(1, "name is required").max(200),
+  slug: z.string().max(200).optional(),
+  start_date: z.string().min(1, "start_date is required"),
+  end_date: z.string().min(1, "end_date is required"),
+});
+
+export const updateCycleConfigSchema = z.object({
+  submitter_votes: z.number().int().min(0).optional(),
+  non_submitter_votes: z.number().int().min(0).optional(),
+  vote_threshold: z.number().int().min(0).optional(),
+  max_pods: z.number().int().min(1).optional(),
+  pod_min: z.number().int().min(1).optional(),
+  project_submitter_votes: z.number().int().min(0).optional(),
+  project_vote_threshold: z.number().int().min(0).optional(),
+  max_projects: z.number().int().min(1).optional(),
+  project_max: z.number().int().min(1).optional(),
+  problem_statement_open: z.string().nullable().optional(),
+  problem_statement_close: z.string().nullable().optional(),
+  voting_open: z.string().nullable().optional(),
+  voting_close: z.string().nullable().optional(),
+  pod_registration_open: z.string().nullable().optional(),
+  pod_registration_close: z.string().nullable().optional(),
+  solution_proposal_open: z.string().nullable().optional(),
+  solution_proposal_close: z.string().nullable().optional(),
+  solution_voting_open: z.string().nullable().optional(),
+  solution_voting_close: z.string().nullable().optional(),
+  project_registration_open: z.string().nullable().optional(),
+  project_registration_close: z.string().nullable().optional(),
+});
+
+export const updateCycleStatusSchema = z.object({
+  status: z.enum(["draft", "active", "closed"], {
+    message: 'status must be one of: "draft", "active", "closed"',
+  }),
+});

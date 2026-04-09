@@ -1,6 +1,10 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { updateCycleStatusSchema } from "@/lib/validations/cycles";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ["active"],
@@ -9,16 +13,12 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 
 export const PATCH = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const cycleId = parseInt(params.cycle_id);
-    const body = await request.json();
-    const { status } = body;
+    const cycleId = parseIntParam(params.cycle_id, "cycle_id");
+    if (cycleId instanceof NextResponse) return cycleId;
 
-    if (!["draft", "active", "closed"].includes(status)) {
-      return NextResponse.json(
-        { error: "status must be one of: draft, active, closed" },
-        { status: 400 }
-      );
-    }
+    const body = await parseBody(request, updateCycleStatusSchema);
+    if (isErrorResponse(body)) return body;
+    const { status } = body;
 
     // Get current status
     const { data: cycle } = await auth.supabase
@@ -53,7 +53,7 @@ export const PATCH = withAdminAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(data);

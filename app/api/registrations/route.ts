@@ -1,9 +1,21 @@
 import { NextResponse, NextRequest } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
+import { dbError } from "@/lib/api/errors";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { registrationSchema } from "@/lib/validations/participants";
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  // Verify the user has an active Supabase session
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await parseBody(request, registrationSchema);
+  if (isErrorResponse(body)) return body;
+
   const supabase = createServiceClient();
 
   const {
@@ -38,11 +50,6 @@ export async function POST(request: NextRequest) {
     cycle_id,
   } = body;
 
-  // Validate required fields
-  if (!google_id || !email || !first_name || !last_name || !state || !neighborhood || !dcpl_card || !work_situation || !main_focus || ai_tool_familiarity == null || text_updates == null) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
-
   // Insert participant
   const { data: participant, error: pError } = await supabase
     .from("participants")
@@ -75,7 +82,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (pError) {
-    return NextResponse.json({ error: pError.message }, { status: 500 });
+    return dbError(pError, "registration");
   }
 
   if (isOwnerEmail(email)) {

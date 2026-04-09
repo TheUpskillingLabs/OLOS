@@ -2,20 +2,20 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isActiveParticipant } from "@/lib/auth/roles";
 import { checkWindow } from "@/lib/auth/windows";
+import { dbError } from "@/lib/api/errors";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { problemStatementSchema } from "@/lib/validations/votes";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
-    const body = await request.json();
+    const body = await parseBody(request, problemStatementSchema);
+    if (isErrorResponse(body)) return body;
     const { cycle_id, statement_text } = body;
     const participant_id = auth.user.participantId;
 
     if (!participant_id) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
-    }
-
-    if (!cycle_id || !statement_text) {
-      return NextResponse.json({ error: "cycle_id and statement_text are required" }, { status: 400 });
     }
 
     // Check window
@@ -36,7 +36,7 @@ export const POST = withAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(data, { status: 201 });

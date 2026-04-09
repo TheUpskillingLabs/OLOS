@@ -1,16 +1,18 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { parseIntParam } from "@/lib/api/params";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { reactivateSchema } from "@/lib/validations/pods";
 
 export const POST = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const participantId = parseInt(params.participant_id);
-    const body = await request.json();
-    const { cycle_id } = body;
+    const participantId = parseIntParam(params.participant_id, "participant_id");
+    if (participantId instanceof NextResponse) return participantId;
 
-    if (!cycle_id) {
-      return NextResponse.json({ error: "cycle_id is required" }, { status: 400 });
-    }
+    const body = await parseBody(request, reactivateSchema);
+    if (isErrorResponse(body)) return body;
+    const { cycle_id } = body;
 
     // 1. Restore enrollment
     await auth.supabase

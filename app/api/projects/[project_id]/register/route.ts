@@ -2,10 +2,13 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { checkWindow } from "@/lib/auth/windows";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
 
 export const POST = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const projectId = parseInt(params.project_id);
+    const projectId = parseIntParam(params.project_id, "project_id");
+    if (projectId instanceof NextResponse) return projectId;
     const participantId = auth.user.participantId;
 
     if (!participantId) {
@@ -96,7 +99,7 @@ export const POST = withAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     // Check if project should activate
@@ -117,7 +120,8 @@ export const POST = withAuth(
 
 export const DELETE = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const projectId = parseInt(params.project_id);
+    const projectId = parseIntParam(params.project_id, "project_id");
+    if (projectId instanceof NextResponse) return projectId;
     const participantId = auth.user.participantId;
 
     if (!participantId) {
@@ -148,7 +152,7 @@ export const DELETE = withAuth(
       .is("left_at", null);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json({ success: true });
