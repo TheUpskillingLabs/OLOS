@@ -1,11 +1,16 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { checkWindow } from "@/lib/auth/windows";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { solutionProposalSchema } from "@/lib/validations/pods";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
 
     const { data, error } = await auth.supabase
       .from("solution_proposals")
@@ -14,7 +19,7 @@ export const GET = withAuth(
       .order("created_at");
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(data);
@@ -23,18 +28,17 @@ export const GET = withAuth(
 
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
     const participantId = auth.user.participantId;
-    const body = await request.json();
-    const { proposal_text } = body;
 
     if (!participantId) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
 
-    if (!proposal_text) {
-      return NextResponse.json({ error: "proposal_text is required" }, { status: 400 });
-    }
+    const body = await parseBody(request, solutionProposalSchema);
+    if (isErrorResponse(body)) return body;
+    const { proposal_text } = body;
 
     // Get pod for cycle_id
     const { data: pod } = await auth.supabase
@@ -81,7 +85,7 @@ export const POST = withAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(data, { status: 201 });

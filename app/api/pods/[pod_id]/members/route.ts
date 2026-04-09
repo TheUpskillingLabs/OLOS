@@ -1,10 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
     const statusFilter = request.nextUrl.searchParams.get("status");
 
     let query = auth.supabase
@@ -24,7 +27,7 @@ export const GET = withAuth(
     const { data, error } = await query.order("joined_at");
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     const result = (data || []).map((m) => {

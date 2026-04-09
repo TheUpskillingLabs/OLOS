@@ -1,15 +1,18 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const cycleId = parseInt(params.cycle_id);
+    const cycleId = parseIntParam(params.cycle_id, "cycle_id");
+    if (cycleId instanceof NextResponse) return cycleId;
     const participantId = request.nextUrl.searchParams.get("participant_id");
 
     const targetId = participantId
-      ? parseInt(participantId)
+      ? parseInt(participantId, 10)
       : auth.user.participantId;
 
     if (!targetId) {
@@ -29,7 +32,7 @@ export const GET = withAuth(
       .order("scheduled_date");
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(data);

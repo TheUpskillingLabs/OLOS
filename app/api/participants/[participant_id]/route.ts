@@ -2,10 +2,12 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { parseIntParam } from "@/lib/api/params";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const participantId = parseInt(params.participant_id);
+    const participantId = parseIntParam(params.participant_id, "participant_id");
+    if (participantId instanceof NextResponse) return participantId;
 
     // Only own record or admin
     if (participantId !== auth.user.participantId && !isAdmin(auth.user)) {

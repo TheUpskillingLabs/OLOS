@@ -1,10 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { parseIntParam } from "@/lib/api/params";
 
 export const POST = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const cycleId = parseInt(params.cycle_id);
+    const cycleId = parseIntParam(params.cycle_id, "cycle_id");
+    if (cycleId instanceof NextResponse) return cycleId;
     const now = new Date().toISOString();
 
     // Get all active enrollees

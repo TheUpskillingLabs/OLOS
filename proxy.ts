@@ -52,9 +52,12 @@ export async function proxy(request: NextRequest) {
     }
 
     return supabaseResponse;
-  } catch {
-    // If auth check fails, let the request through rather than blocking everything
-    return NextResponse.next();
+  } catch (error) {
+    console.error("[AUTH_MIDDLEWARE] Auth check failed:", error);
+    // Fail closed: redirect to login rather than passing unauthenticated requests through
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 }
 

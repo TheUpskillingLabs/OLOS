@@ -1,11 +1,16 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth, withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { moderatorAssignmentSchema } from "@/lib/validations/pods";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
 
     if (!isAdmin(auth.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -21,7 +26,7 @@ export const GET = withAuth(
       .order("assigned_at");
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     const result = (data || []).map((a) => {
@@ -40,16 +45,12 @@ export const GET = withAuth(
 
 export const POST = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
-    const body = await request.json();
-    const { participant_id, cycle_id } = body;
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
 
-    if (!participant_id || !cycle_id) {
-      return NextResponse.json(
-        { error: "participant_id and cycle_id are required" },
-        { status: 400 }
-      );
-    }
+    const body = await parseBody(request, moderatorAssignmentSchema);
+    if (isErrorResponse(body)) return body;
+    const { participant_id, cycle_id } = body;
 
     const { data, error } = await auth.supabase
       .from("moderator_assignments")
@@ -58,7 +59,7 @@ export const POST = withAdminAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(

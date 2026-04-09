@@ -1,10 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { parseIntParam } from "@/lib/api/params";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const projectId = parseInt(params.project_id);
+    const projectId = parseIntParam(params.project_id, "project_id");
+    if (projectId instanceof NextResponse) return projectId;
 
     const { data: project, error } = await auth.supabase
       .from("projects")

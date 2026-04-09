@@ -3,6 +3,9 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { NextRequest } from "next/server";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { dbError } from "@/lib/api/errors";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { createOptionSchema } from "@/lib/validations/pods";
 
 export async function GET() {
   const supabase = createServiceClient();
@@ -13,7 +16,7 @@ export async function GET() {
     .order("display_order");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return dbError(error);
   }
 
   const grouped: Record<string, { id: number; value: string }[]> = {};
@@ -27,15 +30,9 @@ export async function GET() {
 
 export const POST = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
-    const body = await request.json();
+    const body = await parseBody(request, createOptionSchema);
+    if (isErrorResponse(body)) return body;
     const { list_name, value, display_order } = body;
-
-    if (!list_name || !value) {
-      return NextResponse.json(
-        { error: "list_name and value are required" },
-        { status: 400 }
-      );
-    }
 
     const { data, error } = await auth.supabase
       .from("option_lists")
@@ -44,7 +41,7 @@ export const POST = withAdminAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(data, { status: 201 });

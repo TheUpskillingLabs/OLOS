@@ -2,10 +2,12 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import { generateName } from "@/lib/llm/names";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { parseIntParam } from "@/lib/api/params";
 
 export const POST = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const cycleId = parseInt(params.cycle_id);
+    const cycleId = parseIntParam(params.cycle_id, "cycle_id");
+    if (cycleId instanceof NextResponse) return cycleId;
 
     // Get cycle config
     const { data: config } = await auth.supabase
@@ -45,10 +47,10 @@ export const POST = withAdminAuth(
     // Rank: filter by threshold, sort by votes desc, then by submission time asc
     const ranked = Object.entries(tallyMap)
       .map(([id, total]) => ({
-        problem_statement_id: parseInt(id),
+        problem_statement_id: parseInt(id, 10),
         total_votes: total,
-        created_at: stmtMap[parseInt(id)]?.createdAt || "",
-        text: stmtMap[parseInt(id)]?.text || "",
+        created_at: stmtMap[parseInt(id, 10)]?.createdAt || "",
+        text: stmtMap[parseInt(id, 10)]?.text || "",
       }))
       .sort((a, b) => {
         if (b.total_votes !== a.total_votes) return b.total_votes - a.total_votes;

@@ -1,10 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { parseIntParam } from "@/lib/api/params";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
 
     // Get pod with problem statement
     const { data: pod } = await auth.supabase

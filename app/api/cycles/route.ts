@@ -2,6 +2,9 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth, withAdminAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { dbError } from "@/lib/api/errors";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { createCycleSchema } from "@/lib/validations/cycles";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest) => {
@@ -21,7 +24,7 @@ export const GET = withAuth(
 
     const { data, error } = await query;
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
     return NextResponse.json(data);
   }
@@ -29,15 +32,9 @@ export const GET = withAuth(
 
 export const POST = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
-    const body = await request.json();
+    const body = await parseBody(request, createCycleSchema);
+    if (isErrorResponse(body)) return body;
     const { name, slug, start_date, end_date } = body;
-
-    if (!name || !start_date || !end_date) {
-      return NextResponse.json(
-        { error: "name, start_date, and end_date are required" },
-        { status: 400 }
-      );
-    }
 
     // Create cycle
     const { data: cycle, error: cycleError } = await auth.supabase
@@ -47,7 +44,7 @@ export const POST = withAdminAuth(
       .single();
 
     if (cycleError) {
-      return NextResponse.json({ error: cycleError.message }, { status: 500 });
+      return dbError(cycleError);
     }
 
     // Create default config
@@ -58,7 +55,7 @@ export const POST = withAdminAuth(
       .single();
 
     if (configError) {
-      return NextResponse.json({ error: configError.message }, { status: 500 });
+      return dbError(configError);
     }
 
     return NextResponse.json({ ...cycle, config }, { status: 201 });

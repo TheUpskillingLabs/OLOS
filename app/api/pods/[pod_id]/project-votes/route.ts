@@ -2,11 +2,16 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { checkWindow } from "@/lib/auth/windows";
+import { dbError } from "@/lib/api/errors";
+import { parseIntParam } from "@/lib/api/params";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { projectVoteSchema } from "@/lib/validations/pods";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
 
     const { data: votes, error } = await auth.supabase
       .from("project_votes")
@@ -14,7 +19,7 @@ export const GET = withAuth(
       .eq("pod_id", podId);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     // Aggregate tallies
@@ -26,7 +31,7 @@ export const GET = withAuth(
 
     const tallies = Object.entries(tallyMap)
       .map(([id, total]) => ({
-        solution_proposal_id: parseInt(id),
+        solution_proposal_id: parseInt(id, 10),
         total_votes: total,
       }))
       .sort((a, b) => b.total_votes - a.total_votes);
@@ -43,21 +48,17 @@ export const GET = withAuth(
 
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
     const voterId = auth.user.participantId;
-    const body = await request.json();
-    const { solution_proposal_id, vote_count } = body;
 
     if (!voterId) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
 
-    if (!solution_proposal_id || !vote_count || vote_count < 1) {
-      return NextResponse.json(
-        { error: "solution_proposal_id and vote_count (>= 1) are required" },
-        { status: 400 }
-      );
-    }
+    const body = await parseBody(request, projectVoteSchema);
+    if (isErrorResponse(body)) return body;
+    const { solution_proposal_id, vote_count } = body;
 
     // Get pod for cycle_id
     const { data: pod } = await auth.supabase
@@ -151,7 +152,7 @@ export const POST = withAuth(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbError(error);
     }
 
     return NextResponse.json(

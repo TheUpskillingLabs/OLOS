@@ -2,11 +2,13 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { generateName } from "@/lib/llm/names";
+import { parseIntParam } from "@/lib/api/params";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseInt(params.pod_id);
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
 
     if (!isAdmin(auth.user) && !isModeratorForPod(auth.user, podId)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -60,10 +62,10 @@ export const POST = withAuth(
 
     const ranked = Object.entries(tallyMap)
       .map(([id, total]) => ({
-        solution_proposal_id: parseInt(id),
+        solution_proposal_id: parseInt(id, 10),
         total_votes: total,
-        created_at: propMap[parseInt(id)]?.createdAt || "",
-        text: propMap[parseInt(id)]?.text || "",
+        created_at: propMap[parseInt(id, 10)]?.createdAt || "",
+        text: propMap[parseInt(id, 10)]?.text || "",
       }))
       .sort((a, b) => {
         if (b.total_votes !== a.total_votes) return b.total_votes - a.total_votes;
