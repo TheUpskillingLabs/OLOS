@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -31,6 +32,9 @@ export async function GET(request: Request) {
               .from("participants")
               .update({ auth_user_id: user.id })
               .eq("id", participant.id);
+          }
+          if (email && isOwnerEmail(email)) {
+            await ensureOwnerRole(serviceClient, participant.id);
           }
           return NextResponse.redirect(`${origin}/`);
         } else {

@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -75,6 +76,10 @@ export async function POST(request: NextRequest) {
 
   if (pError) {
     return NextResponse.json({ error: pError.message }, { status: 500 });
+  }
+
+  if (isOwnerEmail(email)) {
+    await ensureOwnerRole(supabase, participant.id);
   }
 
   // Insert multiselect options
