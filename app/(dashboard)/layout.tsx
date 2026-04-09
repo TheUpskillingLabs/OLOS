@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
@@ -16,6 +16,25 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // Fetch participant profile for avatar and name
+  const serviceClient = createServiceClient();
+  const { data: participant } = await serviceClient
+    .from("participants")
+    .select("preferred_name, first_name, last_name, profile_image_url")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  const displayName =
+    participant?.preferred_name ||
+    (participant
+      ? `${participant.first_name} ${participant.last_name}`
+      : user.email);
+
+  const avatarUrl = participant?.profile_image_url;
+  const initials = participant
+    ? `${participant.first_name[0]}${participant.last_name[0]}`
+    : (user.email?.[0] ?? "?").toUpperCase();
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
@@ -26,9 +45,37 @@ export default async function DashboardLayout({
           >
             The Upskilling Labs
           </Link>
-          <div className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
-            <span>{user.email}</span>
-          </div>
+          <nav className="flex items-center gap-6">
+            <Link
+              href="/cycles"
+              className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
+              Cycles
+            </Link>
+            <Link
+              href="/pulse-check"
+              className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
+              Pulse Check
+            </Link>
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={displayName ?? ""}
+                  className="h-7 w-7 rounded-full"
+                />
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                  {initials}
+                </span>
+              )}
+              <span className="hidden sm:inline">{displayName}</span>
+            </Link>
+          </nav>
         </div>
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
