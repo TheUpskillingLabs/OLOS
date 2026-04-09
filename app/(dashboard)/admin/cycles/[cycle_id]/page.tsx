@@ -53,7 +53,6 @@ export default async function AdminCycleDetailPage({
 
   if (!cycle) notFound();
 
-  // Enrollments with participant data
   const { data: enrollments } = await serviceClient
     .from("cycle_enrollments")
     .select(
@@ -62,14 +61,12 @@ export default async function AdminCycleDetailPage({
     )
     .eq("cycle_id", cycleId);
 
-  // Pods
   const { data: pods } = await serviceClient
     .from("pods")
     .select("id, name, status")
     .eq("cycle_id", cycleId)
     .order("created_at");
 
-  // Pod memberships
   const podIds = pods?.map((p) => p.id) ?? [];
   const { data: podMemberships } = podIds.length
     ? await serviceClient
@@ -84,7 +81,6 @@ export default async function AdminCycleDetailPage({
     (podsByParticipant[m.participant_id] ??= []).push(m.pod_id);
   }
 
-  // Elevated roles for participants
   const participantIds = enrollments?.map((e) => e.participant_id) ?? [];
   const { data: elevatedRoles } = participantIds.length
     ? await serviceClient
@@ -119,7 +115,6 @@ export default async function AdminCycleDetailPage({
     };
   });
 
-  // Revocations
   const { data: revocations } = await serviceClient
     .from("access_revocations")
     .select("participant_id, reason, revocation_scope, revoked_at, revoked_systems")
@@ -134,27 +129,25 @@ export default async function AdminCycleDetailPage({
       <div className="mb-8">
         <Link
           href="/admin"
-          className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          className="text-sm text-cloud/60 hover:text-aqua"
         >
           &larr; Admin
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            {cycle.name}
-          </h1>
+          <h1 className="text-2xl font-bold text-white">{cycle.name}</h1>
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
               cycle.status === "active"
-                ? "bg-green-100 text-green-800"
+                ? "bg-teal/20 text-aqua"
                 : cycle.status === "closed"
-                  ? "bg-zinc-100 text-zinc-600"
-                  : "bg-yellow-100 text-yellow-800"
+                  ? "bg-white/10 text-cloud/60"
+                  : "bg-yellow-500/20 text-yellow-300"
             }`}
           >
             {cycle.status}
           </span>
         </div>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-cloud/60">
           {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
           {new Date(cycle.end_date).toLocaleDateString()}
         </p>
@@ -162,67 +155,57 @@ export default async function AdminCycleDetailPage({
 
       {/* Stats */}
       <div className="mb-10 grid grid-cols-3 gap-4">
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">Enrolled</p>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            {participants.length}
-          </p>
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
+          <p className="text-sm text-cloud/60">Enrolled</p>
+          <p className="text-2xl font-bold text-white">{participants.length}</p>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">Active</p>
-          <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
+          <p className="text-sm text-cloud/60">Active</p>
+          <p className="text-2xl font-bold text-aqua">{activeCount}</p>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500">Pods</p>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            {pods?.length ?? 0}
-          </p>
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
+          <p className="text-sm text-cloud/60">Pods</p>
+          <p className="text-2xl font-bold text-white">{pods?.length ?? 0}</p>
         </div>
       </div>
 
       <div className="space-y-10">
         {/* Status */}
         <section>
-          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <h2 className="mb-4 text-lg font-semibold text-white">
             Cycle Status
           </h2>
           <CycleStatusForm cycleId={cycle.id} currentStatus={cycle.status} />
         </section>
 
-        <hr className="border-zinc-200 dark:border-zinc-800" />
+        <hr className="border-whisper" />
 
         {/* Schedule */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Schedule
-          </h2>
-          <p className="mb-4 text-sm text-zinc-500">
+          <h2 className="mb-1 text-lg font-semibold text-white">Schedule</h2>
+          <p className="mb-4 text-sm text-cloud/60">
             Open and close times for each phase.
           </p>
           {config && <CycleScheduleForm cycleId={cycle.id} config={config} />}
         </section>
 
-        <hr className="border-zinc-200 dark:border-zinc-800" />
+        <hr className="border-whisper" />
 
         {/* Parameters */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Parameters
-          </h2>
-          <p className="mb-4 text-sm text-zinc-500">
+          <h2 className="mb-1 text-lg font-semibold text-white">Parameters</h2>
+          <p className="mb-4 text-sm text-cloud/60">
             Voting thresholds and pod / project limits.
           </p>
           {config && <CycleParamsForm cycleId={cycle.id} config={config} />}
         </section>
 
-        <hr className="border-zinc-200 dark:border-zinc-800" />
+        <hr className="border-whisper" />
 
         {/* Pod Voting */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Pod Voting
-          </h2>
-          <p className="mb-4 text-sm text-zinc-500">
+          <h2 className="mb-1 text-lg font-semibold text-white">Pod Voting</h2>
+          <p className="mb-4 text-sm text-cloud/60">
             Finalize problem-statement voting to create pods. Uses AI to
             generate pod names.
           </p>
@@ -231,57 +214,57 @@ export default async function AdminCycleDetailPage({
 
         {pods && pods.length > 0 && (
           <>
-            <hr className="border-zinc-200 dark:border-zinc-800" />
+            <hr className="border-whisper" />
             <section>
-              <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              <h2 className="mb-4 text-lg font-semibold text-white">
                 Pods ({pods.length})
               </h2>
-              <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div className="overflow-hidden rounded-md border border-whisper">
                 <table className="w-full text-sm">
-                  <thead className="bg-zinc-50 dark:bg-zinc-800">
+                  <thead className="bg-white/[0.04]">
                     <tr>
-                      <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                      <th className="px-4 py-3 text-left font-medium text-cloud/60">
                         Pod
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                      <th className="px-4 py-3 text-left font-medium text-cloud/60">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+                      <th className="px-4 py-3 text-left font-medium text-cloud/60">
                         Members
                       </th>
-                      <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400" />
+                      <th className="px-4 py-3 text-right font-medium text-cloud/60" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-900">
+                  <tbody className="divide-y divide-whisper">
                     {pods.map((pod) => {
                       const memberCount = (podMemberships ?? []).filter(
                         (m) => m.pod_id === pod.id
                       ).length;
                       return (
                         <tr key={pod.id}>
-                          <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-50">
+                          <td className="px-4 py-3 font-medium text-white">
                             {pod.name ?? `Pod ${pod.id}`}
                           </td>
                           <td className="px-4 py-3">
                             <span
                               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                                 pod.status === "active"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-teal/20 text-aqua"
                                   : pod.status === "forming"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-zinc-100 text-zinc-600"
+                                    ? "bg-teal/10 text-teal"
+                                    : "bg-white/10 text-cloud/60"
                               }`}
                             >
                               {pod.status}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-zinc-500">
+                          <td className="px-4 py-3 text-cloud/60">
                             {memberCount}
                           </td>
                           <td className="px-4 py-3 text-right">
                             <Link
                               href={`/pods/${pod.id}`}
-                              className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                              className="text-sm text-cloud/60 hover:text-aqua"
                             >
                               View &rarr;
                             </Link>
@@ -296,24 +279,24 @@ export default async function AdminCycleDetailPage({
           </>
         )}
 
-        <hr className="border-zinc-200 dark:border-zinc-800" />
+        <hr className="border-whisper" />
 
         {/* Participants */}
         <section>
-          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <h2 className="mb-4 text-lg font-semibold text-white">
             Participants ({participants.length})
           </h2>
           <ParticipantsTable participants={participants} />
         </section>
 
-        <hr className="border-zinc-200 dark:border-zinc-800" />
+        <hr className="border-whisper" />
 
         {/* Revocations */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <h2 className="mb-1 text-lg font-semibold text-white">
             Access Revocations
           </h2>
-          <p className="mb-4 text-sm text-zinc-500">
+          <p className="mb-4 text-sm text-cloud/60">
             Check for inactive participants and manage revocations.
           </p>
           <RevocationsSection

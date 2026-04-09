@@ -55,15 +55,15 @@ export default function CycleStatusForm({
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <span className="text-sm text-zinc-500">
+      <span className="text-sm text-cloud/60">
         Current status:{" "}
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
             currentStatus === "active"
-              ? "bg-green-100 text-green-800"
+              ? "bg-teal/20 text-aqua"
               : currentStatus === "closed"
-                ? "bg-zinc-100 text-zinc-600"
-                : "bg-yellow-100 text-yellow-800"
+                ? "bg-white/10 text-cloud/60"
+                : "bg-yellow-500/20 text-yellow-300"
           }`}
         >
           {currentStatus}
@@ -74,21 +74,21 @@ export default function CycleStatusForm({
         <button
           onClick={advance}
           disabled={loading}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
             nextStatus === "closed"
-              ? "bg-red-600 text-white hover:bg-red-700"
-              : "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              ? "bg-red text-white hover:bg-crimson"
+              : "bg-teal text-white hover:bg-teal/80"
           }`}
         >
           {loading ? "Updating…" : BUTTON_LABELS[nextStatus]}
         </button>
       ) : (
-        <span className="text-sm text-zinc-400">
+        <span className="text-sm text-cloud/40">
           Cycle is closed — no further transitions.
         </span>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red">{error}</p>}
     </div>
   );
 }

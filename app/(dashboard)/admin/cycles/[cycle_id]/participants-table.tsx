@@ -44,33 +44,33 @@ export default function ParticipantsTable({
   }
 
   if (participants.length === 0) {
-    return <p className="text-sm text-zinc-500">No participants enrolled.</p>;
+    return <p className="text-sm text-cloud/60">No participants enrolled.</p>;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+    <div className="overflow-hidden rounded-md border border-whisper">
       <table className="w-full text-sm">
-        <thead className="bg-zinc-50 dark:bg-zinc-800">
+        <thead className="bg-white/[0.04]">
           <tr>
-            <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+            <th className="px-4 py-3 text-left font-medium text-cloud/60">
               Name
             </th>
-            <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+            <th className="px-4 py-3 text-left font-medium text-cloud/60">
               Email
             </th>
-            <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+            <th className="px-4 py-3 text-left font-medium text-cloud/60">
               Status
             </th>
-            <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+            <th className="px-4 py-3 text-left font-medium text-cloud/60">
               Pods
             </th>
-            <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+            <th className="px-4 py-3 text-left font-medium text-cloud/60">
               Role
             </th>
-            <th className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-400" />
+            <th className="px-4 py-3 text-right font-medium text-cloud/60" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-900">
+        <tbody className="divide-y divide-whisper">
           {participants.map((p) => {
             const displayName = p.preferred_name
               ? `${p.preferred_name} ${p.last_name}`
@@ -91,34 +91,34 @@ export default function ParticipantsTable({
 
             return (
               <tr key={p.participant_id}>
-                <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-50">
+                <td className="px-4 py-3 font-medium text-white">
                   {displayName}
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{p.email}</td>
+                <td className="px-4 py-3 text-cloud/60">{p.email}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       p.status === "active"
-                        ? "bg-green-100 text-green-800"
+                        ? "bg-teal/20 text-aqua"
                         : p.status === "revoked"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-zinc-100 text-zinc-600"
+                          ? "bg-red/20 text-red"
+                          : "bg-white/10 text-cloud/60"
                     }`}
                   >
                     {p.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{p.pods.length}</td>
+                <td className="px-4 py-3 text-cloud/60">{p.pods.length}</td>
                 <td className="px-4 py-3">
                   {(topRole ?? justGranted) && (
-                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                    <span className="rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua">
                       {justGranted && !topRole ? "observer" : topRole}
                     </span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {errors[p.participant_id] && (
-                    <span className="mr-2 text-xs text-red-600">
+                    <span className="mr-2 text-xs text-red">
                       {errors[p.participant_id]}
                     </span>
                   )}
@@ -126,9 +126,11 @@ export default function ParticipantsTable({
                     <button
                       onClick={() => grantObserver(p.participant_id)}
                       disabled={loadingIds.has(p.participant_id)}
-                      className="rounded px-2.5 py-1 text-xs font-medium text-zinc-600 ring-1 ring-zinc-300 hover:bg-zinc-50 disabled:opacity-50 dark:text-zinc-400 dark:ring-zinc-700 dark:hover:bg-zinc-800"
+                      className="rounded px-2.5 py-1 text-xs font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud disabled:opacity-50"
                     >
-                      {loadingIds.has(p.participant_id) ? "…" : "Grant Observer"}
+                      {loadingIds.has(p.participant_id)
+                        ? "…"
+                        : "Grant Observer"}
                     </button>
                   )}
                 </td>
