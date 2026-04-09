@@ -11,7 +11,7 @@ export const GET = withAuth(
 
     const { data, error } = await auth.supabase
       .from("problem_statements")
-      .select("id, participant_id, statement_text, created_at")
+      .select("id, participant_id, statement_text, proposal_data, created_at")
       .eq("cycle_id", cycleId)
       .order("created_at");
 
