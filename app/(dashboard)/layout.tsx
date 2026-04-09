@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import LogoutButton from "./components/logout-button";
 
 export default async function DashboardLayout({
   children,
@@ -88,6 +89,7 @@ export default async function DashboardLayout({
               )}
               <span className="hidden sm:inline">{displayName}</span>
             </Link>
+            <LogoutButton />
           </nav>
         </div>
       </header>
