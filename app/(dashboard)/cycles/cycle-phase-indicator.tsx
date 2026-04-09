@@ -30,10 +30,16 @@ const OPERATIONAL_WINDOWS = [
   { label: "Project Registration", field: "project_registration" },
 ] as const;
 
-type WindowField = (typeof OPERATIONAL_WINDOWS)[number]["field"];
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatDateLong(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    weekday: "short",
     month: "short",
     day: "numeric",
   });
@@ -46,11 +52,11 @@ function getCurrentPhase(
   phase3Start: Date,
   endDate: Date
 ): number {
-  if (now < startDate) return 0; // before cycle
+  if (now < startDate) return 0;
   if (now < phase2Start) return 1;
   if (now < phase3Start) return 2;
   if (now <= endDate) return 3;
-  return 4; // after cycle
+  return 4;
 }
 
 function getActiveWindows(
@@ -64,9 +70,7 @@ function getActiveWindows(
     const openVal = config[openKey];
     const closeVal = config[closeKey];
     if (openVal && closeVal) {
-      const openDate = new Date(openVal);
-      const closeDate = new Date(closeVal);
-      if (now >= openDate && now <= closeDate) {
+      if (now >= new Date(openVal) && now <= new Date(closeVal)) {
         active.push({ label: w.label, closesAt: closeVal });
       }
     }
@@ -88,11 +92,14 @@ function getUpcomingWindow(
   return null;
 }
 
-const PHASES = [
-  { number: 1, name: "Phase 1", milestone: "Meet The Pods" },
-  { number: 2, name: "Phase 2", milestone: "Meet The Projects" },
-  { number: 3, name: "Phase 3", milestone: "Demo Day" },
-];
+function daysUntil(from: Date, to: Date): number {
+  return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
+}
+
+function pct(date: Date, start: Date, total: number): number {
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(100, ((date.getTime() - start.getTime()) / total) * 100));
+}
 
 export default function CyclePhaseIndicator({
   cycle,
@@ -110,152 +117,202 @@ export default function CyclePhaseIndicator({
   const phase2Start = new Date(config.phase_2_start);
   const phase3Start = new Date(config.phase_3_start);
   const endDate = new Date(cycle.end_date);
+  const totalMs = endDate.getTime() - startDate.getTime();
 
-  const currentPhase = getCurrentPhase(
-    now,
-    startDate,
-    phase2Start,
-    phase3Start,
-    endDate
-  );
-
-  // Progress within the full cycle (0–100)
-  const totalDuration = endDate.getTime() - startDate.getTime();
-  const elapsed = Math.max(0, Math.min(now.getTime() - startDate.getTime(), totalDuration));
-  const overallProgress = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
-
-  // Phase boundary positions as percentages of the full bar
-  const phase2Pct =
-    totalDuration > 0
-      ? ((phase2Start.getTime() - startDate.getTime()) / totalDuration) * 100
-      : 33;
-  const phase3Pct =
-    totalDuration > 0
-      ? ((phase3Start.getTime() - startDate.getTime()) / totalDuration) * 100
-      : 66;
+  const currentPhase = getCurrentPhase(now, startDate, phase2Start, phase3Start, endDate);
+  const daysToShowcase = daysUntil(now, endDate);
+  const progressPct = pct(now, startDate, totalMs);
+  const phase2Pct = pct(phase2Start, startDate, totalMs);
+  const phase3Pct = pct(phase3Start, startDate, totalMs);
 
   const activeWindows = getActiveWindows(config, now);
-  const upcomingWindow =
-    activeWindows.length === 0 ? getUpcomingWindow(config, now) : null;
+  const upcomingWindow = activeWindows.length === 0 ? getUpcomingWindow(config, now) : null;
+
+  // Milestones for the timeline track
+  const milestones = [
+    {
+      label: "Kickoff",
+      date: cycle.start_date,
+      leftPct: 0,
+      passed: now >= startDate,
+      current: currentPhase === 1,
+    },
+    {
+      label: "Meet The Pods",
+      date: config.phase_2_start,
+      leftPct: phase2Pct,
+      passed: now >= phase2Start,
+      current: currentPhase === 2,
+    },
+    {
+      label: "Meet The Projects",
+      date: config.phase_3_start,
+      leftPct: phase3Pct,
+      passed: now >= phase3Start,
+      current: currentPhase === 3,
+    },
+    {
+      label: "Showcase",
+      date: cycle.end_date,
+      leftPct: 100,
+      passed: now > endDate,
+      current: false,
+    },
+  ];
+
+  const phaseLabels = ["Phase 1", "Phase 2", "Phase 3"];
 
   return (
-    <div className="mb-8 rounded-lg border border-whisper bg-white/[0.02] p-5">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">{cycle.name}</h2>
+    <div className="mb-10">
+      {/* Countdown hero */}
+      <div className="mb-6 flex flex-col items-center gap-1 text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
+            {cycle.name}
+          </p>
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            {currentPhase >= 1 && currentPhase <= 3 ? (
+              <>
+                <span className="text-aqua">{daysToShowcase}</span>{" "}
+                day{daysToShowcase !== 1 ? "s" : ""} to Showcase
+              </>
+            ) : currentPhase === 0 ? (
+              <>Cycle starts {formatDateLong(cycle.start_date)}</>
+            ) : (
+              <>Cycle complete</>
+            )}
+          </h2>
+        </div>
         {currentPhase >= 1 && currentPhase <= 3 && (
-          <span className="rounded-full bg-teal/20 px-3 py-1 text-xs font-medium text-aqua">
-            {PHASES[currentPhase - 1].name}
+          <span className="rounded-full bg-teal/20 px-4 py-1.5 text-sm font-semibold text-aqua">
+            {phaseLabels[currentPhase - 1]}
           </span>
         )}
       </div>
 
-      {/* Progress bar */}
-      <div className="relative mb-2 h-2.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-        {/* Filled progress */}
-        <div
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-teal to-aqua transition-all"
-          style={{ width: `${overallProgress}%` }}
-        />
-        {/* Phase boundary markers */}
-        <div
-          className="absolute inset-y-0 w-px bg-white/30"
-          style={{ left: `${phase2Pct}%` }}
-        />
-        <div
-          className="absolute inset-y-0 w-px bg-white/30"
-          style={{ left: `${phase3Pct}%` }}
-        />
-      </div>
+      {/* Timeline track */}
+      <div className="relative rounded-xl border border-whisper bg-white/[0.02] px-4 py-8 sm:px-8">
+        {/* Rail */}
+        <div className="relative mx-auto h-1.5 rounded-full bg-white/[0.06]">
+          {/* Filled portion */}
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-teal to-aqua"
+            style={{ width: `${progressPct}%` }}
+          />
 
-      {/* Phase labels row */}
-      <div className="relative mb-4 flex text-xs">
-        {/* Phase 1 */}
-        <div style={{ width: `${phase2Pct}%` }} className="pr-2">
-          <span
-            className={
-              currentPhase === 1
-                ? "font-semibold text-aqua"
-                : currentPhase > 1
-                  ? "text-cloud/40"
-                  : "text-cloud/60"
-            }
-          >
-            Phase 1
-          </span>
-          <div className="text-cloud/40">{formatDate(cycle.start_date)}</div>
+          {/* Phase segment backgrounds (subtle) */}
+          <div
+            className="absolute inset-y-0 left-0 rounded-l-full border-r border-white/10"
+            style={{ width: `${phase2Pct}%` }}
+          />
+          <div
+            className="absolute inset-y-0 border-r border-white/10"
+            style={{ left: `${phase2Pct}%`, width: `${phase3Pct - phase2Pct}%` }}
+          />
         </div>
-        {/* Phase 2 */}
-        <div
-          style={{ width: `${phase3Pct - phase2Pct}%` }}
-          className="border-l border-white/10 pl-2 pr-2"
-        >
-          <span
-            className={
-              currentPhase === 2
-                ? "font-semibold text-aqua"
-                : currentPhase > 2
-                  ? "text-cloud/40"
-                  : "text-cloud/60"
-            }
-          >
-            Phase 2
-          </span>
-          <div className="text-cloud/40">
-            {formatDate(config.phase_2_start)}
+
+        {/* Milestone nodes + labels */}
+        <div className="relative mt-0">
+          {milestones.map((m, i) => {
+            // Determine if this is the "active" milestone (the next one coming up)
+            const isNext =
+              !m.passed && (i === 0 || milestones[i - 1].passed);
+
+            return (
+              <div
+                key={m.label}
+                className="absolute"
+                style={{
+                  left: `${m.leftPct}%`,
+                  transform: "translateX(-50%)",
+                  top: "-22px",
+                }}
+              >
+                {/* Node dot */}
+                <div
+                  className={`mx-auto h-4 w-4 rounded-full border-2 ${
+                    m.passed
+                      ? "border-aqua bg-teal"
+                      : isNext
+                        ? "border-aqua bg-midnight"
+                        : "border-white/20 bg-midnight"
+                  }`}
+                />
+                {/* Label */}
+                <div className="mt-2 whitespace-nowrap text-center">
+                  <div
+                    className={`text-xs font-semibold ${
+                      m.passed
+                        ? "text-cloud/50"
+                        : isNext
+                          ? "text-aqua"
+                          : "text-cloud/40"
+                    }`}
+                  >
+                    {m.label}
+                  </div>
+                  <div className="text-[11px] text-cloud/30">
+                    {formatDate(m.date)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Phase labels centered in each segment */}
+        <div className="relative mt-14 flex">
+          <div style={{ width: `${phase2Pct}%` }} className="text-center">
+            <span
+              className={`text-xs font-medium ${
+                currentPhase === 1 ? "text-aqua" : "text-cloud/25"
+              }`}
+            >
+              Phase 1
+            </span>
           </div>
-          <div className="text-cloud/30">Meet The Pods</div>
-        </div>
-        {/* Phase 3 */}
-        <div
-          style={{ width: `${100 - phase3Pct}%` }}
-          className="border-l border-white/10 pl-2"
-        >
-          <span
-            className={
-              currentPhase === 3
-                ? "font-semibold text-aqua"
-                : currentPhase > 3
-                  ? "text-cloud/40"
-                  : "text-cloud/60"
-            }
+          <div
+            style={{ width: `${phase3Pct - phase2Pct}%` }}
+            className="text-center"
           >
-            Phase 3
-          </span>
-          <div className="text-cloud/40">
-            {formatDate(config.phase_3_start)}
+            <span
+              className={`text-xs font-medium ${
+                currentPhase === 2 ? "text-aqua" : "text-cloud/25"
+              }`}
+            >
+              Phase 2
+            </span>
           </div>
-          <div className="text-cloud/30">Meet The Projects</div>
+          <div style={{ width: `${100 - phase3Pct}%` }} className="text-center">
+            <span
+              className={`text-xs font-medium ${
+                currentPhase === 3 ? "text-aqua" : "text-cloud/25"
+              }`}
+            >
+              Phase 3
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* End date / Demo Day */}
-      <div className="mb-4 flex justify-end text-xs text-cloud/40">
-        Demo Day &middot; {formatDate(cycle.end_date)}
-      </div>
-
-      {/* Active operational windows */}
-      {activeWindows.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+      {/* Active / upcoming windows */}
+      {(activeWindows.length > 0 || upcomingWindow) && (
+        <div className="mt-4 flex flex-wrap gap-2">
           {activeWindows.map((w) => (
             <span
               key={w.label}
               className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-3 py-1 text-xs font-medium text-aqua"
             >
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-aqua" />
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-aqua" />
               {w.label} &middot; closes {formatDate(w.closesAt)}
             </span>
           ))}
-        </div>
-      )}
-
-      {/* Upcoming window (when nothing is active) */}
-      {upcomingWindow && (
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1 text-xs text-cloud/50">
-            Up next: {upcomingWindow.label} &middot; opens{" "}
-            {formatDate(upcomingWindow.opensAt)}
-          </span>
+          {upcomingWindow && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1 text-xs text-cloud/50">
+              Up next: {upcomingWindow.label} &middot; opens{" "}
+              {formatDate(upcomingWindow.opensAt)}
+            </span>
+          )}
         </div>
       )}
     </div>

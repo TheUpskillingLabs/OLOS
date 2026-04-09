@@ -25,51 +25,77 @@ export default async function CyclesPage() {
     activeCycleConfig = data;
   }
 
+  const otherCycles = cycles?.filter((c) => c.id !== activeCycle?.id) ?? [];
+
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-white">
-        Build Cycles
-      </h1>
-
+      {/* Phase timeline — the hero of the page */}
       {activeCycle && activeCycleConfig && (
-        <CyclePhaseIndicator
-          cycle={activeCycle}
-          config={activeCycleConfig}
-        />
+        <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
-      {!cycles || cycles.length === 0 ? (
+
+      {/* Active cycle quick-link */}
+      {activeCycle && (
+        <Link
+          href={`/cycles/${activeCycle.id}`}
+          className="mb-8 flex items-center justify-between rounded-md border border-teal/20 bg-teal/[0.04] p-5 transition-colors hover:border-teal/40 hover:bg-teal/[0.07]"
+        >
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              {activeCycle.name}
+            </h2>
+            <p className="mt-0.5 text-sm text-cloud/50">
+              {new Date(activeCycle.start_date).toLocaleDateString()} &ndash;{" "}
+              {new Date(activeCycle.end_date).toLocaleDateString()}
+            </p>
+          </div>
+          <span className="text-sm font-medium text-aqua">
+            View cycle &rarr;
+          </span>
+        </Link>
+      )}
+
+      {/* Past / other cycles */}
+      {otherCycles.length > 0 && (
+        <>
+          <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-cloud/40">
+            {activeCycle ? "Past Cycles" : "Build Cycles"}
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {otherCycles.map((cycle) => (
+              <Link
+                key={cycle.id}
+                href={`/cycles/${cycle.id}`}
+                className="rounded-md border border-whisper bg-white/[0.02] p-6 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
+              >
+                <div className="flex items-start justify-between">
+                  <h3 className="text-lg font-semibold text-white">
+                    {cycle.name}
+                  </h3>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      cycle.status === "active"
+                        ? "bg-teal/20 text-aqua"
+                        : cycle.status === "closed"
+                          ? "bg-white/10 text-cloud/60"
+                          : "bg-yellow-500/20 text-yellow-300"
+                    }`}
+                  >
+                    {cycle.status}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-cloud/60">
+                  {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
+                  {new Date(cycle.end_date).toLocaleDateString()}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {(!cycles || cycles.length === 0) && (
         <p className="text-cloud/60">No cycles yet.</p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cycles.map((cycle) => (
-            <Link
-              key={cycle.id}
-              href={`/cycles/${cycle.id}`}
-              className="rounded-md border border-whisper bg-white/[0.02] p-6 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
-            >
-              <div className="flex items-start justify-between">
-                <h2 className="text-lg font-semibold text-white">
-                  {cycle.name}
-                </h2>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    cycle.status === "active"
-                      ? "bg-teal/20 text-aqua"
-                      : cycle.status === "closed"
-                        ? "bg-white/10 text-cloud/60"
-                        : "bg-yellow-500/20 text-yellow-300"
-                  }`}
-                >
-                  {cycle.status}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-cloud/60">
-                {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                {new Date(cycle.end_date).toLocaleDateString()}
-              </p>
-            </Link>
-          ))}
-        </div>
       )}
     </div>
   );
