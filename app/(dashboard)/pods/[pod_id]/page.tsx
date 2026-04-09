@@ -41,20 +41,20 @@ export default async function PodDetailPage({
       <div className="mb-8">
         <Link
           href={`/cycles/${pod.cycle_id}`}
-          className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          className="text-sm text-cloud/60 hover:text-aqua"
         >
           &larr; Back to Cycle
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="mt-2 text-2xl font-bold text-white">
           {pod.name || `Pod ${pod.id}`}
         </h1>
         <span
           className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
             pod.status === "active"
-              ? "bg-green-100 text-green-800"
+              ? "bg-teal/20 text-aqua"
               : pod.status === "forming"
-                ? "bg-blue-100 text-blue-800"
-                : "bg-zinc-100 text-zinc-600"
+                ? "bg-teal/10 text-teal"
+                : "bg-white/10 text-cloud/60"
           }`}
         >
           {pod.status}
@@ -62,58 +62,58 @@ export default async function PodDetailPage({
       </div>
 
       {ps?.statement_text && (
-        <div className="mb-6 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <h3 className="mb-1 text-sm font-medium text-zinc-500">
+        <div className="mb-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
+          <h3 className="mb-1 text-sm font-medium text-cloud/60">
             Problem Statement
           </h3>
-          <p className="text-zinc-900 dark:text-zinc-50">
+          <p className="text-white">
             {ps.statement_text}
           </p>
         </div>
       )}
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+        <h2 className="mb-3 text-lg font-semibold text-white">
           Members ({members?.length || 0})
         </h2>
-        <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div className="overflow-hidden rounded-2xl border border-white/[0.05]">
           <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-50 dark:bg-zinc-800">
+            <thead className="bg-white/[0.05]">
               <tr>
-                <th className="px-4 py-2 font-medium text-zinc-600 dark:text-zinc-400">
+                <th className="px-4 py-2 font-medium text-cloud/80">
                   Name
                 </th>
-                <th className="px-4 py-2 font-medium text-zinc-600 dark:text-zinc-400">
+                <th className="px-4 py-2 font-medium text-cloud/80">
                   Status
                 </th>
-                <th className="px-4 py-2 font-medium text-zinc-600 dark:text-zinc-400">
+                <th className="px-4 py-2 font-medium text-cloud/80">
                   Joined
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody className="divide-y divide-white/[0.05]">
               {(members || []).map((m) => {
                 const p = (m.participants as unknown) as Record<string, string> | null;
                 return (
                   <tr
                     key={m.participant_id}
-                    className="bg-white dark:bg-zinc-900"
+                    className="bg-white/[0.02]"
                   >
-                    <td className="px-4 py-2 text-zinc-900 dark:text-zinc-50">
+                    <td className="px-4 py-2 text-white">
                       {p?.preferred_name || p?.first_name} {p?.last_name}
                     </td>
                     <td className="px-4 py-2">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
                           m.inactive_at
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
+                            ? "bg-red/20 text-red-300"
+                            : "bg-teal/20 text-aqua"
                         }`}
                       >
                         {m.inactive_at ? "inactive" : "active"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-zinc-500">
+                    <td className="px-4 py-2 text-cloud/60">
                       {new Date(m.joined_at).toLocaleDateString()}
                     </td>
                   </tr>
@@ -126,26 +126,26 @@ export default async function PodDetailPage({
 
       {projects && projects.length > 0 && (
         <div>
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          <h2 className="mb-3 text-lg font-semibold text-white">
             Projects
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+                className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  <span className="font-medium text-white">
                     {project.name || `Project ${project.id}`}
                   </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
                       project.status === "active"
-                        ? "bg-green-100 text-green-800"
+                        ? "bg-teal/20 text-aqua"
                         : project.status === "forming"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-zinc-100 text-zinc-600"
+                          ? "bg-teal/10 text-teal"
+                          : "bg-white/10 text-cloud/60"
                     }`}
                   >
                     {project.status}

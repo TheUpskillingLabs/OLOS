@@ -37,10 +37,10 @@ export default async function RegisterPage() {
             className="mx-auto mb-4 h-20 w-20 rounded-full"
           />
         )}
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-2xl font-bold text-white">
           Become an Upskiller
         </h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-2 text-sm text-cloud/80">
           Complete your profile to join The Upskilling Labs
         </p>
       </div>

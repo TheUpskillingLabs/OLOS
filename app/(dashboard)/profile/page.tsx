@@ -54,9 +54,9 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="rounded-xl border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-8 backdrop-blur-sm">
         {/* Header with avatar */}
-        <div className="flex items-center gap-6 border-b border-zinc-200 pb-6 dark:border-zinc-800">
+        <div className="flex items-center gap-6 border-b border-white/[0.05] pb-6">
           {participant.profile_image_url ? (
             <img
               src={participant.profile_image_url}
@@ -64,24 +64,24 @@ export default async function ProfilePage() {
               className="h-20 w-20 rounded-full"
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-200 text-2xl font-bold text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-shadow text-2xl font-bold text-cloud">
               {participant.first_name[0]}
               {participant.last_name[0]}
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            <h1 className="text-2xl font-bold text-white">
               {displayName}
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-cloud/60">
               {participant.email}
             </p>
             {participant.current_title && (
-              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+              <p className="mt-1 text-sm text-cloud">
                 {participant.current_title}
               </p>
             )}
-            <p className="mt-1 text-xs text-zinc-400">
+            <p className="mt-1 text-xs text-cloud/60">
               Upskiller since{" "}
               {new Date(participant.created_at).toLocaleDateString("en-US", {
                 month: "long",
@@ -101,7 +101,7 @@ export default async function ProfilePage() {
           </Section>
 
           {/* Professional */}
-          <Section title="Professional Context">
+          <Section title="Professional context">
             <Field label="Work Situation" value={participant.work_situation} />
             <Field label="Main Focus" value={participant.main_focus} />
             {participant.sector && (
@@ -113,7 +113,7 @@ export default async function ProfilePage() {
           </Section>
 
           {/* AI Background */}
-          <Section title="AI Background">
+          <Section title="AI background">
             <Field
               label="Tool Familiarity"
               value={`${participant.ai_tool_familiarity} / 5`}
@@ -124,7 +124,7 @@ export default async function ProfilePage() {
           </Section>
 
           {/* Labs Fit */}
-          <Section title="Labs Fit">
+          <Section title="Labs fit">
             {grouped.labs_goals && (
               <Field label="Goals" value={grouped.labs_goals.join(", ")} />
             )}
@@ -156,7 +156,7 @@ export default async function ProfilePage() {
 
           {/* Cycle Enrollments */}
           {enrollments && enrollments.length > 0 && (
-            <Section title="Cycle Enrollments">
+            <Section title="Cycle enrollments">
               <div className="space-y-2">
                 {enrollments.map((e) => {
                   const cycle = e.cycles as unknown as Record<string, unknown>;
@@ -165,14 +165,14 @@ export default async function ProfilePage() {
                       key={e.cycle_id}
                       className="flex items-center justify-between"
                     >
-                      <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="text-sm text-cloud">
                         {(cycle?.name as string) || `Cycle ${e.cycle_id}`}
                       </span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           e.status === "active"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                            ? "bg-teal/20 text-aqua"
+                            : "bg-white/10 text-cloud/60"
                         }`}
                       >
                         {e.status}
@@ -198,7 +198,7 @@ function Section({
 }) {
   return (
     <div>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+      <h2 className="mb-3 text-sm font-semibold tracking-wide text-cloud/60">
         {title}
       </h2>
       <div className="space-y-2">{children}</div>
@@ -217,7 +217,7 @@ function Field({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-32 shrink-0 text-sm text-zinc-500 dark:text-zinc-400">
+      <span className="w-32 shrink-0 text-sm text-cloud/60">
         {label}
       </span>
       {isLink ? (
@@ -225,12 +225,12 @@ function Field({
           href={value}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+          className="text-sm text-aqua hover:underline"
         >
           {value}
         </a>
       ) : (
-        <span className="text-sm text-zinc-800 dark:text-zinc-200">
+        <span className="text-sm text-cloud">
           {value}
         </span>
       )}

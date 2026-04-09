@@ -11,36 +11,36 @@ export default async function CyclesPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+      <h1 className="mb-6 text-2xl font-bold text-white">
         Build Cycles
       </h1>
       {!cycles || cycles.length === 0 ? (
-        <p className="text-zinc-500">No cycles yet.</p>
+        <p className="text-cloud/60">No cycles yet.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cycles.map((cycle) => (
             <Link
               key={cycle.id}
               href={`/cycles/${cycle.id}`}
-              className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+              className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 backdrop-blur-sm transition-all hover:border-white/10 hover:bg-white/[0.04]"
             >
               <div className="flex items-start justify-between">
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                <h2 className="text-lg font-semibold text-white">
                   {cycle.name}
                 </h2>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                     cycle.status === "active"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                      ? "bg-teal/20 text-aqua"
                       : cycle.status === "closed"
-                        ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        ? "bg-white/10 text-cloud/60"
+                        : "bg-yellow-500/20 text-yellow-300"
                   }`}
                 >
                   {cycle.status}
                 </span>
               </div>
-              <p className="mt-2 text-sm text-zinc-500">
+              <p className="mt-2 text-sm text-cloud/60">
                 {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
                 {new Date(cycle.end_date).toLocaleDateString()}
               </p>
