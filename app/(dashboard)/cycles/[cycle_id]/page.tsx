@@ -127,6 +127,28 @@ export default async function CycleDetailPage({
         </div>
       )}
 
+      {/* Pulse Check — always-on requirement */}
+      {cycle.status === "active" && (
+        <div className="mb-8 space-y-3">
+          <Link
+            href="/pulse-check"
+            className="flex items-center justify-between rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors hover:border-yellow-500/40 hover:bg-yellow-500/[0.07]"
+          >
+            <div className="flex items-center gap-3">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
+              <div>
+                <span className="font-medium text-white">Weekly Pulse Check</span>
+                <p className="mt-0.5 text-sm text-cloud/50">
+                  Complete your weekly check-in to stay active and retain access
+                  to GitHub, Google Docs, Slack, and Google Groups
+                </p>
+              </div>
+            </div>
+            <span className="text-sm font-medium text-yellow-300">&rarr;</span>
+          </Link>
+        </div>
+      )}
+
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
           <p className="text-sm text-cloud/60">Total Enrolled</p>
