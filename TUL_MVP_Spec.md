@@ -21,7 +21,7 @@ Build a system to manage **4 core touchpoints** across a Build Cycle and reduce 
 | **Admin** | No | Global | Full visibility across all cycles, pods, projects, participants, and dashboards. Manages config values, access revocation, observer grants, and cycle administration. |
 | **Moderator** | Optional | Assigned pods + their projects | Can manage pod membership for assigned pods. No access to other pods' data. |
 | **Participant (active)** | Yes | Own pod + all projects within it | Completing weekly pulse checks AND registered in at least 1 pod. Submits problem statements and solution proposals; votes; self-registers for projects (subject to caps). |
-| **Participant (inactive)** | Yes (limited) | Read-only | Has not completed pulse checks OR is not registered in any pod. A newly registered participant with no pod assignment is inactive by default. Inactive access profile: viewer on GitHub repos, viewer on Drive folders, removed from all pod and project Slack channels, project memberships revoked, pod membership retained and marked inactive. |
+| **Participant (inactive)** | Yes (limited) | Read-only | Has not completed pulse checks OR is not registered in any pod. A newly registered participant with no pod assignment is inactive by default. Inactive access profile: viewer on GitHub repos, viewer on Drive folders, removed from all pod and project Slack channels, removed from all pod and project Google Groups, project memberships revoked, pod membership retained and marked inactive. |
 | **Observer** | No | All cycles/pods/projects (read-only) | Granted by Admin only. Dashboard viewing access. Separate track; cannot become a Participant. |
 
 ### Role Stacking
@@ -74,7 +74,8 @@ CREATE TABLE cycles (
   slug VARCHAR(50) UNIQUE,
   start_date TIMESTAMP NOT NULL,
   end_date TIMESTAMP NOT NULL,
-  status VARCHAR(50) DEFAULT 'active' -- 'draft','active', 'closed'
+  status VARCHAR(50) DEFAULT 'draft', -- 'draft', 'active', 'closed'
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -189,7 +190,7 @@ CREATE TABLE participants (
 #### `option_lists`
 ```sql
 -- Seed rows define all valid choices for every multiselect field.
--- list_name values: 'ai_tools', 'labs_goals', 'availability', 'work_style', 'group_strengths'
+-- list_name values: 'ai_tools', 'labs_goals', 'availability', 'work_style', 'group_strengths', 'pulse_benefits'
 CREATE TABLE option_lists (
   id SERIAL PRIMARY KEY,
   list_name VARCHAR(50) NOT NULL,
@@ -198,6 +199,54 @@ CREATE TABLE option_lists (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   UNIQUE(list_name, value)
 );
+```
+
+#### `option_lists` Seed Data
+```
+ai_tools:
+  - ChatGPT
+  - Claude
+  - Copilot
+  - Gemini
+  - Midjourney / DALL-E
+  - Perplexity
+  - Other
+
+labs_goals:
+  - Build a portfolio project
+  - Learn AI tools in practice
+  - Connect with collaborators
+  - Explore a new career direction
+  - Contribute to community impact
+  - Sharpen technical skills
+
+availability:
+  - < 2 hrs/week
+  - 2–5 hrs/week
+  - 5–10 hrs/week
+  - 10+ hrs/week
+
+work_style:
+  - Independent with check-ins
+  - Collaborative throughout
+  - Structured with clear milestones
+  - Flexible and self-directed
+
+group_strengths:
+  - Project management
+  - Technical development
+  - Design / UX
+  - Research
+  - Communication / writing
+  - Community engagement
+
+pulse_benefits:
+  - Applied AI tools to a real project
+  - Learned a new skill or concept
+  - Connected with a new collaborator
+  - Received helpful feedback
+  - Contributed meaningfully to my pod
+  - Overcame a technical challenge
 ```
 
 #### `participant_options`
@@ -238,23 +287,6 @@ CREATE TABLE user_roles (
 );
 ```
 
-#### `moderator_assignments`
-```sql
--- Pod-scoped moderator assignments, scoped per cycle.
--- A participant is a Moderator for a pod if and only if they have an active row here (removed_at IS NULL).
--- Assignments can only be made after the pod exists (status = 'forming' or later).
--- Rows are never deleted — removal is recorded via removed_at.
-CREATE TABLE moderator_assignments (
-  id SERIAL PRIMARY KEY,
-  participant_id INT NOT NULL REFERENCES participants(id),
-  pod_id INT NOT NULL REFERENCES pods(id),
-  cycle_id INT NOT NULL REFERENCES cycles(id),  -- denormalized for query efficiency; scoped per cycle
-  assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  removed_at TIMESTAMP,  -- NULL = active assignment; non-null = removed (cutoff timestamp)
-  UNIQUE(participant_id, pod_id, cycle_id)
-);
-```
-
 #### `problem_statements`
 ```sql
 CREATE TABLE problem_statements (
@@ -290,8 +322,26 @@ CREATE TABLE pods (
   slack_channel_id VARCHAR(255),
   github_repo_url VARCHAR(255),
   drive_folder_id VARCHAR(255),
+  google_group_email VARCHAR(255),  -- provisioned at activation; used for Drive access and email communication
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### `moderator_assignments`
+```sql
+-- Pod-scoped moderator assignments, scoped per cycle.
+-- A participant is a Moderator for a pod if and only if they have an active row here (removed_at IS NULL).
+-- Assignments can only be made after the pod exists (status = 'forming' or later).
+-- Rows are never deleted — removal is recorded via removed_at.
+CREATE TABLE moderator_assignments (
+  id SERIAL PRIMARY KEY,
+  participant_id INT NOT NULL REFERENCES participants(id),
+  pod_id INT NOT NULL REFERENCES pods(id),
+  cycle_id INT NOT NULL REFERENCES cycles(id),  -- denormalized for query efficiency; scoped per cycle
+  assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  removed_at TIMESTAMP,  -- NULL = active assignment; non-null = removed (cutoff timestamp)
+  UNIQUE(participant_id, pod_id, cycle_id)
 );
 ```
 
@@ -348,6 +398,7 @@ CREATE TABLE projects (
   slack_channel_id VARCHAR(255),
   github_repo_url VARCHAR(255),
   drive_folder_id VARCHAR(255),
+  google_group_email VARCHAR(255),  -- provisioned at activation; used for Drive access and email communication
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -377,7 +428,18 @@ CREATE TABLE pulse_checks (
   participant_id INT NOT NULL REFERENCES participants(id),
   scheduled_date DATE NOT NULL,  -- e.g., Sunday night send date
   completed_at TIMESTAMP,  -- NULL = incomplete
-  survey_responses JSONB,  -- flexible schema for survey answers
+  -- survey_responses JSON schema:
+  -- {
+  --   "accomplishment": "string (required) — what did you accomplish this week?",
+  --   "tools_used": [option_id, ...],         -- option_list 'ai_tools', optional
+  --   "benefits": [option_id, ...],           -- option_list 'pulse_benefits', max 3, optional
+  --   "new_connections": integer,             -- how many new connections made this week, optional
+  --   "help_needed": "string",               -- what help do you need?, optional
+  --   "help_attempted": boolean,             -- did you reach out for help this week?, optional
+  --   "workshops_connections": "string",     -- notes on workshops attended or connections made, optional
+  --   "network_referral": boolean            -- would you refer someone to the Labs this week?, optional
+  -- }
+  survey_responses JSONB,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -391,7 +453,7 @@ CREATE TABLE access_revocations (
   reason VARCHAR(255),  -- e.g., 'missed_pulse_checks', 'not_in_pod'
   revocation_scope VARCHAR(50) NOT NULL DEFAULT 'full',  -- 'pod': pod Slack only; 'project': project memberships only; 'full': all systems
   revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  revoked_systems TEXT[] DEFAULT ARRAY[]::TEXT[]  -- e.g., ['slack_pod', 'slack_project', 'drive', 'github', 'project_membership']
+  revoked_systems TEXT[] DEFAULT ARRAY[]::TEXT[]  -- e.g., ['slack_pod', 'slack_project', 'drive', 'github', 'project_membership', 'google_groups']
 );
 ```
 
@@ -411,6 +473,12 @@ POST /auth/google
 
 ### Cycle Management
 ```
+GET /api/cycles
+  Output: [ { id, name, slug, start_date, end_date, status } ]
+  Purpose: List all cycles; used by admin dashboard and cycle management UI
+  Auth: JWT
+  Roles: Admin, Owner, Observer (all cycles); Moderator, Participant (enrolled cycles only — filtered server-side)
+
 POST /api/cycles
   Input: { name, slug?, start_date, end_date }
   Output: { id, name, slug, start_date, end_date, status, config: { ...defaults } }
@@ -441,6 +509,21 @@ PATCH /api/cycles/{cycle_id}/config
   Purpose: Update one or more config values before or during a cycle
   Auth: Admin JWT
   Notes: Any field can be updated individually; omitted fields are left unchanged
+  Roles: Admin, Owner
+
+PATCH /api/cycles/{cycle_id}/status
+  Input: { status }
+  Output: { id, name, status, updated_at }
+  Purpose: Manually transition a cycle's status
+  Auth: Admin JWT
+  Validation:
+    - status must be one of: 'draft', 'active', 'closed'
+    - Valid transitions only: 'draft' → 'active', 'active' → 'closed'
+    - Cannot reopen a closed cycle → 400 "A closed cycle cannot be reopened."
+  Notes:
+    - Status transitions are manual for now; date-based automation is out of scope for MVP
+    - No side effects on participants, pods, or projects at this time — status change only
+    - Future: closing a cycle may trigger participant revocation and pod archiving
   Roles: Admin, Owner
 ```
 
@@ -491,8 +574,8 @@ GET /api/pods/{pod_id}/moderators
 ### Option Lists
 ```
 GET /api/options
-  Output: { ai_tools: [{id, value}], labs_goals: [{id, value}], availability: [{id, value}], work_style: [{id, value}], group_strengths: [{id, value}] }
-  Purpose: Populate multiselect dropdowns on the registration form
+  Output: { ai_tools: [{id, value}], labs_goals: [{id, value}], availability: [{id, value}], work_style: [{id, value}], group_strengths: [{id, value}], pulse_benefits: [{id, value}] }
+  Purpose: Populate multiselect dropdowns on registration and pulse check forms
   Auth: None (public)
   Roles: Public
 
@@ -534,6 +617,16 @@ POST /api/registrations
   Purpose: Custom registration form submission (pre-authentication; new participants submit before account exists)
   Auth: None (public endpoint; CSRF protection required)
   Roles: Public (unauthenticated)
+
+GET /api/cycles/{cycle_id}/participants
+  Output: [ { participant_id, first_name, last_name, preferred_name, email, status, inactive_date, pods: [pod_ids] } ]
+  Purpose: List all participants enrolled in a cycle; used by admin dashboard and moderator views
+  Auth: JWT
+  Notes:
+    - status derived from cycle_enrollments.status for the given cycle
+    - inactive_date from cycle_enrollments.inactive_date
+    - pods derived from active pod_memberships (inactive_at IS NULL) for this cycle
+  Roles: Admin, Owner (all participants); Moderator (participants in assigned pods only)
 
 GET /api/participants/{participant_id}
   Output: {
@@ -616,6 +709,29 @@ POST /api/voting/finalize/{cycle_id}
   Roles: Admin, Owner
 ```
 
+### Pod Browsing & Detail
+```
+GET /api/cycles/{cycle_id}/pods
+  Output: [ { id, name, problem_statement_id, problem_statement_title, status, registrant_count, slack_channel_id, drive_folder_id, github_repo_url } ]
+  Purpose: List all pods in a cycle; used by participants to browse the shortlist during pod registration window
+  Auth: JWT
+  Roles: All enrolled participants, Moderator, Observer, Admin, Owner
+
+GET /api/pods/{pod_id}
+  Output: { id, name, problem_statement_id, problem_statement_title, status, registrant_count, slack_channel_id, drive_folder_id, github_repo_url }
+  Purpose: Fetch a single pod
+  Auth: JWT
+  Roles: All enrolled participants, Moderator, Observer, Admin, Owner
+
+GET /api/pods/{pod_id}/members
+  Output: [ { participant_id, first_name, last_name, preferred_name, email, joined_at, inactive_at } ]
+  Purpose: List members of a pod; used by moderators for pod management and by participants to see their pod team
+  Auth: JWT
+  Query params:
+    - status (optional): 'active' (inactive_at IS NULL) or 'inactive' (inactive_at IS NOT NULL); omit to return all members
+  Roles: Participant (active, own pod only); Moderator (assigned pods); Admin, Owner (any pod)
+```
+
 ### Pod Registration (Phase 3b)
 ```
 POST /api/pods/{pod_id}/register
@@ -628,7 +744,7 @@ POST /api/pods/{pod_id}/register
     - Pod must be in 'forming' or 'active' status
     - Participant must not already have 2 active pod_memberships in this cycle → 400 "You are already registered in 2 pods for this cycle."
     - Participant must not already be registered for this pod → 400 "You are already registered for this pod."
-  Side effect: If pod's active registrant count reaches pod_min (cycle_config), pod status transitions to 'active'
+  Side effect: participant is added to the pod's Google Group (pods.google_group_email) if the pod is already active. If pod's active registrant count reaches pod_min, pod activates, provisioning runs (Slack channel, Drive folder, GitHub repo, Google Group created), and all current registrants are added to the new group. Failures are logged and returned as warnings but do not block activation.
   Roles: Participant (active or inactive, enrolled in cycle)
 
 DELETE /api/pods/{pod_id}/register
@@ -637,6 +753,7 @@ DELETE /api/pods/{pod_id}/register
   Purpose: Withdraw from a pod registration
   Auth: JWT
   Window: pod_registration_open / pod_registration_close — 403 "Pod registration is not currently open."
+  Side effect: participant is removed from the pod's Google Group if the pod has one (pods.google_group_email IS NOT NULL).
   Roles: Participant (own registration only); Admin, Owner (any registration)
 ```
 
@@ -678,12 +795,13 @@ POST /api/pods/{pod_id}/project-votes
 
 GET /api/pods/{pod_id}/project-votes
   Output: {
-    votes: [ { voter_id, solution_proposal_id, vote_count } ],
-    tallies: [ { solution_proposal_id, total_votes } ]  -- sorted descending
+    tallies: [ { solution_proposal_id, total_votes } ],  -- sorted descending; visible during solution voting window to all active pod members
+    votes: [ { voter_id, solution_proposal_id, vote_count } ]  -- voter-level detail; Moderator/Admin/Owner only
   }
   Auth: JWT
-  Purpose: View vote tallies for a pod's solution proposals
-  Roles: Moderator (assigned pod), Admin, Owner
+  Purpose: Aggregated tallies power the voting dashboard for solution proposals; voter-level detail is restricted
+  Roles: Tallies — Participant (active pod member, during solution voting window); Moderator (assigned pod), Admin, Owner (any time)
+         Voter-level detail — Moderator (assigned pod), Admin, Owner only
 ```
 
 ### Project Formation (Phase 6)
@@ -741,6 +859,7 @@ POST /api/projects/{project_id}/register
     - participant must be an active member of the project's parent pod → 400 "You must be an active member of this pod to register."
     - participant must not already have an active project_membership in this cycle → 400 "You are already registered in a project for this cycle. Withdraw first to register for a different project."
     - project registrant count must not already be at project_max (cycle_config) → 400 "This project has reached its maximum registrant count."
+  Side effect: participant is added to the project's Google Group (projects.google_group_email) if the project is already active. If project's active registrant count reaches project_min, project activates, provisioning runs (Slack channel, Drive subfolder, GitHub repo, Google Group created), and all current registrants are added to the new group. Failures are logged and returned as warnings but do not block activation.
   Roles: Participant (active, pod member only)
 
 DELETE /api/projects/{project_id}/register
@@ -749,6 +868,7 @@ DELETE /api/projects/{project_id}/register
   Purpose: Withdraw from a project registration
   Auth: JWT
   Window: project_registration_open / project_registration_close — 403 "Project registration is not currently open."
+  Side effect: participant is removed from the project's Google Group if the project has one (projects.google_group_email IS NOT NULL).
   Roles: Participant (own registration only); Admin, Owner (any registration)
 
 GET /api/projects/{project_id}
@@ -764,13 +884,33 @@ GET /api/projects/{project_id}
 ### Pulse Checks
 ```
 POST /api/pulse-checks
-  Input: { cycle_id, participant_id, survey_responses }
+  Input: {
+    cycle_id,
+    participant_id,
+    scheduled_date,                  -- ISO date string matching the weekly send date
+    survey_responses: {
+      accomplishment: string,        -- required; 1–1000 chars
+      tools_used?: [option_id, ...], -- option_list 'ai_tools'
+      benefits?: [option_id, ...],   -- option_list 'pulse_benefits'; max 3 items
+      new_connections?: integer,     -- min 0
+      help_needed?: string,          -- max 1000 chars
+      help_attempted?: boolean,
+      workshops_connections?: string, -- max 1000 chars
+      network_referral?: boolean
+    }
+  }
   Output: { id, completed_at }
   Purpose: Custom pulse check form submission
   Auth: JWT
   Window: None — pulse checks have no open/close window and are always open during an active cycle.
           Each submission is associated with a scheduled_date (the Sunday send date for that week).
           Do not add window enforcement to this endpoint.
+  Validation:
+    - survey_responses.accomplishment is required and must be non-empty
+    - survey_responses.benefits must contain at most 3 option_ids
+    - All option_ids in tools_used must exist in option_lists with list_name = 'ai_tools'
+    - All option_ids in benefits must exist in option_lists with list_name = 'pulse_benefits'
+    - A participant may not submit twice for the same scheduled_date + cycle_id (409 Conflict)
   Roles: Participant (active, own records only)
 
 GET /api/pulse-checks/{cycle_id}?participant_id={participant_id}
@@ -799,6 +939,7 @@ POST /api/revocations/check/{cycle_id}
       - GitHub: downgrade to viewer (not collaborator) on pod/project repos
       - Google Drive: downgrade to viewer (not editor) on pod/project folders
       - Slack: remove from all pod channels and project channels
+      - Google Groups: remove from all pod and project Google Groups
       - project_memberships: revoke (set left_at)
       - pod_memberships: retain but mark inactive (set inactive_at)
       - cycle_enrollments: set status = 'inactive', populate inactive_date
@@ -814,7 +955,7 @@ GET /api/revocations/{cycle_id}
 
 POST /api/revocations/reactivate/{participant_id}
   Input: { cycle_id }
-  Output: { success, participant_id, restored_pods: [pod_ids], restored_projects: [project_ids], restored_systems: ['slack', 'drive', 'github'] }
+  Output: { success, participant_id, restored_pods: [pod_ids], restored_projects: [project_ids], restored_systems: ['slack', 'drive', 'github', 'google_groups'] }
   Purpose: Restore a participant to active status and reinstate all access that was revoked.
   Auth: Admin JWT
   Roles: Admin, Owner
@@ -828,6 +969,8 @@ POST /api/revocations/reactivate/{participant_id}
        status — restore even if project is inactive or closed)
     4. Slack: re-add participant to all pod channels and project channels they were previously
        in (source from pod_memberships and project_memberships restored in steps 2 and 3)
+    4b. Google Groups: re-add participant to all pod and project Google Groups corresponding
+        to restored memberships (source from pods.google_group_email and projects.google_group_email)
     5. Google Drive: restore editor permissions on all pod and project Drive folders they
        previously had access to
     6. GitHub: restore collaborator access on all pod and project repositories they previously
@@ -979,6 +1122,7 @@ A participant transitions to inactive when either condition is true:
 - GitHub repos: downgraded from collaborator to viewer
 - Google Drive folders: downgraded from editor to viewer
 - Slack: removed from all pod channels and project channels
+- Google Groups: removed from all pod and project Google Groups
 - Project memberships: revoked (`project_memberships.left_at` set)
 - Pod memberships: retained but marked inactive (`pod_memberships.inactive_at` set)
 - Enrollment: `cycle_enrollments.status = 'inactive'`, `inactive_date` populated
@@ -993,6 +1137,7 @@ A participant transitions to inactive when either condition is true:
      - Downgrade GitHub permissions to viewer on all pod/project repos
      - Downgrade Drive permissions to viewer on all pod/project folders
      - Call Slack API to remove from all pod channels and project channels
+     - Call Google Groups API to remove from all pod and project Google Groups
      - Revoke all active `project_memberships` (set `left_at = now()`)
      - Mark all active `pod_memberships` inactive (set `inactive_at = now()`)
      - Set `cycle_enrollments.status = 'inactive'`, `inactive_date = now()`
@@ -1005,7 +1150,7 @@ When an admin calls `POST /api/revocations/reactivate/{participant_id}`:
 1. `cycle_enrollments.status` is set back to `'active'` and `inactive_date` is cleared
 2. All `pod_memberships` for this participant in this cycle are restored (`inactive_at` set to `NULL`)
 3. All `project_memberships` for this participant in this cycle are restored (`left_at` set to `NULL`)
-4. Slack, Drive, and GitHub access is reinstated for all pods and projects from the restored memberships
+4. Slack, Drive, GitHub, and Google Groups access is reinstated for all pods and projects from the restored memberships
 5. Reactivation is recorded in `access_revocations` (reason = `'reactivated'`, revocation_scope = `'full'`) for audit purposes
 
 Restoration applies regardless of current pod or project status. If an external API call fails, the failure is logged and returned as a warning but does not block the reactivation.
@@ -1074,10 +1219,34 @@ The revocation and reactivation flows integrate with three external platforms. T
 - Used to add/remove collaborators on pod and project repositories
 - **Dependency to verify:** Confirm free-tier GitHub API access supports programmatic collaborator management at the required scale before building integration logic.
 
+### Google Groups (Google Workspace)
+- Libraries: `google-auth`, `google-api-python-client` (Admin SDK, Directory API)
+- Requires a service account with domain-wide delegation and Groups admin scopes
+- Used to create pod and project Google Groups, manage membership (add/remove), and grant Drive folder access to the group rather than individual emails
+- **Dependency to verify:** Confirm Google Workspace service account has sufficient permissions for programmatic group creation and membership management via the Admin SDK Directory API.
+
+### Resource Provisioning
+
+When a pod transitions to `active` status (registrant count reaches `pod_min`), the backend automatically provisions four external resources:
+- **Google Groups:** Create a new Google Group for the pod using the Admin SDK Directory API. Write the resulting group email to `pods.google_group_email`. Grant the pod's Drive folder access to this group (editor permission) — individual Drive permissions are managed via group membership, not per-user.
+- **Slack:** Create a new channel for the pod using `slack_sdk`. Write the resulting channel ID to `pods.slack_channel_id`.
+- **Google Drive:** Create a new folder for the pod inside the cycle's parent Drive folder using `google-api-python-client`. Write the resulting folder ID to `pods.drive_folder_id`.
+- **GitHub:** Create a new repository for the pod under the TUL GitHub organization using `PyGithub`. Write the resulting repo URL to `pods.github_repo_url`.
+
+When a project transitions to `active` status (registrant count reaches `project_min`), the backend automatically provisions:
+- **Google Groups:** Create a new Google Group for the project using the Admin SDK Directory API. Write the resulting group email to `projects.google_group_email`. Grant the project's Drive subfolder access to this group (editor permission).
+- **Slack:** Create a new channel for the project using `slack_sdk`. Write the resulting channel ID to `projects.slack_channel_id`.
+- **Google Drive:** Create a new subfolder inside the project's parent pod Drive folder using `google-api-python-client`. Write the resulting folder ID to `projects.drive_folder_id`.
+- **GitHub:** Create a new repository for the project under the TUL GitHub organization using `PyGithub`. Write the resulting repo URL to `projects.github_repo_url`.
+
+**Failure handling:** If any external API call fails during provisioning, log the failure and return a warning in the response — do not block pod or project activation. Partial success is acceptable. The status transition proceeds regardless of provisioning failures.
+
+**Dependency to verify:** Confirm that free-tier Slack, Google Workspace, and GitHub APIs support programmatic resource creation (channels, folders, repos) at the required scale before building provisioning logic.
+
 ### Environment Variables
 ```
 SLACK_BOT_TOKEN=
-GOOGLE_SERVICE_ACCOUNT=
+GOOGLE_SERVICE_ACCOUNT=  # used for both Drive (Files API) and Google Groups (Admin SDK Directory API). Confirm the service account has domain-wide delegation enabled with both scopes.
 GITHUB_TOKEN=
 ANTHROPIC_API_KEY=  # used for pod/project name generation and any other LLM calls in the application
 ```
@@ -1100,9 +1269,14 @@ ANTHROPIC_API_KEY=  # used for pod/project name generation and any other LLM cal
 - [ ] Pulse check form + endpoint
 - [ ] Access revocation check logic (identify users missing 2+ checks)
 - [ ] Basic dashboard (active users, pod status, pulse completion)
+- [ ] Cycle list endpoint
+- [ ] Participant list endpoint per cycle
+- [ ] Pod list + pod detail + pod members endpoints
+- [ ] Name generation at pod and project formation
 
 ### Nice-to-Have (Week 2+)
 - [ ] Slack/Drive/GitHub API integration for revocation
+- [ ] Pod and project resource provisioning (Slack channel, Drive folder, GitHub repo, Google Group creation on activation; group membership management on register/withdraw/revoke/reactivate)
 - [ ] Email notifications
 - [ ] Audit logs
 - [ ] Admin UI for manual overrides
@@ -1145,5 +1319,6 @@ ANTHROPIC_API_KEY=  # used for pod/project name generation and any other LLM cal
 3. **Name generation ✓ resolved:** Pod and project names are auto-generated at formation time via LLM call (`claude-haiku-4-5-20251001`), using the associated problem statement or solution proposal text as input. Format: 3 words max, 40 characters max, title case, no punctuation. Auto-accepted with no approval step. Can be manually overridden by Admin or Moderator via `PATCH` endpoints.
 4. **Reactivation flow ✓ resolved:** Reactivation flips `cycle_enrollments.status` back to `active` and fully restores all access — pod memberships, project memberships, Slack channels, Drive folders, and GitHub repos — to exactly what the participant had before revocation. Applies regardless of current pod or project status. External API failures are logged and surfaced as warnings but do not block reactivation. Partial success is acceptable.
 5. **Moderator assignments ✓ resolved:** Assignments are scoped to a cycle and made by admins only. A moderator can be assigned to multiple pods within the same cycle. Assignments can only be made after a pod exists (status = `'forming'` or later). Removal sets `removed_at` and immediately cuts off data visibility. Assignment and removal are recorded for audit purposes — rows are never deleted.
-6. **Pulse check survey fields:** What are the specific questions on the weekly pulse check? (Affects both UI form fields and the JSON schema for `survey_responses`.)
+6. **Pulse check survey fields ✓ resolved:** Weekly pulse check collects: accomplishment (required text), tools_used (multiselect from 'ai_tools'), benefits (multiselect from 'pulse_benefits', max 3), new_connections (integer), help_needed (text), help_attempted (boolean), workshops_connections (text), network_referral (boolean). See `pulse_checks` table and `POST /api/pulse-checks` for full schema and validation rules.
+7. **Cycle closure side effects (future):** When a cycle is closed, define what happens automatically — participant revocation, pod archiving, project archiving, access removal. Currently `PATCH /api/cycles/{cycle_id}/status` is a status flag change only. Implement date-based automation and closure side effects in a future iteration.
 
