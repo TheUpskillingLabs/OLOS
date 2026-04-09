@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-midnight: #101820;
+  --color-midnight: #0b1016;
   --color-teal: #0094a0;
   --color-red: #ee1c25;
   --color-aqua: #4dbbc2;
@@ -9,14 +9,16 @@
   --color-crimson: #7a0f14;
   --color-cloud: #e6e6e6;
   --color-ghost: #ffffff;
+  --color-muted: rgba(255,255,255,0.3);
+  --color-whisper: rgba(255,255,255,0.07);
   --font-sans: 'Geologica', sans-serif;
 }
 
 body {
-  background-color: #101820;
-  background-image: radial-gradient(100% 150% at 50% 0%, #006b73 0%, #101820 80%);
+  background-color: #0b1016;
+  background-image: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,148,160,0.07) 0%, transparent 70%);
   background-attachment: fixed;
-  color: #e6e6e6;
+  color: rgba(255,255,255,0.65);
   font-family: 'Geologica', sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;

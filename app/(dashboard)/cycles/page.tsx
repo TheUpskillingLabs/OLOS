@@ -22,7 +22,7 @@ export default async function CyclesPage() {
             <Link
               key={cycle.id}
               href={`/cycles/${cycle.id}`}
-              className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-6 backdrop-blur-sm transition-all hover:border-white/10 hover:bg-white/[0.04]"
+              className="rounded-md border border-whisper bg-white/[0.02] p-6 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
             >
               <div className="flex items-start justify-between">
                 <h2 className="text-lg font-semibold text-white">

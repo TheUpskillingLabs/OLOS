@@ -62,8 +62,8 @@ export default async function PodDetailPage({
       </div>
 
       {ps?.statement_text && (
-        <div className="mb-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm">
-          <h3 className="mb-1 text-sm font-medium text-cloud/60">
+        <div className="mb-6 rounded-md border-l-2 border-l-teal border border-whisper bg-white/[0.02] p-4">
+          <h3 className="mb-1 text-sm font-medium text-muted">
             Problem Statement
           </h3>
           <p className="text-white">
@@ -76,28 +76,28 @@ export default async function PodDetailPage({
         <h2 className="mb-3 text-lg font-semibold text-white">
           Members ({members?.length || 0})
         </h2>
-        <div className="overflow-hidden rounded-2xl border border-white/[0.05]">
+        <div className="overflow-hidden rounded-md border border-whisper">
           <table className="w-full text-left text-sm">
-            <thead className="bg-white/[0.05]">
+            <thead className="bg-teal/[0.08]">
               <tr>
-                <th className="px-4 py-2 font-medium text-cloud/80">
+                <th className="px-4 py-2 text-xs font-semibold text-aqua">
                   Name
                 </th>
-                <th className="px-4 py-2 font-medium text-cloud/80">
+                <th className="px-4 py-2 text-xs font-semibold text-aqua">
                   Status
                 </th>
-                <th className="px-4 py-2 font-medium text-cloud/80">
+                <th className="px-4 py-2 text-xs font-semibold text-aqua">
                   Joined
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
+            <tbody className="divide-y divide-whisper">
               {(members || []).map((m) => {
                 const p = (m.participants as unknown) as Record<string, string> | null;
                 return (
                   <tr
                     key={m.participant_id}
-                    className="bg-white/[0.02]"
+                    className="bg-white/[0.01]"
                   >
                     <td className="px-4 py-2 text-white">
                       {p?.preferred_name || p?.first_name} {p?.last_name}
@@ -133,7 +133,7 @@ export default async function PodDetailPage({
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-4 backdrop-blur-sm"
+                className="rounded-md border border-whisper bg-white/[0.02] p-4"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-white">

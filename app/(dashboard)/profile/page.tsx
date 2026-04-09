@@ -51,9 +51,9 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-8 backdrop-blur-sm">
+      <div className="rounded-md border border-whisper bg-white/[0.02] p-8">
         {/* Header with avatar */}
-        <div className="flex items-center gap-6 border-b border-white/[0.05] pb-6">
+        <div className="flex items-center gap-6 border-b border-whisper pb-6">
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -61,7 +61,7 @@ export default async function ProfilePage() {
               className="h-20 w-20 rounded-full"
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-shadow text-2xl font-bold text-cloud">
+            <div className="flex h-20 w-20 items-center justify-center rounded-md bg-shadow text-2xl font-bold text-cloud">
               {participant.first_name[0]}
               {participant.last_name[0]}
             </div>
