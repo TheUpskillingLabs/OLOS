@@ -30,13 +30,11 @@ type Config = {
   project_registration_close: string | null;
 };
 
-// Convert stored timestamp to datetime-local input value (treats as UTC)
 function toLocal(iso: string | null): string {
   if (!iso) return "";
   return iso.replace(" ", "T").slice(0, 16);
 }
 
-// Convert datetime-local input value back to a storable timestamp string
 function fromLocal(val: string): string | null {
   if (!val) return null;
   return `${val}:00`;
@@ -118,15 +116,15 @@ export function CycleScheduleForm({
   return (
     <form onSubmit={handleSubmit}>
       {/* Cycle phase milestones */}
-      <div className="mb-6 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+      <div className="mb-6 rounded-md border border-whisper bg-white/[0.02] p-4">
+        <h3 className="mb-3 text-sm font-semibold text-cloud">
           Cycle Phases
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label
               htmlFor="phase_2_start"
-              className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400"
+              className="mb-1 block text-sm text-cloud/60"
             >
               Meet The Pods (Phase 1 &rarr; 2)
             </label>
@@ -135,13 +133,13 @@ export function CycleScheduleForm({
               type="datetime-local"
               name="phase_2_start"
               defaultValue={toLocal(config.phase_2_start)}
-              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+              className="w-full rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
             />
           </div>
           <div>
             <label
               htmlFor="phase_3_start"
-              className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400"
+              className="mb-1 block text-sm text-cloud/60"
             >
               Meet The Projects (Phase 2 &rarr; 3)
             </label>
@@ -150,32 +148,32 @@ export function CycleScheduleForm({
               type="datetime-local"
               name="phase_3_start"
               defaultValue={toLocal(config.phase_3_start)}
-              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+              className="w-full rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
             />
           </div>
         </div>
       </div>
 
       {/* Operational windows */}
-      <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-hidden rounded-md border border-whisper">
         <table className="w-full text-sm">
-          <thead className="bg-zinc-50 dark:bg-zinc-800">
+          <thead className="bg-white/[0.04]">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+              <th className="px-4 py-3 text-left font-medium text-cloud/60">
                 Phase
               </th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+              <th className="px-4 py-3 text-left font-medium text-cloud/60">
                 Opens (UTC)
               </th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">
+              <th className="px-4 py-3 text-left font-medium text-cloud/60">
                 Closes (UTC)
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-900">
+          <tbody className="divide-y divide-whisper">
             {PHASES.map((phase) => (
               <tr key={phase.label}>
-                <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-50">
+                <td className="px-4 py-3 font-medium text-white">
                   {phase.label}
                 </td>
                 <td className="px-4 py-3">
@@ -185,7 +183,7 @@ export function CycleScheduleForm({
                     defaultValue={toLocal(
                       config[phase.open as keyof Config] as string | null
                     )}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                    className="rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
                   />
                 </td>
                 <td className="px-4 py-3">
@@ -195,7 +193,7 @@ export function CycleScheduleForm({
                     defaultValue={toLocal(
                       config[phase.close as keyof Config] as string | null
                     )}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                    className="rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
                   />
                 </td>
               </tr>
@@ -207,12 +205,12 @@ export function CycleScheduleForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="rounded-md bg-teal px-4 py-2 text-sm font-medium text-white hover:bg-teal/80 disabled:opacity-50"
         >
           {loading ? "Saving…" : "Save Schedule"}
         </button>
-        {saved && <span className="text-sm text-green-600">Saved!</span>}
-        {error && <span className="text-sm text-red-600">{error}</span>}
+        {saved && <span className="text-sm text-aqua">Saved!</span>}
+        {error && <span className="text-sm text-red">{error}</span>}
       </div>
     </form>
   );
@@ -290,7 +288,7 @@ export function CycleParamsForm({
       <div className="grid gap-8 sm:grid-cols-2">
         {PARAM_GROUPS.map((group) => (
           <div key={group.heading}>
-            <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            <h3 className="mb-3 text-sm font-semibold text-cloud">
               {group.heading}
             </h3>
             <div className="space-y-3">
@@ -301,7 +299,7 @@ export function CycleParamsForm({
                 >
                   <label
                     htmlFor={field.name}
-                    className="text-sm text-zinc-600 dark:text-zinc-400"
+                    className="text-sm text-cloud/60"
                   >
                     {field.label}
                   </label>
@@ -313,7 +311,7 @@ export function CycleParamsForm({
                     defaultValue={
                       config[field.name as keyof Config] as number
                     }
-                    className="w-20 rounded-md border border-zinc-300 px-2 py-1 text-right text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+                    className="w-20 rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-right text-sm text-white"
                   />
                 </div>
               ))}
@@ -325,12 +323,12 @@ export function CycleParamsForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="rounded-md bg-teal px-4 py-2 text-sm font-medium text-white hover:bg-teal/80 disabled:opacity-50"
         >
           {loading ? "Saving…" : "Save Parameters"}
         </button>
-        {saved && <span className="text-sm text-green-600">Saved!</span>}
-        {error && <span className="text-sm text-red-600">{error}</span>}
+        {saved && <span className="text-sm text-aqua">Saved!</span>}
+        {error && <span className="text-sm text-red">{error}</span>}
       </div>
     </form>
   );
