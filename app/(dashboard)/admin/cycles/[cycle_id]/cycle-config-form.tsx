@@ -14,6 +14,8 @@ type Config = {
   max_projects: number;
   project_min: number;
   project_max: number;
+  phase_2_start: string | null;
+  phase_3_start: string | null;
   problem_statement_open: string | null;
   problem_statement_close: string | null;
   voting_open: string | null;
@@ -89,6 +91,8 @@ export function CycleScheduleForm({
     const fd = new FormData(e.currentTarget);
 
     const body: Record<string, string | null> = {};
+    body.phase_2_start = fromLocal(fd.get("phase_2_start") as string);
+    body.phase_3_start = fromLocal(fd.get("phase_3_start") as string);
     for (const phase of PHASES) {
       body[phase.open] = fromLocal(fd.get(phase.open) as string);
       body[phase.close] = fromLocal(fd.get(phase.close) as string);
@@ -113,6 +117,46 @@ export function CycleScheduleForm({
 
   return (
     <form onSubmit={handleSubmit}>
+      {/* Cycle phase milestones */}
+      <div className="mb-6 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+        <h3 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          Cycle Phases
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="phase_2_start"
+              className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400"
+            >
+              Meet The Pods (Phase 1 &rarr; 2)
+            </label>
+            <input
+              id="phase_2_start"
+              type="datetime-local"
+              name="phase_2_start"
+              defaultValue={toLocal(config.phase_2_start)}
+              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="phase_3_start"
+              className="mb-1 block text-sm text-zinc-600 dark:text-zinc-400"
+            >
+              Meet The Projects (Phase 2 &rarr; 3)
+            </label>
+            <input
+              id="phase_3_start"
+              type="datetime-local"
+              name="phase_3_start"
+              defaultValue={toLocal(config.phase_3_start)}
+              className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Operational windows */}
       <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 dark:bg-zinc-800">

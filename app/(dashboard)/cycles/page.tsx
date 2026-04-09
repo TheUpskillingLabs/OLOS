@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import CyclePhaseIndicator from "./cycle-phase-indicator";
 
 export default async function CyclesPage() {
   const supabase = await createClient();
@@ -9,11 +10,33 @@ export default async function CyclesPage() {
     .select("id, name, slug, start_date, end_date, status")
     .order("start_date", { ascending: false });
 
+  // Fetch config for the active cycle to power the phase indicator
+  const activeCycle = cycles?.find((c) => c.status === "active") ?? null;
+  let activeCycleConfig = null;
+  if (activeCycle) {
+    const serviceClient = createServiceClient();
+    const { data } = await serviceClient
+      .from("cycle_config")
+      .select(
+        "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+      )
+      .eq("cycle_id", activeCycle.id)
+      .single();
+    activeCycleConfig = data;
+  }
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-white">
         Build Cycles
       </h1>
+
+      {activeCycle && activeCycleConfig && (
+        <CyclePhaseIndicator
+          cycle={activeCycle}
+          config={activeCycleConfig}
+        />
+      )}
       {!cycles || cycles.length === 0 ? (
         <p className="text-cloud/60">No cycles yet.</p>
       ) : (
