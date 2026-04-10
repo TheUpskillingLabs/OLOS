@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import type { Permission } from "./permissions";
 
 export type Role = "owner" | "admin" | "observer" | "developer" | "moderator" | "participant";
 export type ParticipantStatus = "active" | "inactive" | "revoked";
@@ -7,6 +8,7 @@ export interface UserRoles {
   userId: string;
   participantId: number | null;
   roles: Role[];
+  permissions: Permission[];
   moderatorPodIds: number[];
   cycleEnrollments: {
     cycleId: number;
@@ -27,14 +29,15 @@ export async function resolveUserRoles(
 
   const participantId = participant?.id ?? null;
   const roles: Role[] = [];
+  const permissions: Permission[] = [];
   const moderatorPodIds: number[] = [];
   const cycleEnrollments: UserRoles["cycleEnrollments"] = [];
 
   if (!participantId) {
-    return { userId: authUserId, participantId, roles, moderatorPodIds, cycleEnrollments };
+    return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments };
   }
 
-  // Get elevated roles (owner, admin, observer)
+  // Get elevated roles (owner, admin, observer, developer) — kept for audit/display
   const { data: userRoles } = await supabase
     .from("user_roles")
     .select("role")
@@ -47,6 +50,19 @@ export async function resolveUserRoles(
     }
   }
 
+  // Get granular permissions
+  const { data: permRows } = await supabase
+    .from("participant_permissions")
+    .select("permission")
+    .eq("participant_id", participantId)
+    .is("revoked_at", null);
+
+  if (permRows) {
+    for (const p of permRows) {
+      permissions.push(p.permission as Permission);
+    }
+  }
+
   // Get moderator assignments
   const { data: modAssignments } = await supabase
     .from("moderator_assignments")
@@ -55,7 +71,7 @@ export async function resolveUserRoles(
     .is("removed_at", null);
 
   if (modAssignments && modAssignments.length > 0) {
-    roles.push("moderator");
+    if (!roles.includes("moderator")) roles.push("moderator");
     for (const a of modAssignments) {
       moderatorPodIds.push(a.pod_id);
     }
@@ -76,19 +92,27 @@ export async function resolveUserRoles(
     }
   }
 
-  return { userId: authUserId, participantId, roles, moderatorPodIds, cycleEnrollments };
+  return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments };
 }
 
-export function isOwner(roles: UserRoles): boolean {
-  return roles.roles.includes("owner");
+/** Check if user has a specific permission */
+export function can(roles: UserRoles, permission: Permission): boolean {
+  return roles.permissions.includes(permission);
 }
 
+/** Backward-compatible: true if user can manage cycles (admin-level write access) */
 export function isAdmin(roles: UserRoles): boolean {
-  return roles.roles.includes("admin") || roles.roles.includes("owner") || roles.roles.includes("developer");
+  return can(roles, "cycles:write");
 }
 
+/** True if user can manage roles/permissions (owner-level) */
+export function isOwner(roles: UserRoles): boolean {
+  return can(roles, "roles:write");
+}
+
+/** True if user has moderator assignments */
 export function isModerator(roles: UserRoles): boolean {
-  return roles.roles.includes("moderator");
+  return roles.moderatorPodIds.length > 0 || can(roles, "moderate:assigned_pods");
 }
 
 export function isModeratorForPod(roles: UserRoles, podId: number): boolean {

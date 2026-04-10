@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModerator } from "@/lib/auth/roles";
+import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 
 export default async function ModeratorPage() {
   const supabase = await createClient();
@@ -13,9 +13,10 @@ export default async function ModeratorPage() {
   const serviceClient = createServiceClient();
   const userRoles = await resolveUserRoles(serviceClient, user.id);
 
-  if (!isAdmin(userRoles) && !isModerator(userRoles)) redirect("/cycles");
+  const hasPodAccess = can(userRoles, "pods:read") || isModerator(userRoles);
+  if (!hasPodAccess) redirect("/cycles");
 
-  const admin = isAdmin(userRoles);
+  const admin = isAdmin(userRoles) || can(userRoles, "pods:read");
 
   // Admins see all pods; moderators see only their assigned pods
   let pods: {

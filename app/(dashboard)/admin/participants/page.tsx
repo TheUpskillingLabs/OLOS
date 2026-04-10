@@ -97,8 +97,6 @@ export default async function AdminParticipantsPage() {
     moderator_pods: modPodsByParticipant[p.id] ?? [],
   }));
 
-  const isOwnerUser = userRoles.roles.includes("owner");
-
   return (
     <div>
       <div className="mb-8">
@@ -119,7 +117,6 @@ export default async function AdminParticipantsPage() {
 
       <ParticipantsGlobalTable
         participants={globalParticipants}
-        isOwnerUser={isOwnerUser}
       />
     </div>
   );

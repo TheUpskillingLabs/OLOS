@@ -1,8 +1,23 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+  const [invited, setInvited] = useState(false);
+
+  useEffect(() => {
+    if (inviteToken) {
+      // Store invite token in a cookie so it survives the OAuth redirect
+      document.cookie = `invite_token=${inviteToken}; path=/; max-age=3600; SameSite=Lax`;
+      setInvited(true);
+    }
+  }, [inviteToken]);
+
   const handleLogin = async () => {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -20,9 +35,15 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold tracking-tight text-white">
             The Upskilling Labs
           </h1>
-          <p className="mt-2 text-sm text-cloud/80">
-            Sign in to continue
-          </p>
+          {invited ? (
+            <p className="mt-2 text-sm text-aqua">
+              You&apos;ve been invited to join The Upskilling Labs
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-cloud/80">
+              Sign in to continue
+            </p>
+          )}
         </div>
         <button
           onClick={handleLogin}
@@ -46,9 +67,17 @@ export default function LoginPage() {
               fill="#EA4335"
             />
           </svg>
-          Sign in with Google
+          {invited ? "Sign in to accept invitation" : "Sign in with Google"}
         </button>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }
