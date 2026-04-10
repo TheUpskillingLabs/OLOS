@@ -28,13 +28,6 @@ function GoogleLogo() {
   );
 }
 
-const STEPS = [
-  "Bring what you know",
-  "Find a problem worth working on",
-  "Join a small team",
-  "Build something real",
-  "Show your progress as you go",
-];
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -118,68 +111,6 @@ function LoginContent() {
           Real problems&ensp;·&ensp;Real collaboration&ensp;·&ensp;Real output
         </p>
       </section>
-
-      {/* ── Story ── */}
-      <section className="border-t border-whisper px-6 py-20 lg:px-16 lg:py-28">
-        <div className="mx-auto max-w-3xl space-y-16 lg:space-y-20">
-          <div className="space-y-4">
-            <p className="text-lg leading-relaxed text-cloud/60 lg:text-xl">
-              A lot of learning is built around content about what is coming.
-            </p>
-            <p className="text-lg font-medium leading-relaxed text-white lg:text-xl">
-              This is built around working on what is already here.
-            </p>
-          </div>
-
-          <p className="max-w-xl text-base leading-relaxed text-cloud/50 lg:text-lg">
-            The Upskilling Labs helps you take what you already know and use new
-            tools — especially AI — on real problems in your community and
-            field.
-          </p>
-
-          <ol className="space-y-5 border-l border-whisper pl-8">
-            {STEPS.map((step, i) => (
-              <li key={step} className="flex items-baseline gap-4">
-                <span className="font-mono text-xs text-aqua/50">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="text-base text-cloud/70 lg:text-lg">
-                  {step}
-                </span>
-              </li>
-            ))}
-          </ol>
-
-          <div className="space-y-4 border-t border-whisper pt-16">
-            <p className="text-base leading-relaxed text-cloud/50 lg:text-lg">
-              The work happens in small groups, on real problems, with people
-              who share your commitment to getting something done.
-            </p>
-            <p className="text-base leading-relaxed text-cloud/50 lg:text-lg">
-              You do not need to have everything figured out. You just need to
-              be comfortable using a computer, learning as you go, and working
-              with others in good faith.
-            </p>
-          </div>
-
-          <button
-            onClick={handleLogin}
-            className="inline-flex items-center justify-center gap-3 rounded-full border border-white/[0.12] bg-white/[0.04] px-8 py-4 text-sm font-semibold text-white shadow-[0_0_0_0_rgba(77,187,194,0)] transition-all duration-300 hover:border-aqua/40 hover:bg-white/[0.07] hover:shadow-[0_0_24px_rgba(77,187,194,0.18)]"
-          >
-            <GoogleLogo />
-            {invited
-              ? "Sign in to accept invitation"
-              : "Join The Upskilling Labs"}
-          </button>
-        </div>
-      </section>
-
-      {/* ── Footer ── */}
-      <footer className="border-t border-whisper px-6 py-8 lg:px-16">
-        <p className="text-xs text-cloud/20">
-          We use Google to verify your identity. We never post on your behalf.
-        </p>
-      </footer>
     </>
   );
 }
