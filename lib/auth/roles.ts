@@ -79,6 +79,10 @@ export async function resolveUserRoles(
   return { userId: authUserId, participantId, roles, moderatorPodIds, cycleEnrollments };
 }
 
+export function isOwner(roles: UserRoles): boolean {
+  return roles.roles.includes("owner");
+}
+
 export function isAdmin(roles: UserRoles): boolean {
   return roles.roles.includes("admin") || roles.roles.includes("owner");
 }

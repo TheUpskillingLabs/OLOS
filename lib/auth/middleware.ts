@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { resolveUserRoles, UserRoles, isAdmin } from "./roles";
+import { resolveUserRoles, UserRoles, isAdmin, isOwner } from "./roles";
 
 export interface AuthenticatedRequest {
   user: UserRoles;
@@ -33,6 +33,15 @@ export function withAuth(handler: RouteHandler) {
 export function withAdminAuth(handler: RouteHandler) {
   return withAuth(async (request, auth, params) => {
     if (!isAdmin(auth.user)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return handler(request, auth, params);
+  });
+}
+
+export function withOwnerAuth(handler: RouteHandler) {
+  return withAuth(async (request, auth, params) => {
+    if (!isOwner(auth.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     return handler(request, auth, params);
