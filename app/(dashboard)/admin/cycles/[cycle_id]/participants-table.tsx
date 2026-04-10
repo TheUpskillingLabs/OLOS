@@ -5,10 +5,13 @@ import type { ParticipantRow } from "./page";
 
 export default function ParticipantsTable({
   participants,
+  isOwnerUser,
 }: {
   participants: ParticipantRow[];
+  isOwnerUser: boolean;
 }) {
   const [grantedIds, setGrantedIds] = useState<Set<number>>(new Set());
+  const [grantedAdminIds, setGrantedAdminIds] = useState<Set<number>>(new Set());
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
   const [errors, setErrors] = useState<Record<number, string>>({});
 
@@ -34,6 +37,37 @@ export default function ParticipantsTable({
 
     if (res.ok) {
       setGrantedIds((prev) => new Set(prev).add(participantId));
+    } else {
+      const data = await res.json();
+      setErrors((prev) => ({
+        ...prev,
+        [participantId]: data.error ?? "Failed",
+      }));
+    }
+  }
+
+  async function grantAdmin(participantId: number) {
+    setLoadingIds((prev) => new Set(prev).add(participantId));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[participantId];
+      return next;
+    });
+
+    const res = await fetch("/api/roles/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participant_id: participantId }),
+    });
+
+    setLoadingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(participantId);
+      return next;
+    });
+
+    if (res.ok) {
+      setGrantedAdminIds((prev) => new Set(prev).add(participantId));
     } else {
       const data = await res.json();
       setErrors((prev) => ({
@@ -79,15 +113,18 @@ export default function ParticipantsTable({
             const alreadyElevated = p.roles.some((r) =>
               ["owner", "admin", "observer"].includes(r)
             );
-            const justGranted = grantedIds.has(p.participant_id);
+            const justGrantedObserver = grantedIds.has(p.participant_id);
+            const justGrantedAdmin = grantedAdminIds.has(p.participant_id);
 
-            const topRole = p.roles.includes("owner")
-              ? "owner"
-              : p.roles.includes("admin")
-                ? "admin"
-                : p.roles.includes("observer")
-                  ? "observer"
-                  : null;
+            const topRole = justGrantedAdmin
+              ? "admin"
+              : p.roles.includes("owner")
+                ? "owner"
+                : p.roles.includes("admin")
+                  ? "admin"
+                  : p.roles.includes("observer")
+                    ? "observer"
+                    : null;
 
             return (
               <tr key={p.participant_id}>
@@ -110,9 +147,9 @@ export default function ParticipantsTable({
                 </td>
                 <td className="px-4 py-3 text-cloud/60">{p.pods.length}</td>
                 <td className="px-4 py-3">
-                  {(topRole ?? justGranted) && (
+                  {(topRole ?? justGrantedObserver) && (
                     <span className="rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua">
-                      {justGranted && !topRole ? "observer" : topRole}
+                      {justGrantedObserver && !topRole ? "observer" : topRole}
                     </span>
                   )}
                 </td>
@@ -122,17 +159,30 @@ export default function ParticipantsTable({
                       {errors[p.participant_id]}
                     </span>
                   )}
-                  {!alreadyElevated && !justGranted && (
-                    <button
-                      onClick={() => grantObserver(p.participant_id)}
-                      disabled={loadingIds.has(p.participant_id)}
-                      className="rounded px-2.5 py-1 text-xs font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud disabled:opacity-50"
-                    >
-                      {loadingIds.has(p.participant_id)
-                        ? "…"
-                        : "Grant Observer"}
-                    </button>
-                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    {!alreadyElevated && !justGrantedObserver && !justGrantedAdmin && (
+                      <button
+                        onClick={() => grantObserver(p.participant_id)}
+                        disabled={loadingIds.has(p.participant_id)}
+                        className="rounded px-2.5 py-1 text-xs font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud disabled:opacity-50"
+                      >
+                        {loadingIds.has(p.participant_id)
+                          ? "…"
+                          : "Grant Observer"}
+                      </button>
+                    )}
+                    {isOwnerUser && !p.roles.includes("owner") && !p.roles.includes("admin") && !justGrantedAdmin && (
+                      <button
+                        onClick={() => grantAdmin(p.participant_id)}
+                        disabled={loadingIds.has(p.participant_id)}
+                        className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10 hover:text-white disabled:opacity-50"
+                      >
+                        {loadingIds.has(p.participant_id)
+                          ? "…"
+                          : "Grant Admin"}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

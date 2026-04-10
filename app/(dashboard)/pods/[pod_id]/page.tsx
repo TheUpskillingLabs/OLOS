@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import PulseCheckDashboard from "./pulse-check-dashboard";
 
 export default async function PodDetailPage({
   params,
@@ -9,6 +11,11 @@ export default async function PodDetailPage({
 }) {
   const { pod_id } = await params;
   const supabase = await createClient();
+  const serviceClient = createServiceClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: pod } = await supabase
     .from("pods")
@@ -35,6 +42,56 @@ export default async function PodDetailPage({
     .order("created_at");
 
   const ps = (pod.problem_statements as unknown) as Record<string, string> | null;
+
+  // Check if viewer is admin or moderator for this pod
+  const userRoles = user
+    ? await resolveUserRoles(serviceClient, user.id)
+    : null;
+  const canViewDashboard =
+    userRoles && (isAdmin(userRoles) || isModeratorForPod(userRoles, pod.id));
+
+  // Fetch pulse check data for dashboard (using service client to bypass RLS)
+  let pulseCheckData: {
+    participant_id: number;
+    name: string;
+    checks: {
+      scheduled_date: string;
+      completed_at: string | null;
+      survey_responses: Record<string, unknown> | null;
+    }[];
+  }[] = [];
+
+  if (canViewDashboard && members && members.length > 0) {
+    const memberIds = members.map((m) => m.participant_id);
+
+    const { data: pulseChecks } = await serviceClient
+      .from("pulse_checks")
+      .select("participant_id, scheduled_date, completed_at, survey_responses")
+      .in("participant_id", memberIds)
+      .eq("cycle_id", pod.cycle_id)
+      .order("scheduled_date", { ascending: false });
+
+    const checksByParticipant: Record<
+      number,
+      { scheduled_date: string; completed_at: string | null; survey_responses: Record<string, unknown> | null }[]
+    > = {};
+    for (const pc of pulseChecks ?? []) {
+      (checksByParticipant[pc.participant_id] ??= []).push({
+        scheduled_date: pc.scheduled_date,
+        completed_at: pc.completed_at,
+        survey_responses: pc.survey_responses as Record<string, unknown> | null,
+      });
+    }
+
+    pulseCheckData = members.map((m) => {
+      const p = (m.participants as unknown) as Record<string, string> | null;
+      return {
+        participant_id: m.participant_id,
+        name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
+        checks: checksByParticipant[m.participant_id] ?? [],
+      };
+    });
+  }
 
   return (
     <div>
@@ -125,15 +182,16 @@ export default async function PodDetailPage({
       </div>
 
       {projects && projects.length > 0 && (
-        <div>
+        <div className="mb-8">
           <h2 className="mb-3 text-lg font-semibold text-white">
             Projects
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {projects.map((project) => (
-              <div
+              <Link
                 key={project.id}
-                className="rounded-md border border-whisper bg-white/[0.02] p-4"
+                href={`/projects/${project.id}`}
+                className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors hover:border-teal/40 hover:bg-white/[0.04]"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-white">
@@ -151,10 +209,14 @@ export default async function PodDetailPage({
                     {project.status}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
+      )}
+
+      {canViewDashboard && (
+        <PulseCheckDashboard members={pulseCheckData} />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
+import AssignModeratorButton from "./assign-moderator-button";
 
 export type ParticipantRow = {
   participant_id: number;
@@ -81,6 +82,26 @@ export default async function AdminCycleDetailPage({
     (podsByParticipant[m.participant_id] ??= []).push(m.pod_id);
   }
 
+  // Fetch moderator assignments for all pods in this cycle
+  const { data: modAssignments } = podIds.length
+    ? await serviceClient
+        .from("moderator_assignments")
+        .select("participant_id, pod_id, assigned_at, participants (first_name, last_name, preferred_name)")
+        .in("pod_id", podIds)
+        .is("removed_at", null)
+    : { data: [] as { participant_id: number; pod_id: number; assigned_at: string; participants: unknown }[] };
+
+  const moderatorsByPod: Record<number, { participant_id: number; name: string; assigned_at: string }[]> = {};
+  for (const ma of modAssignments ?? []) {
+    const p = (ma.participants as unknown) as { first_name: string; last_name: string; preferred_name: string | null } | null;
+    const name = p ? `${p.preferred_name || p.first_name} ${p.last_name}`.trim() : "";
+    (moderatorsByPod[ma.pod_id] ??= []).push({
+      participant_id: ma.participant_id,
+      name,
+      assigned_at: ma.assigned_at,
+    });
+  }
+
   const participantIds = enrollments?.map((e) => e.participant_id) ?? [];
   const { data: elevatedRoles } = participantIds.length
     ? await serviceClient
@@ -122,6 +143,14 @@ export default async function AdminCycleDetailPage({
     .order("revoked_at", { ascending: false });
 
   const activeCount = participants.filter((p) => p.status === "active").length;
+
+  // Participant list for moderator assignment dropdown
+  const participantOptions = participants.map((p) => ({
+    participant_id: p.participant_id,
+    name: p.preferred_name
+      ? `${p.preferred_name} ${p.last_name}`
+      : `${p.first_name} ${p.last_name}`,
+  }));
 
   return (
     <div>
@@ -232,6 +261,9 @@ export default async function AdminCycleDetailPage({
                       <th className="px-4 py-3 text-left font-medium text-cloud/60">
                         Members
                       </th>
+                      <th className="px-4 py-3 text-left font-medium text-cloud/60">
+                        Moderators
+                      </th>
                       <th className="px-4 py-3 text-right font-medium text-cloud/60" />
                     </tr>
                   </thead>
@@ -261,6 +293,14 @@ export default async function AdminCycleDetailPage({
                           <td className="px-4 py-3 text-cloud/60">
                             {memberCount}
                           </td>
+                          <td className="px-4 py-3">
+                            <AssignModeratorButton
+                              podId={pod.id}
+                              cycleId={cycle.id}
+                              participants={participantOptions}
+                              initialModerators={moderatorsByPod[pod.id] ?? []}
+                            />
+                          </td>
                           <td className="px-4 py-3 text-right">
                             <Link
                               href={`/pods/${pod.id}`}
@@ -286,7 +326,7 @@ export default async function AdminCycleDetailPage({
           <h2 className="mb-4 text-lg font-semibold text-white">
             Participants ({participants.length})
           </h2>
-          <ParticipantsTable participants={participants} />
+          <ParticipantsTable participants={participants} isOwnerUser={userRoles.roles.includes("owner")} />
         </section>
 
         <hr className="border-whisper" />

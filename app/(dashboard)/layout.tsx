@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { resolveUserRoles, isAdmin, isModerator } from "@/lib/auth/roles";
 import LogoutButton from "./components/logout-button";
 
 export default async function DashboardLayout({
@@ -28,6 +28,7 @@ export default async function DashboardLayout({
 
   const userRoles = await resolveUserRoles(serviceClient, user.id);
   const adminUser = isAdmin(userRoles);
+  const moderatorUser = isModerator(userRoles) && !adminUser;
 
   const displayName =
     participant?.preferred_name ||
@@ -65,6 +66,14 @@ export default async function DashboardLayout({
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400" />
               Pulse Check
             </Link>
+            {moderatorUser && (
+              <Link
+                href="/moderator"
+                className="text-sm text-cloud transition-colors hover:text-aqua"
+              >
+                My Pods
+              </Link>
+            )}
             {adminUser && (
               <Link
                 href="/admin"
