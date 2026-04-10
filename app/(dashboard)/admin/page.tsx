@@ -42,7 +42,15 @@ export default async function AdminPage() {
             {cycles?.length ?? 0} cycle{cycles?.length !== 1 ? "s" : ""} total
           </p>
         </div>
-        <CreateCycleForm />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/participants"
+            className="rounded-md px-4 py-2 text-sm font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud"
+          >
+            All Participants
+          </Link>
+          <CreateCycleForm />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-md border border-whisper">
