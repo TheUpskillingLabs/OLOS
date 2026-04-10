@@ -74,13 +74,13 @@ function BrandPanel() {
         {/* Framing */}
         <div className="space-y-3">
           <p className="text-sm leading-relaxed text-cloud/70">
-            You do not need another program that talks about the future.
+            A lot of learning is built around content about what is coming.
             <br />
-            You need a place to start building inside it.
+            This is built around working on what is already here.
           </p>
           <p className="text-sm leading-relaxed text-cloud/50">
             The Upskilling Labs helps you take what you already know and use new
-            tools — especially AI — on real problems that matter now.
+            tools — especially AI — on real problems in your community and field.
           </p>
         </div>
 
@@ -105,9 +105,8 @@ function BrandPanel() {
 
         {/* Contrast */}
         <p className="text-sm leading-relaxed text-cloud/50">
-          Most programs ask you to sit back and absorb.
-          <br />
-          This one asks you to step in and make something with other people.
+          The work happens in small groups, on real problems, with people who
+          share your commitment to getting something done.
         </p>
 
         {/* Bar */}
@@ -202,7 +201,7 @@ function LoginContent() {
             <p className="text-base font-medium leading-snug text-white">
               {invited
                 ? "One click to accept your invitation and get started."
-                : "If you are ready to stop circling and start building, this is for you."}
+                : "A place to learn by doing, alongside people who take it seriously."}
             </p>
           </div>
 
