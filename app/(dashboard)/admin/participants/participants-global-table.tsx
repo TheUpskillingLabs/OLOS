@@ -19,6 +19,9 @@ export default function ParticipantsGlobalTable({
   const [grantedObserverIds, setGrantedObserverIds] = useState<Set<number>>(
     new Set()
   );
+  const [grantedDeveloperIds, setGrantedDeveloperIds] = useState<Set<number>>(
+    new Set()
+  );
   const [errors, setErrors] = useState<Record<number, string>>({});
 
   const filtered = participants.filter((p) => {
@@ -33,6 +36,8 @@ export default function ParticipantsGlobalTable({
     const effectiveRoles = [...p.roles];
     if (grantedAdminIds.has(p.id) && !effectiveRoles.includes("admin"))
       effectiveRoles.push("admin");
+    if (grantedDeveloperIds.has(p.id) && !effectiveRoles.includes("developer"))
+      effectiveRoles.push("developer");
     if (grantedObserverIds.has(p.id) && !effectiveRoles.includes("observer"))
       effectiveRoles.push("observer");
 
@@ -49,7 +54,7 @@ export default function ParticipantsGlobalTable({
 
   async function grantRole(
     participantId: number,
-    role: "admin" | "observer"
+    role: "admin" | "observer" | "developer"
   ) {
     setLoadingIds((prev) => new Set(prev).add(participantId));
     setErrors((prev) => {
@@ -73,6 +78,8 @@ export default function ParticipantsGlobalTable({
     if (res.ok) {
       if (role === "admin") {
         setGrantedAdminIds((prev) => new Set(prev).add(participantId));
+      } else if (role === "developer") {
+        setGrantedDeveloperIds((prev) => new Set(prev).add(participantId));
       } else {
         setGrantedObserverIds((prev) => new Set(prev).add(participantId));
       }
@@ -89,6 +96,8 @@ export default function ParticipantsGlobalTable({
     if (grantedAdminIds.has(p.id)) return "admin";
     if (p.roles.includes("owner")) return "owner";
     if (p.roles.includes("admin")) return "admin";
+    if (grantedDeveloperIds.has(p.id)) return "developer";
+    if (p.roles.includes("developer")) return "developer";
     if (grantedObserverIds.has(p.id)) return "observer";
     if (p.roles.includes("observer")) return "observer";
     if (p.moderator_pods.length > 0) return "moderator";
@@ -114,6 +123,7 @@ export default function ParticipantsGlobalTable({
           <option value="all">All roles</option>
           <option value="owner">Owners</option>
           <option value="admin">Admins</option>
+          <option value="developer">Developers</option>
           <option value="observer">Observers</option>
           <option value="moderator">Moderators</option>
           <option value="none">No role</option>
@@ -158,7 +168,9 @@ export default function ParticipantsGlobalTable({
               const hasElevated =
                 p.roles.includes("owner") ||
                 p.roles.includes("admin") ||
-                grantedAdminIds.has(p.id);
+                p.roles.includes("developer") ||
+                grantedAdminIds.has(p.id) ||
+                grantedDeveloperIds.has(p.id);
 
               return (
                 <tr key={p.id}>
@@ -174,9 +186,11 @@ export default function ParticipantsGlobalTable({
                             ? "bg-yellow-500/15 text-yellow-300"
                             : topRole === "admin"
                               ? "bg-teal/15 text-aqua"
-                              : topRole === "moderator"
-                                ? "bg-blue-500/15 text-blue-300"
-                                : "bg-white/10 text-cloud/60"
+                              : topRole === "developer"
+                                ? "bg-purple-500/15 text-purple-300"
+                                : topRole === "moderator"
+                                  ? "bg-blue-500/15 text-blue-300"
+                                  : "bg-white/10 text-cloud/60"
                         }`}
                       >
                         {topRole}
@@ -241,13 +255,22 @@ export default function ParticipantsGlobalTable({
                           </button>
                         )}
                       {isOwnerUser && !hasElevated && (
-                        <button
-                          onClick={() => grantRole(p.id, "admin")}
-                          disabled={loadingIds.has(p.id)}
-                          className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10 hover:text-white disabled:opacity-50"
-                        >
-                          {loadingIds.has(p.id) ? "…" : "Admin"}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => grantRole(p.id, "developer")}
+                            disabled={loadingIds.has(p.id)}
+                            className="rounded px-2.5 py-1 text-xs font-medium text-purple-300 ring-1 ring-purple-500/40 hover:bg-purple-500/10 hover:text-white disabled:opacity-50"
+                          >
+                            {loadingIds.has(p.id) ? "…" : "Developer"}
+                          </button>
+                          <button
+                            onClick={() => grantRole(p.id, "admin")}
+                            disabled={loadingIds.has(p.id)}
+                            className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10 hover:text-white disabled:opacity-50"
+                          >
+                            {loadingIds.has(p.id) ? "…" : "Admin"}
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>

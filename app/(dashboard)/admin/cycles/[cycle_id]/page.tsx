@@ -8,6 +8,7 @@ import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
 import AssignModeratorButton from "./assign-moderator-button";
+import TestingControls from "./testing-controls";
 
 export type ParticipantRow = {
   participant_id: number;
@@ -239,6 +240,24 @@ export default async function AdminCycleDetailPage({
             generate pod names.
           </p>
           <FinalizeVotingButton cycleId={cycle.id} />
+        </section>
+
+        <hr className="border-whisper" />
+
+        {/* Testing Controls */}
+        <section>
+          <h2 className="mb-1 text-lg font-semibold text-white">
+            Testing Mode
+          </h2>
+          <p className="mb-4 text-sm text-cloud/60">
+            Advance through cycle phases one step at a time for testing.
+          </p>
+          {config && (
+            <TestingControls
+              cycleId={cycle.id}
+              initialConfig={config as unknown as Record<string, unknown>}
+            />
+          )}
         </section>
 
         {pods && pods.length > 0 && (
