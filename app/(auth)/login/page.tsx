@@ -92,20 +92,21 @@ function BrandPanel() {
 
         {/* Tagline */}
         <p className="mb-2 text-2xl font-semibold leading-snug text-white lg:text-3xl">
-          Build with AI.
+          Real problems.
           <br />
-          <span className="text-aqua">Grow with peers.</span>
+          <span className="text-aqua">Real teams. Real proof.</span>
         </p>
         <p className="mb-10 text-sm leading-relaxed text-cloud/50">
-          A curated community for professionals applying AI to real work.
+          AI lowered the cost of doing. The scarce resource now is finding the
+          right people, working on what matters, and showing what you built.
         </p>
 
         {/* Value props */}
         <ul className="space-y-4">
-          <ValueProp text="Apply AI tools to real challenges — not just tutorials" />
-          <ValueProp text="Learn alongside a handpicked peer cohort" />
-          <ValueProp text="Ship projects across a 13-week Build Cycle" />
-          <ValueProp text="Get matched to pods based on your strengths and goals" />
+          <ValueProp text="Work on real problems before the answers are obvious" />
+          <ValueProp text="Find credible collaborators — not through networking, through doing" />
+          <ValueProp text="Produce visible outputs that signal readiness, not certificates" />
+          <ValueProp text="Join small teams (3–7) built to actually ship" />
         </ul>
       </div>
 
@@ -224,7 +225,7 @@ function LoginContent() {
           {/* Invite-only reminder for non-invited state */}
           {!invited && (
             <p className="mt-8 text-center text-xs text-cloud/25">
-              Access is by invitation only.
+              Access is by member referral only.
             </p>
           )}
         </div>
