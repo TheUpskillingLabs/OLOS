@@ -92,21 +92,21 @@ function BrandPanel() {
 
         {/* Tagline */}
         <p className="mb-2 text-2xl font-semibold leading-snug text-white lg:text-3xl">
-          Real problems.
+          Grow your skill set.
           <br />
-          <span className="text-aqua">Real teams. Real proof.</span>
+          <span className="text-aqua">Build your network.</span>
         </p>
         <p className="mb-10 text-sm leading-relaxed text-cloud/50">
-          AI lowered the cost of doing. The scarce resource now is finding the
-          right people, working on what matters, and showing what you built.
+          Open Labs is for everyday people ready to learn by doing — alongside
+          peers, mentors, and a community that shows up.
         </p>
 
         {/* Value props */}
         <ul className="space-y-4">
-          <ValueProp text="Work on real problems before the answers are obvious" />
-          <ValueProp text="Find credible collaborators — not through networking, through doing" />
-          <ValueProp text="Produce visible outputs that signal readiness, not certificates" />
-          <ValueProp text="Join small teams (3–7) built to actually ship" />
+          <ValueProp text="Work on real projects and translate ideas into practice" />
+          <ValueProp text="Learn alongside peers who share your goals and keep you moving" />
+          <ValueProp text="Tap into mentors and local experts ready to open doors" />
+          <ValueProp text="Find your pod, join a project team, and start contributing today" />
         </ul>
       </div>
 
@@ -114,7 +114,7 @@ function BrandPanel() {
       <div className="relative z-10 mt-12">
         <span className="inline-flex items-center gap-2 rounded-full border border-teal/20 bg-teal/[0.06] px-3 py-1.5 text-xs font-medium text-aqua">
           <span className="h-1.5 w-1.5 rounded-full bg-aqua" aria-hidden="true" />
-          Invite-only community
+          Open to all — join anytime
         </span>
       </div>
     </div>
@@ -222,10 +222,9 @@ function LoginContent() {
             behalf.
           </p>
 
-          {/* Invite-only reminder for non-invited state */}
           {!invited && (
             <p className="mt-8 text-center text-xs text-cloud/25">
-              Access is by member referral only.
+              No application required. Anyone can join.
             </p>
           )}
         </div>
