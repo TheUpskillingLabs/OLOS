@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// ── Google SVG logo ─────────────────────────────────────────────────────────
 function GoogleLogo() {
   return (
     <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -29,103 +28,14 @@ function GoogleLogo() {
   );
 }
 
-// ── Left branding panel ──────────────────────────────────────────────────────
-function BrandPanel() {
-  return (
-    <div className="relative flex flex-col overflow-hidden px-8 py-10 lg:px-12 lg:py-14">
-      {/* Dot-grid decorative pattern */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, #4dbbc2 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-        aria-hidden="true"
-      />
+const STEPS = [
+  "Bring what you know",
+  "Find a problem worth working on",
+  "Join a small team",
+  "Build something real",
+  "Show your progress as you go",
+];
 
-      {/* Teal glow blob */}
-      <div
-        className="pointer-events-none absolute -top-32 -left-32 h-[420px] w-[420px] rounded-full opacity-[0.12]"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(0,148,160,0.9) 0%, transparent 70%)",
-        }}
-        aria-hidden="true"
-      />
-
-      <div className="relative z-10 space-y-8">
-        {/* Wordmark */}
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal">
-          The Upskilling Labs
-        </p>
-
-        {/* Hero */}
-        <div>
-          <h1 className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl">
-            Build real skills.
-            <br />
-            Through real work.
-            <br />
-            <span className="text-aqua">With real people.</span>
-          </h1>
-        </div>
-
-        {/* Framing */}
-        <div className="space-y-3">
-          <p className="text-sm leading-relaxed text-cloud/70">
-            A lot of learning is built around content about what is coming.
-            <br />
-            This is built around working on what is already here.
-          </p>
-          <p className="text-sm leading-relaxed text-cloud/50">
-            The Upskilling Labs helps you take what you already know and use new
-            tools — especially AI — on real problems in your community and field.
-          </p>
-        </div>
-
-        {/* Steps */}
-        <ul className="space-y-2.5">
-          {[
-            "Bring what you know",
-            "Find a problem worth working on",
-            "Join a small team",
-            "Build something real",
-            "Show your progress as you go",
-          ].map((step) => (
-            <li key={step} className="flex items-center gap-3">
-              <span
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-aqua"
-                aria-hidden="true"
-              />
-              <span className="text-sm text-cloud/70">{step}</span>
-            </li>
-          ))}
-        </ul>
-
-        {/* Contrast */}
-        <p className="text-sm leading-relaxed text-cloud/50">
-          The work happens in small groups, on real problems, with people who
-          share your commitment to getting something done.
-        </p>
-
-        {/* Bar */}
-        <p className="text-sm leading-relaxed text-cloud/50">
-          You do not need to have everything figured out. You just need to be
-          comfortable using a computer, learning as you go, and working with
-          others in good faith.
-        </p>
-
-        {/* Tagline */}
-        <p className="text-xs tracking-wide text-cloud/30">
-          Real problems&nbsp;&nbsp;·&nbsp;&nbsp;Real collaboration&nbsp;&nbsp;·&nbsp;&nbsp;Real output
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ── Main login content ───────────────────────────────────────────────────────
 function LoginContent() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
@@ -133,7 +43,6 @@ function LoginContent() {
 
   useEffect(() => {
     if (inviteToken) {
-      // Store invite token in a cookie so it survives the OAuth redirect
       document.cookie = `invite_token=${inviteToken}; path=/; max-age=3600; SameSite=Lax`;
       setInvited(true);
     }
@@ -150,108 +59,131 @@ function LoginContent() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      {/* LEFT: Brand panel — 60% on desktop, below auth on mobile */}
-      <div className="order-2 w-full border-t border-whisper lg:order-1 lg:w-[60%] lg:border-t-0 lg:border-r">
-        <BrandPanel />
-      </div>
+    <>
+      {/* ── Hero ── */}
+      <section className="flex min-h-svh flex-col justify-between px-6 pb-10 pt-12 lg:px-16 lg:pb-14 lg:pt-16">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal">
+          The Upskilling Labs
+        </p>
 
-      {/* RIGHT: Auth card — 40% on desktop, first on mobile */}
-      <div className="order-1 flex w-full flex-1 items-center justify-center px-6 py-12 lg:order-2 lg:w-[40%] lg:px-12">
-        <div className="w-full max-w-sm space-y-8">
-          {/* Heading */}
-          <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-teal">
-              The Upskilling Labs
-            </p>
-            <h2 className="text-2xl font-bold tracking-tight text-white">
-              {invited ? "You have been invited" : "Get started"}
-            </h2>
-          </div>
+        <div className="my-auto max-w-3xl py-16">
+          <h1 className="text-[clamp(2.25rem,5vw,4.5rem)] font-bold leading-[1.08] tracking-tight text-white">
+            Build real skills.
+            <br />
+            Through real work.
+            <br />
+            <span className="text-aqua">With real people.</span>
+          </h1>
 
-          {/* Invited state banner */}
+          <p className="mt-6 max-w-md text-base leading-relaxed text-cloud/50 lg:mt-8 lg:text-lg">
+            A place to learn by doing, alongside people who take the work
+            seriously.
+          </p>
+
           {invited && (
-            <div className="flex items-start gap-3 rounded-lg border border-aqua/20 bg-aqua/[0.06] px-4 py-3">
-              <svg
-                className="mt-0.5 h-4 w-4 shrink-0 text-aqua"
-                viewBox="0 0 16 16"
-                fill="none"
+            <div className="mt-8 inline-flex items-center gap-2.5 rounded-full border border-aqua/20 bg-aqua/[0.06] px-4 py-2">
+              <span
+                className="h-2 w-2 rounded-full bg-aqua"
                 aria-hidden="true"
-              >
-                <rect
-                  x="1"
-                  y="3"
-                  width="14"
-                  height="10"
-                  rx="1.5"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                />
-                <path
-                  d="M1 5l7 5 7-5"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div>
-                <p className="text-sm font-semibold text-aqua">
-                  You&apos;ve been invited
-                </p>
-                <p className="mt-0.5 text-xs text-cloud/60">
-                  Sign in with Google to accept your invitation and join The
-                  Upskilling Labs.
-                </p>
-              </div>
+              />
+              <span className="text-sm font-medium text-aqua">
+                You&apos;ve been invited to join
+              </span>
             </div>
           )}
 
-          {/* Closing line */}
-          <div>
-            <p className="text-base font-medium leading-snug text-white">
-              {invited
-                ? "One click to accept your invitation and get started."
-                : "A place to learn by doing, alongside people who take it seriously."}
-            </p>
-          </div>
-
-          {/* Google sign-in button */}
-          <button
-            onClick={handleLogin}
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-white/[0.12] bg-white/[0.04] px-5 py-3.5 text-sm font-medium text-white transition-all duration-200 hover:border-aqua/40 hover:bg-white/[0.07] hover:shadow-[0_0_18px_rgba(77,187,194,0.12)]"
-          >
-            <GoogleLogo />
-            <span>
+          <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center lg:mt-12">
+            <button
+              onClick={handleLogin}
+              className="inline-flex items-center justify-center gap-3 rounded-full bg-teal px-8 py-4 text-sm font-semibold text-midnight transition-colors hover:bg-aqua"
+            >
+              <GoogleLogo />
               {invited
                 ? "Sign in to accept invitation"
                 : "Join The Upskilling Labs"}
-            </span>
-          </button>
+            </button>
 
-          {/* Returning user link */}
-          {!invited && (
-            <p className="text-center text-xs text-cloud/30">
-              Already a member?{" "}
+            {!invited && (
               <button
                 onClick={handleLogin}
-                className="text-cloud/50 underline underline-offset-2 transition-colors hover:text-aqua"
+                className="text-sm text-cloud/40 transition-colors hover:text-aqua"
               >
-                Log in
+                Already a member? Log in
               </button>
-            </p>
-          )}
-
-          {/* Privacy note */}
-          <p className="text-center text-xs leading-relaxed text-cloud/25">
-            We use Google to verify your identity. We never post on your behalf.
-          </p>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+
+        <p className="text-xs tracking-wide text-cloud/20">
+          Real problems&ensp;·&ensp;Real collaboration&ensp;·&ensp;Real output
+        </p>
+      </section>
+
+      {/* ── Story ── */}
+      <section className="border-t border-whisper px-6 py-20 lg:px-16 lg:py-28">
+        <div className="mx-auto max-w-3xl space-y-16 lg:space-y-20">
+          <div className="space-y-4">
+            <p className="text-lg leading-relaxed text-cloud/60 lg:text-xl">
+              A lot of learning is built around content about what is coming.
+            </p>
+            <p className="text-lg font-medium leading-relaxed text-white lg:text-xl">
+              This is built around working on what is already here.
+            </p>
+          </div>
+
+          <p className="max-w-xl text-base leading-relaxed text-cloud/50 lg:text-lg">
+            The Upskilling Labs helps you take what you already know and use new
+            tools — especially AI — on real problems in your community and
+            field.
+          </p>
+
+          <ol className="space-y-5 border-l border-whisper pl-8">
+            {STEPS.map((step, i) => (
+              <li key={step} className="flex items-baseline gap-4">
+                <span className="font-mono text-xs text-aqua/50">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="text-base text-cloud/70 lg:text-lg">
+                  {step}
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="space-y-4 border-t border-whisper pt-16">
+            <p className="text-base leading-relaxed text-cloud/50 lg:text-lg">
+              The work happens in small groups, on real problems, with people
+              who share your commitment to getting something done.
+            </p>
+            <p className="text-base leading-relaxed text-cloud/50 lg:text-lg">
+              You do not need to have everything figured out. You just need to
+              be comfortable using a computer, learning as you go, and working
+              with others in good faith.
+            </p>
+          </div>
+
+          <button
+            onClick={handleLogin}
+            className="inline-flex items-center justify-center gap-3 rounded-full bg-teal px-8 py-4 text-sm font-semibold text-midnight transition-colors hover:bg-aqua"
+          >
+            <GoogleLogo />
+            {invited
+              ? "Sign in to accept invitation"
+              : "Join The Upskilling Labs"}
+          </button>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-whisper px-6 py-8 lg:px-16">
+        <p className="text-xs text-cloud/20">
+          We use Google to verify your identity. We never post on your behalf.
+        </p>
+      </footer>
+    </>
   );
 }
 
-// ── Page export ──────────────────────────────────────────────────────────────
 export default function LoginPage() {
   return (
     <Suspense>
