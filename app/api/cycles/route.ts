@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth, withAdminAuth } from "@/lib/auth/middleware";
-import { isAdmin } from "@/lib/auth/roles";
+import { isAdmin, can } from "@/lib/auth/roles";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -13,8 +13,8 @@ export const GET = withAuth(
       .select("id, name, slug, start_date, end_date, status")
       .order("start_date", { ascending: false });
 
-    // Non-admin users only see cycles they're enrolled in
-    if (!isAdmin(auth.user) && !auth.user.roles.includes("observer")) {
+    // Non-admin users only see cycles they're enrolled in (cycles:read grants full visibility)
+    if (!isAdmin(auth.user) && !can(auth.user, "cycles:read")) {
       const enrolledCycleIds = auth.user.cycleEnrollments.map((e) => e.cycleId);
       if (enrolledCycleIds.length === 0) {
         return NextResponse.json([]);

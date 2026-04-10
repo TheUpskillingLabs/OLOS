@@ -84,7 +84,23 @@ RETURNS BOOLEAN AS $$
   SELECT has_permission('cycles:write');
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
--- 6. Invitations table
+-- 6. Tighten RLS on user_roles and participant_permissions:
+--    write operations require roles:write, not just cycles:write
+DROP POLICY IF EXISTS "user_roles_insert" ON user_roles;
+DROP POLICY IF EXISTS "user_roles_update" ON user_roles;
+CREATE POLICY "user_roles_insert" ON user_roles FOR INSERT TO authenticated
+  WITH CHECK (has_permission('roles:write'));
+CREATE POLICY "user_roles_update" ON user_roles FOR UPDATE TO authenticated
+  USING (has_permission('roles:write'));
+
+DROP POLICY IF EXISTS "permissions_insert" ON participant_permissions;
+DROP POLICY IF EXISTS "permissions_update" ON participant_permissions;
+CREATE POLICY "permissions_insert" ON participant_permissions FOR INSERT TO authenticated
+  WITH CHECK (has_permission('roles:write'));
+CREATE POLICY "permissions_update" ON participant_permissions FOR UPDATE TO authenticated
+  USING (has_permission('roles:write'));
+
+-- 7. Invitations table
 CREATE TABLE invitations (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL,

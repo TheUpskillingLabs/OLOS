@@ -1,9 +1,11 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withOwnerAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { observerRoleSchema } from "@/lib/validations/pods";
+import { ROLE_PRESETS } from "@/lib/auth/permissions";
 
 export const POST = withOwnerAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
@@ -23,6 +25,23 @@ export const POST = withOwnerAuth(
 
     if (error) {
       return dbError(error);
+    }
+
+    // Also grant corresponding permissions
+    const serviceClient = createServiceClient();
+    const permissions = ROLE_PRESETS["admin"] ?? [];
+    for (const permission of permissions) {
+      await serviceClient
+        .from("participant_permissions")
+        .upsert(
+          {
+            participant_id,
+            permission,
+            granted_by: auth.user.participantId,
+            revoked_at: null,
+          },
+          { onConflict: "participant_id,permission" }
+        );
     }
 
     return NextResponse.json(data, { status: 201 });
