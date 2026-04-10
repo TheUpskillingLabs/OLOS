@@ -29,35 +29,10 @@ function GoogleLogo() {
   );
 }
 
-// ── Value prop bullet item ───────────────────────────────────────────────────
-function ValueProp({ text }: { text: string }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal/20">
-        <svg
-          className="h-3 w-3 text-aqua"
-          viewBox="0 0 12 12"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M2 6l3 3 5-5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <span className="text-sm leading-relaxed text-cloud/70">{text}</span>
-    </li>
-  );
-}
-
 // ── Left branding panel ──────────────────────────────────────────────────────
 function BrandPanel() {
   return (
-    <div className="relative flex flex-col justify-between overflow-hidden px-8 py-10 lg:px-12 lg:py-14">
+    <div className="relative flex flex-col overflow-hidden px-8 py-10 lg:px-12 lg:py-14">
       {/* Dot-grid decorative pattern */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.06]"
@@ -79,43 +54,72 @@ function BrandPanel() {
         aria-hidden="true"
       />
 
-      <div className="relative z-10">
+      <div className="relative z-10 space-y-8">
         {/* Wordmark */}
-        <div className="mb-10">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-teal">
-            The Upskilling Labs
-          </p>
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-white lg:text-5xl">
-            OLOS
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal">
+          The Upskilling Labs
+        </p>
+
+        {/* Hero */}
+        <div>
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl">
+            Build real skills.
+            <br />
+            Through real work.
+            <br />
+            <span className="text-aqua">With real people.</span>
           </h1>
         </div>
 
-        {/* Tagline */}
-        <p className="mb-2 text-2xl font-semibold leading-snug text-white lg:text-3xl">
-          Grow your skill set.
-          <br />
-          <span className="text-aqua">Build your network.</span>
-        </p>
-        <p className="mb-10 text-sm leading-relaxed text-cloud/50">
-          Open Labs is for everyday people ready to learn by doing — alongside
-          peers, mentors, and a community that shows up.
-        </p>
+        {/* Framing */}
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed text-cloud/70">
+            A lot of learning is built around content about what is coming.
+            <br />
+            This is built around working on what is already here.
+          </p>
+          <p className="text-sm leading-relaxed text-cloud/50">
+            The Upskilling Labs helps you take what you already know and use new
+            tools — especially AI — on real problems in your community and field.
+          </p>
+        </div>
 
-        {/* Value props */}
-        <ul className="space-y-4">
-          <ValueProp text="Work on real projects and translate ideas into practice" />
-          <ValueProp text="Learn alongside peers who share your goals and keep you moving" />
-          <ValueProp text="Tap into mentors and local experts ready to open doors" />
-          <ValueProp text="Find your pod, join a project team, and start contributing today" />
+        {/* Steps */}
+        <ul className="space-y-2.5">
+          {[
+            "Bring what you know",
+            "Find a problem worth working on",
+            "Join a small team",
+            "Build something real",
+            "Show your progress as you go",
+          ].map((step) => (
+            <li key={step} className="flex items-center gap-3">
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-aqua"
+                aria-hidden="true"
+              />
+              <span className="text-sm text-cloud/70">{step}</span>
+            </li>
+          ))}
         </ul>
-      </div>
 
-      {/* Bottom badge */}
-      <div className="relative z-10 mt-12">
-        <span className="inline-flex items-center gap-2 rounded-full border border-teal/20 bg-teal/[0.06] px-3 py-1.5 text-xs font-medium text-aqua">
-          <span className="h-1.5 w-1.5 rounded-full bg-aqua" aria-hidden="true" />
-          Open to all — join anytime
-        </span>
+        {/* Contrast */}
+        <p className="text-sm leading-relaxed text-cloud/50">
+          The work happens in small groups, on real problems, with people who
+          share your commitment to getting something done.
+        </p>
+
+        {/* Bar */}
+        <p className="text-sm leading-relaxed text-cloud/50">
+          You do not need to have everything figured out. You just need to be
+          comfortable using a computer, learning as you go, and working with
+          others in good faith.
+        </p>
+
+        {/* Tagline */}
+        <p className="text-xs tracking-wide text-cloud/30">
+          Real problems&nbsp;&nbsp;·&nbsp;&nbsp;Real collaboration&nbsp;&nbsp;·&nbsp;&nbsp;Real output
+        </p>
       </div>
     </div>
   );
@@ -154,10 +158,10 @@ function LoginContent() {
 
       {/* RIGHT: Auth card — 40% on desktop, full width on mobile */}
       <div className="flex w-full flex-1 items-center justify-center px-6 py-12 lg:w-[40%] lg:px-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm space-y-8">
           {/* Invited state banner */}
           {invited && (
-            <div className="mb-6 flex items-start gap-3 rounded-lg border border-aqua/20 bg-aqua/[0.06] px-4 py-3">
+            <div className="flex items-start gap-3 rounded-lg border border-aqua/20 bg-aqua/[0.06] px-4 py-3">
               <svg
                 className="mt-0.5 h-4 w-4 shrink-0 text-aqua"
                 viewBox="0 0 16 16"
@@ -192,15 +196,12 @@ function LoginContent() {
             </div>
           )}
 
-          {/* Card heading */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight text-white">
-              {invited ? "Accept your invitation" : "Welcome back"}
-            </h2>
-            <p className="mt-1.5 text-sm text-cloud/50">
+          {/* Closing line */}
+          <div>
+            <p className="text-base font-medium leading-snug text-white">
               {invited
-                ? "One click to get started."
-                : "Sign in to your OLOS account."}
+                ? "One click to accept your invitation and get started."
+                : "A place to learn by doing, alongside people who take it seriously."}
             </p>
           </div>
 
@@ -211,22 +212,29 @@ function LoginContent() {
           >
             <GoogleLogo />
             <span>
-              {invited ? "Sign in to accept invitation" : "Sign in with Google"}
+              {invited
+                ? "Sign in to accept invitation"
+                : "Join The Upskilling Labs"}
             </span>
           </button>
 
-          {/* Privacy note */}
-          <p className="mt-6 text-center text-xs leading-relaxed text-cloud/30">
-            By signing in, you agree to our terms of service. We only use your
-            Google account to verify your identity — we never post on your
-            behalf.
-          </p>
-
+          {/* Returning user link */}
           {!invited && (
-            <p className="mt-8 text-center text-xs text-cloud/25">
-              No application required. Anyone can join.
+            <p className="text-center text-xs text-cloud/30">
+              Already a member?{" "}
+              <button
+                onClick={handleLogin}
+                className="text-cloud/50 underline underline-offset-2 transition-colors hover:text-aqua"
+              >
+                Log in
+              </button>
             </p>
           )}
+
+          {/* Privacy note */}
+          <p className="text-center text-xs leading-relaxed text-cloud/25">
+            We use Google to verify your identity. We never post on your behalf.
+          </p>
         </div>
       </div>
     </div>
