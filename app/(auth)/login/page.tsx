@@ -151,14 +151,24 @@ function LoginContent() {
 
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
-      {/* LEFT: Brand panel — 60% on desktop, full width on mobile */}
-      <div className="w-full border-b border-whisper lg:w-[60%] lg:border-b-0 lg:border-r">
+      {/* LEFT: Brand panel — 60% on desktop, below auth on mobile */}
+      <div className="order-2 w-full border-t border-whisper lg:order-1 lg:w-[60%] lg:border-t-0 lg:border-r">
         <BrandPanel />
       </div>
 
-      {/* RIGHT: Auth card — 40% on desktop, full width on mobile */}
-      <div className="flex w-full flex-1 items-center justify-center px-6 py-12 lg:w-[40%] lg:px-12">
+      {/* RIGHT: Auth card — 40% on desktop, first on mobile */}
+      <div className="order-1 flex w-full flex-1 items-center justify-center px-6 py-12 lg:order-2 lg:w-[40%] lg:px-12">
         <div className="w-full max-w-sm space-y-8">
+          {/* Heading */}
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-teal">
+              The Upskilling Labs
+            </p>
+            <h2 className="text-2xl font-bold tracking-tight text-white">
+              {invited ? "You have been invited" : "Get started"}
+            </h2>
+          </div>
+
           {/* Invited state banner */}
           {invited && (
             <div className="flex items-start gap-3 rounded-lg border border-aqua/20 bg-aqua/[0.06] px-4 py-3">
