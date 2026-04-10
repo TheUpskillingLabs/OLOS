@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export type Role = "owner" | "admin" | "observer" | "moderator" | "participant";
+export type Role = "owner" | "admin" | "observer" | "developer" | "moderator" | "participant";
 export type ParticipantStatus = "active" | "inactive" | "revoked";
 
 export interface UserRoles {
@@ -84,7 +84,7 @@ export function isOwner(roles: UserRoles): boolean {
 }
 
 export function isAdmin(roles: UserRoles): boolean {
-  return roles.roles.includes("admin") || roles.roles.includes("owner");
+  return roles.roles.includes("admin") || roles.roles.includes("owner") || roles.roles.includes("developer");
 }
 
 export function isModerator(roles: UserRoles): boolean {
