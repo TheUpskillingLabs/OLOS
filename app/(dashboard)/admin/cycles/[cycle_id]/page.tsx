@@ -345,7 +345,7 @@ export default async function AdminCycleDetailPage({
           <h2 className="mb-4 text-lg font-semibold text-white">
             Participants ({participants.length})
           </h2>
-          <ParticipantsTable participants={participants} isOwnerUser={userRoles.roles.includes("owner")} />
+          <ParticipantsTable participants={participants} />
         </section>
 
         <hr className="border-whisper" />

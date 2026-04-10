@@ -1,28 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { GlobalParticipant } from "./page";
+
+const ROLE_COLORS: Record<string, string> = {
+  owner: "bg-yellow-500/15 text-yellow-300",
+  admin: "bg-teal/15 text-aqua",
+  developer: "bg-purple-500/15 text-purple-300",
+  moderator: "bg-blue-500/15 text-blue-300",
+  observer: "bg-white/10 text-cloud/60",
+};
 
 export default function ParticipantsGlobalTable({
   participants,
-  isOwnerUser,
 }: {
   participants: GlobalParticipant[];
-  isOwnerUser: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
-  const [grantedAdminIds, setGrantedAdminIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [grantedObserverIds, setGrantedObserverIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [grantedDeveloperIds, setGrantedDeveloperIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [errors, setErrors] = useState<Record<number, string>>({});
 
   const filtered = participants.filter((p) => {
     const name = p.preferred_name
@@ -33,76 +29,16 @@ export default function ParticipantsGlobalTable({
       name.toLowerCase().includes(search.toLowerCase()) ||
       p.email.toLowerCase().includes(search.toLowerCase());
 
-    const effectiveRoles = [...p.roles];
-    if (grantedAdminIds.has(p.id) && !effectiveRoles.includes("admin"))
-      effectiveRoles.push("admin");
-    if (grantedDeveloperIds.has(p.id) && !effectiveRoles.includes("developer"))
-      effectiveRoles.push("developer");
-    if (grantedObserverIds.has(p.id) && !effectiveRoles.includes("observer"))
-      effectiveRoles.push("observer");
-
     const matchesRole =
       roleFilter === "all" ||
       (roleFilter === "moderator" && p.moderator_pods.length > 0) ||
       (roleFilter === "none" &&
-        effectiveRoles.length === 0 &&
+        p.roles.length === 0 &&
         p.moderator_pods.length === 0) ||
-      effectiveRoles.includes(roleFilter);
+      p.roles.includes(roleFilter);
 
     return matchesSearch && matchesRole;
   });
-
-  async function grantRole(
-    participantId: number,
-    role: "admin" | "observer" | "developer"
-  ) {
-    setLoadingIds((prev) => new Set(prev).add(participantId));
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next[participantId];
-      return next;
-    });
-
-    const res = await fetch(`/api/roles/${role}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ participant_id: participantId }),
-    });
-
-    setLoadingIds((prev) => {
-      const next = new Set(prev);
-      next.delete(participantId);
-      return next;
-    });
-
-    if (res.ok) {
-      if (role === "admin") {
-        setGrantedAdminIds((prev) => new Set(prev).add(participantId));
-      } else if (role === "developer") {
-        setGrantedDeveloperIds((prev) => new Set(prev).add(participantId));
-      } else {
-        setGrantedObserverIds((prev) => new Set(prev).add(participantId));
-      }
-    } else {
-      const data = await res.json();
-      setErrors((prev) => ({
-        ...prev,
-        [participantId]: data.error ?? "Failed",
-      }));
-    }
-  }
-
-  function getTopRole(p: GlobalParticipant): string | null {
-    if (grantedAdminIds.has(p.id)) return "admin";
-    if (p.roles.includes("owner")) return "owner";
-    if (p.roles.includes("admin")) return "admin";
-    if (grantedDeveloperIds.has(p.id)) return "developer";
-    if (p.roles.includes("developer")) return "developer";
-    if (grantedObserverIds.has(p.id)) return "observer";
-    if (p.roles.includes("observer")) return "observer";
-    if (p.moderator_pods.length > 0) return "moderator";
-    return null;
-  }
 
   return (
     <div>
@@ -145,7 +81,7 @@ export default function ParticipantsGlobalTable({
                 Email
               </th>
               <th className="px-4 py-3 text-left font-medium text-cloud/60">
-                Role
+                Roles
               </th>
               <th className="px-4 py-3 text-left font-medium text-cloud/60">
                 Cycles
@@ -164,13 +100,15 @@ export default function ParticipantsGlobalTable({
               const displayName = p.preferred_name
                 ? `${p.preferred_name} ${p.last_name}`
                 : `${p.first_name} ${p.last_name}`;
-              const topRole = getTopRole(p);
-              const hasElevated =
-                p.roles.includes("owner") ||
-                p.roles.includes("admin") ||
-                p.roles.includes("developer") ||
-                grantedAdminIds.has(p.id) ||
-                grantedDeveloperIds.has(p.id);
+
+              // Show all roles as badges
+              const displayRoles = [...p.roles];
+              if (
+                p.moderator_pods.length > 0 &&
+                !displayRoles.includes("moderator")
+              ) {
+                displayRoles.push("moderator");
+              }
 
               return (
                 <tr key={p.id}>
@@ -179,23 +117,21 @@ export default function ParticipantsGlobalTable({
                   </td>
                   <td className="px-4 py-3 text-cloud/60">{p.email}</td>
                   <td className="px-4 py-3">
-                    {topRole && (
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          topRole === "owner"
-                            ? "bg-yellow-500/15 text-yellow-300"
-                            : topRole === "admin"
-                              ? "bg-teal/15 text-aqua"
-                              : topRole === "developer"
-                                ? "bg-purple-500/15 text-purple-300"
-                                : topRole === "moderator"
-                                  ? "bg-blue-500/15 text-blue-300"
-                                  : "bg-white/10 text-cloud/60"
-                        }`}
-                      >
-                        {topRole}
-                      </span>
-                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {displayRoles.map((role) => (
+                        <span
+                          key={role}
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                            ROLE_COLORS[role] ?? "bg-white/10 text-cloud/60"
+                          }`}
+                        >
+                          {role}
+                        </span>
+                      ))}
+                      {displayRoles.length === 0 && (
+                        <span className="text-xs text-cloud/30">—</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
@@ -237,42 +173,12 @@ export default function ParticipantsGlobalTable({
                     {new Date(p.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {errors[p.id] && (
-                      <span className="mr-2 text-xs text-red">
-                        {errors[p.id]}
-                      </span>
-                    )}
-                    <div className="flex items-center justify-end gap-2">
-                      {!hasElevated &&
-                        !p.roles.includes("observer") &&
-                        !grantedObserverIds.has(p.id) && (
-                          <button
-                            onClick={() => grantRole(p.id, "observer")}
-                            disabled={loadingIds.has(p.id)}
-                            className="rounded px-2.5 py-1 text-xs font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud disabled:opacity-50"
-                          >
-                            {loadingIds.has(p.id) ? "…" : "Observer"}
-                          </button>
-                        )}
-                      {isOwnerUser && !hasElevated && (
-                        <>
-                          <button
-                            onClick={() => grantRole(p.id, "developer")}
-                            disabled={loadingIds.has(p.id)}
-                            className="rounded px-2.5 py-1 text-xs font-medium text-purple-300 ring-1 ring-purple-500/40 hover:bg-purple-500/10 hover:text-white disabled:opacity-50"
-                          >
-                            {loadingIds.has(p.id) ? "…" : "Developer"}
-                          </button>
-                          <button
-                            onClick={() => grantRole(p.id, "admin")}
-                            disabled={loadingIds.has(p.id)}
-                            className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10 hover:text-white disabled:opacity-50"
-                          >
-                            {loadingIds.has(p.id) ? "…" : "Admin"}
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <Link
+                      href={`/admin/participants/${p.id}/permissions`}
+                      className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10"
+                    >
+                      Permissions
+                    </Link>
                   </td>
                 </tr>
               );

@@ -44,6 +44,12 @@ export default async function AdminPage() {
         </div>
         <div className="flex items-center gap-3">
           <Link
+            href="/admin/invitations"
+            className="rounded-md px-4 py-2 text-sm font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud"
+          >
+            Invitations
+          </Link>
+          <Link
             href="/admin/participants"
             className="rounded-md px-4 py-2 text-sm font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud"
           >

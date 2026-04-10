@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { resolveUserRoles, isAdmin, isModeratorForPod, can } from "@/lib/auth/roles";
 import PulseCheckDashboard from "./pulse-check-dashboard";
 
 export default async function PodDetailPage({
@@ -48,7 +48,10 @@ export default async function PodDetailPage({
     ? await resolveUserRoles(serviceClient, user.id)
     : null;
   const canViewDashboard =
-    userRoles && (isAdmin(userRoles) || isModeratorForPod(userRoles, pod.id));
+    userRoles &&
+    (isAdmin(userRoles) ||
+      isModeratorForPod(userRoles, pod.id) ||
+      can(userRoles, "pulse_checks:read"));
 
   // Fetch pulse check data for dashboard (using service client to bypass RLS)
   let pulseCheckData: {
