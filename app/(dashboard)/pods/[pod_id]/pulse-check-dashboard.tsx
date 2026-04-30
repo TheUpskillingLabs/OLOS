@@ -6,6 +6,7 @@ type PulseCheck = {
   scheduled_date: string;
   completed_at: string | null;
   survey_responses: Record<string, unknown> | null;
+  nomination_count?: number;
 };
 
 type MemberPulseData = {
@@ -191,13 +192,33 @@ export default function PulseCheckDashboard({
                                         </span>
                                       </div>
                                     )}
-                                    {r?.help_needed != null && (
-                                      <div>
+                                    {r?.blockers != null && (
+                                      <div className="mb-1">
                                         <span className="text-xs font-medium text-cloud/60">
-                                          Help Needed:{" "}
+                                          Blockers:{" "}
                                         </span>
                                         <span className="text-sm text-white">
-                                          {String(r.help_needed)}
+                                          {String(r.blockers)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {r?.mitigation_strategy != null && (
+                                      <div className="mb-1">
+                                        <span className="text-xs font-medium text-cloud/60">
+                                          Mitigation:{" "}
+                                        </span>
+                                        <span className="text-sm text-white">
+                                          {String(r.mitigation_strategy)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {c.nomination_count != null && c.nomination_count > 0 && (
+                                      <div>
+                                        <span className="text-xs font-medium text-cloud/60">
+                                          Nominations:{" "}
+                                        </span>
+                                        <span className="text-sm text-aqua">
+                                          {c.nomination_count}
                                         </span>
                                       </div>
                                     )}

@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -8,9 +10,9 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createServiceClient();
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
 
-  // Get active cycles
   const { data: cycles } = await supabase
     .from("cycles")
     .select("id")
@@ -21,16 +23,18 @@ export async function GET(request: NextRequest) {
   for (const cycle of cycles || []) {
     const { data: enrollments } = await supabase
       .from("cycle_enrollments")
-      .select("participant_id")
+      .select("participant_id, participants:participant_id(last_pulse_completed_at, created_at)")
       .eq("cycle_id", cycle.id)
       .eq("status", "active");
 
     for (const enrollment of enrollments || []) {
       const pid = enrollment.participant_id;
+      const participant = Array.isArray(enrollment.participants)
+        ? enrollment.participants[0]
+        : enrollment.participants;
       let shouldRevoke = false;
       let reason = "";
 
-      // Check: no active pod
       const { count: podCount } = await supabase
         .from("pod_memberships")
         .select("id", { count: "exact", head: true })
@@ -42,19 +46,15 @@ export async function GET(request: NextRequest) {
         reason = "not_in_pod";
       }
 
-      // Check: missed 2+ consecutive pulse checks
-      if (!shouldRevoke) {
-        const { data: checks } = await supabase
-          .from("pulse_checks")
-          .select("completed_at")
-          .eq("cycle_id", cycle.id)
-          .eq("participant_id", pid)
-          .order("scheduled_date", { ascending: false })
-          .limit(2);
-
-        if (checks && checks.length >= 2 && checks.every((c) => !c.completed_at)) {
-          shouldRevoke = true;
-          reason = "missed_pulse_checks";
+      if (!shouldRevoke && participant) {
+        const baseline =
+          participant.last_pulse_completed_at ?? participant.created_at;
+        if (baseline) {
+          const baselineMs = new Date(baseline).getTime();
+          if (now.getTime() - baselineMs > SEVEN_DAYS_MS) {
+            shouldRevoke = true;
+            reason = "missed_pulse_check_7day";
+          }
         }
       }
 
@@ -62,20 +62,20 @@ export async function GET(request: NextRequest) {
 
       await supabase
         .from("pod_memberships")
-        .update({ inactive_at: now })
+        .update({ inactive_at: nowIso })
         .eq("participant_id", pid)
         .is("inactive_at", null);
 
       await supabase
         .from("project_memberships")
-        .update({ left_at: now })
+        .update({ left_at: nowIso })
         .eq("participant_id", pid)
         .eq("cycle_id", cycle.id)
         .is("left_at", null);
 
       await supabase
         .from("cycle_enrollments")
-        .update({ status: "inactive", inactive_date: now })
+        .update({ status: "inactive", inactive_date: nowIso })
         .eq("participant_id", pid)
         .eq("cycle_id", cycle.id);
 

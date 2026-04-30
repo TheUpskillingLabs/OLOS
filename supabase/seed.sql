@@ -43,14 +43,22 @@ INSERT INTO option_lists (list_name, value, display_order) VALUES
   ('group_strengths', 'Communication / writing', 5),
   ('group_strengths', 'Community engagement', 6);
 
--- pulse_benefits
+-- pulse_benefits (V2 — Labs value-prop aligned)
+-- Old values kept for reference (deactivated in migration 00010):
+--   ('pulse_benefits', 'Applied AI tools to a real project', 1),
+--   ('pulse_benefits', 'Learned a new skill or concept', 2),
+--   ('pulse_benefits', 'Connected with a new collaborator', 3),
+--   ('pulse_benefits', 'Received helpful feedback', 4),
+--   ('pulse_benefits', 'Contributed meaningfully to my pod', 5),
+--   ('pulse_benefits', 'Overcame a technical challenge', 6);
 INSERT INTO option_lists (list_name, value, display_order) VALUES
-  ('pulse_benefits', 'Applied AI tools to a real project', 1),
-  ('pulse_benefits', 'Learned a new skill or concept', 2),
-  ('pulse_benefits', 'Connected with a new collaborator', 3),
-  ('pulse_benefits', 'Received helpful feedback', 4),
-  ('pulse_benefits', 'Contributed meaningfully to my pod', 5),
-  ('pulse_benefits', 'Overcame a technical challenge', 6);
+  ('pulse_benefits', 'Working on a real project I can show to employers', 1),
+  ('pulse_benefits', 'Learning alongside peers by doing, not just reading', 2),
+  ('pulse_benefits', 'Improving how I work using new tools', 3),
+  ('pulse_benefits', 'Contributing to something that matters beyond myself', 4),
+  ('pulse_benefits', 'Meeting collaborators and mentors', 5),
+  ('pulse_benefits', 'Building confidence navigating new technology', 6),
+  ('pulse_benefits', 'Attending a workshop or office hours session', 7);
 
 -- =============================================
 -- Cycle Dummy Data for Testing
