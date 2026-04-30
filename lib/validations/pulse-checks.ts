@@ -29,18 +29,30 @@ const surveyResponsesSchema = z
       .max(2000, "blockers must be 2000 characters or fewer")
       .optional()
       .nullable(),
+    tailwinds: z
+      .string()
+      .max(2000, "tailwinds must be 2000 characters or fewer")
+      .optional()
+      .nullable(),
     mitigation_strategy: z
       .string()
       .max(2000, "mitigation_strategy must be 2000 characters or fewer")
       .optional()
       .nullable(),
-    tools_used: z.array(z.number().int()).optional().nullable(),
+    tools_used: z
+      .array(z.string().min(1).max(100))
+      .max(50)
+      .optional()
+      .nullable(),
     benefits: z
       .array(z.number().int())
       .max(3, "benefits must contain at most 3 items")
       .optional()
       .nullable(),
-    new_connections: z.number().int().min(0).optional().nullable(),
+    new_connections: z
+      .enum(["0", "1", "2", "3", "4", "5+"])
+      .optional()
+      .nullable(),
     anything_else: z
       .string()
       .max(2000, "anything_else must be 2000 characters or fewer")

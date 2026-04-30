@@ -1,15 +1,71 @@
 -- Seed data for OLOS / The Upskilling Labs
 BEGIN;
 
--- ai_tools
+-- ai_tools (comprehensive list — used as autocomplete suggestions in the
+-- pulse-check form; participants can also add their own tags as free text)
 INSERT INTO option_lists (list_name, value, display_order) VALUES
-  ('ai_tools', 'ChatGPT', 1),
-  ('ai_tools', 'Claude', 2),
-  ('ai_tools', 'Copilot', 3),
-  ('ai_tools', 'Gemini', 4),
-  ('ai_tools', 'Midjourney / DALL-E', 5),
-  ('ai_tools', 'Perplexity', 6),
-  ('ai_tools', 'Other', 7);
+  ('ai_tools', 'Claude Code', 1),
+  ('ai_tools', 'Cursor', 2),
+  ('ai_tools', 'Windsurf', 3),
+  ('ai_tools', 'GitHub Copilot', 4),
+  ('ai_tools', 'Codeium', 5),
+  ('ai_tools', 'Replit Agent', 6),
+  ('ai_tools', 'Bolt', 7),
+  ('ai_tools', 'v0', 8),
+  ('ai_tools', 'Lovable', 9),
+  ('ai_tools', 'Devin', 10),
+  ('ai_tools', 'Aider', 11),
+  ('ai_tools', 'Cline', 12),
+  ('ai_tools', 'Anthropic Claude (web/app)', 13),
+  ('ai_tools', 'OpenAI ChatGPT', 14),
+  ('ai_tools', 'Google Gemini', 15),
+  ('ai_tools', 'Microsoft Copilot', 16),
+  ('ai_tools', 'Perplexity', 17),
+  ('ai_tools', 'Mistral / Le Chat', 18),
+  ('ai_tools', 'Grok', 19),
+  ('ai_tools', 'DeepSeek', 20),
+  ('ai_tools', 'Llama (local)', 21),
+  ('ai_tools', 'Ollama', 22),
+  ('ai_tools', 'LM Studio', 23),
+  ('ai_tools', 'NotebookLM', 24),
+  ('ai_tools', 'Midjourney', 25),
+  ('ai_tools', 'DALL-E', 26),
+  ('ai_tools', 'Stable Diffusion', 27),
+  ('ai_tools', 'Flux', 28),
+  ('ai_tools', 'Ideogram', 29),
+  ('ai_tools', 'Runway', 30),
+  ('ai_tools', 'Sora', 31),
+  ('ai_tools', 'Veo', 32),
+  ('ai_tools', 'Pika', 33),
+  ('ai_tools', 'Luma Dream Machine', 34),
+  ('ai_tools', 'ElevenLabs', 35),
+  ('ai_tools', 'Suno', 36),
+  ('ai_tools', 'Udio', 37),
+  ('ai_tools', 'HeyGen', 38),
+  ('ai_tools', 'Descript', 39),
+  ('ai_tools', 'Otter.ai', 40),
+  ('ai_tools', 'Granola', 41),
+  ('ai_tools', 'Fathom', 42),
+  ('ai_tools', 'Read.ai', 43),
+  ('ai_tools', 'Notion AI', 44),
+  ('ai_tools', 'Gamma', 45),
+  ('ai_tools', 'Tome', 46),
+  ('ai_tools', 'Canva AI / Magic Studio', 47),
+  ('ai_tools', 'Adobe Firefly', 48),
+  ('ai_tools', 'Figma AI', 49),
+  ('ai_tools', 'Framer AI', 50),
+  ('ai_tools', 'Zapier AI', 51),
+  ('ai_tools', 'n8n', 52),
+  ('ai_tools', 'Make', 53),
+  ('ai_tools', 'LangChain / LangGraph', 54),
+  ('ai_tools', 'LlamaIndex', 55),
+  ('ai_tools', 'Hugging Face', 56),
+  ('ai_tools', 'Replicate', 57),
+  ('ai_tools', 'OpenRouter', 58),
+  ('ai_tools', 'Vercel AI SDK', 59),
+  ('ai_tools', 'Pinecone', 60),
+  ('ai_tools', 'Supabase Vector', 61)
+ON CONFLICT (list_name, value) DO NOTHING;
 
 -- labs_goals
 INSERT INTO option_lists (list_name, value, display_order) VALUES
@@ -58,7 +114,8 @@ INSERT INTO option_lists (list_name, value, display_order) VALUES
   ('pulse_benefits', 'Contributing to something that matters beyond myself', 4),
   ('pulse_benefits', 'Meeting collaborators and mentors', 5),
   ('pulse_benefits', 'Building confidence navigating new technology', 6),
-  ('pulse_benefits', 'Attending a workshop or office hours session', 7);
+  ('pulse_benefits', 'Attending a workshop or office hours session', 7)
+ON CONFLICT (list_name, value) DO NOTHING;
 
 -- =============================================
 -- Cycle Dummy Data for Testing
