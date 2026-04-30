@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import LogoutButton from "./components/logout-button";
+import { copy as pulseCopy } from "./pulse-check/copy";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -145,22 +146,22 @@ function PulseCheckNavLink({ status }: { status: EnforcementStatus }) {
     ok: {
       wrap: "bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20",
       dot: "bg-yellow-400",
-      label: "Pulse Check",
+      label: pulseCopy.nav.ok,
     },
     warning_3day: {
       wrap: "bg-orange-500/15 text-orange-300 hover:bg-orange-500/25",
       dot: "bg-orange-400",
-      label: "Due in 3 days",
+      label: pulseCopy.nav.threeDay,
     },
     warning_1day: {
       wrap: "bg-red-500/15 text-red-300 hover:bg-red-500/25",
       dot: "bg-red-400",
-      label: "Due tomorrow",
+      label: pulseCopy.nav.oneDay,
     },
     overdue: {
       wrap: "bg-red-500 text-white hover:bg-red-600",
       dot: "bg-white",
-      label: "Overdue — Submit Now",
+      label: pulseCopy.nav.overdue,
     },
   };
   const s = styles[status];

@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles } from "@/lib/auth/roles";
 import PulseCheckForm from "./pulse-check-form";
 import PulseCheckLocked from "./pulse-check-locked";
+import { copy } from "./copy";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -32,7 +33,7 @@ export default async function PulseCheckPage() {
   if (!participantId) {
     return (
       <div className="mx-auto max-w-2xl py-10 text-center text-sm text-cloud/70">
-        You must be a registered participant to submit a pulse check.
+        {copy.page.notRegistered}
       </div>
     );
   }
@@ -130,10 +131,8 @@ export default async function PulseCheckPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-2 text-2xl font-bold text-white">Pulse Check</h1>
-      <p className="mb-4 text-sm text-cloud/80">
-        Your weekly check-in keeps you active and connected to The Labs.
-      </p>
+      <h1 className="mb-2 text-2xl font-bold text-white">{copy.page.title}</h1>
+      <p className="mb-4 text-sm text-cloud/80">{copy.page.subtitle}</p>
 
       <PulseCheckForm
         enforcement={enforcement}
@@ -147,7 +146,7 @@ export default async function PulseCheckPage() {
       {history && history.length > 0 && (
         <div className="mt-8">
           <h2 className="mb-4 text-lg font-semibold text-white">
-            Previous Submissions
+            {copy.history.title}
           </h2>
           <div className="space-y-3">
             {history.map((entry) => (
@@ -159,8 +158,6 @@ export default async function PulseCheckPage() {
     </div>
   );
 }
-
-const ENERGY_LABELS = ["Very Low", "Low", "Moderate", "High", "Very High"];
 
 function HistoryCard({
   entry,
@@ -197,7 +194,10 @@ function HistoryCard({
           </span>
           {energy && (
             <span className="rounded-full px-2 py-0.5 text-xs font-medium text-aqua">
-              Energy {energy}/5 ({ENERGY_LABELS[energy - 1]})
+              {copy.history.energyChip(
+                energy,
+                copy.reflection.energy.levels[energy - 1]
+              )}
             </span>
           )}
         </div>
@@ -214,27 +214,34 @@ function HistoryCard({
         {accomplishment && <p>{accomplishment}</p>}
         {highlight && (
           <p className="text-cloud/60">
-            <span className="font-medium">Highlight:</span> {highlight}
+            <span className="font-medium">{copy.history.fields.highlight}:</span>{" "}
+            {highlight}
           </p>
         )}
         {challenge && (
           <p className="text-cloud/60">
-            <span className="font-medium">Challenge:</span> {challenge}
+            <span className="font-medium">{copy.history.fields.challenge}:</span>{" "}
+            {challenge}
           </p>
         )}
         {blockers && (
           <p className="text-cloud/60">
-            <span className="font-medium">Blockers:</span> {blockers}
+            <span className="font-medium">{copy.history.fields.blockers}:</span>{" "}
+            {blockers}
           </p>
         )}
         {tailwinds && (
           <p className="text-cloud/60">
-            <span className="font-medium">Tailwinds:</span> {tailwinds}
+            <span className="font-medium">{copy.history.fields.tailwinds}:</span>{" "}
+            {tailwinds}
           </p>
         )}
         {mitigation && (
           <p className="text-cloud/60">
-            <span className="font-medium">Mitigation:</span> {mitigation}
+            <span className="font-medium">
+              {copy.history.fields.mitigation}:
+            </span>{" "}
+            {mitigation}
           </p>
         )}
       </div>
