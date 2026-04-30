@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface Option {
@@ -28,6 +29,8 @@ const NOMINATION_TYPES: { value: "upskiller" | "mentor" | "advisor"; label: stri
   { value: "mentor", label: "Mentor" },
   { value: "advisor", label: "Advisor" },
 ];
+const NEW_CONNECTION_CHOICES = ["0", "1", "2", "3", "4", "5+"] as const;
+type NewConnectionChoice = (typeof NEW_CONNECTION_CHOICES)[number];
 
 type Nomination = {
   nominee_name: string;
@@ -55,17 +58,20 @@ export default function PulseCheckForm({
 }: Props) {
   const router = useRouter();
   const [energyLevel, setEnergyLevel] = useState<number | null>(null);
-  const [selectedTools, setSelectedTools] = useState<Set<number>>(new Set());
+  const [selectedToolNames, setSelectedToolNames] = useState<string[]>([]);
   const [selectedBenefits, setSelectedBenefits] = useState<Set<number>>(new Set());
   const [selectedPodId, setSelectedPodId] = useState<number | null>(
     pods.length === 1 ? pods[0].id : null
   );
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [newConnections, setNewConnections] = useState<NewConnectionChoice | null>(null);
   const [showNominations, setShowNominations] = useState(false);
   const [nominations, setNominations] = useState<Nomination[]>([emptyNomination()]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ nominationCount: number } | null>(null);
+
+  const toolNames = useMemo(() => aiTools.map((t) => t.value), [aiTools]);
 
   const projectsForSelectedPod = useMemo(
     () => (selectedPodId ? projects.filter((p) => p.pod_id === selectedPodId) : []),
@@ -114,7 +120,6 @@ export default function PulseCheckForm({
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    setSuccess(false);
 
     const form = new FormData(e.currentTarget);
 
@@ -135,18 +140,18 @@ export default function PulseCheckForm({
     setIfPresent("highlight");
     setIfPresent("challenge");
     setIfPresent("blockers");
+    setIfPresent("tailwinds");
     setIfPresent("mitigation_strategy");
     setIfPresent("anything_else");
 
-    if (selectedTools.size > 0) {
-      survey_responses.tools_used = Array.from(selectedTools);
+    if (selectedToolNames.length > 0) {
+      survey_responses.tools_used = selectedToolNames;
     }
     if (selectedBenefits.size > 0) {
       survey_responses.benefits = Array.from(selectedBenefits);
     }
-    const newConnections = form.get("new_connections");
-    if (newConnections !== null && String(newConnections).length > 0) {
-      survey_responses.new_connections = Number(newConnections);
+    if (newConnections !== null) {
+      survey_responses.new_connections = newConnections;
     }
 
     const validNominations = showNominations
@@ -178,20 +183,34 @@ export default function PulseCheckForm({
     });
 
     if (res.ok) {
-      setSuccess(true);
+      const data = await res.json().catch(() => ({}));
       setEnergyLevel(null);
-      setSelectedTools(new Set());
+      setSelectedToolNames([]);
       setSelectedBenefits(new Set());
+      setNewConnections(null);
       setNominations([emptyNomination()]);
       setShowNominations(false);
       (e.target as HTMLFormElement).reset();
+      setConfirmation({ nominationCount: data?.nomination_count ?? validNominations.length });
       router.refresh();
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     } else {
       const data = await res.json().catch(() => ({}));
       setError(data.error || "Submission failed");
     }
     setSubmitting(false);
   };
+
+  if (confirmation) {
+    return (
+      <ConfirmationView
+        nominationCount={confirmation.nominationCount}
+        onSubmitAnother={() => setConfirmation(null)}
+      />
+    );
+  }
 
   const bannerTone =
     enforcement.status === "overdue"
@@ -226,11 +245,6 @@ export default function PulseCheckForm({
         </p>
       </div>
 
-      {success && (
-        <div className="mb-4 rounded-md border border-teal/20 bg-teal/10 p-3 text-sm text-aqua">
-          Pulse check submitted successfully!
-        </div>
-      )}
       {error && (
         <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
           {error}
@@ -378,6 +392,22 @@ export default function PulseCheckForm({
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
+              What&rsquo;s giving you momentum right now?
+            </span>
+            <span className="block text-xs text-cloud/40">
+              Tailwinds &mdash; people, tools, wins, or insights that are
+              accelerating your progress.
+            </span>
+            <textarea
+              name="tailwinds"
+              maxLength={2000}
+              rows={3}
+              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-medium text-cloud">
               What are you doing to mitigate headwinds and maximize tailwinds?
             </span>
             <span className="block text-xs text-cloud/40">
@@ -396,38 +426,11 @@ export default function PulseCheckForm({
         <section className="space-y-4">
           <h2 className="text-lg font-semibold text-white">Labs engagement</h2>
 
-          {aiTools.length > 0 && (
-            <div>
-              <span className="text-sm font-medium text-cloud">
-                AI tools used this week
-              </span>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {aiTools.map((tool) => {
-                  const checked = selectedTools.has(tool.id);
-                  return (
-                    <label
-                      key={tool.id}
-                      className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
-                        checked
-                          ? "border-aqua bg-aqua/10 text-white"
-                          : "border-whisper text-cloud/80 hover:border-white/[0.15]"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={checked}
-                        onChange={() =>
-                          toggleSet(selectedTools, setSelectedTools, tool.id)
-                        }
-                      />
-                      <span>{tool.value}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <ToolsAutocomplete
+            suggestions={toolNames}
+            selected={selectedToolNames}
+            onChange={setSelectedToolNames}
+          />
 
           {pulseBenefits.length > 0 && (
             <div>
@@ -466,18 +469,30 @@ export default function PulseCheckForm({
             </div>
           )}
 
-          <label className="block">
+          <div>
             <span className="text-sm font-medium text-cloud">
-              How many new connections did you make this week?
+              How many new connections did you make through The Labs this week?
             </span>
-            <input
-              name="new_connections"
-              type="number"
-              min={0}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
-              placeholder="0"
-            />
-          </label>
+            <div className="mt-2 grid grid-cols-6 gap-2">
+              {NEW_CONNECTION_CHOICES.map((choice) => {
+                const selected = newConnections === choice;
+                return (
+                  <button
+                    key={choice}
+                    type="button"
+                    onClick={() => setNewConnections(selected ? null : choice)}
+                    className={`rounded-md border px-2 py-2 text-sm font-medium transition-colors ${
+                      selected
+                        ? "border-aqua bg-aqua text-midnight"
+                        : "border-whisper text-cloud/80 hover:border-white/[0.15]"
+                    }`}
+                  >
+                    {choice}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </section>
 
         <section className="rounded-md border border-whisper bg-white/[0.01] p-4">
@@ -647,5 +662,217 @@ export default function PulseCheckForm({
         </button>
       </form>
     </>
+  );
+}
+
+function ToolsAutocomplete({
+  suggestions,
+  selected,
+  onChange,
+}: {
+  suggestions: string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const taken = new Set(selected.map((s) => s.toLowerCase()));
+    const pool = suggestions.filter((s) => !taken.has(s.toLowerCase()));
+    if (!q) return pool.slice(0, 8);
+    return pool
+      .filter((s) => s.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [query, selected, suggestions]);
+
+  const exactMatchExists = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return [...selected, ...suggestions].some(
+      (s) => s.toLowerCase() === q
+    );
+  }, [query, selected, suggestions]);
+
+  const addTag = (raw: string) => {
+    const value = raw.trim();
+    if (!value) return;
+    if (value.length > 100) return;
+    const taken = new Set(selected.map((s) => s.toLowerCase()));
+    if (taken.has(value.toLowerCase())) return;
+    onChange([...selected, value]);
+    setQuery("");
+    setHighlight(0);
+  };
+
+  const removeTag = (value: string) => {
+    onChange(selected.filter((s) => s !== value));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setHighlight((h) => Math.min(h + 1, matches.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlight((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (open && matches[highlight]) {
+        addTag(matches[highlight]);
+      } else if (query.trim()) {
+        addTag(query);
+      }
+    } else if (e.key === "Backspace" && !query && selected.length > 0) {
+      removeTag(selected[selected.length - 1]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div>
+      <span className="text-sm font-medium text-cloud">
+        AI tools used this week
+      </span>
+      <span className="block text-xs text-cloud/40">
+        Start typing to see suggestions, or add your own. Press Enter to add a
+        tag.
+      </span>
+      <div
+        ref={containerRef}
+        onBlur={(e) => {
+          if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+            setOpen(false);
+          }
+        }}
+        className="relative mt-2"
+      >
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-whisper bg-white/[0.04] px-2 py-1.5">
+          {selected.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-full bg-aqua/15 px-2 py-0.5 text-xs text-aqua"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="text-aqua/70 hover:text-white"
+                aria-label={`Remove ${tag}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+              setHighlight(0);
+            }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={selected.length === 0 ? "e.g. Claude Code, Cursor, ChatGPT…" : ""}
+            className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-sm text-white placeholder:text-cloud/40 focus:outline-none"
+          />
+        </div>
+        {open && (matches.length > 0 || (query.trim() && !exactMatchExists)) && (
+          <ul className="absolute left-0 right-0 z-10 mt-1 max-h-64 overflow-y-auto rounded-md border border-whisper bg-[#0e141b] shadow-lg">
+            {matches.map((m, i) => (
+              <li key={m}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => addTag(m)}
+                  className={`block w-full px-3 py-2 text-left text-sm ${
+                    i === highlight
+                      ? "bg-aqua/10 text-white"
+                      : "text-cloud/80 hover:bg-white/[0.04]"
+                  }`}
+                >
+                  {m}
+                </button>
+              </li>
+            ))}
+            {query.trim() && !exactMatchExists && (
+              <li>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => addTag(query)}
+                  className="block w-full px-3 py-2 text-left text-sm text-aqua hover:bg-white/[0.04]"
+                >
+                  + Add &ldquo;{query.trim()}&rdquo;
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ConfirmationView({
+  nominationCount,
+  onSubmitAnother,
+}: {
+  nominationCount: number;
+  onSubmitAnother: () => void;
+}) {
+  return (
+    <div className="rounded-md border border-teal/30 bg-teal/[0.06] p-8 text-center">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-aqua/15 text-aqua">
+        <svg
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="m4.5 12.75 6 6 9-13.5"
+          />
+        </svg>
+      </div>
+      <h2 className="text-xl font-semibold text-white">
+        Pulse check submitted
+      </h2>
+      <p className="mt-2 text-sm text-cloud/70">
+        Thanks for checking in. Your access stays active for another 7 days.
+        {nominationCount > 0 && (
+          <>
+            {" "}
+            We received {nominationCount} nomination
+            {nominationCount === 1 ? "" : "s"} &mdash; thank you for spreading
+            the word.
+          </>
+        )}
+      </p>
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <Link
+          href="/cycles"
+          className="inline-flex w-full max-w-xs items-center justify-center rounded-md bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-colors hover:bg-teal sm:w-auto"
+        >
+          Return to dashboard
+        </Link>
+        <button
+          type="button"
+          onClick={onSubmitAnother}
+          className="text-xs text-cloud/60 underline-offset-4 transition-colors hover:text-aqua hover:underline"
+        >
+          Submit another pulse check
+        </button>
+      </div>
+    </div>
   );
 }

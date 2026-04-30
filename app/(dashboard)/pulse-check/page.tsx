@@ -178,6 +178,7 @@ function HistoryCard({
   const highlight = typeof r.highlight === "string" ? r.highlight : "";
   const challenge = typeof r.challenge === "string" ? r.challenge : "";
   const blockers = typeof r.blockers === "string" ? r.blockers : "";
+  const tailwinds = typeof r.tailwinds === "string" ? r.tailwinds : "";
   const mitigation = typeof r.mitigation_strategy === "string" ? r.mitigation_strategy : "";
 
   return (
@@ -224,6 +225,11 @@ function HistoryCard({
         {blockers && (
           <p className="text-cloud/60">
             <span className="font-medium">Blockers:</span> {blockers}
+          </p>
+        )}
+        {tailwinds && (
+          <p className="text-cloud/60">
+            <span className="font-medium">Tailwinds:</span> {tailwinds}
           </p>
         )}
         {mitigation && (

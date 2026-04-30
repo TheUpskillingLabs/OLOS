@@ -202,6 +202,16 @@ export default function PulseCheckDashboard({
                                         </span>
                                       </div>
                                     )}
+                                    {r?.tailwinds != null && (
+                                      <div className="mb-1">
+                                        <span className="text-xs font-medium text-cloud/60">
+                                          Tailwinds:{" "}
+                                        </span>
+                                        <span className="text-sm text-white">
+                                          {String(r.tailwinds)}
+                                        </span>
+                                      </div>
+                                    )}
                                     {r?.mitigation_strategy != null && (
                                       <div className="mb-1">
                                         <span className="text-xs font-medium text-cloud/60">
