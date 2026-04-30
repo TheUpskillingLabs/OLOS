@@ -61,6 +61,7 @@ export default async function PodDetailPage({
       scheduled_date: string;
       completed_at: string | null;
       survey_responses: Record<string, unknown> | null;
+      nomination_count: number;
     }[];
   }[] = [];
 
@@ -69,20 +70,36 @@ export default async function PodDetailPage({
 
     const { data: pulseChecks } = await serviceClient
       .from("pulse_checks")
-      .select("participant_id, scheduled_date, completed_at, survey_responses")
+      .select("id, participant_id, scheduled_date, completed_at, survey_responses")
       .in("participant_id", memberIds)
       .eq("cycle_id", pod.cycle_id)
       .order("scheduled_date", { ascending: false });
 
+    const pulseCheckIds = (pulseChecks ?? []).map((pc) => pc.id);
+    const nominationCounts: Record<number, number> = {};
+    if (pulseCheckIds.length > 0) {
+      const { data: nominationRows } = await serviceClient
+        .from("nominations")
+        .select("pulse_check_id")
+        .in("pulse_check_id", pulseCheckIds);
+      for (const row of nominationRows ?? []) {
+        if (row.pulse_check_id != null) {
+          nominationCounts[row.pulse_check_id] =
+            (nominationCounts[row.pulse_check_id] ?? 0) + 1;
+        }
+      }
+    }
+
     const checksByParticipant: Record<
       number,
-      { scheduled_date: string; completed_at: string | null; survey_responses: Record<string, unknown> | null }[]
+      { scheduled_date: string; completed_at: string | null; survey_responses: Record<string, unknown> | null; nomination_count: number }[]
     > = {};
     for (const pc of pulseChecks ?? []) {
       (checksByParticipant[pc.participant_id] ??= []).push({
         scheduled_date: pc.scheduled_date,
         completed_at: pc.completed_at,
         survey_responses: pc.survey_responses as Record<string, unknown> | null,
+        nomination_count: nominationCounts[pc.id] ?? 0,
       });
     }
 
