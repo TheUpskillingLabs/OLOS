@@ -1,4 +1,5 @@
 import PulseCheckForm from "./pulse-check-form";
+import { copy } from "./copy";
 
 interface Option {
   id: number;
@@ -24,17 +25,9 @@ export default function PulseCheckLocked(props: Props) {
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-midnight">
       <div className="mx-auto max-w-2xl px-4 py-10">
         <div className="mb-6 rounded-md border border-red-500/40 bg-red-500/[0.08] p-5">
-          <h1 className="text-xl font-bold text-red-300">
-            Your access is on hold
-          </h1>
-          <p className="mt-2 text-sm text-cloud/80">
-            More than 7 days have passed since your last pulse check. Submit a
-            check-in below to immediately restore access to your pod, project,
-            and Labs infrastructure.
-          </p>
-          <p className="mt-2 text-xs text-cloud/60">
-            Until you submit, navigation is locked.
-          </p>
+          <h1 className="text-xl font-bold text-red-300">{copy.locked.title}</h1>
+          <p className="mt-2 text-sm text-cloud/80">{copy.locked.body}</p>
+          <p className="mt-2 text-xs text-cloud/60">{copy.locked.note}</p>
         </div>
         <PulseCheckForm {...props} />
       </div>

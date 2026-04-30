@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { copy } from "./copy";
 
 interface Option {
   id: number;
@@ -23,13 +24,7 @@ interface Props {
   projects: { id: number; name: string; pod_id: number }[];
 }
 
-const ENERGY_LABELS = ["Very Low", "Low", "Moderate", "High", "Very High"];
-const NOMINATION_TYPES: { value: "upskiller" | "mentor" | "advisor"; label: string }[] = [
-  { value: "upskiller", label: "Upskiller" },
-  { value: "mentor", label: "Mentor" },
-  { value: "advisor", label: "Advisor" },
-];
-const NEW_CONNECTION_CHOICES = ["0", "1", "2", "3", "4", "5+"] as const;
+const NEW_CONNECTION_CHOICES = copy.engagement.newConnections.choices;
 type NewConnectionChoice = (typeof NEW_CONNECTION_CHOICES)[number];
 
 type Nomination = {
@@ -125,9 +120,32 @@ export default function PulseCheckForm({
 
     const accomplishment = String(form.get("accomplishment") ?? "").trim();
     if (!accomplishment) {
-      setError("Please describe what you accomplished this week.");
+      setError(copy.reflection.accomplishment.error.required);
       setSubmitting(false);
       return;
+    }
+    if (accomplishment.length > 2000) {
+      setError(copy.reflection.accomplishment.error.tooLong);
+      setSubmitting(false);
+      return;
+    }
+
+    if (showNominations) {
+      for (const n of nominations) {
+        const hasName = n.nominee_name.trim();
+        const hasReason = n.reason.trim();
+        if (!hasName && !hasReason) continue; // empty card — skip
+        if (!hasName) {
+          setError(copy.nominations.name.error.required);
+          setSubmitting(false);
+          return;
+        }
+        if (!hasReason) {
+          setError(copy.nominations.reason.error.required);
+          setSubmitting(false);
+          return;
+        }
+      }
     }
 
     const survey_responses: Record<string, unknown> = { accomplishment };
@@ -198,7 +216,11 @@ export default function PulseCheckForm({
       }
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Submission failed");
+      if (res.status === 409) {
+        setError(copy.submit.duplicateError);
+      } else {
+        setError(data.error || copy.submit.genericError);
+      }
     }
     setSubmitting(false);
   };
@@ -224,24 +246,20 @@ export default function PulseCheckForm({
   return (
     <>
       <div className={`mb-4 rounded-md border p-4 text-sm ${bannerTone}`}>
-        <p className="font-semibold">
-          Your next pulse check is due by {deadlineLabel}
-        </p>
+        <p className="font-semibold">{copy.status.deadline(deadlineLabel)}</p>
         {cycle && (
           <p className="mt-1 text-xs opacity-80">
-            Active cycle: {cycle.name}
+            {copy.status.cycleLabel(cycle.name)}
           </p>
         )}
       </div>
 
       <div className="mb-6 rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
         <p className="text-sm font-semibold text-yellow-300">
-          Pulse checks keep your status active
+          {copy.status.consequenceTitle}
         </p>
         <p className="mt-1 text-sm text-cloud/70">
-          Going more than 7 days without a pulse check triggers automatic
-          revocation of access to cycle infrastructure &mdash; GitHub repos,
-          Google Docs, Slack channels, and Google Groups.
+          {copy.status.consequenceBody}
         </p>
       </div>
 
@@ -257,9 +275,13 @@ export default function PulseCheckForm({
       >
         {pods.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">Context</h2>
+            <h2 className="text-lg font-semibold text-white">
+              {copy.context.sectionTitle}
+            </h2>
             <label className="block">
-              <span className="text-sm font-medium text-cloud">Pod</span>
+              <span className="text-sm font-medium text-cloud">
+                {copy.context.podLabel}
+              </span>
               <select
                 value={selectedPodId ?? ""}
                 onChange={(e) => {
@@ -268,7 +290,7 @@ export default function PulseCheckForm({
                 }}
                 className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
               >
-                <option value="">— None —</option>
+                <option value="">{copy.context.podPlaceholder}</option>
                 {pods.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -278,7 +300,9 @@ export default function PulseCheckForm({
             </label>
             {projectsForSelectedPod.length > 0 && (
               <label className="block">
-                <span className="text-sm font-medium text-cloud">Project</span>
+                <span className="text-sm font-medium text-cloud">
+                  {copy.context.projectLabel}
+                </span>
                 <select
                   value={selectedProjectId ?? effectiveProjectId ?? ""}
                   onChange={(e) =>
@@ -286,7 +310,7 @@ export default function PulseCheckForm({
                   }
                   className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
                 >
-                  <option value="">— None —</option>
+                  <option value="">{copy.context.projectPlaceholder}</option>
                   {projectsForSelectedPod.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -299,14 +323,16 @@ export default function PulseCheckForm({
         )}
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Energy & reflection</h2>
+          <h2 className="text-lg font-semibold text-white">
+            {copy.reflection.sectionTitle}
+          </h2>
 
           <div>
             <span className="text-sm font-medium text-cloud">
-              How&rsquo;s your energy this week?
+              {copy.reflection.energy.label}
             </span>
             <div className="mt-2 flex gap-2">
-              {ENERGY_LABELS.map((label, i) => {
+              {copy.reflection.energy.levels.map((label, i) => {
                 const level = i + 1;
                 const selected = energyLevel === level;
                 return (
@@ -330,11 +356,10 @@ export default function PulseCheckForm({
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              What did you accomplish this week? *
+              {copy.reflection.accomplishment.label} *
             </span>
             <span className="block text-xs text-cloud/40">
-              What progress did you make &mdash; with support from The Labs or on
-              your own upskilling journey?
+              {copy.reflection.accomplishment.helper}
             </span>
             <textarea
               name="accomplishment"
@@ -342,13 +367,16 @@ export default function PulseCheckForm({
               maxLength={2000}
               rows={4}
               className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
-              placeholder="Describe your progress, wins, or what you worked on..."
+              placeholder={copy.reflection.accomplishment.placeholder}
             />
           </label>
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              What was the highlight of your week?
+              {copy.reflection.highlight.label}
+            </span>
+            <span className="block text-xs text-cloud/40">
+              {copy.reflection.highlight.helper}
             </span>
             <textarea
               name="highlight"
@@ -360,7 +388,10 @@ export default function PulseCheckForm({
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              What&rsquo;s challenging you right now?
+              {copy.reflection.challenge.label}
+            </span>
+            <span className="block text-xs text-cloud/40">
+              {copy.reflection.challenge.helper}
             </span>
             <textarea
               name="challenge"
@@ -372,15 +403,16 @@ export default function PulseCheckForm({
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Headwinds & tailwinds</h2>
+          <h2 className="text-lg font-semibold text-white">
+            {copy.forces.sectionTitle}
+          </h2>
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              What&rsquo;s blocking your progress?
+              {copy.forces.blockers.label}
             </span>
             <span className="block text-xs text-cloud/40">
-              Technical obstacles, time constraints, unclear next steps, missing
-              resources &mdash; anything in the way.
+              {copy.forces.blockers.helper}
             </span>
             <textarea
               name="blockers"
@@ -392,11 +424,10 @@ export default function PulseCheckForm({
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              What&rsquo;s giving you momentum right now?
+              {copy.forces.tailwinds.label}
             </span>
             <span className="block text-xs text-cloud/40">
-              Tailwinds &mdash; people, tools, wins, or insights that are
-              accelerating your progress.
+              {copy.forces.tailwinds.helper}
             </span>
             <textarea
               name="tailwinds"
@@ -408,11 +439,10 @@ export default function PulseCheckForm({
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              What are you doing to mitigate headwinds and maximize tailwinds?
+              {copy.forces.mitigation.label}
             </span>
             <span className="block text-xs text-cloud/40">
-              How are you working around obstacles? What&rsquo;s working well that
-              you&rsquo;re leaning into?
+              {copy.forces.mitigation.helper}
             </span>
             <textarea
               name="mitigation_strategy"
@@ -424,7 +454,9 @@ export default function PulseCheckForm({
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Labs engagement</h2>
+          <h2 className="text-lg font-semibold text-white">
+            {copy.engagement.sectionTitle}
+          </h2>
 
           <ToolsAutocomplete
             suggestions={toolNames}
@@ -435,7 +467,13 @@ export default function PulseCheckForm({
           {pulseBenefits.length > 0 && (
             <div>
               <span className="text-sm font-medium text-cloud">
-                Benefits from The Labs this week (max 3)
+                {copy.engagement.benefits.label}
+                <span className="ml-1 text-xs font-normal text-cloud/50">
+                  ({copy.engagement.benefits.maxNote})
+                </span>
+              </span>
+              <span className="block text-xs text-cloud/40">
+                {copy.engagement.benefits.helper}
               </span>
               <div className="mt-2 space-y-2">
                 {pulseBenefits.map((b) => {
@@ -471,7 +509,7 @@ export default function PulseCheckForm({
 
           <div>
             <span className="text-sm font-medium text-cloud">
-              How many new connections did you make through The Labs this week?
+              {copy.engagement.newConnections.label}
             </span>
             <div className="mt-2 grid grid-cols-6 gap-2">
               {NEW_CONNECTION_CHOICES.map((choice) => {
@@ -504,10 +542,10 @@ export default function PulseCheckForm({
             >
               <span>
                 <span className="font-medium text-white">
-                  Know someone who should be part of The Labs?
+                  {copy.nominations.collapsedTitle}
                 </span>
                 <span className="ml-2 text-xs text-cloud/50">
-                  Nominate an upskiller, mentor, or advisor
+                  {copy.nominations.collapsedHint}
                 </span>
               </span>
               <span className="text-lg leading-none">+</span>
@@ -515,13 +553,15 @@ export default function PulseCheckForm({
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Nominations</h2>
+                <h2 className="text-lg font-semibold text-white">
+                  {copy.nominations.sectionTitle}
+                </h2>
                 <button
                   type="button"
                   onClick={() => setShowNominations(false)}
                   className="text-xs text-cloud/60 hover:text-aqua"
                 >
-                  Hide
+                  {copy.nominations.hideLabel}
                 </button>
               </div>
               {nominations.map((n, i) => (
@@ -531,7 +571,7 @@ export default function PulseCheckForm({
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium uppercase tracking-wide text-cloud/50">
-                      Nomination {i + 1}
+                      {copy.nominations.cardLabel(i + 1)}
                     </span>
                     {nominations.length > 1 && (
                       <button
@@ -539,13 +579,15 @@ export default function PulseCheckForm({
                         onClick={() => removeNomination(i)}
                         className="text-xs text-cloud/60 hover:text-red-300"
                       >
-                        Remove
+                        {copy.nominations.removeLabel}
                       </button>
                     )}
                   </div>
 
                   <label className="block">
-                    <span className="text-sm font-medium text-cloud">Name *</span>
+                    <span className="text-sm font-medium text-cloud">
+                      {copy.nominations.name.label} *
+                    </span>
                     <input
                       type="text"
                       value={n.nominee_name}
@@ -559,7 +601,9 @@ export default function PulseCheckForm({
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                      <span className="text-sm font-medium text-cloud">Email</span>
+                      <span className="text-sm font-medium text-cloud">
+                        {copy.nominations.email.label}
+                      </span>
                       <input
                         type="email"
                         value={n.nominee_email}
@@ -570,7 +614,9 @@ export default function PulseCheckForm({
                       />
                     </label>
                     <label className="block">
-                      <span className="text-sm font-medium text-cloud">LinkedIn</span>
+                      <span className="text-sm font-medium text-cloud">
+                        {copy.nominations.linkedin.label}
+                      </span>
                       <input
                         type="url"
                         value={n.nominee_linkedin}
@@ -579,15 +625,17 @@ export default function PulseCheckForm({
                         }
                         maxLength={500}
                         className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
-                        placeholder="https://linkedin.com/in/..."
+                        placeholder={copy.nominations.linkedin.placeholder}
                       />
                     </label>
                   </div>
 
                   <div>
-                    <span className="text-sm font-medium text-cloud">Type</span>
+                    <span className="text-sm font-medium text-cloud">
+                      {copy.nominations.type.label}
+                    </span>
                     <div className="mt-1 flex gap-2">
-                      {NOMINATION_TYPES.map((t) => (
+                      {copy.nominations.type.options.map((t) => (
                         <label
                           key={t.value}
                           className={`flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm transition-colors ${
@@ -612,7 +660,10 @@ export default function PulseCheckForm({
 
                   <label className="block">
                     <span className="text-sm font-medium text-cloud">
-                      Why should The Labs know them? *
+                      {copy.nominations.reason.label} *
+                    </span>
+                    <span className="block text-xs text-cloud/40">
+                      {copy.nominations.reason.helper}
                     </span>
                     <textarea
                       value={n.reason}
@@ -630,7 +681,7 @@ export default function PulseCheckForm({
                 onClick={addNomination}
                 className="rounded-md border border-whisper px-3 py-2 text-xs text-cloud/80 hover:border-aqua hover:text-aqua"
               >
-                + Add another nomination
+                {copy.nominations.addLabel}
               </button>
             </div>
           )}
@@ -639,10 +690,10 @@ export default function PulseCheckForm({
         <section>
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              Is there anything else you&rsquo;d like us to know?
+              {copy.closing.label}
             </span>
             <span className="block text-xs text-cloud/40">
-              Feedback, ideas, concerns, or anything that doesn&rsquo;t fit above.
+              {copy.closing.helper}
             </span>
             <textarea
               name="anything_else"
@@ -658,7 +709,7 @@ export default function PulseCheckForm({
           disabled={submitting}
           className="w-full rounded-md bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-colors hover:bg-teal disabled:opacity-50"
         >
-          {submitting ? "Submitting..." : "Submit Pulse Check"}
+          {submitting ? copy.submit.submitting : copy.submit.idle}
         </button>
       </form>
     </>
@@ -737,11 +788,10 @@ function ToolsAutocomplete({
   return (
     <div>
       <span className="text-sm font-medium text-cloud">
-        AI tools used this week
+        {copy.engagement.aiTools.label}
       </span>
       <span className="block text-xs text-cloud/40">
-        Start typing to see suggestions, or add your own. Press Enter to add a
-        tag.
+        {copy.engagement.aiTools.helper}
       </span>
       <div
         ref={containerRef}
@@ -779,7 +829,9 @@ function ToolsAutocomplete({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder={selected.length === 0 ? "e.g. Claude Code, Cursor, ChatGPT…" : ""}
+            placeholder={
+              selected.length === 0 ? copy.engagement.aiTools.placeholderEmpty : ""
+            }
             className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-sm text-white placeholder:text-cloud/40 focus:outline-none"
           />
         </div>
@@ -845,32 +897,25 @@ function ConfirmationView({
         </svg>
       </div>
       <h2 className="text-xl font-semibold text-white">
-        Pulse check submitted
+        {copy.confirmation.title}
       </h2>
       <p className="mt-2 text-sm text-cloud/70">
-        Thanks for checking in. Your access stays active for another 7 days.
-        {nominationCount > 0 && (
-          <>
-            {" "}
-            We received {nominationCount} nomination
-            {nominationCount === 1 ? "" : "s"} &mdash; thank you for spreading
-            the word.
-          </>
-        )}
+        {copy.confirmation.body}
+        {nominationCount > 0 && copy.confirmation.nominationThanks(nominationCount)}
       </p>
       <div className="mt-6 flex flex-col items-center gap-3">
         <Link
           href="/cycles"
           className="inline-flex w-full max-w-xs items-center justify-center rounded-md bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-colors hover:bg-teal sm:w-auto"
         >
-          Return to dashboard
+          {copy.confirmation.primaryCta}
         </Link>
         <button
           type="button"
           onClick={onSubmitAnother}
           className="text-xs text-cloud/60 underline-offset-4 transition-colors hover:text-aqua hover:underline"
         >
-          Submit another pulse check
+          {copy.confirmation.secondaryCta}
         </button>
       </div>
     </div>
