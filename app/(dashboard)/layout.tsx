@@ -79,52 +79,48 @@ export default async function DashboardLayout({
     ? `${participant.first_name[0]}${participant.last_name[0]}`
     : (user.email?.[0] ?? "?").toUpperCase();
 
+  const navLinkClass =
+    "text-sm text-cloud transition-colors duration-150 ease-out hover:text-aqua " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal " +
+    "focus-visible:ring-offset-2 focus-visible:ring-offset-midnight rounded-sm";
+
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-whisper bg-[rgba(11,16,22,0.97)]">
-        <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4">
+      <header className="sticky top-0 z-50 border-b border-whisper bg-[rgba(11,16,22,0.97)] backdrop-blur-sm backdrop-saturate-150">
+        <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             href="/cycles"
-            className="text-lg font-bold text-white"
+            className="text-sm font-semibold tracking-wide text-white"
           >
             The Upskilling Labs
           </Link>
           <nav className="flex items-center gap-6">
-            <Link
-              href="/cycles"
-              className="text-sm text-cloud transition-colors hover:text-aqua"
-            >
+            <Link href="/cycles" className={navLinkClass}>
               Cycles
             </Link>
             <PulseCheckNavLink status={enforcementStatus} />
             {showPods && (
-              <Link
-                href="/moderator"
-                className="text-sm text-cloud transition-colors hover:text-aqua"
-              >
+              <Link href="/moderator" className={navLinkClass}>
                 My Pods
               </Link>
             )}
             {adminUser && (
-              <Link
-                href="/admin"
-                className="text-sm text-cloud transition-colors hover:text-aqua"
-              >
+              <Link href="/admin" className={navLinkClass}>
                 Admin
               </Link>
             )}
             <Link
               href="/profile"
-              className="flex items-center gap-2 text-sm text-cloud transition-colors hover:text-aqua"
+              className={`flex items-center gap-2 ${navLinkClass}`}
             >
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={displayName ?? ""}
-                  className="h-7 w-7 rounded-full"
+                  className="h-7 w-7 rounded-full ring-1 ring-whisper"
                 />
               ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded bg-shadow text-xs font-medium text-cloud">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-shadow-teal text-xs font-semibold text-white">
                   {initials}
                 </span>
               )}
@@ -134,7 +130,7 @@ export default async function DashboardLayout({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {children}
       </main>
     </div>
@@ -145,21 +141,21 @@ function PulseCheckNavLink({ status }: { status: EnforcementStatus }) {
   const styles: Record<EnforcementStatus, { wrap: string; dot: string; label: string }> = {
     ok: {
       wrap: "bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20",
-      dot: "bg-yellow-400",
+      dot: "bg-yellow-300",
       label: pulseCopy.nav.ok,
     },
     warning_3day: {
-      wrap: "bg-orange-500/15 text-orange-300 hover:bg-orange-500/25",
-      dot: "bg-orange-400",
+      wrap: "bg-yellow-500/15 text-yellow-200 hover:bg-yellow-500/25",
+      dot: "bg-yellow-300",
       label: pulseCopy.nav.threeDay,
     },
     warning_1day: {
-      wrap: "bg-red-500/15 text-red-300 hover:bg-red-500/25",
-      dot: "bg-red-400",
+      wrap: "bg-red/15 text-red-300 hover:bg-red/25",
+      dot: "bg-red-300",
       label: pulseCopy.nav.oneDay,
     },
     overdue: {
-      wrap: "bg-red-500 text-white hover:bg-red-600",
+      wrap: "bg-red text-white hover:bg-crimson shadow-[0_2px_8px_rgba(238,28,37,0.18)]",
       dot: "bg-white",
       label: pulseCopy.nav.overdue,
     },
@@ -168,9 +164,16 @@ function PulseCheckNavLink({ status }: { status: EnforcementStatus }) {
   return (
     <Link
       href="/pulse-check"
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${s.wrap}`}
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${s.wrap}`}
     >
-      <span className={`inline-block h-1.5 w-1.5 animate-pulse rounded-full ${s.dot}`} />
+      <span className="relative flex h-2 w-2" aria-hidden>
+        <span
+          className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${s.dot}`}
+        />
+        <span
+          className={`relative inline-flex h-2 w-2 rounded-full ${s.dot}`}
+        />
+      </span>
       {s.label}
     </Link>
   );
