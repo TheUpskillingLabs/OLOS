@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import VoteBallot from "./vote-ballot";
@@ -40,14 +41,15 @@ export default async function VotePage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="text-sm text-cloud/60 hover:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
         >
-          &larr; {cycle.name}
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-white">
-          Vote on Problem Statements
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+          Vote on problem statements
         </h1>
-        <p className="mt-1 text-sm text-cloud/50">
+        <p className="mt-1 text-sm text-cloud/80">
           Allocate your votes to the problems you want the community to tackle.
         </p>
       </div>
@@ -60,9 +62,9 @@ export default async function VotePage({
         />
       ) : (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/60">Voting is not currently open.</p>
+          <p className="text-cloud/80">Voting is not currently open.</p>
           {config?.voting_open && now < new Date(config.voting_open) && (
-            <p className="mt-2 text-sm text-cloud/40">
+            <p className="mt-2 text-sm text-cloud/60 tabular-nums">
               Opens{" "}
               {new Date(config.voting_open).toLocaleDateString("en-US", {
                 month: "short",

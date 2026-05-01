@@ -75,40 +75,60 @@ export default function ProposalForm({
   return (
     <div className="space-y-8">
       {pods.length > 1 && (
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-cloud/70">
-            Select Pod
-          </label>
-          <select
-            value={selectedPodId}
-            onChange={(e) => setSelectedPodId(parseInt(e.target.value, 10))}
-            className="rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-white focus:border-teal focus:outline-none"
+        <div className="space-y-1.5">
+          <label
+            htmlFor="select-pod"
+            className="block text-sm font-medium text-cloud"
           >
-            {pods.map((pod) => (
-              <option key={pod.id} value={pod.id}>
-                {pod.name || `Pod ${pod.id}`}
-              </option>
-            ))}
-          </select>
+            Select pod
+          </label>
+          <div className="relative">
+            <select
+              id="select-pod"
+              value={selectedPodId}
+              onChange={(e) => setSelectedPodId(parseInt(e.target.value, 10))}
+              className="block w-full appearance-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 pr-9 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            >
+              {pods.map((pod) => (
+                <option key={pod.id} value={pod.id}>
+                  {pod.name || `Pod ${pod.id}`}
+                </option>
+              ))}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cloud/60"
+              viewBox="0 0 20 20"
+              fill="none"
+              aria-hidden
+            >
+              <path
+                d="M6 8l4 4 4-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         </div>
       )}
 
       {pods.length === 1 && (
-        <p className="text-sm text-cloud/50">
+        <p className="text-sm text-cloud/80">
           Proposing for{" "}
-          <span className="font-medium text-white">
+          <span className="font-semibold text-white">
             {pods[0].name || `Pod ${pods[0].id}`}
           </span>
         </p>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
+        <div className="space-y-1.5">
           <label
             htmlFor="proposal_text"
-            className="mb-1.5 block text-sm font-medium text-cloud/70"
+            className="block text-sm font-medium text-cloud"
           >
-            Your Solution Proposal
+            Your solution proposal
           </label>
           <textarea
             id="proposal_text"
@@ -118,37 +138,40 @@ export default function ProposalForm({
             rows={5}
             required
             placeholder="Describe a solution your pod could build..."
-            className="w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-white placeholder:text-cloud/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            className="block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
           />
-          <p className="mt-1 text-xs text-cloud/40">
-            {text.length}/2000 characters
+          <p className="text-right text-xs text-cloud/50 tabular-nums">
+            {text.length}/2000
           </p>
         </div>
 
         {error && (
-          <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-400">
+          <p
+            role="alert"
+            className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+          >
             {error}
           </p>
         )}
         {success && (
-          <p className="rounded-md bg-teal/10 px-3 py-2 text-sm text-aqua">
-            Proposal submitted successfully!
+          <p className="rounded-md border border-teal/20 bg-teal/10 px-3 py-2 text-sm text-aqua">
+            Proposal submitted.
           </p>
         )}
 
         <button
           type="submit"
           disabled={submitting || !text.trim()}
-          className="rounded-md bg-teal px-4 py-2 text-sm font-medium text-midnight transition-colors hover:bg-aqua disabled:opacity-50"
+          className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
-          {submitting ? "Submitting..." : "Submit Proposal"}
+          {submitting ? "Submitting..." : "Submit proposal"}
         </button>
       </form>
 
       {!loading && proposals.length > 0 && (
         <div>
-          <h2 className="mb-3 text-sm font-medium uppercase tracking-widest text-cloud/40">
-            Submitted Proposals ({proposals.length})
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60 tabular-nums">
+            Submitted proposals ({proposals.length})
           </h2>
           <div className="space-y-3">
             {proposals.map((p) => (
@@ -157,7 +180,7 @@ export default function ProposalForm({
                 className="rounded-md border border-whisper bg-white/[0.02] p-4"
               >
                 <p className="text-sm text-cloud/80">{p.proposal_text}</p>
-                <p className="mt-2 text-xs text-cloud/40">
+                <p className="mt-2 text-xs text-cloud/60 tabular-nums">
                   {new Date(p.created_at).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",

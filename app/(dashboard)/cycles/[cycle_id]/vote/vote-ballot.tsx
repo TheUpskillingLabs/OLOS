@@ -122,13 +122,22 @@ export default function VoteBallot({
   const remaining = budget - totalUsed;
 
   if (loading) {
-    return <p className="text-cloud/50">Loading proposals...</p>;
+    return (
+      <div className="flex items-center gap-3 text-cloud/60" aria-busy="true">
+        <span
+          role="status"
+          aria-label="Loading"
+          className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-teal"
+        />
+        Loading proposals...
+      </div>
+    );
   }
 
   if (statements.length === 0) {
     return (
-      <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-        <p className="text-cloud/60">
+      <div className="rounded-md border border-dashed border-whisper bg-white/[0.01] p-12 text-center">
+        <p className="text-sm text-cloud/60">
           No problem statements have been submitted yet.
         </p>
       </div>
@@ -138,20 +147,27 @@ export default function VoteBallot({
   return (
     <div className="space-y-6">
       {/* Budget indicator */}
-      <div className="flex items-center gap-4 rounded-md border border-teal/20 bg-teal/[0.04] p-4">
+      <div className="sticky top-[60px] z-30 flex items-center justify-between gap-4 rounded-md border border-teal/20 bg-teal/[0.04] p-4 backdrop-blur-sm backdrop-saturate-150">
         <div>
-          <p className="text-sm text-cloud/60">Vote Budget</p>
-          <p className="text-2xl font-bold text-aqua">{remaining}</p>
-          <p className="text-xs text-cloud/40">votes remaining</p>
+          <p className="text-xs font-medium uppercase tracking-widest text-cloud/60">
+            Vote budget
+          </p>
+          <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-aqua">
+            {remaining}
+          </p>
+          <p className="text-xs text-cloud/60 tabular-nums">votes remaining</p>
         </div>
-        <div className="text-xs text-cloud/40">
+        <div className="text-right text-xs text-cloud/60 tabular-nums">
           <p>Submitters get {submitterBudget} votes</p>
           <p>Non-submitters get {nonSubmitterBudget} votes</p>
         </div>
       </div>
 
       {error && (
-        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-400">
+        <p
+          role="alert"
+          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+        >
           {error}
         </p>
       )}
@@ -166,24 +182,24 @@ export default function VoteBallot({
           return (
             <div
               key={stmt.id}
-              className="rounded-md border border-whisper bg-white/[0.02]"
+              className="rounded-md border border-whisper bg-white/[0.02] transition-colors duration-150 hover:border-white/[0.12]"
             >
               <div className="p-4">
                 {/* Problem statement */}
-                <p className="font-medium text-white">
+                <p className="font-semibold tracking-tight text-white">
                   {stmt.statement_text}
                 </p>
 
                 {/* HMW question */}
                 {pd?.statement?.question && (
-                  <p className="mt-2 text-sm italic text-cloud/50">
+                  <p className="mt-2 text-sm italic text-cloud/70">
                     {pd.statement.question}
                   </p>
                 )}
 
                 {/* Submitter background */}
                 {pd?.about?.background && (
-                  <p className="mt-2 text-xs text-cloud/40">
+                  <p className="mt-2 text-xs text-cloud/60">
                     Submitted by: {pd.about.background}
                   </p>
                 )}
@@ -191,10 +207,11 @@ export default function VoteBallot({
                 {/* Expand toggle */}
                 {hasDetails && (
                   <button
+                    aria-expanded={isExpanded}
                     onClick={() =>
                       setExpandedId(isExpanded ? null : stmt.id)
                     }
-                    className="mt-2 text-xs text-aqua hover:underline"
+                    className="mt-2 inline-flex items-center text-xs font-semibold tracking-tight text-aqua transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:text-white"
                   >
                     {isExpanded ? "Show less" : "Read full proposal"}
                   </button>
@@ -202,7 +219,7 @@ export default function VoteBallot({
 
                 {/* Expanded details */}
                 {isExpanded && pd && (
-                  <div className="mt-4 space-y-3 border-t border-white/5 pt-4">
+                  <div className="mt-4 space-y-3 border-t border-whisper pt-4">
                     {pd.problem?.who && (
                       <DetailBlock
                         label="Who is struggling"
@@ -255,8 +272,8 @@ export default function VoteBallot({
                 )}
 
                 {/* Vote controls */}
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-cloud/40">
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-whisper pt-3">
+                  <span className="text-xs font-medium text-cloud/60 tabular-nums">
                     {getTallyFor(stmt.id)} vote
                     {getTallyFor(stmt.id) !== 1 ? "s" : ""}
                   </span>
@@ -273,7 +290,8 @@ export default function VoteBallot({
                         }))
                       }
                       placeholder="0"
-                      className="w-16 rounded border border-whisper bg-white/[0.04] px-2 py-1 text-center text-sm text-white placeholder:text-cloud/30 focus:border-teal focus:outline-none"
+                      aria-label="Vote count"
+                      className="w-16 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-center text-sm tabular-nums text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                     />
                     <button
                       onClick={() => castVote(stmt.id)}
@@ -282,12 +300,14 @@ export default function VoteBallot({
                         !pendingVotes[stmt.id] ||
                         pendingVotes[stmt.id] < 1
                       }
-                      className="rounded bg-teal/20 px-3 py-1 text-xs font-medium text-aqua transition-colors hover:bg-teal/30 disabled:opacity-40"
+                      className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                     >
                       {submitting === stmt.id ? "..." : "Vote"}
                     </button>
                     {successId === stmt.id && (
-                      <span className="text-xs text-aqua">Voted!</span>
+                      <span className="text-xs font-medium text-aqua">
+                        Voted
+                      </span>
                     )}
                   </div>
                 </div>
@@ -303,10 +323,10 @@ export default function VoteBallot({
 function DetailBlock({ label, text }: { label: string; text: string }) {
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-wider text-cloud/40">
+      <p className="text-[11px] font-medium uppercase tracking-widest text-cloud/60">
         {label}
       </p>
-      <p className="mt-0.5 text-sm text-cloud/70">{text}</p>
+      <p className="mt-0.5 text-sm text-cloud/80">{text}</p>
     </div>
   );
 }

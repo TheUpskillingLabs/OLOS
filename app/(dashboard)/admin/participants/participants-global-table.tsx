@@ -49,12 +49,14 @@ export default function ParticipantsGlobalTable({
           placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="rounded-md border border-whisper bg-transparent px-3 py-2 text-sm text-white placeholder:text-cloud/30 focus:border-teal/50 focus:outline-none"
+          aria-label="Search participants"
+          className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
         />
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-md border border-whisper bg-transparent px-3 py-2 text-sm text-white focus:border-teal/50 focus:outline-none"
+          aria-label="Role filter"
+          className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
         >
           <option value="all">All roles</option>
           <option value="owner">Owners</option>
@@ -64,7 +66,7 @@ export default function ParticipantsGlobalTable({
           <option value="moderator">Moderators</option>
           <option value="none">No role</option>
         </select>
-        <span className="text-sm text-cloud/40">
+        <span className="text-sm text-cloud/60 tabular-nums">
           {filtered.length} of {participants.length}
         </span>
       </div>
@@ -74,25 +76,25 @@ export default function ParticipantsGlobalTable({
         <table className="w-full text-sm">
           <thead className="bg-white/[0.04]">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Name
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Email
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Roles
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Cycles
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Moderating
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Joined
               </th>
-              <th className="px-4 py-3 text-right font-medium text-cloud/60" />
+              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60" />
             </tr>
           </thead>
           <tbody className="divide-y divide-whisper">
@@ -111,8 +113,11 @@ export default function ParticipantsGlobalTable({
               }
 
               return (
-                <tr key={p.id}>
-                  <td className="px-4 py-3 font-medium text-white">
+                <tr
+                  key={p.id}
+                  className="transition-colors duration-150 hover:bg-white/[0.02]"
+                >
+                  <td className="px-4 py-3 font-medium text-cloud">
                     {displayName}
                   </td>
                   <td className="px-4 py-3 text-cloud/60">{p.email}</td>
@@ -121,7 +126,7 @@ export default function ParticipantsGlobalTable({
                       {displayRoles.map((role) => (
                         <span
                           key={role}
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             ROLE_COLORS[role] ?? "bg-white/10 text-cloud/60"
                           }`}
                         >
@@ -129,7 +134,7 @@ export default function ParticipantsGlobalTable({
                         </span>
                       ))}
                       {displayRoles.length === 0 && (
-                        <span className="text-xs text-cloud/30">—</span>
+                        <span className="text-xs text-cloud/60">—</span>
                       )}
                     </div>
                   </td>
@@ -138,19 +143,19 @@ export default function ParticipantsGlobalTable({
                       {p.cycles.map((c) => (
                         <span
                           key={c.cycle_id}
-                          className={`rounded-full px-2 py-0.5 text-xs ${
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                             c.status === "active"
-                              ? "bg-teal/10 text-aqua"
+                              ? "bg-teal/15 text-aqua"
                               : c.status === "revoked"
-                                ? "bg-red/10 text-red"
-                                : "bg-white/5 text-cloud/40"
+                                ? "bg-red/15 text-red-300"
+                                : "bg-white/10 text-cloud/60"
                           }`}
                         >
                           {c.cycle_name || `Cycle ${c.cycle_id}`}
                         </span>
                       ))}
                       {p.cycles.length === 0 && (
-                        <span className="text-xs text-cloud/30">—</span>
+                        <span className="text-xs text-cloud/60">—</span>
                       )}
                     </div>
                   </td>
@@ -159,23 +164,23 @@ export default function ParticipantsGlobalTable({
                       {p.moderator_pods.map((mp) => (
                         <span
                           key={mp.pod_id}
-                          className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-300"
+                          className="inline-flex items-center rounded-full bg-blue-500/15 px-2 py-0.5 text-xs font-medium text-blue-300"
                         >
                           {mp.pod_name}
                         </span>
                       ))}
                       {p.moderator_pods.length === 0 && (
-                        <span className="text-xs text-cloud/30">—</span>
+                        <span className="text-xs text-cloud/60">—</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-cloud/60">
+                  <td className="px-4 py-3 text-cloud/60 tabular-nums">
                     {new Date(p.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/admin/participants/${p.id}/permissions`}
-                      className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10"
+                      className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                     >
                       Permissions
                     </Link>
@@ -187,7 +192,7 @@ export default function ParticipantsGlobalTable({
               <tr>
                 <td
                   colSpan={7}
-                  className="px-4 py-8 text-center text-cloud/40"
+                  className="px-4 py-8 text-center text-sm text-cloud/60"
                 >
                   No participants match your search.
                 </td>

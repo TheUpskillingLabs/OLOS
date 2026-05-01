@@ -28,20 +28,20 @@ export default async function RegisterPage() {
   const profileImageUrl = user.user_metadata?.avatar_url ?? null;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
+    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="mb-8 text-center">
         {profileImageUrl && (
           <img
             src={profileImageUrl}
             alt=""
-            className="mx-auto mb-4 h-20 w-20 rounded-full"
+            className="mx-auto mb-4 h-20 w-20 rounded-full ring-1 ring-whisper"
           />
         )}
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Become an Upskiller
         </h1>
         <p className="mt-2 text-sm text-cloud/80">
-          Complete your profile to join The Upskilling Labs
+          Complete your profile to join The Upskilling Labs.
         </p>
       </div>
       <RegisterForm

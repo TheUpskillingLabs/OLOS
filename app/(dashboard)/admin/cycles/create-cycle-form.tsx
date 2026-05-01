@@ -39,9 +39,9 @@ export default function CreateCycleForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded-md bg-teal px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal/80"
+        className="inline-flex items-center gap-1.5 rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
       >
-        + New Cycle
+        + New cycle
       </button>
     );
   }
@@ -51,39 +51,50 @@ export default function CreateCycleForm() {
       onSubmit={handleSubmit}
       className="rounded-md border border-whisper bg-white/[0.02] p-4"
     >
-      <h2 className="mb-3 text-sm font-semibold text-white">New Cycle</h2>
+      <h2 className="mb-3 text-sm font-semibold tracking-tight text-white">
+        New cycle
+      </h2>
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-cloud/60">Name</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-cloud/80" htmlFor="cycle-name">
+            Name
+          </label>
           <input
+            id="cycle-name"
             name="name"
             required
             placeholder="e.g. Spring 2026"
-            className="rounded-md border border-whisper bg-white/[0.03] px-3 py-1.5 text-sm text-white placeholder:text-cloud/30"
+            className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-cloud/60">Start date</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-cloud/80" htmlFor="cycle-start">
+            Start date
+          </label>
           <input
+            id="cycle-start"
             name="start_date"
             type="date"
             required
-            className="rounded-md border border-whisper bg-white/[0.03] px-3 py-1.5 text-sm text-white"
+            className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-cloud/60">End date</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-cloud/80" htmlFor="cycle-end">
+            End date
+          </label>
           <input
+            id="cycle-end"
             name="end_date"
             type="date"
             required
-            className="rounded-md border border-whisper bg-white/[0.03] px-3 py-1.5 text-sm text-white"
+            className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-teal px-4 py-1.5 text-sm font-medium text-white hover:bg-teal/80 disabled:opacity-50"
+          className="rounded-md bg-teal px-4 py-1.5 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
           {loading ? "Creating…" : "Create"}
         </button>
@@ -93,12 +104,16 @@ export default function CreateCycleForm() {
             setOpen(false);
             setError(null);
           }}
-          className="text-sm text-cloud/60 hover:text-cloud"
+          className="text-sm text-cloud/60 transition-colors duration-150 hover:text-cloud focus-visible:outline-none focus-visible:text-cloud"
         >
           Cancel
         </button>
       </div>
-      {error && <p className="mt-2 text-xs text-red">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-2 text-xs text-red-300">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

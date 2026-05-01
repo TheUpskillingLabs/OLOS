@@ -103,13 +103,13 @@ export default function TestingControls({
   }
 
   return (
-    <div className="rounded-md border border-purple-500/30 bg-purple-500/5 p-5">
+    <div className="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-5">
       <div className="mb-4 flex items-center gap-2">
-        <span className="rounded bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-300">
+        <span className="inline-flex items-center rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-xs font-medium text-yellow-300">
           Testing
         </span>
-        <h3 className="text-sm font-semibold text-white">
-          Phase Advancement Controls
+        <h3 className="text-sm font-semibold tracking-tight text-white">
+          Phase advancement controls
         </h3>
       </div>
 
@@ -119,17 +119,17 @@ export default function TestingControls({
           <div key={phase} className="flex items-center gap-1">
             <div className="group relative">
               <div
-                className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums ${
                   statuses[phase] === "completed"
                     ? "bg-teal/20 text-aqua"
                     : statuses[phase] === "active"
-                      ? "bg-purple-500/30 text-purple-200 ring-2 ring-purple-400"
-                      : "bg-white/5 text-cloud/30"
+                      ? "bg-yellow-500/30 text-yellow-200 ring-2 ring-yellow-400"
+                      : "bg-white/[0.06] text-cloud/40"
                 }`}
               >
                 {statuses[phase] === "completed" ? "\u2713" : i + 1}
               </div>
-              <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-shadow px-2 py-1 text-xs text-cloud opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-whisper bg-ink px-2 py-1 text-xs text-cloud opacity-0 shadow-2xl transition-opacity duration-150 group-hover:opacity-100">
                 {PHASE_LABELS[phase]}
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function TestingControls({
                 className={`h-0.5 w-4 ${
                   statuses[phase] === "completed"
                     ? "bg-teal/40"
-                    : "bg-white/10"
+                    : "bg-white/[0.06]"
                 }`}
               />
             )}
@@ -147,8 +147,8 @@ export default function TestingControls({
       </div>
 
       {/* Status + button */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 text-sm text-cloud/60">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex-1 text-sm text-cloud/80">
           {allCompleted
             ? "All 6 phases completed."
             : activePhase
@@ -158,22 +158,22 @@ export default function TestingControls({
         <button
           onClick={advancePhase}
           disabled={loading || allCompleted}
-          className="rounded-md bg-purple-500/20 px-4 py-2 text-sm font-medium text-purple-200 transition-colors hover:bg-purple-500/30 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed"
+          className="rounded-md bg-yellow-500/20 px-4 py-2 text-sm font-semibold tracking-tight text-yellow-200 transition-all duration-150 ease-spring hover:bg-yellow-500/30 hover:text-white active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
           {loading
             ? "Advancing..."
             : allCompleted
-              ? "Cycle Complete"
+              ? "Cycle complete"
               : activePhase && !nextPhaseLabel
-                ? "Close Final Phase"
+                ? "Close final phase"
                 : nextPhaseLabel
                   ? `Advance to ${nextPhaseLabel}`
-                  : "Start First Phase"}
+                  : "Start first phase"}
         </button>
       </div>
 
       {message && (
-        <p className="mt-3 text-sm text-purple-300">{message}</p>
+        <p className="mt-3 text-sm text-yellow-200">{message}</p>
       )}
     </div>
   );

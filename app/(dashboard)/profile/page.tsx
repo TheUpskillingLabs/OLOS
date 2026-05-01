@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { StatusBadge } from "@/app/components/ui";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -51,34 +52,32 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="rounded-md border border-whisper bg-white/[0.02] p-8">
+      <div className="rounded-lg border border-whisper bg-white/[0.02] p-6 sm:p-8">
         {/* Header with avatar */}
         <div className="flex items-center gap-6 border-b border-whisper pb-6">
           {avatarUrl ? (
             <img
               src={avatarUrl}
               alt={displayName}
-              className="h-20 w-20 rounded-full"
+              className="h-20 w-20 rounded-full ring-1 ring-whisper"
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-md bg-shadow text-2xl font-bold text-cloud">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-shadow-teal text-2xl font-bold text-white">
               {participant.first_name[0]}
               {participant.last_name[0]}
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
               {displayName}
             </h1>
-            <p className="text-sm text-cloud/60">
-              {participant.email}
-            </p>
+            <p className="text-sm text-cloud/80">{participant.email}</p>
             {participant.current_title && (
               <p className="mt-1 text-sm text-cloud">
                 {participant.current_title}
               </p>
             )}
-            <p className="mt-1 text-xs text-cloud/60">
+            <p className="mt-1 text-xs text-cloud/60 tabular-nums">
               Upskiller since{" "}
               {new Date(participant.created_at).toLocaleDateString("en-US", {
                 month: "long",
@@ -160,20 +159,16 @@ export default async function ProfilePage() {
                   return (
                     <div
                       key={e.cycle_id}
-                      className="flex items-center justify-between"
+                      className="flex items-center justify-between gap-3"
                     >
                       <span className="text-sm text-cloud">
                         {(cycle?.name as string) || `Cycle ${e.cycle_id}`}
                       </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          e.status === "active"
-                            ? "bg-teal/20 text-aqua"
-                            : "bg-white/10 text-cloud/60"
-                        }`}
+                      <StatusBadge
+                        variant={e.status === "active" ? "active" : "inactive"}
                       >
                         {e.status}
-                      </span>
+                      </StatusBadge>
                     </div>
                   );
                 })}
@@ -195,7 +190,7 @@ function Section({
 }) {
   return (
     <div>
-      <h2 className="mb-3 text-sm font-semibold tracking-wide text-cloud/60">
+      <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
         {title}
       </h2>
       <div className="space-y-2">{children}</div>
@@ -214,22 +209,18 @@ function Field({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-32 shrink-0 text-sm text-cloud/60">
-        {label}
-      </span>
+      <span className="w-32 shrink-0 text-sm text-cloud/60">{label}</span>
       {isLink ? (
         <a
           href={value}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-aqua hover:underline"
+          className="break-all text-sm text-aqua transition-colors duration-150 hover:text-white hover:underline focus-visible:outline-none focus-visible:text-white"
         >
           {value}
         </a>
       ) : (
-        <span className="text-sm text-cloud">
-          {value}
-        </span>
+        <span className="text-sm text-cloud">{value}</span>
       )}
     </div>
   );

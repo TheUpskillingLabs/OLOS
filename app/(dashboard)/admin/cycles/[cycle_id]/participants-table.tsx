@@ -25,22 +25,22 @@ export default function ParticipantsTable({
       <table className="w-full text-sm">
         <thead className="bg-white/[0.04]">
           <tr>
-            <th className="px-4 py-3 text-left font-medium text-cloud/60">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
               Name
             </th>
-            <th className="px-4 py-3 text-left font-medium text-cloud/60">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
               Email
             </th>
-            <th className="px-4 py-3 text-left font-medium text-cloud/60">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
               Status
             </th>
-            <th className="px-4 py-3 text-left font-medium text-cloud/60">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
               Pods
             </th>
-            <th className="px-4 py-3 text-left font-medium text-cloud/60">
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
               Roles
             </th>
-            <th className="px-4 py-3 text-right font-medium text-cloud/60" />
+            <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60" />
           </tr>
         </thead>
         <tbody className="divide-y divide-whisper">
@@ -50,31 +50,36 @@ export default function ParticipantsTable({
               : `${p.first_name} ${p.last_name}`;
 
             return (
-              <tr key={p.participant_id}>
-                <td className="px-4 py-3 font-medium text-white">
+              <tr
+                key={p.participant_id}
+                className="transition-colors duration-150 hover:bg-white/[0.02]"
+              >
+                <td className="px-4 py-3 font-medium text-cloud">
                   {displayName}
                 </td>
                 <td className="px-4 py-3 text-cloud/60">{p.email}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       p.status === "active"
                         ? "bg-teal/20 text-aqua"
                         : p.status === "revoked"
-                          ? "bg-red/20 text-red"
+                          ? "bg-red/20 text-red-300"
                           : "bg-white/10 text-cloud/60"
                     }`}
                   >
                     {p.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-cloud/60">{p.pods.length}</td>
+                <td className="px-4 py-3 text-cloud/60 tabular-nums">
+                  {p.pods.length}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {p.roles.map((role) => (
                       <span
                         key={role}
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           ROLE_COLORS[role] ?? "bg-white/10 text-cloud/60"
                         }`}
                       >
@@ -82,14 +87,14 @@ export default function ParticipantsTable({
                       </span>
                     ))}
                     {p.roles.length === 0 && (
-                      <span className="text-xs text-cloud/30">—</span>
+                      <span className="text-xs text-cloud/60">—</span>
                     )}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link
                     href={`/admin/participants/${p.participant_id}/permissions`}
-                    className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10"
+                    className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                   >
                     Permissions
                   </Link>

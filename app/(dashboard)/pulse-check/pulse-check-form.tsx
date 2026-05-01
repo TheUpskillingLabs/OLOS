@@ -236,11 +236,11 @@ export default function PulseCheckForm({
 
   const bannerTone =
     enforcement.status === "overdue"
-      ? "border-red-500/40 bg-red-500/[0.08] text-red-200"
+      ? "border-red/30 bg-red/10 text-red-200"
       : enforcement.status === "warning_1day"
-        ? "border-red-500/30 bg-red-500/[0.06] text-red-200"
+        ? "border-red/20 bg-red/[0.06] text-red-200"
         : enforcement.status === "warning_3day"
-          ? "border-orange-500/30 bg-orange-500/[0.06] text-orange-200"
+          ? "border-yellow-500/30 bg-yellow-500/[0.08] text-yellow-200"
           : "border-yellow-500/30 bg-yellow-500/[0.06] text-yellow-200";
 
   return (
@@ -264,7 +264,10 @@ export default function PulseCheckForm({
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300"
+        >
           {error}
         </div>
       )}
@@ -275,7 +278,7 @@ export default function PulseCheckForm({
       >
         {pods.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               {copy.context.sectionTitle}
             </h2>
             <label className="block">
@@ -288,7 +291,7 @@ export default function PulseCheckForm({
                   setSelectedPodId(e.target.value ? Number(e.target.value) : null);
                   setSelectedProjectId(null);
                 }}
-                className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
+                className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">{copy.context.podPlaceholder}</option>
                 {pods.map((p) => (
@@ -308,7 +311,7 @@ export default function PulseCheckForm({
                   onChange={(e) =>
                     setSelectedProjectId(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
+                  className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">{copy.context.projectPlaceholder}</option>
                   {projectsForSelectedPod.map((p) => (
@@ -323,7 +326,7 @@ export default function PulseCheckForm({
         )}
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold tracking-tight text-white">
             {copy.reflection.sectionTitle}
           </h2>
 
@@ -339,14 +342,17 @@ export default function PulseCheckForm({
                   <button
                     key={level}
                     type="button"
+                    aria-pressed={selected}
                     onClick={() => setEnergyLevel(selected ? null : level)}
-                    className={`flex flex-1 flex-col items-center rounded-md border px-2 py-2 text-xs transition-colors ${
+                    className={`flex flex-1 flex-col items-center rounded-md border px-2 py-2 text-xs transition-all duration-150 ease-spring active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
                       selected
                         ? "border-aqua bg-aqua text-midnight"
-                        : "border-whisper text-cloud/60 hover:border-white/[0.15]"
+                        : "border-white/[0.10] text-cloud/80 hover:border-white/[0.18] hover:text-cloud"
                     }`}
                   >
-                    <span className="text-base font-semibold">{level}</span>
+                    <span className="text-base font-semibold tabular-nums">
+                      {level}
+                    </span>
                     <span className="mt-0.5 leading-tight">{label}</span>
                   </button>
                 );
@@ -358,7 +364,7 @@ export default function PulseCheckForm({
             <span className="text-sm font-medium text-cloud">
               {copy.reflection.accomplishment.label} *
             </span>
-            <span className="block text-xs text-cloud/40">
+            <span className="block text-xs text-cloud/60">
               {copy.reflection.accomplishment.helper}
             </span>
             <textarea
@@ -366,7 +372,7 @@ export default function PulseCheckForm({
               required
               maxLength={2000}
               rows={4}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={copy.reflection.accomplishment.placeholder}
             />
           </label>
@@ -375,14 +381,14 @@ export default function PulseCheckForm({
             <span className="text-sm font-medium text-cloud">
               {copy.reflection.highlight.label}
             </span>
-            <span className="block text-xs text-cloud/40">
+            <span className="block text-xs text-cloud/60">
               {copy.reflection.highlight.helper}
             </span>
             <textarea
               name="highlight"
               maxLength={2000}
               rows={2}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
 
@@ -390,20 +396,20 @@ export default function PulseCheckForm({
             <span className="text-sm font-medium text-cloud">
               {copy.reflection.challenge.label}
             </span>
-            <span className="block text-xs text-cloud/40">
+            <span className="block text-xs text-cloud/60">
               {copy.reflection.challenge.helper}
             </span>
             <textarea
               name="challenge"
               maxLength={2000}
               rows={2}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold tracking-tight text-white">
             {copy.forces.sectionTitle}
           </h2>
 
@@ -411,14 +417,14 @@ export default function PulseCheckForm({
             <span className="text-sm font-medium text-cloud">
               {copy.forces.blockers.label}
             </span>
-            <span className="block text-xs text-cloud/40">
+            <span className="block text-xs text-cloud/60">
               {copy.forces.blockers.helper}
             </span>
             <textarea
               name="blockers"
               maxLength={2000}
               rows={3}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
 
@@ -426,14 +432,14 @@ export default function PulseCheckForm({
             <span className="text-sm font-medium text-cloud">
               {copy.forces.tailwinds.label}
             </span>
-            <span className="block text-xs text-cloud/40">
+            <span className="block text-xs text-cloud/60">
               {copy.forces.tailwinds.helper}
             </span>
             <textarea
               name="tailwinds"
               maxLength={2000}
               rows={3}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
 
@@ -441,20 +447,20 @@ export default function PulseCheckForm({
             <span className="text-sm font-medium text-cloud">
               {copy.forces.mitigation.label}
             </span>
-            <span className="block text-xs text-cloud/40">
+            <span className="block text-xs text-cloud/60">
               {copy.forces.mitigation.helper}
             </span>
             <textarea
               name="mitigation_strategy"
               maxLength={2000}
               rows={3}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold tracking-tight text-white">
             {copy.engagement.sectionTitle}
           </h2>
 
@@ -472,7 +478,7 @@ export default function PulseCheckForm({
                   ({copy.engagement.benefits.maxNote})
                 </span>
               </span>
-              <span className="block text-xs text-cloud/40">
+              <span className="block text-xs text-cloud/60">
                 {copy.engagement.benefits.helper}
               </span>
               <div className="mt-2 space-y-2">
@@ -482,12 +488,12 @@ export default function PulseCheckForm({
                   return (
                     <label
                       key={b.id}
-                      className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                      className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-midnight active:scale-[0.99] ${
                         checked
-                          ? "border-aqua bg-aqua/10 text-white"
+                          ? "border-teal/40 bg-teal/[0.08] text-white"
                           : disabled
                             ? "border-whisper opacity-40"
-                            : "border-whisper text-cloud/80 hover:border-white/[0.15]"
+                            : "border-white/[0.10] text-cloud/80 hover:border-white/[0.18] hover:text-cloud"
                       }`}
                     >
                       <input
@@ -518,11 +524,12 @@ export default function PulseCheckForm({
                   <button
                     key={choice}
                     type="button"
+                    aria-pressed={selected}
                     onClick={() => setNewConnections(selected ? null : choice)}
-                    className={`rounded-md border px-2 py-2 text-sm font-medium transition-colors ${
+                    className={`rounded-md border px-2 py-2 text-sm font-semibold tabular-nums transition-all duration-150 ease-spring active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
                       selected
                         ? "border-aqua bg-aqua text-midnight"
-                        : "border-whisper text-cloud/80 hover:border-white/[0.15]"
+                        : "border-white/[0.10] text-cloud/80 hover:border-white/[0.18] hover:text-cloud"
                     }`}
                   >
                     {choice}
@@ -538,22 +545,27 @@ export default function PulseCheckForm({
             <button
               type="button"
               onClick={() => setShowNominations(true)}
-              className="flex w-full items-center justify-between text-left text-sm text-cloud/80 hover:text-aqua"
+              className="flex w-full items-center justify-between gap-3 text-left text-sm text-cloud/80 transition-colors duration-150 ease-out hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
             >
               <span>
-                <span className="font-medium text-white">
+                <span className="font-semibold tracking-tight text-white">
                   {copy.nominations.collapsedTitle}
                 </span>
-                <span className="ml-2 text-xs text-cloud/50">
+                <span className="ml-2 text-xs text-cloud/60">
                   {copy.nominations.collapsedHint}
                 </span>
               </span>
-              <span className="text-lg leading-none">+</span>
+              <span
+                aria-hidden
+                className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-whisper text-base leading-none"
+              >
+                +
+              </span>
             </button>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold tracking-tight text-white">
                   {copy.nominations.sectionTitle}
                 </h2>
                 <button
@@ -595,7 +607,7 @@ export default function PulseCheckForm({
                         updateNomination(i, { nominee_name: e.target.value })
                       }
                       maxLength={255}
-                      className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
+                      className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </label>
 
@@ -610,7 +622,7 @@ export default function PulseCheckForm({
                         onChange={(e) =>
                           updateNomination(i, { nominee_email: e.target.value })
                         }
-                        className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
+                        className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </label>
                     <label className="block">
@@ -624,7 +636,7 @@ export default function PulseCheckForm({
                           updateNomination(i, { nominee_linkedin: e.target.value })
                         }
                         maxLength={500}
-                        className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
+                        className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
                         placeholder={copy.nominations.linkedin.placeholder}
                       />
                     </label>
@@ -638,10 +650,10 @@ export default function PulseCheckForm({
                       {copy.nominations.type.options.map((t) => (
                         <label
                           key={t.value}
-                          className={`flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm transition-colors ${
+                          className={`flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-midnight active:scale-[0.99] ${
                             n.nomination_type === t.value
-                              ? "border-aqua bg-aqua/10 text-white"
-                              : "border-whisper text-cloud/70"
+                              ? "border-teal/40 bg-teal/[0.08] text-white"
+                              : "border-white/[0.10] text-cloud/70 hover:border-white/[0.18] hover:text-cloud"
                           }`}
                         >
                           <input
@@ -662,7 +674,7 @@ export default function PulseCheckForm({
                     <span className="text-sm font-medium text-cloud">
                       {copy.nominations.reason.label} *
                     </span>
-                    <span className="block text-xs text-cloud/40">
+                    <span className="block text-xs text-cloud/60">
                       {copy.nominations.reason.helper}
                     </span>
                     <textarea
@@ -670,7 +682,7 @@ export default function PulseCheckForm({
                       onChange={(e) => updateNomination(i, { reason: e.target.value })}
                       maxLength={2000}
                       rows={3}
-                      className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white"
+                      className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </label>
                 </div>
@@ -679,7 +691,7 @@ export default function PulseCheckForm({
               <button
                 type="button"
                 onClick={addNomination}
-                className="rounded-md border border-whisper px-3 py-2 text-xs text-cloud/80 hover:border-aqua hover:text-aqua"
+                className="rounded-md ring-1 ring-whisper px-3 py-1.5 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
               >
                 {copy.nominations.addLabel}
               </button>
@@ -692,14 +704,14 @@ export default function PulseCheckForm({
             <span className="text-sm font-medium text-cloud">
               {copy.closing.label}
             </span>
-            <span className="block text-xs text-cloud/40">
+            <span className="block text-xs text-cloud/60">
               {copy.closing.helper}
             </span>
             <textarea
               name="anything_else"
               maxLength={2000}
               rows={3}
-              className="mt-1 block w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </section>
@@ -707,7 +719,7 @@ export default function PulseCheckForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-colors hover:bg-teal disabled:opacity-50"
+          className="w-full rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? copy.submit.submitting : copy.submit.idle}
         </button>
@@ -790,7 +802,7 @@ function ToolsAutocomplete({
       <span className="text-sm font-medium text-cloud">
         {copy.engagement.aiTools.label}
       </span>
-      <span className="block text-xs text-cloud/40">
+      <span className="block text-xs text-cloud/60">
         {copy.engagement.aiTools.helper}
       </span>
       <div
@@ -806,13 +818,13 @@ function ToolsAutocomplete({
           {selected.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-aqua/15 px-2 py-0.5 text-xs text-aqua"
+              className="inline-flex items-center gap-1 rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="text-aqua/70 hover:text-white"
+                className="rounded-full text-aqua/70 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:text-white"
                 aria-label={`Remove ${tag}`}
               >
                 ×
@@ -836,7 +848,10 @@ function ToolsAutocomplete({
           />
         </div>
         {open && (matches.length > 0 || (query.trim() && !exactMatchExists)) && (
-          <ul className="absolute left-0 right-0 z-10 mt-1 max-h-64 overflow-y-auto rounded-md border border-whisper bg-[#0e141b] shadow-lg">
+          <ul
+            role="listbox"
+            className="absolute left-0 right-0 z-10 mt-1 max-h-64 overflow-y-auto rounded-md border border-whisper bg-ink shadow-2xl"
+          >
             {matches.map((m, i) => (
               <li key={m}>
                 <button
@@ -880,14 +895,15 @@ function ConfirmationView({
   onSubmitAnother: () => void;
 }) {
   return (
-    <div className="rounded-md border border-teal/30 bg-teal/[0.06] p-8 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-aqua/15 text-aqua">
+    <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-8 text-center">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal/15 text-aqua">
         <svg
           className="h-6 w-6"
           fill="none"
           viewBox="0 0 24 24"
           strokeWidth={2}
           stroke="currentColor"
+          aria-hidden
         >
           <path
             strokeLinecap="round"
@@ -896,24 +912,24 @@ function ConfirmationView({
           />
         </svg>
       </div>
-      <h2 className="text-xl font-semibold text-white">
+      <h2 className="text-xl font-semibold tracking-tight text-white">
         {copy.confirmation.title}
       </h2>
-      <p className="mt-2 text-sm text-cloud/70">
+      <p className="mt-2 text-sm text-cloud/80">
         {copy.confirmation.body}
         {nominationCount > 0 && copy.confirmation.nominationThanks(nominationCount)}
       </p>
       <div className="mt-6 flex flex-col items-center gap-3">
         <Link
           href="/cycles"
-          className="inline-flex w-full max-w-xs items-center justify-center rounded-md bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-colors hover:bg-teal sm:w-auto"
+          className="inline-flex w-full max-w-xs items-center justify-center rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight sm:w-auto"
         >
           {copy.confirmation.primaryCta}
         </Link>
         <button
           type="button"
           onClick={onSubmitAnother}
-          className="text-xs text-cloud/60 underline-offset-4 transition-colors hover:text-aqua hover:underline"
+          className="text-xs text-cloud/60 underline-offset-4 transition-colors duration-150 hover:text-aqua hover:underline focus-visible:outline-none focus-visible:text-aqua"
         >
           {copy.confirmation.secondaryCta}
         </button>

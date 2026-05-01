@@ -98,34 +98,34 @@ export default function AssignModeratorButton({
     return (
       <div className="flex items-center gap-2">
         {moderators.length > 0 && (
-          <span className="text-xs text-cloud/60">
+          <span className="text-xs text-cloud/70">
             {moderators.map((m) => m.name).join(", ")}
           </span>
         )}
         <button
           onClick={() => setOpen(true)}
-          className="rounded px-2 py-1 text-xs font-medium text-cloud/60 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud"
+          className="rounded ring-1 ring-whisper px-2.5 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
-          {moderators.length > 0 ? "Manage" : "Assign Moderator"}
+          {moderators.length > 0 ? "Manage" : "Assign moderator"}
         </button>
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border border-whisper bg-white/[0.02] p-3 space-y-3">
+    <div className="space-y-3 rounded-md border border-whisper bg-white/[0.02] p-3">
       {moderators.length > 0 && (
         <div className="space-y-1">
           {moderators.map((m) => (
             <div
               key={m.participant_id}
-              className="flex items-center justify-between text-sm"
+              className="flex items-center justify-between gap-3 text-sm"
             >
-              <span className="text-white">{m.name}</span>
+              <span className="text-cloud">{m.name}</span>
               <button
                 onClick={() => remove(m.participant_id)}
                 disabled={loading}
-                className="text-xs text-red/70 hover:text-red disabled:opacity-50"
+                className="text-xs font-medium text-red-300 transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-red"
               >
                 Remove
               </button>
@@ -139,7 +139,8 @@ export default function AssignModeratorButton({
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
-            className="flex-1 rounded border border-whisper bg-transparent px-2 py-1 text-xs text-white"
+            aria-label="Select participant"
+            className="flex-1 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-xs text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
           >
             <option value="">Select participant...</option>
             {available.map((p) => (
@@ -151,18 +152,22 @@ export default function AssignModeratorButton({
           <button
             onClick={assign}
             disabled={!selectedId || loading}
-            className="rounded bg-teal/20 px-2.5 py-1 text-xs font-medium text-aqua hover:bg-teal/30 disabled:opacity-50"
+            className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
           >
             {loading ? "…" : "Assign"}
           </button>
         </div>
       )}
 
-      {error && <p className="text-xs text-red">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-red-300">
+          {error}
+        </p>
+      )}
 
       <button
         onClick={() => setOpen(false)}
-        className="text-xs text-cloud/40 hover:text-cloud/60"
+        className="text-xs text-cloud/60 transition-colors duration-150 hover:text-cloud focus-visible:outline-none focus-visible:text-cloud"
       >
         Close
       </button>
