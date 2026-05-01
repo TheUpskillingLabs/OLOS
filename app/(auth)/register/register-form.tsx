@@ -98,7 +98,7 @@ export default function RegisterForm({
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-white">
+          <legend className="text-lg font-semibold tracking-tight text-white">
             Identity
           </legend>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -109,7 +109,7 @@ export default function RegisterForm({
               <input
                 name="first_name"
                 required
-                className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+                className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
               />
             </label>
             <label className="block">
@@ -119,7 +119,7 @@ export default function RegisterForm({
               <input
                 name="last_name"
                 required
-                className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+                className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
               />
             </label>
           </div>
@@ -139,7 +139,7 @@ export default function RegisterForm({
             </span>
             <input
               name="preferred_name"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
           <label className="block">
@@ -148,13 +148,13 @@ export default function RegisterForm({
             </span>
             <input
               name="gender"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-white">
+          <legend className="text-lg font-semibold tracking-tight text-white">
             Location
           </legend>
           <label className="block">
@@ -164,7 +164,7 @@ export default function RegisterForm({
             <select
               name="state"
               required
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select...</option>
               <option value="MD">Maryland</option>
@@ -180,13 +180,13 @@ export default function RegisterForm({
             <input
               name="neighborhood"
               required
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-white">
+          <legend className="text-lg font-semibold tracking-tight text-white">
             DCPL
           </legend>
           <label className="block">
@@ -196,7 +196,7 @@ export default function RegisterForm({
             <select
               name="dcpl_card"
               required
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select...</option>
               <option value="yes">Yes</option>
@@ -207,7 +207,7 @@ export default function RegisterForm({
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-white">
+          <legend className="text-lg font-semibold tracking-tight text-white">
             Professional Context
           </legend>
           <label className="block">
@@ -217,7 +217,7 @@ export default function RegisterForm({
             <select
               name="work_situation"
               required
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select...</option>
               <option value="employed full time">Employed full time</option>
@@ -240,7 +240,7 @@ export default function RegisterForm({
             <select
               name="main_focus"
               required
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select...</option>
               <option value="finding a new role">Finding a new role</option>
@@ -264,7 +264,7 @@ export default function RegisterForm({
             </span>
             <input
               name="sector"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
           <label className="block">
@@ -273,7 +273,7 @@ export default function RegisterForm({
             </span>
             <input
               name="current_title"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
           <label className="block">
@@ -283,13 +283,13 @@ export default function RegisterForm({
             <input
               name="linkedin"
               type="url"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-white">
+          <legend className="text-lg font-semibold tracking-tight text-white">
             AI Background
           </legend>
           <label className="block">
@@ -302,7 +302,7 @@ export default function RegisterForm({
               min={1}
               max={5}
               required
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
           {options.ai_tools && (
@@ -317,7 +317,7 @@ export default function RegisterForm({
                       type="checkbox"
                       name="ai_tools"
                       value={opt.id}
-                      className="rounded border-white/20 bg-white/[0.05] text-teal"
+                      className="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                     />
                     <span className="text-sm text-cloud">
                       {opt.value}
@@ -330,7 +330,7 @@ export default function RegisterForm({
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-white">
+          <legend className="text-lg font-semibold tracking-tight text-white">
             Labs Fit
           </legend>
           {options.labs_goals && (
@@ -345,7 +345,7 @@ export default function RegisterForm({
                       type="checkbox"
                       name="labs_goals"
                       value={opt.id}
-                      className="rounded border-white/20 bg-white/[0.05] text-teal"
+                      className="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                     />
                     <span className="text-sm text-cloud">
                       {opt.value}
@@ -367,7 +367,7 @@ export default function RegisterForm({
                       type="checkbox"
                       name="availability"
                       value={opt.id}
-                      className="rounded border-white/20 bg-white/[0.05] text-teal"
+                      className="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                     />
                     <span className="text-sm text-cloud">
                       {opt.value}
@@ -389,7 +389,7 @@ export default function RegisterForm({
                       type="checkbox"
                       name="work_style"
                       value={opt.id}
-                      className="rounded border-white/20 bg-white/[0.05] text-teal"
+                      className="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                     />
                     <span className="text-sm text-cloud">
                       {opt.value}
@@ -411,7 +411,7 @@ export default function RegisterForm({
                       type="checkbox"
                       name="group_strengths"
                       value={opt.id}
-                      className="rounded border-white/20 bg-white/[0.05] text-teal"
+                      className="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                     />
                     <span className="text-sm text-cloud">
                       {opt.value}
@@ -427,7 +427,7 @@ export default function RegisterForm({
             </span>
             <select
               name="participation_commitment"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select...</option>
               <option value="yes">Yes</option>
@@ -440,7 +440,7 @@ export default function RegisterForm({
             </span>
             <input
               name="primary_expertise"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
           <label className="block">
@@ -449,20 +449,20 @@ export default function RegisterForm({
             </span>
             <input
               name="volunteer_interest"
-              className="mt-1 block w-full rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
             />
           </label>
         </fieldset>
 
         <fieldset className="space-y-4">
-          <legend className="text-lg font-semibold text-white">
+          <legend className="text-lg font-semibold tracking-tight text-white">
             Consent
           </legend>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
               name="text_updates"
-              className="rounded border-white/20 bg-white/[0.05] text-teal"
+              className="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
             />
             <span className="text-sm text-cloud">
               I agree to receive text updates
@@ -473,7 +473,7 @@ export default function RegisterForm({
               type="checkbox"
               name="photo_video_consent"
               defaultChecked
-              className="rounded border-white/20 bg-white/[0.05] text-teal"
+              className="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
             />
             <span className="text-sm text-cloud">
               I consent to photo/video usage
@@ -484,7 +484,7 @@ export default function RegisterForm({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-md bg-aqua px-6 py-3 text-sm font-semibold text-midnight transition-colors hover:bg-teal disabled:opacity-50"
+          className="w-full rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Submitting..." : "Become an Upskiller"}
         </button>

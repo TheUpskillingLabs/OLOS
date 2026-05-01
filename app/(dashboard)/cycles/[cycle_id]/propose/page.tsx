@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ProposeForm from "./propose-form";
@@ -54,24 +55,25 @@ export default async function ProposePage({
   }
 
   return (
-    <div>
+    <div className="mx-auto max-w-2xl">
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="text-sm text-cloud/60 hover:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
         >
-          &larr; {cycle.name}
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-white">
-          Open Cycle Problem Proposal
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+          Open cycle problem proposal
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-cloud/50">
+        <p className="mt-2 text-sm leading-relaxed text-cloud/80">
           The Open Cycle accepts problem proposals year-round. At the start of
-          each Cycle, active participants vote to shortlist the strongest
-          proposals. Shortlisted proposals open for registration. If a Research
-          Pod reaches the minimum number of registrants, it officially forms.
+          each cycle, active participants vote to shortlist the strongest
+          proposals. Shortlisted proposals open for registration. If a research
+          pod reaches the minimum number of registrants, it officially forms.
         </p>
-        <p className="mt-2 text-sm font-medium text-cloud/60">
+        <p className="mt-2 text-sm font-medium text-cloud">
           Take your time with Part 2 — it&rsquo;s the most important section.
           Everything else supports it.
         </p>
@@ -81,12 +83,12 @@ export default async function ProposePage({
         <ProposeForm cycleId={cycleId} participantName={participantName} />
       ) : (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/60">
+          <p className="text-cloud/80">
             Problem statement submission is not currently open.
           </p>
           {config?.problem_statement_open &&
             now < new Date(config.problem_statement_open) && (
-              <p className="mt-2 text-sm text-cloud/40">
+              <p className="mt-2 text-sm text-cloud/60 tabular-nums">
                 Opens{" "}
                 {new Date(config.problem_statement_open).toLocaleDateString(
                   "en-US",

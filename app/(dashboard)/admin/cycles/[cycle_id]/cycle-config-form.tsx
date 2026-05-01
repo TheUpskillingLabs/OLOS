@@ -117,7 +117,7 @@ export function CycleScheduleForm({
     <form onSubmit={handleSubmit}>
       {/* Cycle phase milestones */}
       <div className="mb-6 rounded-md border border-whisper bg-white/[0.02] p-4">
-        <h3 className="mb-3 text-sm font-semibold text-cloud">
+        <h3 className="mb-3 text-sm font-semibold tracking-tight text-cloud">
           Cycle Phases
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -133,7 +133,7 @@ export function CycleScheduleForm({
               type="datetime-local"
               name="phase_2_start"
               defaultValue={toLocal(config.phase_2_start)}
-              className="w-full rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
+              className="block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </div>
           <div>
@@ -148,7 +148,7 @@ export function CycleScheduleForm({
               type="datetime-local"
               name="phase_3_start"
               defaultValue={toLocal(config.phase_3_start)}
-              className="w-full rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
+              className="block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </div>
         </div>
@@ -159,21 +159,24 @@ export function CycleScheduleForm({
         <table className="w-full text-sm">
           <thead className="bg-white/[0.04]">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Phase
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Opens (UTC)
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Closes (UTC)
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-whisper">
             {PHASES.map((phase) => (
-              <tr key={phase.label}>
-                <td className="px-4 py-3 font-medium text-white">
+              <tr
+                key={phase.label}
+                className="transition-colors duration-150 hover:bg-white/[0.02]"
+              >
+                <td className="px-4 py-3 font-medium text-cloud">
                   {phase.label}
                 </td>
                 <td className="px-4 py-3">
@@ -183,7 +186,7 @@ export function CycleScheduleForm({
                     defaultValue={toLocal(
                       config[phase.open as keyof Config] as string | null
                     )}
-                    className="rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
+                    className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </td>
                 <td className="px-4 py-3">
@@ -193,7 +196,7 @@ export function CycleScheduleForm({
                     defaultValue={toLocal(
                       config[phase.close as keyof Config] as string | null
                     )}
-                    className="rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-sm text-white"
+                    className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </td>
               </tr>
@@ -205,12 +208,18 @@ export function CycleScheduleForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-teal px-4 py-2 text-sm font-medium text-white hover:bg-teal/80 disabled:opacity-50"
+          className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
           {loading ? "Saving…" : "Save Schedule"}
         </button>
-        {saved && <span className="text-sm text-aqua">Saved!</span>}
-        {error && <span className="text-sm text-red">{error}</span>}
+        {saved && (
+          <span className="text-sm font-medium text-aqua">Saved.</span>
+        )}
+        {error && (
+          <span role="alert" className="text-sm text-red-300">
+            {error}
+          </span>
+        )}
       </div>
     </form>
   );
@@ -288,7 +297,7 @@ export function CycleParamsForm({
       <div className="grid gap-8 sm:grid-cols-2">
         {PARAM_GROUPS.map((group) => (
           <div key={group.heading}>
-            <h3 className="mb-3 text-sm font-semibold text-cloud">
+            <h3 className="mb-3 text-sm font-semibold tracking-tight text-cloud">
               {group.heading}
             </h3>
             <div className="space-y-3">
@@ -311,7 +320,7 @@ export function CycleParamsForm({
                     defaultValue={
                       config[field.name as keyof Config] as number
                     }
-                    className="w-20 rounded-md border border-whisper bg-white/[0.03] px-2 py-1 text-right text-sm text-white"
+                    className="w-20 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-right text-sm tabular-nums text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </div>
               ))}
@@ -323,12 +332,18 @@ export function CycleParamsForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-teal px-4 py-2 text-sm font-medium text-white hover:bg-teal/80 disabled:opacity-50"
+          className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
           {loading ? "Saving…" : "Save Parameters"}
         </button>
-        {saved && <span className="text-sm text-aqua">Saved!</span>}
-        {error && <span className="text-sm text-red">{error}</span>}
+        {saved && (
+          <span className="text-sm font-medium text-aqua">Saved.</span>
+        )}
+        {error && (
+          <span role="alert" className="text-sm text-red-300">
+            {error}
+          </span>
+        )}
       </div>
     </form>
   );

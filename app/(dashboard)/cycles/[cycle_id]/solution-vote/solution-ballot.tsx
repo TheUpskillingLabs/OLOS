@@ -111,53 +111,85 @@ export default function SolutionBallot({
   return (
     <div className="space-y-6">
       {pods.length > 1 && (
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-cloud/70">
-            Select Pod
-          </label>
-          <select
-            value={selectedPodId}
-            onChange={(e) => setSelectedPodId(parseInt(e.target.value, 10))}
-            className="rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-white focus:border-teal focus:outline-none"
+        <div className="space-y-1.5">
+          <label
+            htmlFor="select-pod"
+            className="block text-sm font-medium text-cloud"
           >
-            {pods.map((pod) => (
-              <option key={pod.id} value={pod.id}>
-                {pod.name || `Pod ${pod.id}`}
-              </option>
-            ))}
-          </select>
+            Select pod
+          </label>
+          <div className="relative">
+            <select
+              id="select-pod"
+              value={selectedPodId}
+              onChange={(e) => setSelectedPodId(parseInt(e.target.value, 10))}
+              className="block w-full appearance-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 pr-9 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            >
+              {pods.map((pod) => (
+                <option key={pod.id} value={pod.id}>
+                  {pod.name || `Pod ${pod.id}`}
+                </option>
+              ))}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cloud/60"
+              viewBox="0 0 20 20"
+              fill="none"
+              aria-hidden
+            >
+              <path
+                d="M6 8l4 4 4-4"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         </div>
       )}
 
       {pods.length === 1 && (
-        <p className="text-sm text-cloud/50">
+        <p className="text-sm text-cloud/80">
           Voting in{" "}
-          <span className="font-medium text-white">
+          <span className="font-semibold text-white">
             {pods[0].name || `Pod ${pods[0].id}`}
           </span>
         </p>
       )}
 
       {/* Budget indicator */}
-      <div className="flex items-center gap-4 rounded-md border border-teal/20 bg-teal/[0.04] p-4">
-        <div>
-          <p className="text-sm text-cloud/60">Vote Budget</p>
-          <p className="text-2xl font-bold text-aqua">{remaining}</p>
-          <p className="text-xs text-cloud/40">votes remaining</p>
-        </div>
+      <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-4">
+        <p className="text-xs font-medium uppercase tracking-widest text-cloud/60">
+          Vote budget
+        </p>
+        <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-aqua">
+          {remaining}
+        </p>
+        <p className="text-xs text-cloud/60 tabular-nums">votes remaining</p>
       </div>
 
       {error && (
-        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-400">
+        <p
+          role="alert"
+          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+        >
           {error}
         </p>
       )}
 
       {loading ? (
-        <p className="text-cloud/50">Loading proposals...</p>
+        <div className="flex items-center gap-3 text-cloud/60" aria-busy="true">
+          <span
+            role="status"
+            aria-label="Loading"
+            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-teal"
+          />
+          Loading proposals...
+        </div>
       ) : proposals.length === 0 ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/60">
+        <div className="rounded-md border border-dashed border-whisper bg-white/[0.01] p-12 text-center">
+          <p className="text-sm text-cloud/60">
             No solution proposals have been submitted yet.
           </p>
         </div>
@@ -166,11 +198,11 @@ export default function SolutionBallot({
           {proposals.map((proposal) => (
             <div
               key={proposal.id}
-              className="rounded-md border border-whisper bg-white/[0.02] p-4"
+              className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 hover:border-white/[0.12]"
             >
               <p className="text-sm text-cloud/80">{proposal.proposal_text}</p>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-xs text-cloud/40">
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-whisper pt-3">
+                <span className="text-xs font-medium text-cloud/60 tabular-nums">
                   {getTallyFor(proposal.id)} vote
                   {getTallyFor(proposal.id) !== 1 ? "s" : ""}
                 </span>
@@ -187,7 +219,8 @@ export default function SolutionBallot({
                       }))
                     }
                     placeholder="0"
-                    className="w-16 rounded border border-whisper bg-white/[0.04] px-2 py-1 text-center text-sm text-white placeholder:text-cloud/30 focus:border-teal focus:outline-none"
+                    aria-label="Vote count"
+                    className="w-16 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-center text-sm tabular-nums text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                   <button
                     onClick={() => castVote(proposal.id)}
@@ -196,12 +229,14 @@ export default function SolutionBallot({
                       !pendingVotes[proposal.id] ||
                       pendingVotes[proposal.id] < 1
                     }
-                    className="rounded bg-teal/20 px-3 py-1 text-xs font-medium text-aqua transition-colors hover:bg-teal/30 disabled:opacity-40"
+                    className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                   >
                     {submitting === proposal.id ? "..." : "Vote"}
                   </button>
                   {successId === proposal.id && (
-                    <span className="text-xs text-aqua">Voted!</span>
+                    <span className="text-xs font-medium text-aqua">
+                      Voted
+                    </span>
                   )}
                 </div>
               </div>

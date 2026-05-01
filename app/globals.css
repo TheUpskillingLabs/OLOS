@@ -1,25 +1,93 @@
 @import "tailwindcss";
 
 @theme inline {
+  /* Brand surfaces */
   --color-midnight: #0b1016;
+  --color-ink: #0e1520;
+
+  /* Brand colors */
   --color-teal: #0094a0;
-  --color-red: #ee1c25;
   --color-aqua: #4dbbc2;
-  --color-shadow: #006b73;
+  --color-shadow-teal: #006b73;
+  --color-shadow: #006b73; /* legacy alias of shadow-teal */
+  --color-red: #ee1c25;
   --color-crimson: #7a0f14;
+
+  /* Text */
   --color-cloud: #e6e6e6;
   --color-ghost: #ffffff;
-  --color-muted: rgba(255,255,255,0.3);
-  --color-whisper: rgba(255,255,255,0.07);
-  --font-sans: 'Geologica', sans-serif;
+
+  /* Hairlines / muted */
+  --color-whisper: rgba(255, 255, 255, 0.07);
+  --color-muted: rgba(255, 255, 255, 0.3);
+
+  /* Typography */
+  --font-sans: 'Geologica', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+    'Helvetica Neue', sans-serif;
+
+  /* Motion — iOS spring physics */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+html {
+  background-color: var(--color-midnight);
+  color-scheme: dark;
 }
 
 body {
-  background-color: #0b1016;
-  background-image: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,148,160,0.07) 0%, transparent 70%);
+  background-color: var(--color-midnight);
+  background-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    rgba(0, 148, 160, 0.07) 0%,
+    transparent 70%
+  );
   background-attachment: fixed;
-  color: rgba(255,255,255,0.65);
-  font-family: 'Geologica', sans-serif;
+  color: var(--color-cloud);
+  font-family: var(--font-sans);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* iOS-quality tap behavior */
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+button,
+a,
+[role="button"],
+[role="link"],
+summary,
+label[for] {
+  touch-action: manipulation;
+}
+
+/* Native modal backdrop per design system */
+dialog::backdrop {
+  background: rgba(11, 16, 22, 0.8);
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+}
+
+/* Tabular numerals helper for utility classes that don't ship with Tailwind */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

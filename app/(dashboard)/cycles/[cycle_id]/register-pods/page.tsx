@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import PodRegistration from "./pod-registration";
@@ -64,14 +65,15 @@ export default async function RegisterPodsPage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="text-sm text-cloud/60 hover:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
         >
-          &larr; {cycle.name}
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-white">
-          Register for Pods
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+          Register for pods
         </h1>
-        <p className="mt-1 text-sm text-cloud/50">
+        <p className="mt-1 text-sm text-cloud/80">
           Join up to 2 pods to explore problems that interest you.
         </p>
       </div>
@@ -80,12 +82,12 @@ export default async function RegisterPodsPage({
         <PodRegistration cycleId={cycleId} initialMyPodIds={myPodIds} />
       ) : (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/60">
+          <p className="text-cloud/80">
             Pod registration is not currently open.
           </p>
           {config?.pod_registration_open &&
             now < new Date(config.pod_registration_open) && (
-              <p className="mt-2 text-sm text-cloud/40">
+              <p className="mt-2 text-sm text-cloud/60 tabular-nums">
                 Opens{" "}
                 {new Date(config.pod_registration_open).toLocaleDateString(
                   "en-US",

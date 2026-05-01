@@ -1,7 +1,21 @@
 import Link from "next/link";
+import { Users } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
+import { EmptyState, StatusBadge } from "@/app/components/ui";
+
+type PodStatus = "active" | "forming" | "closed" | "inactive";
+
+const POD_STATUS_VARIANT: Record<
+  PodStatus,
+  "active" | "forming" | "inactive"
+> = {
+  active: "active",
+  forming: "forming",
+  closed: "inactive",
+  inactive: "inactive",
+};
 
 export default async function ModeratorPage() {
   const supabase = await createClient();
@@ -82,53 +96,51 @@ export default async function ModeratorPage() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-bold text-white">
-        {admin ? "All Pods" : "My Pods"}
+      <h1 className="mb-2 text-2xl font-bold tracking-tight text-white">
+        {admin ? "All pods" : "My pods"}
       </h1>
-      <p className="mb-8 text-sm text-cloud/60">
+      <p className="mb-8 text-sm text-cloud/80">
         {admin
           ? "All pods across cycles. Click to view pulse check responses and member activity."
           : "Pods you are assigned to moderate. View pulse check responses and member activity."}
       </p>
 
       {pods.length === 0 ? (
-        <p className="text-sm text-cloud/40">
-          {admin
-            ? "No pods have been created yet."
-            : "You are not currently assigned to moderate any pods."}
-        </p>
+        <EmptyState
+          icon={Users}
+          title={admin ? "No pods yet" : "No assigned pods"}
+          description={
+            admin
+              ? "No pods have been created yet."
+              : "You are not currently assigned to moderate any pods."
+          }
+        />
       ) : (
         <div className="space-y-8">
           {Object.entries(podsByCycle).map(([cycleName, cyclePods]) => (
             <div key={cycleName}>
-              <h2 className="mb-3 text-sm font-medium text-cloud/60">
+              <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
                 {cycleName}
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {cyclePods.map((pod) => (
-                  <Link
-                    key={pod.pod_id}
-                    href={`/pods/${pod.pod_id}`}
-                    className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors hover:border-teal/40 hover:bg-white/[0.04]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-white">
-                        {pod.pod_name}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          pod.status === "active"
-                            ? "bg-teal/20 text-aqua"
-                            : pod.status === "forming"
-                              ? "bg-teal/10 text-teal"
-                              : "bg-white/10 text-cloud/60"
-                        }`}
-                      >
-                        {pod.status}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
+                {cyclePods.map((pod) => {
+                  const variant =
+                    POD_STATUS_VARIANT[pod.status as PodStatus] ?? "inactive";
+                  return (
+                    <Link
+                      key={pod.pod_id}
+                      href={`/pods/${pod.pod_id}`}
+                      className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold tracking-tight text-white">
+                          {pod.pod_name}
+                        </span>
+                        <StatusBadge variant={variant}>{pod.status}</StatusBadge>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           ))}

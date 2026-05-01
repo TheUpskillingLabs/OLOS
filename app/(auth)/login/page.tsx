@@ -88,7 +88,7 @@ function LoginContent() {
           <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center lg:mt-12">
             <button
               onClick={handleLogin}
-              className="inline-flex items-center justify-center gap-3 rounded-full border border-white/[0.12] bg-white/[0.04] px-8 py-4 text-sm font-semibold text-white shadow-[0_0_0_0_rgba(77,187,194,0)] transition-all duration-300 hover:border-aqua/40 hover:bg-white/[0.07] hover:shadow-[0_0_24px_rgba(77,187,194,0.18)]"
+              className="inline-flex items-center justify-center gap-3 rounded-full border border-white/[0.12] bg-white/[0.04] px-8 py-4 text-base font-medium text-white shadow-[0_0_0_0_rgba(77,187,194,0)] transition-all duration-300 ease-spring hover:border-aqua/40 hover:bg-white/[0.07] hover:shadow-[0_0_24px_rgba(77,187,194,0.18)] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
             >
               <GoogleLogo />
               {invited
@@ -99,7 +99,7 @@ function LoginContent() {
             {!invited && (
               <button
                 onClick={handleLogin}
-                className="text-sm text-cloud/40 transition-colors hover:text-aqua"
+                className="text-sm text-cloud/60 transition-colors duration-150 ease-out hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
               >
                 Already a member? Log in
               </button>

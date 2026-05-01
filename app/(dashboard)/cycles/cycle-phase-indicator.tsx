@@ -156,10 +156,10 @@ export default function CyclePhaseIndicator({
           <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
             The Build Cycle
           </p>
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             {cycleActive ? (
               <>
-                <span className="text-aqua">{daysLeft}</span>{" "}
+                <span className="text-aqua tabular-nums">{daysLeft}</span>{" "}
                 day{daysLeft !== 1 ? "s" : ""} to Showcase
               </>
             ) : cycleComplete ? (
@@ -174,11 +174,15 @@ export default function CyclePhaseIndicator({
         </div>
         {cycleActive && (
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-teal/20 px-4 py-1.5 text-sm font-semibold text-aqua">
-              Week {currentWeek}
+            <span className="inline-flex items-center gap-2 rounded-full bg-teal/20 px-4 py-1.5 text-sm font-semibold text-aqua">
+              <span className="relative flex h-2 w-2" aria-hidden>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-aqua opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-aqua" />
+              </span>
+              <span className="tabular-nums">Week {currentWeek}</span>
             </span>
             {currentPhaseNum > 0 && (
-              <span className="text-sm text-cloud/50">
+              <span className="text-sm text-cloud/60">
                 Month {currentPhaseNum}
               </span>
             )}
@@ -187,7 +191,7 @@ export default function CyclePhaseIndicator({
       </div>
 
       {/* ── Timeline card ─────────────────────────────────────────── */}
-      <div className="overflow-x-auto rounded-xl border border-whisper bg-white/[0.02] px-4 pb-4 pt-5 sm:px-6">
+      <div className="overflow-x-auto rounded-lg border border-whisper bg-white/[0.02] px-4 pb-4 pt-5 sm:px-6">
         {/* Month / phase headers */}
         <div className="mb-6 flex min-w-[700px]">
           {PHASES.map((p) => (
@@ -282,23 +286,21 @@ export default function CyclePhaseIndicator({
             {WEEKS.map((w) => {
               const isPast = w.num < currentWeek;
               const isCurrent = w.num === currentWeek;
-              const isFuture = w.num > currentWeek;
 
               let boxClasses: string;
               if (isCurrent) {
                 boxClasses =
-                  "border-aqua bg-aqua text-midnight shadow-[0_0_12px_rgba(77,187,194,0.4)]";
+                  "border-aqua bg-aqua text-midnight shadow-[0_0_24px_rgba(77,187,194,0.4)] animate-pulse";
               } else if (isPast) {
-                boxClasses = "border-teal/60 bg-teal/80 text-white/90";
+                boxClasses = "border-teal/40 bg-teal/40 text-white";
               } else {
-                boxClasses =
-                  "border-white/15 bg-midnight text-cloud/40";
+                boxClasses = "border-white/[0.06] bg-white/[0.06] text-cloud/40";
               }
 
               return (
                 <div key={w.num} className="relative z-10 flex flex-1 justify-center">
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-md border-2 text-xs font-bold ${boxClasses}`}
+                    className={`flex h-8 w-8 items-center justify-center rounded-md border-2 text-xs font-bold tabular-nums ${boxClasses}`}
                   >
                     {w.num}
                   </div>

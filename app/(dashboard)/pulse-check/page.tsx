@@ -131,8 +131,10 @@ export default async function PulseCheckPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-2 text-2xl font-bold text-white">{copy.page.title}</h1>
-      <p className="mb-4 text-sm text-cloud/80">{copy.page.subtitle}</p>
+      <h1 className="mb-2 text-2xl font-bold tracking-tight text-white">
+        {copy.page.title}
+      </h1>
+      <p className="mb-6 text-sm text-cloud/80">{copy.page.subtitle}</p>
 
       <PulseCheckForm
         enforcement={enforcement}
@@ -144,8 +146,8 @@ export default async function PulseCheckPage() {
       />
 
       {history && history.length > 0 && (
-        <div className="mt-8">
-          <h2 className="mb-4 text-lg font-semibold text-white">
+        <div className="mt-12">
+          <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
             {copy.history.title}
           </h2>
           <div className="space-y-3">
@@ -179,10 +181,13 @@ function HistoryCard({
   const mitigation = typeof r.mitigation_strategy === "string" ? r.mitigation_strategy : "";
 
   return (
-    <details className="rounded-md border border-whisper bg-white/[0.02] p-4 [&[open]>summary>span.chevron]:rotate-90">
-      <summary className="flex cursor-pointer items-center justify-between gap-2">
+    <details className="group rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 hover:border-white/[0.12] hover:bg-white/[0.04] [&[open]>summary>span.chevron]:rotate-90">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="chevron inline-block text-cloud/60 transition-transform">
+          <span
+            className="chevron inline-block text-cloud/60 transition-transform duration-150 ease-spring"
+            aria-hidden
+          >
             ›
           </span>
           <span className="text-sm font-medium text-cloud">
@@ -193,7 +198,7 @@ function HistoryCard({
             })}
           </span>
           {energy && (
-            <span className="rounded-full px-2 py-0.5 text-xs font-medium text-aqua">
+            <span className="rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua tabular-nums">
               {copy.history.energyChip(
                 energy,
                 copy.reflection.energy.levels[energy - 1]
@@ -202,7 +207,7 @@ function HistoryCard({
           )}
         </div>
         {entry.completed_at && (
-          <span className="text-xs text-cloud/60">
+          <span className="text-xs text-cloud/60 tabular-nums">
             {new Date(entry.completed_at).toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
