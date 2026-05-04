@@ -360,6 +360,39 @@ erDiagram
 
 ---
 
+## ERD — Invitations
+
+Admins send magic link invitations to prospective participants via a CSV bulk upload flow. Each sent invite is one row. Resends create a new row; the original is left intact.
+
+```mermaid
+erDiagram
+    invitations {
+        int id PK
+        varchar email
+        uuid token UK
+        text[] permissions
+        varchar role_preset
+        int cycle_id FK
+        int pod_id FK
+        int invited_by FK
+        varchar status
+        timestamp created_at
+        timestamp accepted_at
+        timestamp expires_at
+        text notes
+    }
+
+    participants ||--o{ invitations : "sends"
+    cycles ||--o{ invitations : "scopes (optional)"
+    pods ||--o{ invitations : "scopes (optional)"
+```
+
+**Status values:** `pending` (sent, not yet accepted) · `accepted` (invitee logged in) · `expired` (link expired) · `revoked` (admin cancelled)
+
+**Bulk invite flow:** `cycle_id`, `pod_id`, `permissions`, and `role_preset` are NULL/empty. `notes` carries per-row messaging back to the admin (e.g. "Name not found in participants", "Already logged in").
+
+---
+
 ## Table Summary
 
 | Table | Group | Purpose |
@@ -382,3 +415,4 @@ erDiagram
 | `project_votes` | Project Layer | Budget-based votes on solution proposals |
 | `projects` | Project Layer | Shortlisted solutions with external integrations |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
+| `invitations` | Invitations | Magic link invites sent by admins; one row per send |
