@@ -28,22 +28,24 @@ Currently there is no way for an Admin to bulk-invite participants to the platfo
 ## Scope
 
 **In:**
-- New admin UI page in the existing Next.js frontend
+- New dedicated admin page at `/admin/bulk-invitations`
 - CSV upload (mix of names and/or emails allowed)
 - Name-to-email resolution via `participants` table
-- Login status check (google_id populated = already logged in)
-- Supabase Auth magic link issuance
+- Login status check via `auth.users`
 - Deduplication within the uploaded list
+- Two-step UX: preview results before sending anything
+- Supabase Auth magic link issuance
 - Invite tracking via existing `invitations` table (with one additive column: `notes`)
 - Admin feedback UI (results summary per row)
-- Past invitation history visible on the page
-- Resend action for individual invites
+- Download results as CSV
 - Automatic `accepted` status update on first login via Supabase Auth webhook
 
 **Out:**
 - Non-CSV file formats (Excel, Google Sheets, etc.)
 - Registration form itself (separate scope)
 - Token refresh logic
+- Invitation history and resend — these remain on the existing `/admin/invitations` page
+- Cycle / pod context on invites — separate functionality to be added later
 
 ---
 
@@ -166,45 +168,45 @@ The `participants` table is not modified by this flow — a `participants` row i
 
 ---
 
-## UI — Admin Invitations Page
+## UI — Bulk Invitations Page
 
-**Route:** `/admin/invitations`
+**Route:** `/admin/bulk-invitations`
 
-**Access:** Requires `is_admin` or `is_owner` JWT claim.
+**Access:** Requires `is_admin` or `is_owner` JWT claim. Linked from the Admin dashboard nav.
 
-**Components:**
+**Two-step flow:**
 
-1. **Upload zone** — drag-and-drop or click-to-browse CSV upload. Shows file name and row count on selection.
-2. **Email template editor** — editable subject line and body, pre-populated with the default template. Admin can customise before sending.
-3. **Preview panel** — after parse, shows the deduplicated resolved list with each row's resolved email and status before anything is sent. Admin reviews and confirms.
-4. **Send button** — triggers the magic link send for all eligible emails.
-5. **Results table** — post-send summary with status per row (see Step 5 above).
-6. **Download summary** — export results as CSV.
-7. **Invitation history** — below the upload zone, a paginated table of all past invitations showing: email, invited by, sent date (`created_at`), accepted date (if applicable), and current status (`pending` / `accepted` / `expired` / `revoked`). Sorted by `created_at` descending. Refreshes on page load.
-8. **Resend action** — each row in the history table has a "Resend" button. Clicking it calls `signInWithOtp` again for that email and creates a new `invitations` row, leaving the original intact.
+**Step A — Upload & preview**
+1. **Upload zone** — drag-and-drop or click-to-browse CSV upload. CSV is parsed client-side and sent to `POST /api/invitations/bulk/preview`. No emails sent yet.
+2. **Preview table** — shows one row per input with resolved email and status (`eligible`, `already active`, `already invited`, `unresolved`, `ambiguous`, `duplicate`). Admin reviews before proceeding.
+3. **Download preview** — export preview table as CSV.
+
+**Step B — Send**
+4. **Send button** — enabled only when at least one row is `eligible`. Shows count of eligible emails. Calls `POST /api/invitations/bulk/send` with the eligible email list.
+5. **Results table** — post-send summary showing `invited` or `failed` per email.
+6. **Download results** — export results table as CSV.
 
 ---
 
 ## Acceptance Criteria
 
+- [ ] Page is accessible only to users with `is_admin` or `is_owner` JWT claim
 - [ ] Admin can upload a CSV with a mix of name rows and email rows
 - [ ] Name-only rows are resolved to emails via `participants.first_name` + `participants.last_name` lookup (case-insensitive)
-- [ ] Unresolved and ambiguous names are flagged in results — no invite sent
-- [ ] Duplicate emails within the CSV are silently eliminated before processing
-- [ ] Persons found in `auth.users` are marked "Already Active" — no invite sent
-- [ ] Persons with a `pending` row in `invitations` are marked "Already Invited" — no duplicate invite sent
-- [ ] Magic links are sent via Supabase Auth `signInWithOtp` for all eligible emails
+- [ ] Unresolved and ambiguous names are flagged in preview — no invite sent
+- [ ] Duplicate emails within the CSV are eliminated before processing
+- [ ] Persons found in `auth.users` are marked "Already Active" in preview — no invite sent
+- [ ] Persons with a `pending` row in `invitations` are marked "Already Invited" in preview — no duplicate invite sent
+- [ ] Preview is shown to admin before any emails are sent
+- [ ] Send button is disabled when no eligible rows exist
+- [ ] Magic links are sent via Supabase Auth for all eligible emails only after admin confirms
 - [ ] Each sent invite creates a row in `invitations` with correct `email`, `invited_by`, `status = 'pending'`; `pod_id`, `cycle_id`, `permissions`, `role_preset` are left NULL / empty
-- [ ] Admin sees a results summary table after upload is processed
-- [ ] Admin can download the results summary as a CSV
-- [ ] Page is accessible only to users with `is_admin` or `is_owner` JWT claim
-- [ ] Past invitation history is displayed in a paginated table, sorted by `created_at` descending
-- [ ] Resend button triggers a new magic link and creates a new `invitations` row
+- [ ] Admin sees a results table after send showing `invited` or `failed` per email
+- [ ] Admin can download the preview table as CSV
+- [ ] Admin can download the results table as CSV
 - [ ] Magic link redirects invitee to `/dashboard` on click
 - [ ] `invitations.status` is updated to `'accepted'` automatically via Supabase Auth webhook when invitee first logs in
 - [ ] Login status check queries `auth.users` (not `participants.google_id`) to correctly catch all prior logins
-- [ ] Admin can edit the email subject and body before sending; default template is pre-populated
-- [ ] Magic link placeholder is always appended by Supabase regardless of template edits
 
 ---
 
@@ -221,6 +223,9 @@ The `participants` table is not modified by this flow — a `participants` row i
 | 7 | Track `resent_at`? | **No** — each resend creates a new row; no dedicated timestamp column needed |
 | 8 | Status values? | **Use existing constraint**: `pending` (sent), `accepted` (logged in), `expired` (link expired), `revoked` (admin cancelled) |
 | 9 | Cycle / pod context on bulk invites? | **Out of scope for now** — to be added as separate functionality |
+| 10 | Live on `/admin/invitations` or separate page? | **Separate page** at `/admin/bulk-invitations` — keeps existing individual invite flow untouched |
+| 11 | One-step or two-step send? | **Two-step** — preview first (no emails sent), admin confirms, then send |
+| 12 | Show invite history and resend on this page? | **No** — history and resend remain on `/admin/invitations` |
 
 ---
 
