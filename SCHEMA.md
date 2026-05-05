@@ -87,6 +87,7 @@ erDiagram
         varchar gender
         varchar state
         varchar neighborhood
+        varchar phone_number
         varchar dcpl_card
         boolean dcpl_info
         varchar work_situation
@@ -98,12 +99,19 @@ erDiagram
         varchar participation_commitment
         varchar primary_expertise
         varchar volunteer_interest
+        text availability_notes
+        text commitment_notes
+        text interest_areas
+        text moderator_experience
         boolean text_updates
+        boolean email_updates
+        boolean comms_consent
         boolean photo_video_consent
         varchar source
         varchar slack_username
         varchar github_username
         varchar drive_email
+        text notes
         timestamp created_at
     }
 
