@@ -1,8 +1,16 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import LogoutButton from "./components/logout-button";
+import { copy as pulseCopy } from "./pulse-check/copy";
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+type EnforcementStatus = "ok" | "warning_3day" | "warning_1day" | "overdue";
 
 export default async function DashboardLayout({
   children,
@@ -18,13 +26,41 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Fetch participant profile for name
+  // Fetch participant profile for name + enforcement baseline
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("preferred_name, first_name, last_name")
+    .select("preferred_name, first_name, last_name, last_pulse_completed_at, created_at")
     .eq("auth_user_id", user.id)
     .maybeSingle();
+
+  // Compute pulse-check enforcement status
+  let enforcementStatus: EnforcementStatus = "ok";
+  if (participant) {
+    const baseline = participant.last_pulse_completed_at ?? participant.created_at;
+    if (baseline) {
+      const deadlineMs = new Date(baseline).getTime() + SEVEN_DAYS_MS;
+      const ms = deadlineMs - new Date().getTime();
+      if (ms <= 0) enforcementStatus = "overdue";
+      else if (ms < ONE_DAY_MS) enforcementStatus = "warning_1day";
+      else if (ms <= THREE_DAYS_MS) enforcementStatus = "warning_3day";
+    }
+  }
+
+  // Hard block: if overdue and not on the pulse-check page, redirect.
+  const hdrs = await headers();
+  const pathname =
+    hdrs.get("x-pathname") ||
+    hdrs.get("x-invoke-path") ||
+    hdrs.get("next-url") ||
+    "";
+  if (
+    enforcementStatus === "overdue" &&
+    !pathname.startsWith("/pulse-check") &&
+    !pathname.startsWith("/api/")
+  ) {
+    redirect("/pulse-check");
+  }
 
   const userRoles = await resolveUserRoles(serviceClient, user.id);
   const adminUser = isAdmin(userRoles);
@@ -43,58 +79,48 @@ export default async function DashboardLayout({
     ? `${participant.first_name[0]}${participant.last_name[0]}`
     : (user.email?.[0] ?? "?").toUpperCase();
 
+  const navLinkClass =
+    "text-sm text-cloud transition-colors duration-150 ease-out hover:text-aqua " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal " +
+    "focus-visible:ring-offset-2 focus-visible:ring-offset-midnight rounded-sm";
+
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 border-b border-whisper bg-[rgba(11,16,22,0.97)]">
-        <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4">
+      <header className="sticky top-0 z-50 border-b border-whisper bg-[rgba(11,16,22,0.97)] backdrop-blur-sm backdrop-saturate-150">
+        <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             href="/cycles"
-            className="text-lg font-bold text-white"
+            className="text-sm font-semibold tracking-wide text-white"
           >
             The Upskilling Labs
           </Link>
           <nav className="flex items-center gap-6">
-            <Link
-              href="/cycles"
-              className="text-sm text-cloud transition-colors hover:text-aqua"
-            >
+            <Link href="/cycles" className={navLinkClass}>
               Cycles
             </Link>
-            <Link
-              href="/pulse-check"
-              className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 px-3 py-1 text-sm font-medium text-yellow-300 transition-colors hover:bg-yellow-500/20"
-            >
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400" />
-              Pulse Check
-            </Link>
+            <PulseCheckNavLink status={enforcementStatus} />
             {showPods && (
-              <Link
-                href="/moderator"
-                className="text-sm text-cloud transition-colors hover:text-aqua"
-              >
+              <Link href="/moderator" className={navLinkClass}>
                 My Pods
               </Link>
             )}
             {adminUser && (
-              <Link
-                href="/admin"
-                className="text-sm text-cloud transition-colors hover:text-aqua"
-              >
+              <Link href="/admin" className={navLinkClass}>
                 Admin
               </Link>
             )}
             <Link
               href="/profile"
-              className="flex items-center gap-2 text-sm text-cloud transition-colors hover:text-aqua"
+              className={`flex items-center gap-2 ${navLinkClass}`}
             >
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={displayName ?? ""}
-                  className="h-7 w-7 rounded-full"
+                  className="h-7 w-7 rounded-full ring-1 ring-whisper"
                 />
               ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded bg-shadow text-xs font-medium text-cloud">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-shadow-teal text-xs font-semibold text-white">
                   {initials}
                 </span>
               )}
@@ -104,9 +130,51 @@ export default async function DashboardLayout({
           </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {children}
       </main>
     </div>
+  );
+}
+
+function PulseCheckNavLink({ status }: { status: EnforcementStatus }) {
+  const styles: Record<EnforcementStatus, { wrap: string; dot: string; label: string }> = {
+    ok: {
+      wrap: "bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20",
+      dot: "bg-yellow-300",
+      label: pulseCopy.nav.ok,
+    },
+    warning_3day: {
+      wrap: "bg-yellow-500/15 text-yellow-200 hover:bg-yellow-500/25",
+      dot: "bg-yellow-300",
+      label: pulseCopy.nav.threeDay,
+    },
+    warning_1day: {
+      wrap: "bg-red/15 text-red-300 hover:bg-red/25",
+      dot: "bg-red-300",
+      label: pulseCopy.nav.oneDay,
+    },
+    overdue: {
+      wrap: "bg-red text-white hover:bg-crimson shadow-[0_2px_8px_rgba(238,28,37,0.18)]",
+      dot: "bg-white",
+      label: pulseCopy.nav.overdue,
+    },
+  };
+  const s = styles[status];
+  return (
+    <Link
+      href="/pulse-check"
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${s.wrap}`}
+    >
+      <span className="relative flex h-2 w-2" aria-hidden>
+        <span
+          className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${s.dot}`}
+        />
+        <span
+          className={`relative inline-flex h-2 w-2 rounded-full ${s.dot}`}
+        />
+      </span>
+      {s.label}
+    </Link>
   );
 }

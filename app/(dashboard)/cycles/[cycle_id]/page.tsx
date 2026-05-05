@@ -1,6 +1,27 @@
 import Link from "next/link";
+import { Activity, ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import { StatCard, StatusBadge } from "@/app/components/ui";
+
+type CycleStatus = "active" | "closed" | "draft";
+type PodStatus = "active" | "forming" | "closed" | "inactive";
+
+const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
+  active: "active",
+  closed: "inactive",
+  draft: "draft",
+};
+
+const POD_STATUS_VARIANT: Record<
+  PodStatus,
+  "active" | "forming" | "inactive"
+> = {
+  active: "active",
+  forming: "forming",
+  closed: "inactive",
+  inactive: "inactive",
+};
 
 const WINDOW_ROUTES: {
   label: string;
@@ -68,34 +89,28 @@ export default async function CycleDetailPage({
     }
   }
 
+  const cycleStatusVariant =
+    CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
+
   return (
     <div>
       <div className="mb-8">
         <Link
           href="/cycles"
-          className="text-sm text-cloud/60 hover:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
         >
-          &larr; All Cycles
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          All cycles
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-white">
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
           {cycle.name}
         </h1>
-        <div className="mt-1 flex items-center gap-4 text-sm text-cloud/60">
-          <span>
+        <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-cloud/60">
+          <span className="tabular-nums">
             {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
             {new Date(cycle.end_date).toLocaleDateString()}
           </span>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              cycle.status === "active"
-                ? "bg-teal/20 text-aqua"
-                : cycle.status === "closed"
-                  ? "bg-white/10 text-cloud/60"
-                  : "bg-yellow-500/20 text-yellow-300"
-            }`}
-          >
-            {cycle.status}
-          </span>
+          <StatusBadge variant={cycleStatusVariant}>{cycle.status}</StatusBadge>
         </div>
       </div>
 
@@ -106,21 +121,29 @@ export default async function CycleDetailPage({
             <Link
               key={w.route}
               href={`/cycles/${cycle.id}/${w.route}`}
-              className="flex items-center justify-between rounded-md border border-teal/20 bg-teal/[0.04] p-4 transition-colors hover:border-teal/40 hover:bg-teal/[0.07]"
+              className="group flex items-center justify-between gap-3 rounded-md border border-teal/20 bg-teal/[0.04] p-4 transition-colors duration-150 ease-out hover:border-teal/40 hover:bg-teal/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
             >
               <div className="flex items-center gap-3">
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-aqua" />
-                <span className="font-medium text-white">{w.label}</span>
+                <span className="relative flex h-2 w-2" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-aqua opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-aqua" />
+                </span>
+                <span className="font-semibold tracking-tight text-white">
+                  {w.label}
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-cloud/50">
-                <span>
+              <div className="flex items-center gap-2 text-sm text-cloud/70">
+                <span className="tabular-nums">
                   closes{" "}
                   {new Date(w.closesAt).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                   })}
                 </span>
-                <span className="text-aqua">&rarr;</span>
+                <ArrowRight
+                  className="h-4 w-4 text-aqua transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+                  aria-hidden
+                />
               </div>
             </Link>
           ))}
@@ -129,75 +152,67 @@ export default async function CycleDetailPage({
 
       {/* Pulse Check — always-on requirement */}
       {cycle.status === "active" && (
-        <div className="mb-8 space-y-3">
+        <div className="mb-8">
           <Link
             href="/pulse-check"
-            className="flex items-center justify-between rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors hover:border-yellow-500/40 hover:bg-yellow-500/[0.07]"
+            className="group flex items-center justify-between gap-3 rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors duration-150 ease-out hover:border-yellow-500/40 hover:bg-yellow-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
           >
             <div className="flex items-center gap-3">
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
+              <Activity
+                className="h-5 w-5 flex-shrink-0 text-yellow-300"
+                aria-hidden
+              />
               <div>
-                <span className="font-medium text-white">Weekly Pulse Check</span>
-                <p className="mt-0.5 text-sm text-cloud/50">
+                <span className="font-semibold tracking-tight text-white">
+                  Weekly pulse check
+                </span>
+                <p className="mt-0.5 text-sm text-cloud/60">
                   Complete your weekly check-in to stay active and retain access
-                  to GitHub, Google Docs, Slack, and Google Groups
+                  to GitHub, Google Docs, Slack, and Google Groups.
                 </p>
               </div>
             </div>
-            <span className="text-sm font-medium text-yellow-300">&rarr;</span>
+            <ArrowRight
+              className="h-4 w-4 flex-shrink-0 text-yellow-300 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </Link>
         </div>
       )}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-          <p className="text-sm text-cloud/60">Total Enrolled</p>
-          <p className="text-2xl font-bold text-white">
-            {enrollments?.length || 0}
-          </p>
-        </div>
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-          <p className="text-sm text-cloud/60">Active</p>
-          <p className="text-2xl font-bold text-aqua">{activeCount}</p>
-        </div>
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-          <p className="text-sm text-cloud/60">Pods</p>
-          <p className="text-2xl font-bold text-white">
-            {pods?.length || 0}
-          </p>
-        </div>
+        <StatCard label="Total enrolled" value={enrollments?.length || 0} />
+        <StatCard
+          label="Active"
+          value={<span className="text-aqua">{activeCount}</span>}
+        />
+        <StatCard label="Pods" value={pods?.length || 0} />
       </div>
 
       {pods && pods.length > 0 && (
         <div>
-          <h2 className="mb-4 text-lg font-semibold text-white">
+          <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
             Pods
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {pods.map((pod) => (
-              <Link
-                key={pod.id}
-                href={`/pods/${pod.id}`}
-                className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-white">
-                    {pod.name || `Pod ${pod.id}`}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs ${
-                      pod.status === "active"
-                        ? "bg-teal/20 text-aqua"
-                        : pod.status === "forming"
-                          ? "bg-teal/10 text-teal"
-                          : "bg-white/10 text-cloud/60"
-                    }`}
-                  >
-                    {pod.status}
-                  </span>
-                </div>
-              </Link>
-            ))}
+            {pods.map((pod) => {
+              const variant =
+                POD_STATUS_VARIANT[pod.status as PodStatus] ?? "inactive";
+              return (
+                <Link
+                  key={pod.id}
+                  href={`/pods/${pod.id}`}
+                  className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-semibold tracking-tight text-white">
+                      {pod.name || `Pod ${pod.id}`}
+                    </span>
+                    <StatusBadge variant={variant}>{pod.status}</StatusBadge>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

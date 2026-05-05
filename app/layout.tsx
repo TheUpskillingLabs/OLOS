@@ -24,8 +24,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;600;700&display=swap"
           rel="stylesheet"
         />
+        <meta name="theme-color" content="#0b1016" />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col text-cloud">{children}</body>
     </html>
   );
 }

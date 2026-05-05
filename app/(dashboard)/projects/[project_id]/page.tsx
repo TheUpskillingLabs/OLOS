@@ -2,7 +2,20 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { StatusBadge } from "@/app/components/ui";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
+
+type ProjectStatus = "active" | "forming" | "closed" | "inactive";
+
+const PROJECT_STATUS_VARIANT: Record<
+  ProjectStatus,
+  "active" | "forming" | "inactive"
+> = {
+  active: "active",
+  forming: "forming",
+  closed: "inactive",
+  inactive: "inactive",
+};
 
 export default async function ProjectDetailPage({
   params,
@@ -100,49 +113,55 @@ export default async function ProjectDetailPage({
     });
   }
 
+  const projectVariant =
+    PROJECT_STATUS_VARIANT[project.status as ProjectStatus] ?? "inactive";
+
   return (
     <div>
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm text-cloud/60">
-          <Link href={`/cycles/${project.cycle_id}`} className="hover:text-aqua">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-sm text-cloud/60"
+        >
+          <Link
+            href={`/cycles/${project.cycle_id}`}
+            className="transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          >
             Cycle
           </Link>
-          <span>/</span>
-          <Link href={`/pods/${project.pod_id}`} className="hover:text-aqua">
+          <span className="text-cloud/30" aria-hidden>
+            /
+          </span>
+          <Link
+            href={`/pods/${project.pod_id}`}
+            className="transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          >
             {pod?.name || `Pod ${project.pod_id}`}
           </Link>
-        </div>
-        <h1 className="mt-2 text-2xl font-bold text-white">
+        </nav>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
           {project.name || `Project ${project.id}`}
         </h1>
-        <span
-          className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-            project.status === "active"
-              ? "bg-teal/20 text-aqua"
-              : project.status === "forming"
-                ? "bg-teal/10 text-teal"
-                : "bg-white/10 text-cloud/60"
-          }`}
-        >
-          {project.status}
+        <span className="mt-2 inline-block">
+          <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
         </span>
       </div>
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-white">
+        <h2 className="mb-3 text-lg font-semibold tracking-tight text-white">
           Members ({activeMembers.length})
         </h2>
         <div className="overflow-hidden rounded-md border border-whisper">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
               <tr>
-                <th className="px-4 py-2 text-xs font-semibold text-aqua">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
                   Name
                 </th>
-                <th className="px-4 py-2 text-xs font-semibold text-aqua">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
                   Status
                 </th>
-                <th className="px-4 py-2 text-xs font-semibold text-aqua">
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
                   Registered
                 </th>
               </tr>
@@ -154,22 +173,21 @@ export default async function ProjectDetailPage({
                   string
                 > | null;
                 return (
-                  <tr key={m.participant_id} className="bg-white/[0.01]">
-                    <td className="px-4 py-2 text-white">
+                  <tr
+                    key={m.participant_id}
+                    className="transition-colors duration-150 hover:bg-white/[0.02]"
+                  >
+                    <td className="px-4 py-3 text-cloud">
                       {p?.preferred_name || p?.first_name} {p?.last_name}
                     </td>
-                    <td className="px-4 py-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
-                          m.left_at
-                            ? "bg-red/20 text-red-300"
-                            : "bg-teal/20 text-aqua"
-                        }`}
+                    <td className="px-4 py-3">
+                      <StatusBadge
+                        variant={m.left_at ? "revoked" : "active"}
                       >
                         {m.left_at ? "left" : "active"}
-                      </span>
+                      </StatusBadge>
                     </td>
-                    <td className="px-4 py-2 text-cloud/60">
+                    <td className="px-4 py-3 text-cloud/60 tabular-nums">
                       {new Date(m.registered_at).toLocaleDateString()}
                     </td>
                   </tr>

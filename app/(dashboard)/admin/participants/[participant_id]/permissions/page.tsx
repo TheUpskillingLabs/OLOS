@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
@@ -78,18 +79,21 @@ export default async function ParticipantPermissionsPage({
       <div className="mb-8">
         <Link
           href="/admin/participants"
-          className="text-sm text-cloud/60 hover:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
         >
-          &larr; All Participants
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          All participants
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-white">{displayName}</h1>
-        <p className="mt-1 text-sm text-cloud/60">{participant.email}</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+          {displayName}
+        </h1>
+        <p className="mt-1 text-sm text-cloud/80">{participant.email}</p>
         {currentRoles.length > 0 && (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {currentRoles.map((role) => (
               <span
                 key={role}
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   role === "owner"
                     ? "bg-yellow-500/15 text-yellow-300"
                     : role === "admin"

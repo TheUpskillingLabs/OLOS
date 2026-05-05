@@ -11,6 +11,9 @@ export async function proxy(request: NextRequest) {
   }
 
   try {
+    // Forward the current pathname to server components via a request header
+    // so layouts can make path-aware decisions.
+    request.headers.set("x-pathname", request.nextUrl.pathname);
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
@@ -25,6 +28,7 @@ export async function proxy(request: NextRequest) {
             cookiesToSet.forEach(({ name, value }) =>
               request.cookies.set(name, value)
             );
+            request.headers.set("x-pathname", request.nextUrl.pathname);
             supabaseResponse = NextResponse.next({ request });
             cookiesToSet.forEach(({ name, value, options }) =>
               supabaseResponse.cookies.set(name, value, options)

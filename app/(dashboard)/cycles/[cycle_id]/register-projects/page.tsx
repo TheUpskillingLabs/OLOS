@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ProjectRegistration from "./project-registration";
@@ -114,14 +115,15 @@ export default async function RegisterProjectsPage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="text-sm text-cloud/60 hover:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
         >
-          &larr; {cycle.name}
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-white">
-          Register for a Project
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+          Register for a project
         </h1>
-        <p className="mt-1 text-sm text-cloud/50">
+        <p className="mt-1 text-sm text-cloud/80">
           Join a project within your pod. You can register for one project per
           cycle.
         </p>
@@ -129,12 +131,12 @@ export default async function RegisterProjectsPage({
 
       {!isOpen ? (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/60">
+          <p className="text-cloud/80">
             Project registration is not currently open.
           </p>
           {config?.project_registration_open &&
             now < new Date(config.project_registration_open) && (
-              <p className="mt-2 text-sm text-cloud/40">
+              <p className="mt-2 text-sm text-cloud/60 tabular-nums">
                 Opens{" "}
                 {new Date(config.project_registration_open).toLocaleDateString(
                   "en-US",
@@ -145,12 +147,12 @@ export default async function RegisterProjectsPage({
         </div>
       ) : myPods.length === 0 ? (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/60">
+          <p className="text-cloud/80">
             You are not a member of any pods in this cycle.
           </p>
           <Link
             href={`/cycles/${cycle.id}`}
-            className="mt-2 inline-block text-sm text-aqua hover:underline"
+            className="mt-2 inline-block text-sm font-semibold tracking-tight text-aqua transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:text-white"
           >
             View cycle &rarr;
           </Link>

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { StatCard } from "@/app/components/ui";
 
 type PulseCheck = {
   scheduled_date: string;
   completed_at: string | null;
   survey_responses: Record<string, unknown> | null;
+  nomination_count?: number;
 };
 
 type MemberPulseData = {
@@ -45,28 +48,23 @@ export default function PulseCheckDashboard({
   return (
     <div>
       <hr className="mb-8 border-whisper" />
-      <h2 className="mb-4 text-lg font-semibold text-white">
-        Pulse Checks
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
+        Pulse checks
       </h2>
 
       {/* Summary stats */}
-      <div className="mb-6 grid grid-cols-3 gap-4">
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-          <p className="text-sm text-cloud/60">Completion Rate</p>
-          <p className="text-2xl font-bold text-white">{completionRate}%</p>
-          <p className="text-xs text-cloud/40">
-            {completedChecks} / {totalChecks}
-          </p>
-        </div>
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-          <p className="text-sm text-cloud/60">Avg Energy</p>
-          <p className="text-2xl font-bold text-aqua">{avgEnergy}</p>
-          <p className="text-xs text-cloud/40">out of 5</p>
-        </div>
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-          <p className="text-sm text-cloud/60">Members</p>
-          <p className="text-2xl font-bold text-white">{members.length}</p>
-        </div>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Completion rate"
+          value={`${completionRate}%`}
+          sublabel={`${completedChecks} / ${totalChecks}`}
+        />
+        <StatCard
+          label="Avg energy"
+          value={<span className="text-aqua">{avgEnergy}</span>}
+          sublabel="out of 5"
+        />
+        <StatCard label="Members" value={members.length} />
       </div>
 
       {/* Per-member table */}
@@ -74,17 +72,19 @@ export default function PulseCheckDashboard({
         <table className="w-full text-left text-sm">
           <thead className="bg-white/[0.04]">
             <tr>
-              <th className="px-4 py-3 font-medium text-cloud/60">Name</th>
-              <th className="px-4 py-3 font-medium text-cloud/60">
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
+                Name
+              </th>
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Completed
               </th>
-              <th className="px-4 py-3 font-medium text-cloud/60">
-                Last Check
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
+                Last check
               </th>
-              <th className="px-4 py-3 font-medium text-cloud/60">
-                Avg Energy
+              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
+                Avg energy
               </th>
-              <th className="px-4 py-3 text-right font-medium text-cloud/60" />
+              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60" />
             </tr>
           </thead>
           <tbody className="divide-y divide-whisper">
@@ -106,36 +106,41 @@ export default function PulseCheckDashboard({
               return (
                 <tr key={m.participant_id} className="group">
                   <td colSpan={5} className="p-0">
-                    <div
-                      className="flex cursor-pointer items-center px-4 py-3 hover:bg-white/[0.02]"
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded}
                       onClick={() =>
                         setExpandedId(isExpanded ? null : m.participant_id)
                       }
+                      className="flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 hover:bg-white/[0.02] focus-visible:outline-none focus-visible:bg-white/[0.04]"
                     >
-                      <span className="flex-1 font-medium text-white">
+                      <span className="flex-1 font-medium text-cloud">
                         {m.name}
                       </span>
-                      <span className="w-24 text-cloud/60">
+                      <span className="w-24 text-cloud/60 tabular-nums">
                         {completed} / {m.checks.length}
                       </span>
-                      <span className="w-32 text-cloud/60">
+                      <span className="w-32 text-cloud/60 tabular-nums">
                         {lastCompleted
                           ? new Date(
                               lastCompleted.completed_at!
                             ).toLocaleDateString()
                           : "—"}
                       </span>
-                      <span className="w-24 text-cloud/60">
+                      <span className="w-24 text-cloud/60 tabular-nums">
                         {memberAvgEnergy}
                       </span>
-                      <span className="w-8 text-right text-cloud/40">
-                        {isExpanded ? "−" : "+"}
+                      <span className="w-8 text-right text-cloud/60">
+                        <ChevronDown
+                          className={`inline-block h-4 w-4 transition-transform duration-150 ease-spring ${isExpanded ? "rotate-180" : ""}`}
+                          aria-hidden
+                        />
                       </span>
-                    </div>
+                    </button>
                     {isExpanded && (
-                      <div className="border-t border-whisper/50 bg-white/[0.01] px-4 py-3">
+                      <div className="border-t border-whisper bg-white/[0.01] px-4 py-3">
                         {m.checks.filter((c) => c.completed_at).length === 0 ? (
-                          <p className="text-sm text-cloud/40">
+                          <p className="text-sm text-cloud/60">
                             No completed pulse checks yet.
                           </p>
                         ) : (
@@ -147,16 +152,16 @@ export default function PulseCheckDashboard({
                                 return (
                                   <div
                                     key={i}
-                                    className="rounded border border-whisper/50 bg-white/[0.01] p-3"
+                                    className="rounded-md border border-whisper bg-white/[0.02] p-3"
                                   >
                                     <div className="mb-2 flex items-center justify-between">
-                                      <span className="text-xs font-medium text-aqua">
+                                      <span className="text-xs font-medium tracking-tight text-aqua tabular-nums">
                                         {new Date(
                                           c.scheduled_date
                                         ).toLocaleDateString()}
                                       </span>
                                       {r?.energy_level != null && (
-                                        <span className="rounded-full bg-teal/15 px-2 py-0.5 text-xs text-aqua">
+                                        <span className="rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua tabular-nums">
                                           Energy: {String(r.energy_level)}/5
                                         </span>
                                       )}
@@ -191,13 +196,43 @@ export default function PulseCheckDashboard({
                                         </span>
                                       </div>
                                     )}
-                                    {r?.help_needed != null && (
-                                      <div>
+                                    {r?.blockers != null && (
+                                      <div className="mb-1">
                                         <span className="text-xs font-medium text-cloud/60">
-                                          Help Needed:{" "}
+                                          Blockers:{" "}
                                         </span>
                                         <span className="text-sm text-white">
-                                          {String(r.help_needed)}
+                                          {String(r.blockers)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {r?.tailwinds != null && (
+                                      <div className="mb-1">
+                                        <span className="text-xs font-medium text-cloud/60">
+                                          Tailwinds:{" "}
+                                        </span>
+                                        <span className="text-sm text-white">
+                                          {String(r.tailwinds)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {r?.mitigation_strategy != null && (
+                                      <div className="mb-1">
+                                        <span className="text-xs font-medium text-cloud/60">
+                                          Mitigation:{" "}
+                                        </span>
+                                        <span className="text-sm text-white">
+                                          {String(r.mitigation_strategy)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {c.nomination_count != null && c.nomination_count > 0 && (
+                                      <div>
+                                        <span className="text-xs font-medium text-cloud/60">
+                                          Nominations:{" "}
+                                        </span>
+                                        <span className="text-sm text-aqua">
+                                          {c.nomination_count}
                                         </span>
                                       </div>
                                     )}

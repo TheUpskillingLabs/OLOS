@@ -109,27 +109,27 @@ export default function InvitationsTable({
     <div className="space-y-6">
       {/* Create form */}
       <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">
-          Create Invitation
+        <h3 className="mb-3 text-sm font-semibold tracking-tight text-white">
+          Create invitation
         </h3>
         <form onSubmit={createInvitation} className="flex flex-wrap items-end gap-3">
           <label className="block flex-1 min-w-[200px]">
-            <span className="text-xs text-cloud/60">Email *</span>
+            <span className="text-xs font-medium text-cloud/80">Email *</span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="name@example.com"
-              className="mt-1 block w-full rounded-md border border-whisper bg-transparent px-3 py-2 text-sm text-white placeholder:text-cloud/30 focus:border-teal/50 focus:outline-none"
+              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </label>
           <label className="block">
-            <span className="text-xs text-cloud/60">Role Preset</span>
+            <span className="text-xs font-medium text-cloud/80">Role Preset</span>
             <select
               value={rolePreset}
               onChange={(e) => setRolePreset(e.target.value)}
-              className="mt-1 block rounded-md border border-whisper bg-transparent px-3 py-2 text-sm text-white focus:border-teal/50 focus:outline-none"
+              className="mt-1 block rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             >
               <option value="">No preset</option>
               {availablePresets
@@ -142,11 +142,11 @@ export default function InvitationsTable({
             </select>
           </label>
           <label className="block">
-            <span className="text-xs text-cloud/60">Cycle</span>
+            <span className="text-xs font-medium text-cloud/80">Cycle</span>
             <select
               value={cycleId}
               onChange={(e) => setCycleId(e.target.value)}
-              className="mt-1 block rounded-md border border-whisper bg-transparent px-3 py-2 text-sm text-white focus:border-teal/50 focus:outline-none"
+              className="mt-1 block rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             >
               <option value="">None</option>
               {cycles.map((c) => (
@@ -158,11 +158,11 @@ export default function InvitationsTable({
           </label>
           {rolePreset === "moderator" && (
             <label className="block">
-              <span className="text-xs text-cloud/60">Pod</span>
+              <span className="text-xs font-medium text-cloud/80">Pod</span>
               <select
                 value={podId}
                 onChange={(e) => setPodId(e.target.value)}
-                className="mt-1 block rounded-md border border-whisper bg-transparent px-3 py-2 text-sm text-white focus:border-teal/50 focus:outline-none"
+                className="mt-1 block rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
               >
                 <option value="">Select pod...</option>
                 {pods.map((p) => (
@@ -176,13 +176,15 @@ export default function InvitationsTable({
           <button
             type="submit"
             disabled={creating}
-            className="rounded-md bg-aqua px-4 py-2 text-sm font-medium text-midnight hover:bg-teal disabled:opacity-50"
+            className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
           >
-            {creating ? "Creating..." : "Create Invite"}
+            {creating ? "Creating..." : "Create invite"}
           </button>
         </form>
         {error && (
-          <p className="mt-2 text-sm text-red-300">{error}</p>
+          <p role="alert" className="mt-2 text-sm text-red-300">
+            {error}
+          </p>
         )}
       </div>
 
@@ -191,7 +193,8 @@ export default function InvitationsTable({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-whisper bg-transparent px-3 py-2 text-sm text-white focus:border-teal/50 focus:outline-none"
+          aria-label="Status filter"
+          className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
         >
           <option value="all">All</option>
           <option value="pending">Pending</option>
@@ -199,7 +202,7 @@ export default function InvitationsTable({
           <option value="expired">Expired</option>
           <option value="revoked">Revoked</option>
         </select>
-        <span className="text-sm text-cloud/40">
+        <span className="text-sm text-cloud/60 tabular-nums">
           {filtered.length} invitation{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -209,22 +212,22 @@ export default function InvitationsTable({
         <table className="w-full text-sm">
           <thead className="bg-white/[0.04]">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Email
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Preset
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Cycle
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Status
               </th>
-              <th className="px-4 py-3 text-left font-medium text-cloud/60">
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
                 Created
               </th>
-              <th className="px-4 py-3 text-right font-medium text-cloud/60" />
+              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60" />
             </tr>
           </thead>
           <tbody className="divide-y divide-whisper">
@@ -234,14 +237,17 @@ export default function InvitationsTable({
                 new Date(inv.expires_at) < new Date();
 
               return (
-                <tr key={inv.id}>
-                  <td className="px-4 py-3 font-medium text-white">
+                <tr
+                  key={inv.id}
+                  className="transition-colors duration-150 hover:bg-white/[0.02]"
+                >
+                  <td className="px-4 py-3 font-medium text-cloud">
                     {inv.email}
                   </td>
                   <td className="px-4 py-3">
                     {inv.role_preset ? (
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           inv.role_preset === "owner"
                             ? "bg-yellow-500/15 text-yellow-300"
                             : inv.role_preset === "admin"
@@ -256,7 +262,7 @@ export default function InvitationsTable({
                         {inv.role_preset}
                       </span>
                     ) : (
-                      <span className="text-xs text-cloud/30">
+                      <span className="text-xs text-cloud/60 tabular-nums">
                         {inv.permissions.length} perm
                         {inv.permissions.length !== 1 ? "s" : ""}
                       </span>
@@ -267,18 +273,18 @@ export default function InvitationsTable({
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         inv.status === "accepted"
                           ? "bg-teal/20 text-aqua"
                           : inv.status === "pending" && !isExpired
                             ? "bg-yellow-500/20 text-yellow-300"
-                            : "bg-white/10 text-cloud/40"
+                            : "bg-white/10 text-cloud/60"
                       }`}
                     >
                       {isExpired ? "expired" : inv.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-cloud/60">
+                  <td className="px-4 py-3 text-cloud/60 tabular-nums">
                     {new Date(inv.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -287,13 +293,13 @@ export default function InvitationsTable({
                         <>
                           <button
                             onClick={() => copyLink(inv)}
-                            className="rounded px-2.5 py-1 text-xs font-medium text-aqua ring-1 ring-teal/40 hover:bg-teal/10"
+                            className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                           >
-                            {copied === inv.id ? "Copied!" : "Copy Link"}
+                            {copied === inv.id ? "Copied" : "Copy link"}
                           </button>
                           <button
                             onClick={() => revokeInvitation(inv.id)}
-                            className="rounded px-2.5 py-1 text-xs font-medium text-cloud/40 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-red-300"
+                            className="rounded ring-1 ring-whisper px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-red/10 hover:text-red-300 hover:ring-red/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                           >
                             Revoke
                           </button>
@@ -308,7 +314,7 @@ export default function InvitationsTable({
               <tr>
                 <td
                   colSpan={6}
-                  className="px-4 py-8 text-center text-cloud/40"
+                  className="px-4 py-8 text-center text-sm text-cloud/60"
                 >
                   No invitations match your filter.
                 </td>

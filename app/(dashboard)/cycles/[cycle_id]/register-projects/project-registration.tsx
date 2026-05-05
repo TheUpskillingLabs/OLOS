@@ -97,8 +97,8 @@ export default function ProjectRegistration({
 
   if (projects.length === 0) {
     return (
-      <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-        <p className="text-cloud/60">
+      <div className="rounded-md border border-dashed border-whisper bg-white/[0.01] p-12 text-center">
+        <p className="text-sm text-cloud/60">
           No projects available for registration yet.
         </p>
       </div>
@@ -116,24 +116,29 @@ export default function ProjectRegistration({
     <div className="space-y-6">
       {currentProjectId && (
         <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-4">
-          <p className="text-sm text-cloud/60">Currently registered for</p>
-          <p className="font-medium text-white">
+          <p className="text-xs font-medium uppercase tracking-widest text-cloud/60">
+            Currently registered for
+          </p>
+          <p className="mt-1 font-semibold tracking-tight text-white">
             {projects.find((p) => p.id === currentProjectId)?.name ||
               `Project ${currentProjectId}`}
           </p>
-          <p className="mt-1 text-xs text-cloud/40">
+          <p className="mt-1 text-xs text-cloud/60">
             You can only be in one project per cycle. Withdraw to switch.
           </p>
         </div>
       )}
 
       {error && (
-        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-400">
+        <p
+          role="alert"
+          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+        >
           {error}
         </p>
       )}
       {successMsg && (
-        <p className="rounded-md bg-teal/10 px-3 py-2 text-sm text-aqua">
+        <p className="rounded-md border border-teal/20 bg-teal/10 px-3 py-2 text-sm text-aqua">
           {successMsg}
         </p>
       )}
@@ -142,7 +147,7 @@ export default function ProjectRegistration({
         const podId = parseInt(podIdStr, 10);
         return (
           <div key={podId}>
-            <h2 className="mb-3 text-sm font-medium uppercase tracking-widest text-cloud/40">
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
               {getPodName(podId)}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -151,18 +156,18 @@ export default function ProjectRegistration({
                 return (
                   <div
                     key={project.id}
-                    className={`rounded-md border p-4 ${
+                    className={`rounded-md border p-4 transition-colors duration-150 ${
                       isRegistered
                         ? "border-teal/30 bg-teal/[0.04]"
-                        : "border-whisper bg-white/[0.02]"
+                        : "border-whisper bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
                     }`}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-white">
+                        <p className="font-semibold tracking-tight text-white">
                           {project.name || `Project ${project.id}`}
                         </p>
-                        <p className="mt-0.5 text-xs text-cloud/40">
+                        <p className="mt-0.5 text-xs text-cloud/60 tabular-nums">
                           {projectCounts[project.id] || 0} member
                           {(projectCounts[project.id] || 0) !== 1
                             ? "s"
@@ -174,7 +179,7 @@ export default function ProjectRegistration({
                         <button
                           onClick={() => withdrawFromProject(project.id)}
                           disabled={actionId !== null}
-                          className="rounded bg-red-500/10 px-3 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-40"
+                          className="rounded ring-1 ring-whisper px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                         >
                           {actionId === project.id ? "..." : "Withdraw"}
                         </button>
@@ -184,7 +189,7 @@ export default function ProjectRegistration({
                           disabled={
                             actionId !== null || currentProjectId !== null
                           }
-                          className="rounded bg-teal/20 px-3 py-1 text-xs font-medium text-aqua transition-colors hover:bg-teal/30 disabled:opacity-40"
+                          className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                         >
                           {actionId === project.id ? "..." : "Join"}
                         </button>

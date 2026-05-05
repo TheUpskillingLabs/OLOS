@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+const STEP_NAMES = [
+  "About you",
+  "The problem",
+  "Your problem statement",
+  "Where this problem lives",
+  "Context for voters",
+  "Before you submit",
+] as const;
+
 const IMPACT_TRACKS = [
   "Workforce & Economic Mobility",
   "Civic Infrastructure & Public Services",
@@ -162,12 +171,14 @@ export default function ProposeForm({
 
   if (submitted) {
     return (
-      <div className="rounded-md border border-teal/30 bg-teal/[0.04] p-8 text-center">
-        <h2 className="text-xl font-bold text-white">Proposal Submitted</h2>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-cloud/60">
-          Your proposal enters the Open Cycle queue. At the start of each Cycle,
+      <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-8 text-center">
+        <h2 className="text-xl font-bold tracking-tight text-white">
+          Proposal submitted
+        </h2>
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-cloud/80">
+          Your proposal enters the Open Cycle queue. At the start of each cycle,
           active participants vote during Phase 1 to build a shortlist. If your
-          proposal makes the shortlist, it opens for registration. Research Pods
+          proposal makes the shortlist, it opens for registration. Research pods
           that reach the minimum number of registrants officially form and begin
           work. You&rsquo;ll be notified at each stage.
         </p>
@@ -197,7 +208,7 @@ export default function ProposeForm({
             setCheckSpecific(false);
             setCheckSamePicture(false);
           }}
-          className="mt-6 rounded-md bg-teal/20 px-4 py-2 text-sm font-medium text-aqua transition-colors hover:bg-teal/30"
+          className="mt-6 rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
           Submit another proposal
         </button>
@@ -207,30 +218,27 @@ export default function ProposeForm({
 
   return (
     <div className="space-y-8">
-      {/* Step indicator */}
-      <div className="flex items-center gap-1">
-        {([1, 2, 3, 4, 5, 6] as Step[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => {
-              if (s < step) setStep(s);
-            }}
-            className={`h-2 flex-1 rounded-full transition-colors ${
-              s === step
-                ? "bg-aqua"
-                : s < step
-                  ? "bg-teal/60 hover:bg-teal/80"
-                  : "bg-white/10"
-            }`}
+      {/* Step indicator — design-system wizard pattern */}
+      <div>
+        <div className="mb-2 flex items-center justify-between text-xs text-cloud/60">
+          <span className="tabular-nums">Step {step} of 6</span>
+          <span className="font-medium text-cloud">
+            {STEP_NAMES[step - 1]}
+          </span>
+        </div>
+        <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]">
+          <div
+            className="h-full rounded-full bg-teal transition-all duration-500 ease-spring"
+            style={{ width: `${(step / 6) * 100}%` }}
           />
-        ))}
+        </div>
       </div>
 
       {/* PART 1 */}
       {step === 1 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               Part 1 — About You
             </h2>
           </div>
@@ -265,7 +273,7 @@ export default function ProposeForm({
               ).map(([val, label]) => (
                 <label
                   key={val}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-cloud/70"
+                  className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud"
                 >
                   <input
                     type="radio"
@@ -273,7 +281,7 @@ export default function ProposeForm({
                     value={val}
                     checked={experience === val}
                     onChange={() => setExperience(val)}
-                    className="accent-teal"
+                    className="h-4 w-4 accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                   />
                   {label}
                 </label>
@@ -287,10 +295,10 @@ export default function ProposeForm({
       {step === 2 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               Part 2 — The Problem
             </h2>
-            <p className="mt-1 text-sm text-cloud/50">
+            <p className="mt-1 text-sm text-cloud/60">
               This is the core of your proposal. Answer all four prompts
               carefully.
             </p>
@@ -366,16 +374,16 @@ export default function ProposeForm({
       {step === 3 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               Part 3 — Your Problem Statement
             </h2>
-            <p className="mt-1 text-sm text-cloud/50">
+            <p className="mt-1 text-sm text-cloud/60">
               Using your answers above, assemble your statement in one sentence.
             </p>
           </div>
 
-          <div className="rounded-md border border-white/10 bg-white/[0.02] p-4 text-sm text-cloud/50">
-            <p className="font-medium text-cloud/70">Template:</p>
+          <div className="rounded-md border border-whisper bg-white/[0.02] p-4 text-sm text-cloud/70">
+            <p className="font-semibold text-cloud">Template:</p>
             <p className="mt-1 italic">
               [Who is struggling] needs to [what they need to do] because [why
               they can&rsquo;t right now].
@@ -394,8 +402,8 @@ export default function ProposeForm({
             <CharCount value={statementText} max={2000} />
           </Field>
 
-          <div className="rounded-md border border-white/10 bg-white/[0.02] p-4 text-sm text-cloud/50">
-            <p className="font-medium text-cloud/70">
+          <div className="rounded-md border border-whisper bg-white/[0.02] p-4 text-sm text-cloud/70">
+            <p className="font-semibold text-cloud">
               Now reframe it as a question your Research Pod would work to
               answer:
             </p>
@@ -422,10 +430,10 @@ export default function ProposeForm({
       {step === 4 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               Part 4 — Where This Problem Lives
             </h2>
-            <p className="mt-1 text-sm text-cloud/50">
+            <p className="mt-1 text-sm text-cloud/60">
               These fields help us connect your Pod to the right mentors and
               advisors. Skip this section if your problem doesn&rsquo;t fit
               neatly — it won&rsquo;t affect your proposal.
@@ -437,7 +445,7 @@ export default function ProposeForm({
               {IMPACT_TRACKS.map((track) => (
                 <label
                   key={track}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-cloud/70"
+                  className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud"
                 >
                   <input
                     type="radio"
@@ -445,12 +453,12 @@ export default function ProposeForm({
                     value={track}
                     checked={impactTrack === track}
                     onChange={() => setImpactTrack(track)}
-                    className="accent-teal"
+                    className="h-4 w-4 accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                   />
                   {track}
                 </label>
               ))}
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/70">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
                 <input
                   type="radio"
                   name="impact_track"
@@ -475,7 +483,7 @@ export default function ProposeForm({
 
           <Field label="Cycle Theme Alignment" hint="Each Cycle recruits mentors and advisors around a specific industry theme. If your problem connects to the current theme, note it here.">
             <div className="space-y-2">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/70">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
                 <input
                   type="radio"
                   name="theme"
@@ -485,7 +493,7 @@ export default function ProposeForm({
                 />
                 No particular connection
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/70">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
                 <input
                   type="radio"
                   name="theme"
@@ -495,7 +503,7 @@ export default function ProposeForm({
                 />
                 My problem sits directly inside this theme
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/70">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
                 <input
                   type="radio"
                   name="theme"
@@ -524,10 +532,10 @@ export default function ProposeForm({
       {step === 5 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               Part 5 — Context for Voters
             </h2>
-            <p className="mt-1 text-sm text-cloud/50">
+            <p className="mt-1 text-sm text-cloud/60">
               This section is read by active Cycle participants during the
               voting window. Give them enough to make a real decision — about
               whether the problem matters and whether they want to work on it.
@@ -592,17 +600,17 @@ export default function ProposeForm({
       {step === 6 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-white">
               Part 6 — Before You Submit
             </h2>
-            <p className="mt-1 text-sm text-cloud/50">
+            <p className="mt-1 text-sm text-cloud/60">
               Read your problem statement one more time. Check each box
               honestly.
             </p>
           </div>
 
-          <div className="rounded-md border border-white/10 bg-white/[0.02] p-4">
-            <p className="text-sm italic text-cloud/70">
+          <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
+            <p className="text-sm italic text-cloud/80">
               &ldquo;{statementText}&rdquo;
             </p>
           </div>
@@ -636,7 +644,7 @@ export default function ProposeForm({
           </div>
 
           {!allChecked && (
-            <p className="text-sm text-cloud/40">
+            <p className="text-sm text-cloud/60">
               If any box is unchecked, revise before submitting. A sharper
               proposal earns more votes.
             </p>
@@ -646,40 +654,42 @@ export default function ProposeForm({
 
       {/* Error */}
       {error && (
-        <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-400">
+        <p
+          role="alert"
+          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+        >
           {error}
         </p>
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between border-t border-whisper pt-6">
+      <div className="mt-8 flex items-center justify-between border-t border-whisper pt-6">
         <div>
           {step > 1 && (
             <button
               onClick={() => setStep((step - 1) as Step)}
-              className="rounded-md bg-white/[0.06] px-4 py-2 text-sm font-medium text-cloud/70 transition-colors hover:bg-white/[0.1]"
+              className="rounded-md ring-1 ring-whisper px-4 py-2 text-sm font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
             >
-              &larr; Back
+              Back
             </button>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-cloud/40">Part {step} of 6</span>
           {step < 6 ? (
             <button
               onClick={() => setStep((step + 1) as Step)}
               disabled={!canAdvance()}
-              className="rounded-md bg-teal px-4 py-2 text-sm font-medium text-midnight transition-colors hover:bg-aqua disabled:opacity-50"
+              className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
             >
-              Continue &rarr;
+              Continue
             </button>
           ) : (
             <button
               onClick={handleSubmit}
               disabled={submitting || !allChecked}
-              className="rounded-md bg-teal px-5 py-2 text-sm font-medium text-midnight transition-colors hover:bg-aqua disabled:opacity-50"
+              className="rounded-md bg-teal px-5 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
             >
-              {submitting ? "Submitting..." : "Submit Proposal"}
+              {submitting ? "Submitting..." : "Submit proposal"}
             </button>
           )}
         </div>
@@ -691,10 +701,10 @@ export default function ProposeForm({
 /* ── Shared helpers ──────────────────────────────────────────────── */
 
 const inputClass =
-  "w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-white placeholder:text-cloud/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
+  "block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
 
 const textareaClass =
-  "w-full rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-white placeholder:text-cloud/30 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
+  "block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
 
 function Field({
   label,
@@ -710,14 +720,20 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-cloud/70">
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-cloud">
         {label}
-        {required && <span className="ml-0.5 text-aqua">*</span>}
+        {required && (
+          <span className="ml-0.5 text-red" aria-hidden>
+            *
+          </span>
+        )}
       </label>
-      {hint && <p className="mb-2 text-xs leading-relaxed text-cloud/40">{hint}</p>}
+      {hint && (
+        <p className="text-xs leading-relaxed text-cloud/60">{hint}</p>
+      )}
       {example && (
-        <p className="mb-3 rounded border border-white/5 bg-white/[0.02] px-3 py-2 text-xs italic leading-relaxed text-cloud/35">
+        <p className="rounded border border-whisper bg-white/[0.02] px-3 py-2 text-xs italic leading-relaxed text-cloud/60">
           {example}
         </p>
       )}
@@ -728,7 +744,7 @@ function Field({
 
 function CharCount({ value, max }: { value: string; max: number }) {
   return (
-    <p className="mt-1 text-xs text-cloud/40">
+    <p className="mt-1 text-right text-xs text-cloud/50 tabular-nums">
       {value.length}/{max}
     </p>
   );
@@ -744,14 +760,14 @@ function CheckItem({
   label: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 text-sm text-cloud/70">
+    <label className="flex cursor-pointer items-start gap-3 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 accent-teal"
+        className="mt-0.5 h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
       />
-      {label}
+      <span>{label}</span>
     </label>
   );
 }

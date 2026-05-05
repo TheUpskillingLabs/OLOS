@@ -97,7 +97,7 @@ export default function PermissionsEditor({
     <div className="space-y-8">
       {/* Role Presets */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-cloud/60 uppercase tracking-wider">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
           Quick Assign — Role Presets
         </h2>
         <div className="flex flex-wrap gap-2">
@@ -113,10 +113,10 @@ export default function PermissionsEditor({
                 disabled={
                   presetLoading !== null || isRestricted
                 }
-                className={`rounded-md px-4 py-2 text-sm font-medium ring-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`rounded-md px-4 py-2 text-sm font-semibold tracking-tight ring-1 transition-all duration-150 ease-spring active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
                   isActive
                     ? PRESET_COLORS[preset]
-                    : "text-cloud/60 ring-whisper hover:bg-white/[0.04] hover:text-cloud"
+                    : "text-cloud/80 ring-whisper hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12]"
                 }`}
               >
                 {presetLoading === preset
@@ -127,27 +127,30 @@ export default function PermissionsEditor({
           })}
         </div>
         {currentPresets.length > 0 && (
-          <p className="mt-2 text-xs text-cloud/40">
+          <p className="mt-2 text-xs text-cloud/60">
             Active presets: {currentPresets.join(", ")}
           </p>
         )}
       </section>
 
       {error && (
-        <div className="rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300">
+        <div
+          role="alert"
+          className="rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300"
+        >
           {error}
         </div>
       )}
 
       {/* Individual Permissions */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-cloud/60 uppercase tracking-wider">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
           Individual Permissions
         </h2>
         <div className="space-y-6">
           {PERMISSION_GROUPS.map((group) => (
             <div key={group.label}>
-              <h3 className="mb-2 text-sm font-medium text-cloud/80">
+              <h3 className="mb-2 text-sm font-semibold tracking-tight text-cloud">
                 {group.label}
               </h3>
               <div className="space-y-1">
@@ -159,25 +162,28 @@ export default function PermissionsEditor({
                   return (
                     <div
                       key={perm}
-                      className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-white/[0.02]"
+                      className="flex items-center justify-between rounded-md px-3 py-2 transition-colors duration-150 hover:bg-white/[0.02]"
                     >
                       <div>
-                        <span className="text-sm text-white">
+                        <span className="text-sm text-cloud">
                           {permissionLabel(perm)}
                         </span>
-                        <span className="ml-2 text-xs text-cloud/30">
+                        <span className="ml-2 font-mono text-xs text-cloud/50">
                           {perm}
                         </span>
                       </div>
                       <button
                         onClick={() => togglePermission(perm)}
                         disabled={isLoading || isRestricted}
-                        className={`relative h-6 w-11 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                          enabled ? "bg-teal" : "bg-white/10"
+                        role="switch"
+                        aria-checked={enabled}
+                        aria-label={permissionLabel(perm)}
+                        className={`relative h-6 w-11 rounded-full transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
+                          enabled ? "bg-teal" : "bg-white/[0.10]"
                         }`}
                       >
                         <span
-                          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-150 ease-spring ${
                             enabled ? "translate-x-5" : "translate-x-0.5"
                           }`}
                         />
@@ -194,23 +200,25 @@ export default function PermissionsEditor({
       {/* Pod Assignments (informational) */}
       {podAssignments.length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-cloud/60 uppercase tracking-wider">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
             Moderator Pod Assignments
           </h2>
           <div className="flex flex-wrap gap-2">
             {podAssignments.map((pa) => (
               <span
                 key={pa.pod_id}
-                className="rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-300"
+                className="inline-flex items-center rounded-full bg-blue-500/15 px-3 py-1 text-xs font-medium text-blue-300"
               >
                 {pa.pod_name}
                 {pa.cycle_name && (
-                  <span className="text-blue-300/50"> ({pa.cycle_name})</span>
+                  <span className="ml-1 text-blue-300/60">
+                    ({pa.cycle_name})
+                  </span>
                 )}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-xs text-cloud/30">
+          <p className="mt-2 text-xs text-cloud/60">
             Pod assignments are managed from the cycle admin page.
           </p>
         </section>

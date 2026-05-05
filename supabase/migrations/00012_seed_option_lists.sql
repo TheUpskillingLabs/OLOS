@@ -1,23 +1,19 @@
--- ROADMAP §1.2 / ISSUE-W1-002 — seed `option_lists` per spec
+-- ROADMAP §1.2 / ISSUE-W1-002 — seed `option_lists` per spec (remaining 4 lists)
 --
--- The six lists ship to production. seed.sql only runs against local DBs, so
--- the rows live here instead. ON CONFLICT (list_name, value) DO NOTHING makes
--- this safely re-runnable on staging/prod and on local resets where the
--- (now-removed) seed.sql block previously inserted the same values.
+-- Scope note: 00010_pulse_check_v2.sql already shipped `ai_tools` (61 rows,
+-- expanded for autocomplete) and `pulse_benefits` (7 rows, reworded for Labs
+-- value-prop alignment) to staging/prod, deliberately superseding the
+-- TUL_MVP_Spec.md values for those two lists. This migration covers only
+-- the four lists 00010 didn't touch — the spec-aligned ones.
+--
+-- ON CONFLICT (list_name, value) DO NOTHING makes this safe to re-run on
+-- staging/prod and on local resets where seed.sql previously inserted the
+-- same values (now removed from seed.sql to avoid the unique-constraint
+-- collision).
 --
 -- display_order increments of 10 leave room for future inserts to slot in
 -- without renumbering. Strings are copied verbatim from
--- TUL_MVP_Spec.md §option_lists Seed Data — they render to participants.
-
-INSERT INTO option_lists (list_name, value, display_order) VALUES
-  ('ai_tools', 'ChatGPT', 10),
-  ('ai_tools', 'Claude', 20),
-  ('ai_tools', 'Copilot', 30),
-  ('ai_tools', 'Gemini', 40),
-  ('ai_tools', 'Midjourney / DALL-E', 50),
-  ('ai_tools', 'Perplexity', 60),
-  ('ai_tools', 'Other', 70)
-ON CONFLICT (list_name, value) DO NOTHING;
+-- TUL_MVP_Spec.md §option_lists Seed Data.
 
 INSERT INTO option_lists (list_name, value, display_order) VALUES
   ('labs_goals', 'Build a portfolio project', 10),
@@ -49,13 +45,4 @@ INSERT INTO option_lists (list_name, value, display_order) VALUES
   ('group_strengths', 'Research', 40),
   ('group_strengths', 'Communication / writing', 50),
   ('group_strengths', 'Community engagement', 60)
-ON CONFLICT (list_name, value) DO NOTHING;
-
-INSERT INTO option_lists (list_name, value, display_order) VALUES
-  ('pulse_benefits', 'Applied AI tools to a real project', 10),
-  ('pulse_benefits', 'Learned a new skill or concept', 20),
-  ('pulse_benefits', 'Connected with a new collaborator', 30),
-  ('pulse_benefits', 'Received helpful feedback', 40),
-  ('pulse_benefits', 'Contributed meaningfully to my pod', 50),
-  ('pulse_benefits', 'Overcame a technical challenge', 60)
 ON CONFLICT (list_name, value) DO NOTHING;
