@@ -379,6 +379,7 @@ erDiagram
         timestamp created_at
         timestamp accepted_at
         timestamp expires_at
+        timestamp email_sent_at
         text notes
     }
 
@@ -388,6 +389,8 @@ erDiagram
 ```
 
 **Status values:** `pending` (sent, not yet accepted) · `accepted` (invitee logged in) · `expired` (link expired) · `revoked` (admin cancelled)
+
+**`email_sent_at`:** Timestamp of the last time the magic link email was sent via Resend. `NULL` means the link was created but only shared via copy-paste, never emailed.
 
 **Bulk invite flow:** `cycle_id`, `pod_id`, `permissions`, and `role_preset` are NULL/empty. `notes` carries per-row messaging back to the admin (e.g. "Name not found in participants", "Already logged in").
 

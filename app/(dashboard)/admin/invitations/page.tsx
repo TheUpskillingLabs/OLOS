@@ -19,7 +19,7 @@ export default async function AdminInvitationsPage() {
   // Fetch invitations
   const { data: invitations } = await serviceClient
     .from("invitations")
-    .select("id, email, token, permissions, role_preset, cycle_id, pod_id, status, created_at, expires_at, accepted_at, cycles (name)")
+    .select("id, email, token, permissions, role_preset, cycle_id, pod_id, status, created_at, expires_at, accepted_at, email_sent_at, cycles (name)")
     .order("created_at", { ascending: false });
 
   // Fetch cycles for the create form dropdown
@@ -82,6 +82,7 @@ export default async function AdminInvitationsPage() {
             created_at: inv.created_at,
             expires_at: inv.expires_at,
             accepted_at: inv.accepted_at,
+            email_sent_at: inv.email_sent_at ?? null,
           };
         })}
         cycles={(cycles ?? []).map((c) => ({ id: c.id, name: c.name }))}
