@@ -4,7 +4,7 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { createServiceClient } from "@/lib/supabase/server";
-import { resend, FROM_EMAIL } from "@/lib/email";
+import { getResendClient, FROM_EMAIL } from "@/lib/email";
 import {
   invitationEmailHtml,
   invitationEmailText,
@@ -54,6 +54,7 @@ export const POST = withAdminAuth(
     const cycle = (invitation.cycles as unknown) as { name: string } | null;
 
     // Send email via Resend
+    const resend = getResendClient();
     const { error: sendError } = await resend.emails.send({
       from: FROM_EMAIL,
       to: invitation.email,
