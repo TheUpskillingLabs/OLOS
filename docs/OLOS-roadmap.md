@@ -61,8 +61,12 @@ gantt
 - Issue: `ISSUE-W1-001`
 
 ## §1.2 — Seed `option_lists` per spec
-*Populate the six lists (`ai_tools`, `labs_goals`, `availability`, `work_style`, `group_strengths`, `pulse_benefits`) with the values defined in `TUL_MVP_Spec.md §option_lists Seed Data`.*
-- Issue: `ISSUE-W1-002`
+*Populate the six lists (`ai_tools`, `labs_goals`, `availability`, `work_style`, `group_strengths`, `pulse_benefits`) so multi-select form fields have valid options to render and reference.*
+
+**Partially absorbed by [`00010_pulse_check_v2.sql`](../supabase/migrations/00010_pulse_check_v2.sql) (PR #53):** that migration shipped `ai_tools` (61 rows, expanded for autocomplete) and `pulse_benefits` (7 rows, reworded for Labs value-prop alignment — supersedes `TUL_MVP_Spec.md`). Original spec values for `pulse_benefits` are retained with `active = FALSE` so historical `pulse_checks` references resolve.
+
+**Remaining scope (W1-002 / PR #58):** ship the four spec-aligned lists `00010` didn't touch — `labs_goals`, `availability`, `work_style`, `group_strengths` (20 rows total) — via [`00012_seed_option_lists.sql`](../supabase/migrations/00012_seed_option_lists.sql). After this merges, all six lists are seeded to staging/prod via migrations rather than `seed.sql` (which is local-only).
+- Issue: `ISSUE-W1-002` (PR #58)
 
 ## §1.3 — Build legacy column mapping CSV
 *Produce a reviewable artifact mapping each spreadsheet column to its destination SQL column or junction-table option. Becomes input to the migration script.*
@@ -252,8 +256,8 @@ These block specific issues. Resolve before the affected work starts.
 
 | Anchor | Issue | Status | Owner | PR | Notes |
 |---|---|---|---|---|---|
-| §1.1 | ISSUE-W1-001 | not started | — | — | Critical path |
-| §1.2 | ISSUE-W1-002 | not started | — | — | |
+| §1.1 | [ISSUE-W1-001](https://github.com/TheUpskillingLabs/OLOS/issues/39) | resolved | adm-2k | commit `4237b85` | Critical path. Shipped via `00011_extend_participants_legacy_fields.sql` on `main`. W1-002 branched from this. |
+| §1.2 | [ISSUE-W1-002](https://github.com/TheUpskillingLabs/OLOS/issues/40) | in review | adm-2k | [#58](https://github.com/TheUpskillingLabs/OLOS/pull/58) | Partially absorbed by `00010_pulse_check_v2.sql`; PR ships the remaining 4 lists (20 rows) via `00012_seed_option_lists.sql`. |
 | §1.3 | ISSUE-W1-003 | not started | — | — | |
 | §1.4 | ISSUE-W1-004 | not started | — | — | Critical path; awaits D1 |
 | §1.5 | ISSUE-W1-005 | not started | — | — | Critical path |
