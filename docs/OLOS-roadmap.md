@@ -258,8 +258,8 @@ These block specific issues. Resolve before the affected work starts.
 |---|---|---|---|---|---|
 | §1.1 | [ISSUE-W1-001](https://github.com/TheUpskillingLabs/OLOS/issues/39) | resolved | adm-2k | commit `4237b85` | Critical path. Shipped via `00011_extend_participants_legacy_fields.sql` on `main`. W1-002 branched from this. |
 | §1.2 | [ISSUE-W1-002](https://github.com/TheUpskillingLabs/OLOS/issues/40) | in review | adm-2k | [#58](https://github.com/TheUpskillingLabs/OLOS/pull/58) | Partially absorbed by `00010_pulse_check_v2.sql`; PR ships the remaining 4 lists (20 rows) via `00012_seed_option_lists.sql`. |
-| §1.3 | ISSUE-W1-003 | not started | — | — | |
-| §1.4 | ISSUE-W1-004 | not started | — | — | Critical path; awaits D1 |
+| §1.3 | [ISSUE-W1-003](https://github.com/TheUpskillingLabs/OLOS/issues/41) | in progress | adm-2k | — | Folder guidance at [scripts/migration/CLAUDE.md](../scripts/migration/CLAUDE.md); 103 mapping rows authored at [scripts/migration/column_mapping.csv](../scripts/migration/column_mapping.csv). PS / Health-Voting row counts diverge from issue (20/19 actual vs 25/25 spec) — to be reconciled in PR review. |
+| §1.4 | ISSUE-W1-004 | not started | — | — | Critical path; awaits D1. Test-data safety contract pre-recorded in [scripts/migration/CLAUDE.md](../scripts/migration/CLAUDE.md) *Test data strategy* — script must own anonymization of Health rows, prod connection-string guard, and frozen fixture snapshot before merge. |
 | §1.5 | ISSUE-W1-005 | not started | — | — | Critical path |
 | §1.6 | ISSUE-W1-006 | not started | — | — | |
 | §1.7 | ISSUE-W1-007 | not started | — | — | |
