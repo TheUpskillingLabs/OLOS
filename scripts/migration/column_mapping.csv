@@ -1,0 +1,119 @@
+source_sheet,source_column,destination_table,destination_column,transform,notes
+Upskiller Registrations,Timestamp,cycle_enrollments,enrolled_at,parse_date,also seeds participants.created_at; cycle_id resolved from active cycle's window
+Upskiller Registrations,Email Address,participants,email,lower+trim,primary identity key; ON CONFLICT (email) DO UPDATE
+Upskiller Registrations,First Name,participants,first_name,trim,
+Upskiller Registrations,Last Name,participants,last_name,trim,
+Upskiller Registrations,Preferred Name,participants,preferred_name,trim,
+Upskiller Registrations,Invited to slack,N/A,N/A,,"computed by query (Slack workspace state, not a participant attribute)"
+Upskiller Registrations,Gender,participants,gender,trim,
+Upskiller Registrations,Phone number (Used for day-of updates about in-person events.),participants,phone_number,trim,added in ISSUE-W1-001
+Upskiller Registrations,Where are you based?,participants,state,trim,
+Upskiller Registrations,"If you are based in the DMV, what neighborhood do you live in? (e.g. Capitol Hill, Pentagon City, Laurel, etc)",participants,neighborhood,trim,
+Upskiller Registrations,Do you currently have a DC Public Library Card?,participants,dcpl_card,trim,
+Upskiller Registrations,"If you do not have have a DC Public Library Card or are not sure whether you do, would you like information on how to get one?",participants,dcpl_info,bool_yn,
+Upskiller Registrations,What best describes your current work situation?,participants,work_situation,trim,
+Upskiller Registrations,"If unemployed, underemployed, or in transition: What’s your main focus over the next few months? ",participants,main_focus,trim,source has trailing space and curly apostrophe — keep verbatim for df[col] lookup
+Upskiller Registrations,What sector or field do you primarily work in? ,participants,sector,trim,source has trailing space
+Upskiller Registrations,Current or most recent job title and organization ,participants,current_title,trim,source has trailing space
+Upskiller Registrations,LinkedIn,participants,linkedin,trim,
+Upskiller Registrations,How familiar are you with generative AI tools (like ChatGPT and Claude)? ,participants,ai_tool_familiarity,int_scale_1_5(familiarity_map),"labels: Never used=1, Hardly use=2, Use occasionally=3, Use often=4, Daily user=5 (per W1-003 thread, 2026-05-06)"
+Upskiller Registrations,Which tools have you tried?,participant_options,option_id,csv_split → participant_options(list_name='ai_tools'),ai_tools expanded to 61 in 00010 — most legacy tokens should match; halt on unmatched
+Upskiller Registrations,What are you hoping to get out of the Labs in the next few months? (Choose up to 3),participant_options,option_id,csv_split → participant_options(list_name='labs_goals'),
+Upskiller Registrations,How do you see yourself participating right now? ,N/A,N/A,,form-only — captures participation MODE for participant clarity; not stored in lean schema. Considered participants.participation_expectations per W1-003 thread but rejected to avoid a one-column migration. Cf. col 24 covers commitment LEVEL.
+Upskiller Registrations,What does your availability generally look like?,participant_options,option_id,csv_split → participant_options(list_name='availability'),watch en-dash in '2–5 hrs/week'
+Upskiller Registrations,Anything we should know about your availability?,participants,availability_notes,trim,added in ISSUE-W1-001
+Upskiller Registrations,Participation expectations. Please confirm one:,participants,participation_commitment,prose_lookup(commitment_map),"canonical destination. Map: ""I'm ready to participate consistently and follow through on commitments""=>'yes'; ""I'm interested, but my availability is uncertain right now""=>'uncertain'. Schema is VARCHAR(20) CHECK ('yes','uncertain')."
+Upskiller Registrations,"If your commitment is uncertain, what would make participation workable for you?",participants,commitment_notes,trim,added in ISSUE-W1-001
+Upskiller Registrations,How do you tend to work with others?,participant_options,option_id,csv_split → participant_options(list_name='work_style'),
+Upskiller Registrations,What skills or strengths could you bring to a group?,participant_options,option_id,csv_split → participant_options(list_name='group_strengths'),
+Upskiller Registrations,What is your primary domain or area of expertise?,participants,primary_expertise,trim,
+Upskiller Registrations,What areas are you most interested in exploring?,participants,interest_areas,trim,added in ISSUE-W1-001
+Upskiller Registrations,Would you consider helping steward the community?,participants,volunteer_interest,trim,
+Upskiller Registrations,If you are interested in moderating: Have you facilitated or moderated groups before?,participants,moderator_experience,trim,added in ISSUE-W1-001
+Upskiller Registrations,What interests you about taking on a stewardship or leadership role? ,participants,notes,prefix:'Stewardship interest: ',added in ISSUE-W1-001; source has trailing space; concatenated into notes with prefix to disambiguate from col 37
+Upskiller Registrations,"Would you like to receive email updates about upcoming Cycles, events, and opportunities? ",participants,email_updates,bool_yn,added in ISSUE-W1-001; source has trailing space
+Upskiller Registrations,Would you like to receive occasional text updates about in-person events?,participants,text_updates,bool_yn,
+Upskiller Registrations,We record our events through photography and videography in order to share all the great work upskillers like you are doing. Is that okay with you?,participants,photo_video_consent,bool_yn,
+Upskiller Registrations,How did you hear about The Upskilling Labs? ,participants,source,trim,source has trailing space
+Upskiller Registrations,Anything else you'd like us to know?,participants,notes,prefix:'Other: ',added in ISSUE-W1-001; concatenated into notes with prefix to disambiguate from col 32
+Upskiller Registrations,"By submitting this form, you consent to receive communications from The Upskilling Labs.",participants,comms_consent,bool_yn,added in ISSUE-W1-001; defaults TRUE per 00011 since accepting was a submission gate
+Energy Pod Registration,Timestamp,pod_memberships,joined_at,parse_date,applied to all 3 seat rows generated from this row
+Energy Pod Registration,Email Address,pod_memberships,participant_id,email_lookup,resolves participants.email → participants.id
+Energy Pod Registration,Seat 1,pod_memberships,pod_id,label_lookup → pods.id,one row per filled seat; preference_rank=1 (pending D1)
+Energy Pod Registration,Seat 2,pod_memberships,pod_id,label_lookup → pods.id,one row per filled seat; preference_rank=2 (pending D1)
+Energy Pod Registration,Seat 3,pod_memberships,pod_id,label_lookup → pods.id,one row per filled seat; preference_rank=3 (pending D1)
+Health Pod Registration,Timestamp,pod_memberships,joined_at,parse_date,staging fixture only — historical Health Systems cycle
+Health Pod Registration,Email Address,pod_memberships,participant_id,email_lookup,staging fixture only; resolves participants.email → participants.id
+Health Pod Registration,Seat 1,pod_memberships,pod_id,label_lookup → pods.id,staging fixture only; preference_rank=1 (pending D1)
+Health Pod Registration,Seat 2,pod_memberships,pod_id,label_lookup → pods.id,staging fixture only; preference_rank=2 (pending D1)
+Health Pod Registration,Seat 3,pod_memberships,pod_id,label_lookup → pods.id,staging fixture only; preference_rank=3 (pending D1)
+Health Pod Registration,Need Upskilling Registration Form,N/A,N/A,,staging fixture only; computed by query (cross-sheet check for missing Upskiller Registrations row)
+Problem Statement Submissions,Timestamp,problem_statements,created_at,parse_date,
+Problem Statement Submissions,Email Address,problem_statements,participant_id,email_lookup,resolves participants.email → participants.id
+Problem Statement Submissions,First Name,N/A,N/A,,"computed by query — resolved via participants FK lookup on Email Address; legacy first_name/last_name already live on participants row, no separate destination on problem_statements"
+Problem Statement Submissions,Last Name,N/A,N/A,,"computed by query — resolved via participants FK lookup on Email Address; legacy first_name/last_name already live on participants row, no separate destination on problem_statements"
+Problem Statement Submissions,How are you currently participating in The Upskilling Labs?,N/A,N/A,,computed by query (cycle_enrollments.status); no destination on problem_statements
+Problem Statement Submissions,"In one sentence: what problem have you noticed that's worth working on?
+
+If you can’t say it in one sentence yet, that’s okay—but try. Focus on what is happening, for whom, and why it matters. Avoid solutions, tools, or buzzwords.",problem_statements,statement_text,trim,"the one-sentence summary, per arch brief"
+Problem Statement Submissions,"Describe the problem in a bit more detail.
+
+What’s broken, missing, inefficient, confusing, or unfair? Where does this show up in the real world? Who feels the impact most directly?",problem_statements,context,jsonb_field('detail'),§2.2 — context column not yet shipped; stage as TEXT until then
+Problem Statement Submissions,Who is closest to this problem?,problem_statements,context,jsonb_field('closest_to'),§2.2 — context column not yet shipped
+Problem Statement Submissions,"Why does this problem matter now?
+
+What’s changed recently? What happens if this continues untreated? Why is this worth people’s time and energy right now?",problem_statements,context,jsonb_field('why_now'),§2.2
+Problem Statement Submissions,Is this problem something you’ve personally encountered or worked on?,problem_statements,context,jsonb_field('personal_experience'),§2.2
+Problem Statement Submissions,"What kind of progress would feel meaningful in 6-10 weeks?
+
+Not “solved forever.”
+Think: prototype, pilot, map, test, playbook, proof-of-concept, or clear next step.",problem_statements,context,jsonb_field('meaningful_progress'),§2.2
+Problem Statement Submissions,"What theme or track does this best fit under (if any)?
+
+The Upskilling Labs is currently kicking off its Health Systems themed cycle.",problem_statements,theme_track,trim,§2.2 — theme_track column not yet shipped; stage as TEXT until then
+Problem Statement Submissions,How do you want to participate if a pod forms around this problem?,problem_statements,context,jsonb_field('participation_preference'),§2.2
+Problem Statement Submissions,"What skills, experience, or perspective do you expect to gain by working on this problem?",problem_statements,context,jsonb_field('expected_gain'),§2.2
+Problem Statement Submissions,Anything else we should know?,problem_statements,context,jsonb_field('other_notes'),§2.2
+Problem Statement Submissions,Have you registered as an participant in The Upskilling Labs' programming previously?,N/A,N/A,,computed by query (existence check on participants by email)
+Problem Statement Submissions,How did you hear about The Upskilling Labs' Cycles? ,participants,source,trim,source has trailing space; updates participants only if email is new
+Problem Statement Submissions,Do you consent to photos and videos being taken of you at The Upskilling Labs' in-person events?,participants,photo_video_consent,bool_yn,updates participants only if email is new
+Problem Statement Submissions,"By submitting this form, you consent to receive communications from The Upskilling Labs.",participants,comms_consent,bool_yn,added in ISSUE-W1-001; updates participants only if email is new
+Problem Statement Submissions,Enrolled,N/A,N/A,,computed by query (presence in cycle_enrollments)
+Health Voting & Pods,Timestamp,votes,created_at,parse_date,staging fixture only — historical Health cycle; applied to all 3 vote rows generated from this row
+Health Voting & Pods,Email Address,votes,voter_id,email_lookup,staging fixture only; resolves participants.email → participants.id
+Health Voting & Pods,Vote 1,votes,problem_statement_id,statement_lookup,staging fixture only; one votes row per filled vote; vote_count=1 (D2 pending)
+Health Voting & Pods,Vote 2,votes,problem_statement_id,statement_lookup,staging fixture only; one votes row per filled vote; vote_count=1 (D2 pending)
+Health Voting & Pods,Vote 3,votes,problem_statement_id,statement_lookup,staging fixture only; one votes row per filled vote; vote_count=1 (D2 pending)
+Health Voting & Pods,Column 6,N/A,N/A,,staging fixture only; pending operator clarification — unknown / leftover from form iteration; verify before §1.4 runs and either remove from workbook or add a destination here
+Health Voting & Pods,Vote Ranking → Problem Statement,N/A,N/A,,staging fixture only; computed by query (rank of votes per problem_statement; sub-header under section 'Vote Ranking')
+Health Voting & Pods,Vote Ranking → Unique Voters,N/A,N/A,,staging fixture only; computed by query (COUNT DISTINCT voter_id per problem_statement)
+Health Voting & Pods,Vote Ranking → Total Votes,N/A,N/A,,staging fixture only; computed by query (SUM(vote_count) per problem_statement)
+Health Voting & Pods,Pod Recruitment Kick Off → Problem Statement,N/A,N/A,,staging fixture only; computed by query (operational dashboard)
+Health Voting & Pods,Pod Recruitment Kick Off → Unique Voters,N/A,N/A,,staging fixture only; computed by query (operational dashboard)
+Health Voting & Pods,Pod Recruitment Kick Off → Member Emails,N/A,N/A,,staging fixture only; computed by query (pod_memberships.participant_id JOIN participants.email)
+Health Voting & Pods,Individual Pod Membership (Post Voting) → Registered Upskiller Email,N/A,N/A,,staging fixture only; computed by query (already migrated via Health Pod Registration sheet)
+Health Voting & Pods,Individual Pod Membership (Post Voting) → Unspent Seats,N/A,N/A,,staging fixture only; computed by query (cycle_config.max_pods - COUNT(pod_memberships) per participant)
+Health Voting & Pods,Individual Pod Membership (Post Voting) → (succesful) Pod Votes,N/A,N/A,,staging fixture only; computed by query (votes WHERE problem_statement_id IN shortlisted)
+Health Voting & Pods,Individual Pod Membership (Post Voting) → Submitted Problem?,N/A,N/A,,staging fixture only; computed by query (EXISTS problem_statements.participant_id)
+Health Voting & Pods,Individual Pod Membership (Post Voting) → Pre-Filled Link,N/A,N/A,,staging fixture only; computed by query (operational; Google Form pre-fill URL with email param)
+Health Voting & Pods,Flagged Voter → Email,N/A,N/A,,staging fixture only; computed by query (per arch brief: 'eliminated by foreign keys')
+Health Voting & Pods,Flagged Voter → Conflict,N/A,N/A,,staging fixture only; computed by query (vote-budget validation)
+Mentor Registrations,Timestamp,,,,pending D3
+Mentor Registrations,First Name,,,,pending D3
+Mentor Registrations,Last Name,,,,pending D3
+Mentor Registrations,email,,,,pending D3 — note lowercase header in source
+Mentor Registrations,Phone,,,,pending D3
+Mentor Registrations,"Preferred form of mentorship (select all that apply)
+There are a number of ways to engage as a mentor:",,,,pending D3
+Mentor Registrations,Areas of Expertise (select all that apply),,,,pending D3
+Mentor Registrations,Specific Tools of Expertise (select all that apply),,,,pending D3
+Mentor Registrations,Bio,,,,pending D3
+Mentor Registrations,LinkedIn,,,,pending D3
+Mentor Registrations,"Subscribe to Updates on Levy?
+Levy is supporting The Upskilling Labs as a program partner. To stay in the loop on future efforts like this & more, sign up below.",,,,pending D3
+Mentor Registrations,"Photo/video consent
+Do you consent to us capturing your likeness via photography & videography for use in promotion of this program?",,,,pending D3
+Mentor Registrations,"Anything else?
+Provide more detail on your answers above, or let us know if there's anything else you'd like to share.",,,,pending D3
+Mentor Registrations,How did you hear about The Upskilling Labs?,,,,pending D3
+Mentor Registrations,Added to cycle-health-all,,,,pending D3 / computed by query

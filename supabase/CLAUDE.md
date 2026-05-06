@@ -44,6 +44,33 @@ The roadmap is the plan; [migrations/](migrations/) is the truth. They drift. Ru
 
 ---
 
+## Migration consolidation policy
+
+The `migrations/` chain accretes. Small, single-purpose migrations are convenient at the moment but become noise over time (we already have 12 files; several are <100 bytes). Two countermeasures:
+
+### 1. Batch at write-time
+
+Before writing a one-line `ALTER`, look for a logically related migration that's still in-flight on a feature branch. If there is one, fold the change in rather than starting a new file. Test: "would a reviewer think these belong in one PR?" — if yes, one migration.
+
+W1-001's [migrations/00011_extend_participants_legacy_fields.sql](migrations/00011_extend_participants_legacy_fields.sql) is the pattern to copy: eight columns added in one `ALTER TABLE`, one header comment explaining all eight. **Don't** ship eight migrations of one column each.
+
+If a small change really has no natural home, weigh the value against the chain noise. A solo `ADD COLUMN` for a feature that's nice-to-have but not required is usually deferrable to the next feature that needs the table — at which point both ship together. (See the `participation_expectations` decision in the W1-003 thread, 2026-05-06: a one-column migration was rejected because the marginal engagement-team value didn't justify the chain entry. Logged in [scripts/migration/CLAUDE.md](../scripts/migration/CLAUDE.md) under *Prose → enum normalization* as a deferred candidate for the end-of-Wave-1 batch.)
+
+### 2. Periodic baseline snapshot
+
+At wave boundaries (end of W1, W2, W3 — i.e., after a `Pulse opens` / `Project submission opens` / `Voting opens` milestone has stabilized for at least a week with no follow-up hotfix migrations), produce a single `0NNNN_baseline_<date>.sql` from a clean DB with all migrations applied:
+
+```bash
+supabase db dump --schema public > supabase/migrations/00099_baseline_2026-XX-XX.sql
+git mv supabase/migrations/000{01..NN}_*.sql supabase/migrations/archive/
+```
+
+Fresh installs use the baseline; deployed environments are unaffected (they've already applied the historical chain incrementally). The archive folder stays in the repo for git-blame and reproducing the history.
+
+**Don't consolidate mid-wave.** In-flight PRs will collide on migration numbers, staging needs re-baselining, and any partially-applied chain on a developer's local DB will break. The right moment is when a wave's data shape stabilizes — usually a week after the wave's milestone PR merges.
+
+---
+
 ## Active issue: ISSUE-W1-002 (#40) — seed `option_lists` (remaining 4 lists)
 
 Roadmap anchor: [§1.2](../docs/OLOS-roadmap.md). Unblocks §1.9 (pulse-check endpoint validates `tools_used` / `benefits` against these IDs) and §1.11 (registration form fetches options from `GET /api/options`). The schema for `option_lists` already exists at [migrations/00001_initial_schema.sql:108-116](migrations/00001_initial_schema.sql#L108-L116), including the `UNIQUE(list_name, value)` constraint we use for idempotency. The read endpoint is shipped at [app/api/options/route.ts](../app/api/options/route.ts) — verifying its output is the acceptance test, not new work.
