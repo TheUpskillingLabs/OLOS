@@ -15,6 +15,7 @@ type Invitation = {
   created_at: string;
   expires_at: string;
   accepted_at: string | null;
+  email_sent_at: string | null;
 };
 
 export default function InvitationsTable({
@@ -33,6 +34,8 @@ export default function InvitationsTable({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  const [sending, setSending] = useState<number | null>(null);
+  const [sendError, setSendError] = useState<{ id: number; message: string } | null>(null);
 
   // Create form state
   const [email, setEmail] = useState("");
@@ -99,6 +102,26 @@ export default function InvitationsTable({
     navigator.clipboard.writeText(link);
     setCopied(invitation.id);
     setTimeout(() => setCopied(null), 2000);
+  }
+
+  async function sendEmail(id: number) {
+    setSending(id);
+    setSendError(null);
+
+    const res = await fetch(`/api/invitations/${id}/send`, { method: "POST" });
+    const data = await res.json();
+
+    setSending(null);
+
+    if (res.ok) {
+      setInvitations((prev) =>
+        prev.map((i) =>
+          i.id === id ? { ...i, email_sent_at: data.email_sent_at } : i
+        )
+      );
+    } else {
+      setSendError({ id, message: data.error ?? "Failed to send email" });
+    }
   }
 
   const availablePresets = canManageRoles
@@ -288,9 +311,21 @@ export default function InvitationsTable({
                     {new Date(inv.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex flex-col items-end gap-1.5">
                       {inv.status === "pending" && !isExpired && (
-                        <>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => sendEmail(inv.id)}
+                            disabled={sending === inv.id}
+                            title={inv.email_sent_at ? `Last sent ${new Date(inv.email_sent_at).toLocaleDateString()}` : "Send magic link via email"}
+                            className="rounded bg-white/[0.06] px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 hover:bg-white/[0.10] hover:text-white active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                          >
+                            {sending === inv.id
+                              ? "Sending…"
+                              : inv.email_sent_at
+                                ? "Resend"
+                                : "Send email"}
+                          </button>
                           <button
                             onClick={() => copyLink(inv)}
                             className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
@@ -303,7 +338,10 @@ export default function InvitationsTable({
                           >
                             Revoke
                           </button>
-                        </>
+                        </div>
+                      )}
+                      {sendError?.id === inv.id && (
+                        <p className="text-xs text-red-300">{sendError.message}</p>
                       )}
                     </div>
                   </td>
