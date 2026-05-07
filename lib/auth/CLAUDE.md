@@ -12,6 +12,32 @@ the sign-in path or the invitations email flow.
 
 ---
 
+## Status snapshot — May 2026
+
+**Issue #44 (Google OAuth + role resolution):** functionally complete in code;
+blocked on ops setup for end-to-end production verification.
+- ✅ Sign-in, callback, role resolution, route guards all in place
+- ⚠ One documented behavioral deviation: missing-participant case redirects
+  to `/register` instead of returning 404 (see "404 vs redirect" below)
+- ⏳ Ops: Google Cloud Console client → Supabase Studio Google provider →
+  production redirect allow-list (sequenced checklist below)
+
+**Issue #45 (magic-link delivery via Resend):** functionally complete via
+direct Resend HTTP API (architectural choice — see §Issue #45 below); the
+Supabase SMTP relay path is optional insurance, not blocking.
+- ✅ Custom invitation flow + branded email template + per-send tracking
+- ⏳ Ops: Resend domain verification (SPF + DKIM)
+- ⏳ Optional: Supabase Studio SMTP → Resend (one-line config)
+
+**Next downstream:** Issue #46 (§1.8 bulk magic-link generator) consumes this
+folder's invitation API — see "Forward prep" below.
+
+> The [roadmap status tracker](../../docs/OLOS-roadmap.md#6--wave-1-status-tracker)
+> shows §1.6/§1.7 as "not started." That's stale — this snapshot is the
+> current state. Update the tracker when the ops checklist clears.
+
+---
+
 ## TL;DR — How this differs from `TUL_MVP_Spec.md`
 
 The MVP spec describes a **Python/FastAPI backend** that exchanges a Supabase
@@ -33,6 +59,21 @@ implementation does not. Translate before writing code.
 demand from Postgres rather than encoded into a stateless token. This is
 intentional: it lets permission/role/enrollment changes take effect on the
 next request instead of waiting for a token to expire.
+
+**On the auth client library.** Issue #44 says the frontend uses
+`@supabase/auth-helpers-nextjs`. That package is deprecated in favor of
+[`@supabase/ssr`](https://supabase.com/docs/guides/auth/server-side/nextjs),
+which this repo uses. Same vendor, current API, identical cookie semantics —
+read "helpers" as "ssr" in the issue. Don't introduce `auth-helpers-nextjs`.
+
+**On HTTP-only cookie storage.** #44 requires "frontend stores JWT in HTTP-only
+cookie, not localStorage." `@supabase/ssr` sets the session cookie as
+`HttpOnly; Secure; SameSite=Lax` automatically — no extra work needed.
+
+**On `docs/OLOS-architecture-brief.md`.** The Stack table there still lists
+"Backend: Python / FastAPI" and "Auth: …magic links via Resend SMTP." Both
+phrasings predate this codebase's choices. Treat the brief as historical
+intent, not a blueprint, until it's revised.
 
 ---
 
@@ -203,6 +244,23 @@ unnecessary.
 | All authenticated endpoints validate signature + read claims | ✅ | Supabase verifies the cookie; [`withAuth`/`withAdminAuth`/`withOwnerAuth`](./middleware.ts) consume `UserRoles` |
 | OpenAPI spec updated for `POST /auth/google` | ⚠ N/A | No OpenAPI in repo; no `POST /auth/google` (callback is `GET /api/auth/callback`). Document here instead |
 
+### Test plan vs. issue text
+
+| Issue test | Equivalent in this repo |
+|---|---|
+| Unit tests for token validation | N/A — no token to validate; Supabase verifies the session cookie |
+| Integration test for `POST /auth/google` returning JWT | Replaced by manual e2e (no test runner in the repo today; see "Local verification" below) |
+| Integration test for non-existent email → 404 | Replaced by manual e2e: sign in with an unregistered Google account, expect redirect to `/register` |
+| Manual e2e: sign in → cookie set → protected endpoint returns 200 | Same — run after the ops checklist below clears |
+
+The lack of test infrastructure (no Jest/Vitest/Playwright) is a repo-wide
+gap, not specific to #44. If/when test infra lands, the high-value targets in
+this folder are [`resolveUserRoles`](./roles.ts) (correct shape for fixture
+participants — owner, moderator-only, observer, no-record) and
+`fulfillInvitation` in
+[`/api/auth/callback`](../../app/api/auth/callback/route.ts) (end-to-end
+with a fake invite cookie + token row).
+
 ### 404 vs redirect
 
 The spec says "no participants row → return 404, complete registration
@@ -237,6 +295,35 @@ return `NextResponse.json({error: "..."}, {status: 404})` instead of redirect.
 | Plain-text fallback | ✅ | `invitationEmailText()` in same file |
 | Resend SPF / DKIM verified | ⏳ Ops | Verify in Resend dashboard before first prod send |
 | Supabase Auth SMTP via Resend | ⏳ Optional, see §Issue #45 above | One-time Studio config |
+
+---
+
+## Forward prep — Issue #46 (§1.8 bulk magic-link generator)
+
+The roadmap text says #46 "iterates over migrated participants and triggers
+Supabase magic-link emails." With this repo's architecture, the script
+should instead:
+
+1. Read the migrated participant list from `participants` (post-§1.5).
+2. For each row, **insert an `invitations` row** via the service-role client
+   (not via `POST /api/invitations` — that route requires admin auth and is
+   built for one-at-a-time use). The bulk path nulls `cycle_id` / `pod_id` /
+   `permissions` / `role_preset` per [`SCHEMA.md`](../../SCHEMA.md) §Invitations.
+3. Dispatch via the existing
+   [`POST /api/invitations/{id}/send`](../../app/api/invitations/[invitation_id]/send/route.ts)
+   route (gets `email_sent_at` tracking for free) or batch directly through
+   `getResendClient().emails.send` if rate matters.
+4. Record per-row outcomes in the `notes` column ("Magic link sent",
+   "Already has `auth_user_id`", "No email on participant row").
+
+Two questions to settle before #46 starts:
+
+- **Resend rate limits.** Default is 100 emails/sec on paid plans. If the
+  migrated participant count is large, add a throttle.
+- **Script vs. admin endpoint.** The roadmap says "script"; recommend a Node
+  script (`scripts/bulk-invite.ts`) with `--dry-run` and an explicit
+  prod-DB-confirm guard, mirroring the safety contract in
+  [`scripts/migration/CLAUDE.md`](../../scripts/migration/CLAUDE.md).
 
 ---
 
@@ -280,18 +367,25 @@ Invitation flow:
 
 ## Open ops tasks
 
-These cannot be completed from inside the repo:
+Sequenced — each step depends on the previous:
 
-- **Google Cloud Console:** create the OAuth 2.0 client; add Supabase
-  callback URL (`https://<project-ref>.supabase.co/auth/v1/callback`); set
-  authorized JS origins for prod + preview domains. Drop the client_id /
-  secret into Supabase Studio under Auth → Providers → Google.
-- **Supabase Studio (production project):** Auth → URL Configuration → set
-  `Site URL` and add the prod app domain to `Redirect URLs`
-  (`https://app.theupskillinglabs.org/api/auth/callback`).
-- **Resend:** verify `theupskillinglabs.org` (SPF + DKIM); approve the final
-  sender (`noreply@…` vs `invites@…` — currently invites in env example).
-- **(Optional, #45)** Configure Supabase SMTP → Resend per §Issue #45 above.
+1. **Google Cloud Console** — create the OAuth 2.0 client; authorized JS
+   origins for prod + preview domains; redirect URI
+   `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. **Supabase Studio → Auth → Providers → Google** — paste client_id +
+   secret from step 1.
+3. **Supabase Studio → Auth → URL Configuration** — set `Site URL` and
+   add the prod app domain to Redirect URLs
+   (`https://app.theupskillinglabs.org/api/auth/callback`).
+4. **Resend** — verify `theupskillinglabs.org` (SPF + DKIM); approve the
+   final sender (`noreply@…` vs `invites@…` — env example currently uses
+   `invites@…`).
+5. **Optional (#45)** — Supabase Studio → Project Settings → Auth → SMTP
+   Settings → point at Resend per the recipe in §Issue #45 above.
+
+Steps 1–3 unblock end-to-end Google sign-in (#44). Step 4 unblocks the
+first production invitation send (#45). Step 5 is insurance — no
+Supabase-Auth-side email flows fire today.
 
 ---
 
