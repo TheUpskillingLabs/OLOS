@@ -51,18 +51,31 @@ export const POST = withAdminAuth(
 
     const serviceClient = createServiceClient();
 
-    // Check for existing pending, non-expired invitation for this email
-    const { data: existing } = await serviceClient
+    // Block exact duplicates: same email + same cycle + same role preset, pending and not expired
+    let duplicateQuery = serviceClient
       .from("invitations")
       .select("id")
       .eq("email", email.toLowerCase())
       .eq("status", "pending")
-      .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+      .gt("expires_at", new Date().toISOString());
+
+    if (cycle_id) {
+      duplicateQuery = duplicateQuery.eq("cycle_id", cycle_id);
+    } else {
+      duplicateQuery = duplicateQuery.is("cycle_id", null);
+    }
+
+    if (role_preset) {
+      duplicateQuery = duplicateQuery.eq("role_preset", role_preset);
+    } else {
+      duplicateQuery = duplicateQuery.is("role_preset", null);
+    }
+
+    const { data: existing } = await duplicateQuery.maybeSingle();
 
     if (existing) {
       return NextResponse.json(
-        { error: "A pending invitation already exists for this email" },
+        { error: "A pending invitation already exists for this email with the same cycle and role" },
         { status: 409 }
       );
     }
