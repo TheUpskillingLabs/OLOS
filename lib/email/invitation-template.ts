@@ -65,9 +65,14 @@ export function invitationEmailHtml({
               </table>
 
               <!-- Fallback link -->
-              <p style="margin:0;font-size:12px;color:rgba(200,210,230,0.45);line-height:1.6;">
+              <p style="margin:0 0 16px;font-size:12px;color:rgba(200,210,230,0.45);line-height:1.6;">
                 If the button doesn't work, paste this link into your browser:<br />
                 <a href="${magicLink}" style="color:#00b8c8;word-break:break-all;">${magicLink}</a>
+              </p>
+
+              <!-- Google login note -->
+              <p style="margin:0;font-size:12px;color:rgba(200,210,230,0.45);line-height:1.6;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;">
+                Note: you can only sign in using a Google-hosted email address (Gmail or Google Workspace).
               </p>
             </td>
           </tr>
@@ -110,6 +115,8 @@ ${contextLine}
 
 Accept your invitation here (expires in 7 days):
 ${magicLink}
+
+Note: you can only sign in using a Google-hosted email address (Gmail or Google Workspace).
 
 If you weren't expecting this email, you can safely ignore it.`;
 }
