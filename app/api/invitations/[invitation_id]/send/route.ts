@@ -58,7 +58,7 @@ export const POST = withAdminAuth(
     const { error: sendError } = await resend.emails.send({
       from: FROM_EMAIL,
       to: invitation.email,
-      subject: "You're invited to The Upskilling Labs",
+      subject: "Invitation to Open Labs Operating System",
       html: invitationEmailHtml({
         magicLink,
         rolePreset: invitation.role_preset,

@@ -7,5 +7,7 @@ export function getResendClient(): Resend {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
-export const FROM_EMAIL =
+const fromAddress =
   process.env.RESEND_FROM_EMAIL ?? "invites@theupskillinglabs.org";
+
+export const FROM_EMAIL = `Upskilling Labs <${fromAddress}>`;
