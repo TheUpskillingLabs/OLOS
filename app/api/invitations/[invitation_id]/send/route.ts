@@ -45,10 +45,11 @@ export const POST = withAdminAuth(
       );
     }
 
+    const host = _request.headers.get("host") ?? "";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL ??
-      process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(".supabase.co", ".vercel.app") ??
-      "https://app.theupskillinglabs.org";
+      `${protocol}://${host}`;
 
     const magicLink = `${appUrl}/login?invite=${invitation.token}`;
     const cycle = (invitation.cycles as unknown) as { name: string } | null;
