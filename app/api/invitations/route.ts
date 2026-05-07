@@ -51,12 +51,13 @@ export const POST = withAdminAuth(
 
     const serviceClient = createServiceClient();
 
-    // Check for existing pending invitation for this email
+    // Check for existing pending, non-expired invitation for this email
     const { data: existing } = await serviceClient
       .from("invitations")
       .select("id")
       .eq("email", email.toLowerCase())
       .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
 
     if (existing) {
