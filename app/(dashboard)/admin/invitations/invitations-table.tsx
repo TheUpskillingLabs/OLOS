@@ -33,7 +33,6 @@ export default function InvitationsTable({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<number | null>(null);
   const [sending, setSending] = useState<number | null>(null);
   const [sendError, setSendError] = useState<{ id: number; message: string } | null>(null);
 
@@ -57,34 +56,48 @@ export default function InvitationsTable({
     if (cycleId) body.cycle_id = parseInt(cycleId);
     if (podId) body.pod_id = parseInt(podId);
 
+    // Step 1: Create the invitation
     const res = await fetch("/api/invitations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
-    setCreating(false);
-
-    if (res.ok) {
-      const data = await res.json();
-      const cycleName = cycleId
-        ? cycles.find((c) => c.id === parseInt(cycleId))?.name ?? null
-        : null;
-      setInvitations((prev) => [
-        {
-          ...data,
-          permissions: data.permissions ?? [],
-          cycle_name: cycleName,
-        },
-        ...prev,
-      ]);
-      setEmail("");
-      setRolePreset("");
-      setCycleId("");
-      setPodId("");
-    } else {
+    if (!res.ok) {
+      setCreating(false);
       const data = await res.json();
       setError(data.error ?? "Failed to create invitation");
+      return;
+    }
+
+    const data = await res.json();
+
+    // Step 2: Send the email immediately
+    const sendRes = await fetch(`/api/invitations/${data.id}/send`, { method: "POST" });
+    const sendData = await sendRes.json();
+
+    setCreating(false);
+
+    const cycleName = cycleId
+      ? cycles.find((c) => c.id === parseInt(cycleId))?.name ?? null
+      : null;
+
+    setInvitations((prev) => [
+      {
+        ...data,
+        permissions: data.permissions ?? [],
+        cycle_name: cycleName,
+        email_sent_at: sendRes.ok ? sendData.email_sent_at : null,
+      },
+      ...prev,
+    ]);
+    setEmail("");
+    setRolePreset("");
+    setCycleId("");
+    setPodId("");
+
+    if (!sendRes.ok) {
+      setError(sendData.error ?? "Invitation created but email failed to send");
     }
   }
 
@@ -95,13 +108,6 @@ export default function InvitationsTable({
         prev.map((i) => (i.id === id ? { ...i, status: "revoked" } : i))
       );
     }
-  }
-
-  function copyLink(invitation: Invitation) {
-    const link = `${window.location.origin}/login?invite=${invitation.token}`;
-    navigator.clipboard.writeText(link);
-    setCopied(invitation.id);
-    setTimeout(() => setCopied(null), 2000);
   }
 
   async function sendEmail(id: number) {
@@ -201,7 +207,7 @@ export default function InvitationsTable({
             disabled={creating}
             className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
           >
-            {creating ? "Creating..." : "Create invite"}
+            {creating ? "Sending..." : "Send invite"}
           </button>
         </form>
         {error && (
@@ -312,34 +318,26 @@ export default function InvitationsTable({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex flex-col items-end gap-1.5">
-                      {inv.status === "pending" && !isExpired && (
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        {inv.status === "pending" && !isExpired && (
                           <button
                             onClick={() => sendEmail(inv.id)}
                             disabled={sending === inv.id}
-                            title={inv.email_sent_at ? `Last sent ${new Date(inv.email_sent_at).toLocaleDateString()}` : "Send magic link via email"}
+                            title={inv.email_sent_at ? `Last sent ${new Date(inv.email_sent_at).toLocaleDateString()}` : "Resend magic link"}
                             className="rounded bg-white/[0.06] px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 hover:bg-white/[0.10] hover:text-white active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                           >
-                            {sending === inv.id
-                              ? "Sending…"
-                              : inv.email_sent_at
-                                ? "Resend"
-                                : "Send email"}
+                            {sending === inv.id ? "Sending…" : "Resend"}
                           </button>
-                          <button
-                            onClick={() => copyLink(inv)}
-                            className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
-                          >
-                            {copied === inv.id ? "Copied" : "Copy link"}
-                          </button>
+                        )}
+                        {(inv.status === "pending" || inv.status === "accepted") && !isExpired && (
                           <button
                             onClick={() => revokeInvitation(inv.id)}
                             className="rounded ring-1 ring-whisper px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-red/10 hover:text-red-300 hover:ring-red/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                           >
                             Revoke
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       {sendError?.id === inv.id && (
                         <p className="text-xs text-red-300">{sendError.message}</p>
                       )}

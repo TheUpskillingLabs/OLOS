@@ -16,7 +16,7 @@ export const PATCH = withAdminAuth(
       .from("invitations")
       .update({ status: "revoked" })
       .eq("id", invitationId)
-      .eq("status", "pending")
+      .in("status", ["pending", "accepted"])
       .select("id, status")
       .single();
 
