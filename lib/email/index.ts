@@ -8,6 +8,6 @@ export function getResendClient(): Resend {
 }
 
 const fromAddress =
-  process.env.RESEND_FROM_EMAIL ?? "invites@theupskillinglabs.org";
+  process.env.RESEND_FROM_EMAIL ?? "noreply@theupskillinglabs.org";
 
 export const FROM_EMAIL = `Upskilling Labs <${fromAddress}>`;
