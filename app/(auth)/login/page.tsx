@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 function GoogleLogo() {
@@ -32,12 +32,11 @@ function GoogleLogo() {
 function LoginContent() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
-  const [invited, setInvited] = useState(false);
+  const invited = !!inviteToken;
 
   useEffect(() => {
     if (inviteToken) {
       document.cookie = `invite_token=${inviteToken}; path=/; max-age=3600; SameSite=Lax`;
-      setInvited(true);
     }
   }, [inviteToken]);
 
