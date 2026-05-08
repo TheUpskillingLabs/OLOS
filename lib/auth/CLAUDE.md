@@ -17,15 +17,20 @@ the sign-in path or the invitations email flow.
 **Issue #44 (Google OAuth + role resolution):** functionally complete in code;
 blocked on ops setup for end-to-end production verification.
 - ✅ Sign-in, callback, role resolution, route guards all in place
-- ⚠ One documented behavioral deviation: missing-participant case redirects
-  to `/register` instead of returning 404 (see "404 vs redirect" below)
+- ✅ Behavioral deviation **ratified 2026-05-08** ([#63](https://github.com/TheUpskillingLabs/OLOS/issues/63)):
+  missing-participant case redirects to `/register` instead of returning 404
+  — kept for UX + privacy reasons (see "404 vs redirect" below)
 - ⏳ Ops: Google Cloud Console client → Supabase Studio Google provider →
   production redirect allow-list (sequenced checklist below)
 
 **Issue #45 (magic-link delivery via Resend):** functionally complete via
-direct Resend HTTP API (architectural choice — see §Issue #45 below); the
-Supabase SMTP relay path is optional insurance, not blocking.
+direct Resend HTTP API; the Supabase SMTP relay path is optional insurance,
+not blocking.
 - ✅ Custom invitation flow + branded email template + per-send tracking
+- ✅ Architecture **ratified 2026-05-08** ([#64](https://github.com/TheUpskillingLabs/OLOS/issues/64)):
+  direct Resend HTTP API kept over Supabase SMTP relay — driven by free-tier
+  rate limits (Supabase auth-email throttle would block bulk-invite #46;
+  see §Issue #45 below)
 - ⏳ Ops: Resend domain verification (SPF + DKIM)
 - ⏳ Optional: Supabase Studio SMTP → Resend (one-line config)
 
@@ -99,6 +104,13 @@ Files:
 - [`app/(auth)/login/page.tsx`](../../app/(auth)/login/page.tsx) — landing page;
   sets the `invite_token` cookie if the URL carries `?invite=…`, then calls
   `supabase.auth.signInWithOAuth({ provider: "google", options.redirectTo })`.
+  Invite-flavored UI (the "You've been invited" badge and alternate CTA copy)
+  is **derived directly from the `?invite` query param**, not stored in React
+  state. This avoids a one-frame flicker where invited users would briefly see
+  the non-invited CTA before a `setState` inside `useEffect` flipped the UI,
+  and also self-corrects if client-side navigation drops the param. The
+  cookie write — the load-bearing side effect that persists the token across
+  the OAuth round-trip — remains in `useEffect`.
 - [`supabase/config.toml`](../../supabase/config.toml) `[auth.external.google]`
   — Google provider enabled, `client_id` / `secret` from `GOOGLE_CLIENT_ID` /
   `GOOGLE_CLIENT_SECRET`. Production credentials are configured in the
@@ -191,6 +203,15 @@ per-row admin messaging (e.g. "Name not found in participants").
 
 ## Issue #45 — magic-link email delivery (Resend)
 
+> **Decision (2026-05-08, [#64](https://github.com/TheUpskillingLabs/OLOS/issues/64)):**
+> Keep direct Resend HTTP. Ratified after team review. The deciding factor is
+> **free-tier compatibility**: Supabase's auth-email throttle (~30 emails/hour
+> with custom SMTP) would block the bulk-invite use case in §1.8 (#46), where
+> 50–500 invites need to fire in a single batch. Resend HTTP only counts
+> against the standard Resend quota (100/day, 3000/mo). Supabase Studio SMTP →
+> Resend is still worth configuring as insurance for any future Supabase-side
+> auth emails (recovery, email-change), but no such flow fires today.
+
 The literal text of #45 wants **Supabase Auth's built-in magic-link emails**
 routed through **Resend SMTP**. The branch instead sends invitation emails
 **directly** from the Next.js route via the **Resend HTTP API**. Why:
@@ -262,6 +283,11 @@ participants — owner, moderator-only, observer, no-record) and
 with a fake invite cookie + token row).
 
 ### 404 vs redirect
+
+> **Decision (2026-05-08, [#63](https://github.com/TheUpskillingLabs/OLOS/issues/63)):**
+> Keep the redirect. Ratified after team review for the UX and privacy reasons
+> below. If a closed cohort is ever required, add `cycle_config.open_registration BOOLEAN`
+> to gate the redirect path rather than reverting this choice.
 
 The spec says "no participants row → return 404, complete registration
 first." The implementation instead redirects to a built-in `/register` page
