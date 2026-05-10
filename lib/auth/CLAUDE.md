@@ -23,16 +23,23 @@ blocked on ops setup for end-to-end production verification.
 - ⏳ Ops: Google Cloud Console client → Supabase Studio Google provider →
   production redirect allow-list (sequenced checklist below)
 
-**Issue #45 (magic-link delivery via Resend):** functionally complete via
-direct Resend HTTP API; the Supabase SMTP relay path is optional insurance,
-not blocking.
+**Issue #45 (magic-link delivery via Resend):** **resolved 2026-05-09.**
+Functionally complete via direct Resend HTTP API; first production send
+verified end-to-end (acceptance flow + side-effect rows landed). The
+Supabase SMTP relay path remains optional insurance.
 - ✅ Custom invitation flow + branded email template + per-send tracking
 - ✅ Architecture **ratified 2026-05-08** ([#64](https://github.com/TheUpskillingLabs/OLOS/issues/64)):
   direct Resend HTTP API kept over Supabase SMTP relay — driven by free-tier
   rate limits (Supabase auth-email throttle would block bulk-invite #46;
   see §Issue #45 below)
-- ⏳ Ops: Resend domain verification (SPF + DKIM)
-- ⏳ Optional: Supabase Studio SMTP → Resend (one-line config)
+- ✅ Resend domain verified (`enroll.theupskillinglabs.org`, subdomain mode);
+  SPF + DKIM + DMARC all passing on first prod send (2026-05-08)
+- ✅ Production acceptance flow verified end-to-end on 2026-05-10: invite
+  #15 → moderator preset, cycle 1, pod 2 → `participant_permissions` (3 rows),
+  `cycle_enrollments`, `moderator_assignments` all upserted within ~300ms;
+  `invitations.status='accepted'` with `accepted_at` populated
+- ⏳ Optional: Supabase Studio SMTP → Resend (one-line config — no
+  Supabase-Auth-side email flows fire today, so this is pure insurance)
 
 **Next downstream:** Issue #46 (§1.8 bulk magic-link generator) consumes this
 folder's invitation API — see "Forward prep" below.
@@ -315,11 +322,11 @@ return `NextResponse.json({error: "..."}, {status: 404})` instead of redirect.
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| Test magic-link email arrives within 60s | ⏳ Verify after deploy | Tested locally via Inbucket; production needs a real Resend send |
-| Branded sender (`The Upskilling Labs <noreply@…>`) | ✅ Configurable | `RESEND_FROM_EMAIL` env var; default in [`lib/email/index.ts`](../email/index.ts) |
-| Body includes magic link + expiration + "you're receiving this because…" | ✅ | [`invitation-template.ts`](../email/invitation-template.ts) — link, "expires in 7 days", footer disclosure |
+| Test magic-link email arrives within 60s | ✅ | First prod send 2026-05-08 arrived in the test inbox in <60s |
+| Branded sender (`Upskilling Labs <noreply@…>`) | ✅ | `RESEND_FROM_EMAIL` env var; default `noreply@enroll.theupskillinglabs.org` in [`lib/email/index.ts`](../email/index.ts) (PR [#68](https://github.com/TheUpskillingLabs/OLOS/pull/68)) |
+| Body includes magic link + expiration + "you're receiving this because…" | ✅ | [`invitation-template.ts`](../email/invitation-template.ts) — link, "expires in 30 days" (DB default), footer disclosure |
 | Plain-text fallback | ✅ | `invitationEmailText()` in same file |
-| Resend SPF / DKIM verified | ⏳ Ops | Verify in Resend dashboard before first prod send |
+| Resend SPF / DKIM verified | ✅ | Domain `enroll.theupskillinglabs.org` verified; SPF + DKIM + DMARC all passing per Gmail "Show original" inspection of the 2026-05-08 send |
 | Supabase Auth SMTP via Resend | ⏳ Optional, see §Issue #45 above | One-time Studio config |
 
 ---
@@ -403,15 +410,16 @@ Sequenced — each step depends on the previous:
 3. **Supabase Studio → Auth → URL Configuration** — set `Site URL` and
    add the prod app domain to Redirect URLs
    (`https://app.theupskillinglabs.org/api/auth/callback`).
-4. **Resend** — verify `theupskillinglabs.org` (SPF + DKIM); approve the
-   final sender (`noreply@…` vs `invites@…` — env example currently uses
-   `invites@…`).
+4. ✅ **Resend** — verified `enroll.theupskillinglabs.org` (subdomain mode);
+   SPF + DKIM + DMARC passing on the 2026-05-08 first prod send. Approved
+   sender is `noreply@enroll.theupskillinglabs.org` (in-code default
+   aligned in PR [#68](https://github.com/TheUpskillingLabs/OLOS/pull/68)).
 5. **Optional (#45)** — Supabase Studio → Project Settings → Auth → SMTP
    Settings → point at Resend per the recipe in §Issue #45 above.
 
-Steps 1–3 unblock end-to-end Google sign-in (#44). Step 4 unblocks the
-first production invitation send (#45). Step 5 is insurance — no
-Supabase-Auth-side email flows fire today.
+Steps 1–3 unblock end-to-end Google sign-in (#44). Step 4 unblocked the
+first production invitation send (#45, completed 2026-05-08). Step 5 is
+insurance — no Supabase-Auth-side email flows fire today.
 
 ---
 
