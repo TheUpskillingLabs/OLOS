@@ -36,6 +36,9 @@ yarn-error.log*
 .env*.local
 !.env.local.example
 
+# MCP server config — may contain credentials
+.mcp.json
+
 # supabase
 supabase/.temp/
 supabase/.branches/
