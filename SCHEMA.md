@@ -306,6 +306,9 @@ erDiagram
         int cycle_id FK
         int pod_id FK
         int participant_id FK
+        varchar name
+        varchar summary
+        jsonb proposal_data
         text proposal_text
         timestamp created_at
     }
@@ -414,7 +417,7 @@ erDiagram
 | `votes` | Pod Layer | Budget-based votes on problem statements |
 | `pods` | Pod Layer | Shortlisted problems with external integrations |
 | `pod_memberships` | Pod Layer | Self-registration into pods (soft delete) |
-| `solution_proposals` | Project Layer | Solutions submitted within pods |
+| `solution_proposals` | Project Layer | Solutions submitted within pods. Rich payload via `name` + `summary` columns + `proposal_data` JSONB. `UNIQUE(cycle_id, participant_id)` enforces one submission per participant per cycle (migration 00016, W2-001). |
 | `project_votes` | Project Layer | Budget-based votes on solution proposals |
 | `projects` | Project Layer | Shortlisted solutions with external integrations |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |

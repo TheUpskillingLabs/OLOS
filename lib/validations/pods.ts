@@ -11,19 +11,48 @@ export const nameUpdateSchema = z.object({
     ),
 });
 
+// Rich solution-proposal payload — W2-001 (#74). name + summary land in
+// dedicated columns; description and four optional context fields nest into
+// proposal_data JSONB. Migration 00016 added these columns and the
+// (cycle_id, participant_id) unique index that enforces one-submission-per-
+// cycle at the DB layer.
 export const solutionProposalSchema = z.object({
-  proposal_text: z
+  name: z
     .string()
-    .min(1, "proposal_text is required")
-    .max(2000, "proposal_text must be 2000 characters or fewer"),
+    .min(1, "Project name is required")
+    .max(100, "Project name must be 100 characters or fewer"),
+  summary: z
+    .string()
+    .min(1, "Summary is required")
+    .max(200, "Summary must be 200 characters or fewer"),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(4000, "Description must be 4000 characters or fewer"),
+  pod_problem_link: z.string().max(2000).optional(),
+  why_now: z.string().max(2000).optional(),
+  mvp_scope: z.string().max(2000).optional(),
+  skills_wanted: z.string().max(2000).optional(),
 });
 
-export const projectVoteSchema = z.object({
-  solution_proposal_id: z.number().int({
-    message: "solution_proposal_id must be a number",
-  }),
-  vote_count: z.number().int().min(1, "vote_count must be >= 1"),
+export type SolutionProposalInput = z.infer<typeof solutionProposalSchema>;
+
+// Atomic project-vote ballot — W2-001 (#74). A submitter allocates their
+// entire vote budget at once. Server validates sum equals
+// cycle_config.project_submitter_votes and rejects re-submissions on the
+// (voter_id, solution_proposal_id, pod_id) unique constraint.
+export const projectBallotSchema = z.object({
+  votes: z
+    .array(
+      z.object({
+        solution_proposal_id: z.number().int(),
+        vote_count: z.number().int().min(0),
+      })
+    )
+    .min(1, "Ballot must include at least one entry"),
 });
+
+export type ProjectBallotInput = z.infer<typeof projectBallotSchema>;
 
 export const moderatorAssignmentSchema = z.object({
   participant_id: z.number().int({
