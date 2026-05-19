@@ -14,10 +14,12 @@ export default function ProjectRegistration({
   pods,
   projects,
   initialCurrentProjectId,
+  projectMax,
 }: {
   pods: { id: number; name: string | null }[];
   projects: Project[];
   initialCurrentProjectId: number | null;
+  projectMax: number;
 }) {
   const [currentProjectId, setCurrentProjectId] = useState(
     initialCurrentProjectId
@@ -153,6 +155,8 @@ export default function ProjectRegistration({
             <div className="grid gap-3 sm:grid-cols-2">
               {podProjects.map((project) => {
                 const isRegistered = currentProjectId === project.id;
+                const memberCount = projectCounts[project.id] || 0;
+                const isFull = memberCount >= projectMax;
                 return (
                   <div
                     key={project.id}
@@ -168,11 +172,8 @@ export default function ProjectRegistration({
                           {project.name || `Project ${project.id}`}
                         </p>
                         <p className="mt-0.5 text-xs text-cloud/60 tabular-nums">
-                          {projectCounts[project.id] || 0} member
-                          {(projectCounts[project.id] || 0) !== 1
-                            ? "s"
-                            : ""}{" "}
-                          &middot; {project.status}
+                          {memberCount} / {projectMax} member
+                          {projectMax !== 1 ? "s" : ""} &middot; {project.status}
                         </p>
                       </div>
                       {isRegistered ? (
@@ -183,6 +184,10 @@ export default function ProjectRegistration({
                         >
                           {actionId === project.id ? "..." : "Withdraw"}
                         </button>
+                      ) : isFull ? (
+                        <span className="rounded bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-tight text-cloud/50">
+                          Pod full
+                        </span>
                       ) : (
                         <button
                           onClick={() => registerForProject(project.id)}

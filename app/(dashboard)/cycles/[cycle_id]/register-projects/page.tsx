@@ -24,7 +24,9 @@ export default async function RegisterProjectsPage({
   const serviceClient = createServiceClient();
   const { data: config } = await serviceClient
     .from("cycle_config")
-    .select("project_registration_open, project_registration_close")
+    .select(
+      "project_registration_open, project_registration_close, project_max"
+    )
     .eq("cycle_id", cycleId)
     .single();
 
@@ -162,6 +164,7 @@ export default async function RegisterProjectsPage({
           pods={myPods}
           projects={projects}
           initialCurrentProjectId={currentProjectId}
+          projectMax={config?.project_max ?? 7}
         />
       )}
     </div>
