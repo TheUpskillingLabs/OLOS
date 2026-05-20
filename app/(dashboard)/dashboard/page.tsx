@@ -242,7 +242,9 @@ export default async function DashboardPage() {
       )}
 
       {(state === "interest_submitted_window_open" || state === "active") &&
-        activeCycle && (
+        activeCycle &&
+        podWindowOpen &&
+        myPods.length < 2 && (
           <PodJoinSection
             cycleId={activeCycle.id}
             participantId={participant.id}
