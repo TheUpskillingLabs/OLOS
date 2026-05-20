@@ -62,6 +62,27 @@ export default async function DashboardLayout({
     redirect("/pulse-check");
   }
 
+  // Check if user has any cycle enrollment (controls nav visibility)
+  const participantId = participant
+    ? await serviceClient
+        .from("participants")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle()
+        .then((r) => r.data?.id)
+    : null;
+
+  let hasEnrollment = false;
+  if (participantId) {
+    const { data: enrollment } = await serviceClient
+      .from("cycle_enrollments")
+      .select("id")
+      .eq("participant_id", participantId)
+      .limit(1)
+      .maybeSingle();
+    hasEnrollment = !!enrollment;
+  }
+
   const userRoles = await resolveUserRoles(serviceClient, user.id);
   const adminUser = isAdmin(userRoles);
   const moderatorUser = isModerator(userRoles);
@@ -98,10 +119,14 @@ export default async function DashboardLayout({
             <Link href="/dashboard" className={navLinkClass}>
               Dashboard
             </Link>
-            <Link href="/cycles" className={navLinkClass}>
-              Cycles
-            </Link>
-            <PulseCheckNavLink status={enforcementStatus} />
+            {hasEnrollment && (
+              <Link href="/cycles" className={navLinkClass}>
+                Cycles
+              </Link>
+            )}
+            {hasEnrollment && (
+              <PulseCheckNavLink status={enforcementStatus} />
+            )}
             {showPods && (
               <Link href="/moderator" className={navLinkClass}>
                 My Pods

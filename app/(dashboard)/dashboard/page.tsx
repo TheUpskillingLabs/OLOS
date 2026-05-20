@@ -125,6 +125,58 @@ export default async function DashboardPage() {
     }
   }
 
+  // Empty state: no enrollment — minimal page with just welcome + hero card
+  if (state === "no_enrollment" && activeCycle) {
+    return (
+      <div>
+        <h1 className="mb-8 text-2xl font-bold tracking-tight text-white">
+          Welcome, {displayName}.
+        </h1>
+        <Link
+          href={`/cycles/${activeCycle.id}/join`}
+          className="group flex items-center justify-between rounded-lg border border-teal/20 bg-teal/[0.04] p-8 transition-colors duration-150 ease-out hover:border-teal/40 hover:bg-teal/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+        >
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-white">
+              {activeCycle.name}
+            </h2>
+            <p className="mt-1 text-sm text-cloud/60">
+              {new Date(activeCycle.start_date).toLocaleDateString()} &ndash;{" "}
+              {new Date(activeCycle.end_date).toLocaleDateString()}
+            </p>
+            <p className="mt-3 text-sm text-cloud/60">
+              Complete this form to join the cycle.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-aqua">
+            Join {activeCycle.name}
+            <ArrowRight
+              className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              aria-hidden
+            />
+          </span>
+        </Link>
+      </div>
+    );
+  }
+
+  // Empty state: no active cycle at all
+  if (state === "no_cycle") {
+    return (
+      <div>
+        <h1 className="mb-8 text-2xl font-bold tracking-tight text-white">
+          Welcome, {displayName}.
+        </h1>
+        <EmptyState
+          icon={Calendar}
+          title="No cycle running right now"
+          description="Check back soon for the next build cycle."
+        />
+      </div>
+    );
+  }
+
+  // Engaged state: user has a cycle_enrollments row — full dashboard chrome
   return (
     <div>
       {/* Greeting */}
@@ -141,7 +193,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Pulse Check CTA — only show when user has an active enrollment */}
-      {activeCycle && enrollment?.status === "active" && (
+      {enrollment?.status === "active" && (
         <Link
           href="/pulse-check"
           className="group mb-6 flex items-center justify-between rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors duration-150 ease-out hover:border-yellow-500/40 hover:bg-yellow-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
@@ -169,29 +221,6 @@ export default async function DashboardPage() {
       )}
 
       {/* Status block */}
-      {state === "no_enrollment" && activeCycle && (
-        <Link
-          href={`/cycles/${activeCycle.id}/join`}
-          className="group mb-8 flex items-center justify-between rounded-md border border-teal/20 bg-teal/[0.04] p-5 transition-colors duration-150 ease-out hover:border-teal/40 hover:bg-teal/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
-        >
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
-              Join {activeCycle.name}
-            </h2>
-            <p className="mt-0.5 text-sm text-cloud/60">
-              Complete your profile to express interest in this cycle.
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-aqua">
-            Get started
-            <ArrowRight
-              className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </span>
-        </Link>
-      )}
-
       {state === "interest_submitted_window_closed" && activeCycleConfig && (
         <div className="mb-8 rounded-md border border-whisper bg-white/[0.02] p-5">
           <h2 className="text-lg font-semibold tracking-tight text-white">
@@ -253,16 +282,6 @@ export default async function DashboardPage() {
             })}
           </div>
         </div>
-      )}
-
-      {/* No active cycle */}
-      {state === "no_cycle" && (
-        <EmptyState
-          icon={Calendar}
-          title="No cycle running right now"
-          description="Check back soon for the next build cycle."
-          className="mb-8"
-        />
       )}
 
       {/* Past cycles */}

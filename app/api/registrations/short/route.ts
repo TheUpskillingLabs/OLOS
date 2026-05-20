@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       await resend.emails.send({
         from: FROM_EMAIL,
         to: email,
-        subject: "You already have an account — The Upskilling Labs",
+        subject: "Your Upskilling Labs account already exists",
         html: alreadyRegisteredHtml({ loginUrl }),
         text: alreadyRegisteredText({ loginUrl }),
       });

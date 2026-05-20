@@ -44,11 +44,9 @@ export const POST = withAuth(
     if (isErrorResponse(body)) return body;
 
     const {
-      ai_tools,
-      labs_goals,
       availability,
-      work_style,
       group_strengths,
+      availability_commitment,
       ...profileFields
     } = body;
 
@@ -64,10 +62,7 @@ export const POST = withAuth(
 
     // Upsert participant_options: delete old + insert new
     const multiSelectArrays = {
-      ai_tools,
-      labs_goals,
       availability,
-      work_style,
       group_strengths,
     };
 

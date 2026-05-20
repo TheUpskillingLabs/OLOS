@@ -25,29 +25,25 @@ export default async function RegisterPage() {
   }
 
   const email = user.email ?? "";
-  const profileImageUrl = user.user_metadata?.avatar_url ?? null;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-      <div className="mb-8 text-center">
-        {profileImageUrl && (
-          <img
-            src={profileImageUrl}
-            alt=""
-            className="mx-auto mb-4 h-20 w-20 rounded-full ring-1 ring-whisper"
-          />
-        )}
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          Become an Upskiller
-        </h1>
-        <p className="mt-2 text-sm text-cloud/80">
-          Complete your profile to join The Upskilling Labs.
-        </p>
+    <div className="flex min-h-[80vh] items-center justify-center px-4 sm:px-6">
+      <div className="w-full max-w-md">
+        <div className="rounded-lg border border-whisper bg-white/[0.02] p-8">
+          <div className="mb-6">
+            <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
+              The Upskilling Labs
+            </p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">
+              Become an Upskiller
+            </h1>
+            <p className="mt-2 text-sm text-cloud/60">
+              Complete your profile to get started.
+            </p>
+          </div>
+          <ShortForm email={email} authUserId={user.id} />
+        </div>
       </div>
-      <ShortForm
-        email={email}
-        authUserId={user.id}
-      />
     </div>
   );
 }

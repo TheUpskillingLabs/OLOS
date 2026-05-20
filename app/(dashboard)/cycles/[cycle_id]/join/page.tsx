@@ -23,7 +23,7 @@ export default async function JoinCyclePage({
   // Check participant exists
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, state, neighborhood, dcpl_card, work_situation, main_focus, ai_tool_familiarity, gender, sector, current_title, linkedin, participation_commitment, primary_expertise, volunteer_interest, text_updates, photo_video_consent, source")
+    .select("id, state, work_situation, main_focus, sector, linkedin")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -62,30 +62,34 @@ export default async function JoinCyclePage({
     .maybeSingle();
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-      <div className="mb-8">
-        <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
-          Join cycle
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          {cycle.name}
-        </h1>
-        <p className="mt-2 text-sm text-cloud/60">
-          Tell us about yourself so we can match you with the right pods and
-          collaborators.
-        </p>
+    <div className="flex justify-center px-4 py-12 sm:px-6">
+      <div className="w-full max-w-lg">
+        <div className="mb-6">
+          <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
+            Join cycle
+          </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">
+            {cycle.name}
+          </h1>
+          <p className="mt-2 text-sm text-cloud/60">
+            Tell us about yourself so we can match you with the right pods and
+            collaborators.
+          </p>
+        </div>
         {enrollment && (
-          <div className="mt-4 rounded-md border border-teal/20 bg-teal/[0.04] p-3 text-sm text-aqua">
-            You've already submitted interest for this cycle. You can update
-            your responses below.
+          <div className="mb-6 rounded-md border border-teal/20 bg-teal/[0.04] p-3 text-sm text-aqua">
+            You&apos;ve already submitted interest for this cycle. You can
+            update your responses below.
           </div>
         )}
+        <div className="rounded-lg border border-whisper bg-white/[0.02] p-8">
+          <CycleInterestForm
+            cycleId={cycleId}
+            defaults={participant}
+            selectedOptions={selectedOptions}
+          />
+        </div>
       </div>
-      <CycleInterestForm
-        cycleId={cycleId}
-        defaults={participant}
-        selectedOptions={selectedOptions}
-      />
     </div>
   );
 }
