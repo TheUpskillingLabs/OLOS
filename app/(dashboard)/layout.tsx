@@ -62,6 +62,27 @@ export default async function DashboardLayout({
     redirect("/pulse-check");
   }
 
+  // Check if user has any cycle enrollment (controls nav visibility)
+  const participantId = participant
+    ? await serviceClient
+        .from("participants")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle()
+        .then((r) => r.data?.id)
+    : null;
+
+  let hasEnrollment = false;
+  if (participantId) {
+    const { data: enrollment } = await serviceClient
+      .from("cycle_enrollments")
+      .select("id")
+      .eq("participant_id", participantId)
+      .limit(1)
+      .maybeSingle();
+    hasEnrollment = !!enrollment;
+  }
+
   const userRoles = await resolveUserRoles(serviceClient, user.id);
   const adminUser = isAdmin(userRoles);
   const moderatorUser = isModerator(userRoles);
@@ -89,16 +110,23 @@ export default async function DashboardLayout({
       <header className="sticky top-0 z-50 border-b border-whisper bg-[rgba(11,16,22,0.97)] backdrop-blur-sm backdrop-saturate-150">
         <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
-            href="/cycles"
+            href="/dashboard"
             className="text-sm font-semibold tracking-wide text-white"
           >
             The Upskilling Labs
           </Link>
           <nav className="flex items-center gap-6">
-            <Link href="/cycles" className={navLinkClass}>
-              Cycles
+            <Link href="/dashboard" className={navLinkClass}>
+              Dashboard
             </Link>
-            <PulseCheckNavLink status={enforcementStatus} />
+            {hasEnrollment && (
+              <Link href="/cycles" className={navLinkClass}>
+                Cycles
+              </Link>
+            )}
+            {hasEnrollment && (
+              <PulseCheckNavLink status={enforcementStatus} />
+            )}
             {showPods && (
               <Link href="/moderator" className={navLinkClass}>
                 My Pods
@@ -113,18 +141,10 @@ export default async function DashboardLayout({
               href="/profile"
               className={`flex items-center gap-2 ${navLinkClass}`}
             >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName ?? ""}
-                  className="h-7 w-7 rounded-full ring-1 ring-whisper"
-                />
-              ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-shadow-teal text-xs font-semibold text-white">
-                  {initials}
-                </span>
-              )}
-              <span className="hidden sm:inline">{displayName}</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-shadow-teal text-xs font-semibold text-white">
+                {initials}
+              </span>
+              <span className="hidden sm:inline truncate max-w-[150px]">{displayName}</span>
             </Link>
             <LogoutButton />
           </nav>
