@@ -57,7 +57,7 @@ export default function CycleInterestForm({
 
     if (res.ok) {
       setSuccess(true);
-      router.push("/dashboard");
+      router.push(`/cycles/${cycleId}/register-pods`);
     } else {
       const data = await res.json();
       setError(data.error || "Submission failed");
@@ -176,6 +176,8 @@ export default function CycleInterestForm({
             <input
               name="linkedin"
               type="url"
+              pattern="https?://(www\.)?linkedin\.com/in/.+"
+              title="Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)"
               placeholder="https://linkedin.com/in/..."
               defaultValue={defaults.linkedin ?? ""}
               className={inputClass}
@@ -227,7 +229,7 @@ export default function CycleInterestForm({
             disabled={submitting}
             className="w-full rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? "Submitting..." : "Submit Interest"}
+            {submitting ? "Submitting..." : "Submit"}
           </button>
         </div>
       </form>
