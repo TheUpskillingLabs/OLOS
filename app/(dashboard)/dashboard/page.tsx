@@ -116,7 +116,7 @@ export default async function DashboardPage() {
   if (activeCycle) {
     if (!enrollment) {
       state = "no_enrollment";
-    } else if (enrollment.status === "active") {
+    } else if (enrollment.status === "active" || myPods.length > 0) {
       state = "active";
     } else if (podWindowOpen) {
       state = "interest_submitted_window_open";
@@ -192,8 +192,8 @@ export default async function DashboardPage() {
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
-      {/* Pulse Check CTA — only show when user has an active enrollment */}
-      {enrollment?.status === "active" && (
+      {/* Pulse Check CTA — show when user is active (has pods or active enrollment) */}
+      {state === "active" && (
         <Link
           href="/pulse-check"
           className="group mb-6 flex items-center justify-between rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors duration-150 ease-out hover:border-yellow-500/40 hover:bg-yellow-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
