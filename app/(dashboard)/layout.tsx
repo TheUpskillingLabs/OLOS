@@ -141,18 +141,10 @@ export default async function DashboardLayout({
               href="/profile"
               className={`flex items-center gap-2 ${navLinkClass}`}
             >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName ?? ""}
-                  className="h-7 w-7 rounded-full ring-1 ring-whisper"
-                />
-              ) : (
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-shadow-teal text-xs font-semibold text-white">
-                  {initials}
-                </span>
-              )}
-              <span className="hidden sm:inline">{displayName}</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-shadow-teal text-xs font-semibold text-white">
+                {initials}
+              </span>
+              <span className="hidden sm:inline truncate max-w-[150px]">{displayName}</span>
             </Link>
             <LogoutButton />
           </nav>

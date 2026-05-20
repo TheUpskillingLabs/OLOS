@@ -60,6 +60,7 @@ export default function CycleInterestForm({
       router.push(`/cycles/${cycleId}/register-pods`);
     } else {
       const data = await res.json();
+      console.error("Interest form error:", res.status, data);
       setError(data.error || "Submission failed");
     }
     setSubmitting(false);
@@ -111,9 +112,7 @@ export default function CycleInterestForm({
 
         <div className="border-t border-white/[0.06]" />
 
-        {/* Professional Context */}
         <div className="space-y-4 py-6">
-          <h3 className={sectionHeadingClass}>Professional Context</h3>
           <label className="block">
             <span className="text-sm font-medium text-cloud">
               Work Situation <span className="text-red-400">*</span>

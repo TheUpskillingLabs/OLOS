@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
@@ -23,8 +24,10 @@ export const POST = withAuth(
       );
     }
 
+    const supabase = createServiceClient();
+
     // Verify cycle is active
-    const { data: cycle } = await auth.supabase
+    const { data: cycle } = await supabase
       .from("cycles")
       .select("id, status")
       .eq("id", cycleId)
@@ -51,7 +54,7 @@ export const POST = withAuth(
     } = body;
 
     // Upsert long-form fields onto participant row
-    const { error: updateError } = await auth.supabase
+    const { error: updateError } = await supabase
       .from("participants")
       .update(profileFields)
       .eq("id", participantId);
@@ -72,7 +75,7 @@ export const POST = withAuth(
     }
 
     // Delete existing options for this participant then re-insert
-    await auth.supabase
+    await supabase
       .from("participant_options")
       .delete()
       .eq("participant_id", participantId);
@@ -82,7 +85,7 @@ export const POST = withAuth(
         participant_id: participantId,
         option_id,
       }));
-      const { error: optError } = await auth.supabase
+      const { error: optError } = await supabase
         .from("participant_options")
         .insert(rows);
 
@@ -92,7 +95,7 @@ export const POST = withAuth(
     }
 
     // Upsert cycle_enrollments with status='inactive'
-    const { data: existingEnrollment } = await auth.supabase
+    const { data: existingEnrollment } = await supabase
       .from("cycle_enrollments")
       .select("id")
       .eq("participant_id", participantId)
@@ -104,7 +107,7 @@ export const POST = withAuth(
     if (existingEnrollment) {
       enrollmentId = existingEnrollment.id;
     } else {
-      const { data: enrollment, error: enError } = await auth.supabase
+      const { data: enrollment, error: enError } = await supabase
         .from("cycle_enrollments")
         .insert({
           participant_id: participantId,
