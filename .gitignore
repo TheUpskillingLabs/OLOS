@@ -47,6 +47,14 @@ supabase/.branches/
 docs/Upskiller Community Manager*.xlsx
 docs/Upskiller Community Manager*.csv
 
+# Office docs may contain credentials/PII — never commit
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.ppt
+
 # migration script venv + run logs
 scripts/migration/.venv/
 scripts/migration/run_*.log
