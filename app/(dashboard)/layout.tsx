@@ -89,12 +89,15 @@ export default async function DashboardLayout({
       <header className="sticky top-0 z-50 border-b border-whisper bg-[rgba(11,16,22,0.97)] backdrop-blur-sm backdrop-saturate-150">
         <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
-            href="/cycles"
+            href="/dashboard"
             className="text-sm font-semibold tracking-wide text-white"
           >
             The Upskilling Labs
           </Link>
           <nav className="flex items-center gap-6">
+            <Link href="/dashboard" className={navLinkClass}>
+              Dashboard
+            </Link>
             <Link href="/cycles" className={navLinkClass}>
               Cycles
             </Link>

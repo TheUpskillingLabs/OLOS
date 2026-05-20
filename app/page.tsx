@@ -23,5 +23,5 @@ export default async function Home() {
     redirect("/register");
   }
 
-  redirect("/cycles");
+  redirect("/dashboard");
 }

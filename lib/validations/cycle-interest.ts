@@ -1,0 +1,26 @@
+import { z } from "zod";
+
+export const cycleInterestSchema = z.object({
+  gender: z.string().max(50).optional().nullable(),
+  state: z.string().min(1, "state is required").max(100),
+  neighborhood: z.string().min(1, "neighborhood is required").max(200),
+  dcpl_card: z.string().min(1, "dcpl_card is required").max(50),
+  dcpl_info: z.string().max(500).optional().nullable(),
+  work_situation: z.string().min(1, "work_situation is required").max(100),
+  main_focus: z.string().min(1, "main_focus is required").max(200),
+  sector: z.string().max(200).optional().nullable(),
+  current_title: z.string().max(200).optional().nullable(),
+  linkedin: z.string().max(500).optional().nullable(),
+  ai_tool_familiarity: z.number().int().min(0).max(10),
+  ai_tools: z.array(z.number().int()).optional().nullable(),
+  labs_goals: z.array(z.number().int()).optional().nullable(),
+  availability: z.array(z.number().int()).optional().nullable(),
+  work_style: z.array(z.number().int()).optional().nullable(),
+  group_strengths: z.array(z.number().int()).optional().nullable(),
+  participation_commitment: z.string().max(500).optional().nullable(),
+  primary_expertise: z.string().max(500).optional().nullable(),
+  volunteer_interest: z.string().max(500).optional().nullable(),
+  text_updates: z.boolean().optional().nullable(),
+  photo_video_consent: z.boolean().optional().nullable(),
+  source: z.string().max(200).optional().nullable(),
+});

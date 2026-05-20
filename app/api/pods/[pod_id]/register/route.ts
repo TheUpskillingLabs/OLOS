@@ -115,6 +115,16 @@ export const POST = withAuth(
       }
     }
 
+    // If pod is already active, activate just this joining participant
+    if (pod.status === "active") {
+      await auth.supabase
+        .from("cycle_enrollments")
+        .update({ status: "active" })
+        .eq("participant_id", participantId)
+        .eq("cycle_id", pod.cycle_id)
+        .eq("status", "inactive");
+    }
+
     return NextResponse.json(
       { pod_membership_id: membership.id, registered_at: membership.joined_at },
       { status: 201 }

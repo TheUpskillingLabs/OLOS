@@ -85,17 +85,17 @@ erDiagram
         varchar last_name
         varchar preferred_name
         varchar gender
-        varchar state
-        varchar neighborhood
+        varchar state "nullable"
+        varchar neighborhood "nullable"
         varchar phone_number
-        varchar dcpl_card
+        varchar dcpl_card "nullable"
         boolean dcpl_info
-        varchar work_situation
-        varchar main_focus
+        varchar work_situation "nullable"
+        varchar main_focus "nullable"
         varchar sector
         varchar current_title
         varchar linkedin
-        smallint ai_tool_familiarity
+        smallint ai_tool_familiarity "nullable"
         varchar participation_commitment
         varchar primary_expertise
         varchar volunteer_interest
@@ -103,9 +103,10 @@ erDiagram
         text commitment_notes
         text interest_areas
         text moderator_experience
-        boolean text_updates
+        boolean text_updates "nullable"
         boolean email_updates
         boolean comms_consent
+        boolean contact_consent "NOT NULL DEFAULT FALSE"
         boolean photo_video_consent
         varchar source
         varchar slack_username

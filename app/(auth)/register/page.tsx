@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import RegisterForm from "./register-form";
+import ShortForm from "./short-form";
 
 export default async function RegisterPage() {
   const supabase = await createClient();
@@ -21,7 +21,7 @@ export default async function RegisterPage() {
     .maybeSingle();
 
   if (existing) {
-    redirect("/cycles");
+    redirect("/dashboard");
   }
 
   const email = user.email ?? "";
@@ -44,10 +44,9 @@ export default async function RegisterPage() {
           Complete your profile to join The Upskilling Labs.
         </p>
       </div>
-      <RegisterForm
+      <ShortForm
         email={email}
         authUserId={user.id}
-        profileImageUrl={profileImageUrl}
       />
     </div>
   );
