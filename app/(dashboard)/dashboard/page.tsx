@@ -268,7 +268,7 @@ export default async function DashboardPage() {
               return (
                 <Link
                   key={membership.id}
-                  href={`/cycles/${activeCycle!.id}/pods/${pod.id}`}
+                  href={`/pods/${pod.id}`}
                   className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                 >
                   <div className="flex items-start justify-between gap-3">
