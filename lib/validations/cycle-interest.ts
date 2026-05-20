@@ -5,11 +5,7 @@ export const cycleInterestSchema = z.object({
   work_situation: z.string().min(1, "work_situation is required").max(100),
   main_focus: z.string().min(1, "main_focus is required").max(200),
   sector: z.string().max(200).optional().nullable(),
-  linkedin: z.union([
-    z.string().max(500).regex(/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/, "Must be a LinkedIn profile URL"),
-    z.literal(""),
-    z.null(),
-  ]).optional().transform((v) => v || null),
+  linkedin: z.string().min(1, "LinkedIn URL is required").max(500).regex(/^https?:\/\/(www\.)?linkedin\.com\/in\/.+/, "Must be a LinkedIn profile URL"),
   availability: z.array(z.number().int()).optional().nullable(),
   group_strengths: z.array(z.number().int()).optional().nullable(),
   availability_commitment: z.string().min(1, "availability_commitment is required").max(50),

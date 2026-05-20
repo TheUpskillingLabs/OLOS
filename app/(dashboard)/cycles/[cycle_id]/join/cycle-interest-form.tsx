@@ -93,7 +93,7 @@ export default function CycleInterestForm({
         <div className="space-y-4 pb-6">
           <h3 className={sectionHeadingClass}>Location</h3>
           <label className="block">
-            <span className="text-sm font-medium text-cloud">State</span>
+            <span className="text-sm font-medium text-cloud">State <span className="text-red-400">*</span></span>
             <select
               name="state"
               required
@@ -116,7 +116,7 @@ export default function CycleInterestForm({
           <h3 className={sectionHeadingClass}>Professional Context</h3>
           <label className="block">
             <span className="text-sm font-medium text-cloud">
-              Work Situation
+              Work Situation <span className="text-red-400">*</span>
             </span>
             <select
               name="work_situation"
@@ -139,7 +139,7 @@ export default function CycleInterestForm({
             </select>
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-cloud">Main Focus</span>
+            <span className="text-sm font-medium text-cloud">Main Focus <span className="text-red-400">*</span></span>
             <select
               name="main_focus"
               required
@@ -172,12 +172,11 @@ export default function CycleInterestForm({
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-cloud">LinkedIn URL</span>
+            <span className="text-sm font-medium text-cloud">LinkedIn URL <span className="text-red-400">*</span></span>
             <input
               name="linkedin"
-              type="url"
-              pattern="https?://(www\.)?linkedin\.com/in/.+"
-              title="Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)"
+              type="text"
+              required
               placeholder="https://linkedin.com/in/..."
               defaultValue={defaults.linkedin ?? ""}
               className={inputClass}
