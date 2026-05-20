@@ -86,16 +86,38 @@ export async function POST(request: NextRequest) {
   // Send Email A (registration confirmation)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://olos.theupskillinglabs.org";
 
-  // Check for active cycle to include in email
+  // Only include the cycle CTA if there's an active cycle AND its pod-registration
+  // window is currently open. If the cycle is active but registration has already
+  // closed (or hasn't yet opened), fall back to the no-CTA variant so we don't
+  // send users to a dead end.
+  let emailCycleName: string | null = null;
+  let emailCycleJoinUrl: string | null = null;
+
   const { data: activeCycle } = await supabase
     .from("cycles")
     .select("id, name")
     .eq("status", "active")
     .maybeSingle();
 
-  const cycleJoinUrl = activeCycle
-    ? `${appUrl}/cycles/${activeCycle.id}/join`
-    : null;
+  if (activeCycle) {
+    const { data: config } = await supabase
+      .from("cycle_config")
+      .select("pod_registration_open, pod_registration_close")
+      .eq("cycle_id", activeCycle.id)
+      .maybeSingle();
+
+    const now = new Date();
+    const isOpen =
+      !!config?.pod_registration_open &&
+      !!config?.pod_registration_close &&
+      now >= new Date(config.pod_registration_open) &&
+      now <= new Date(config.pod_registration_close);
+
+    if (isOpen) {
+      emailCycleName = activeCycle.name;
+      emailCycleJoinUrl = `${appUrl}/cycles/${activeCycle.id}/join`;
+    }
+  }
 
   try {
     const resend = getResendClient();
@@ -105,13 +127,13 @@ export async function POST(request: NextRequest) {
       subject: "Welcome to The Upskilling Labs",
       html: registrationConfirmationHtml({
         firstName: first_name,
-        cycleName: activeCycle?.name,
-        cycleJoinUrl,
+        cycleName: emailCycleName,
+        cycleJoinUrl: emailCycleJoinUrl,
       }),
       text: registrationConfirmationText({
         firstName: first_name,
-        cycleName: activeCycle?.name,
-        cycleJoinUrl,
+        cycleName: emailCycleName,
+        cycleJoinUrl: emailCycleJoinUrl,
       }),
     });
   } catch {

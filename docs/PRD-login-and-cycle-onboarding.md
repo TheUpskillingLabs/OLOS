@@ -238,7 +238,7 @@ What renders:
 
 - The standard top app bar: logo on the left, user avatar + email + Logout on the right. **The "Cycles" and "Pulse Check" nav items are hidden** — they're not useful until the user is in a cycle.
 - A short welcome line: `Welcome, {{preferred_name or first_name}}.`
-- A single, prominent hero card with the cycle name as its heading, a one-line description, and a "Join {{cycle_name}}" button that opens Feature 2's long form.
+- A single, prominent hero card with the cycle name as its heading, a one-line description, and a "Join {{cycle_name}}" button that opens Feature 2's long form. **The CTA renders only when an active cycle exists AND its pod-registration window is currently open** (i.e., `cycle_config.pod_registration_open <= NOW() <= cycle_config.pod_registration_close`).
 
 What is **not** rendered in this state:
 
@@ -248,7 +248,7 @@ What is **not** rendered in this state:
 - The "Past cycles" grid
 - Any secondary CTAs or marketing copy
 
-If no active cycle exists at all, the empty state instead shows "No cycle running right now" with no CTA. Past cycles stay hidden.
+If no active cycle exists, OR if the active cycle's pod-registration window has already closed or has not yet opened, the empty state instead shows "No Build Cycle is open for new participants right now. We'll let you know when the next one opens." with no CTA. The same gating logic applies to Email A's CTA (see Feature 3) so the dashboard and the email never disagree about whether there's an actionable cycle.
 
 **Engaged state — user has a `cycle_enrollments` row for the active cycle**
 
