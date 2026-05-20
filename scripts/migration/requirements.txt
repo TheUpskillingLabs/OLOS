@@ -1,0 +1,6 @@
+# Lower bounds, not hard pins — this script targets whatever Python the
+# operator runs (CI tends to be ahead of local). Hard pins broke py3.14.
+pandas>=2.2
+openpyxl>=3.1
+psycopg[binary]>=3.2
+python-dotenv>=1.0

@@ -30,7 +30,12 @@ import {
 } from "@/lib/email/invitation-template";
 import { createInterface } from "node:readline/promises";
 
-const PROD_PROJECT_REF = "cethihabtddiujzayaxe";
+// Project-ref history (also reflected in scripts/migration/migrate.py):
+//   2026-05-13  cethihabtddiujzayaxe  was prod (single-project setup)
+//   2026-05-16  cdbgkgkjnomjnpicaxqe  IS prod (new empty project; clean cutover)
+//               cethihabtddiujzayaxe  IS dev/staging (retains pre-split data)
+// MUST match whatever is currently prod, not historical prod.
+const PROD_PROJECT_REF = "cdbgkgkjnomjnpicaxqe";
 const DEFAULT_APP_URL = "https://olos.theupskillinglabs.org";
 const EMAIL_SUBJECT = "You're invited to The Upskilling Labs";
 const PER_ROW_DELAY_MS = 200;
