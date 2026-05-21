@@ -61,11 +61,14 @@ export default async function PodDetailPage({
   const userRoles = user
     ? await resolveUserRoles(serviceClient, user.id)
     : null;
+  // Cross-pod access requires `participants:read` (granted to owner/admin/observer),
+  // NOT `pulse_checks:read` — moderators have the latter globally per 00009 but
+  // must remain pod-scoped via isModeratorForPod for their assigned pod.
   const canViewDashboard =
     userRoles &&
     (isAdmin(userRoles) ||
       isModeratorForPod(userRoles, pod.id) ||
-      can(userRoles, "pulse_checks:read"));
+      can(userRoles, "participants:read"));
 
   // Fetch pulse check data for dashboard (using service client to bypass RLS)
   let pulseCheckData: {
