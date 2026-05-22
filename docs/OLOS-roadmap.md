@@ -181,7 +181,9 @@ graph TD
 
 ## §2.6 — Solution proposal submission form
 *Authenticated form scoped to a pod. Posts to `POST /api/pods/{id}/solution-proposals`. Single-submitter UX (per board annotation: multi-submission is functionally allowed but not promoted).*
-- Issue: TBD
+
+**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** Existing pod-scoped submission API + page predate this consolidation; W2-006 ships the rich 7-field form (project name, summary, description, 4 optional context fields), a `(cycle_id, participant_id)` unique constraint via [migration 00016](../supabase/migrations/00016_solution_proposals_rich_fields.sql), and the T-1/T+1 tab-visibility buffer + T-2-day warning banner. Edit-until-close handled via UPSERT on the unique constraint.
+- Issue: `ISSUE-W2-006` (#74)
 
 ## §2.7 — Pulse-check moderator view: response review
 *Extends §1.14. Moderators can read individual pulse responses for their pod members.*
@@ -199,19 +201,27 @@ graph TD
 
 ## §3.1 — Project voting form
 *Implements `POST /api/pods/{id}/project-votes` with budget validation (default 3 votes per active pod member, no submitter differentiation per spec).*
-- Issue: TBD
+
+**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** W2-006 refactors the route to atomic-ballot semantics (full ballot at once, sum == `project_submitter_votes`, idempotent), adds submitter-only gating per AC (non-submitters see a greyed "not eligible" message), and rewrites the UI for blind voting with +/- counters.
+- Issue: `ISSUE-W2-006` (#74)
 
 ## §3.2 — Voting dashboard (real-time tallies)
 *Per `TUL_MVP_Spec.md §UI Specifications`. Bar visualization with threshold line. Polling-based real-time updates.*
-- Issue: TBD
+
+**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** Moderator dashboard ships at `/moderator/cycles/[cycle_id]/vote-progress` showing per-project tallies + ballot count, aggregate-only (no per-voter attribution per AC). Real-time updates deferred to a polling pass in a future issue — for v1 it's a server-rendered snapshot.
+- Issue: `ISSUE-W2-006` (#74)
 
 ## §3.3 — Project shortlist publication
 *Implements `POST /api/pods/{id}/projects/finalize`. Tallies, filters by `project_vote_threshold`, ranks, creates up to `max_projects` projects in `forming` status. Includes LLM name generation.*
-- Issue: TBD
+
+**Partially absorbed pre-W2-006** (existing finalize endpoint shipped earlier). W2-006 tightens the shortlist cap to `min(max_projects, floor(active_enrollments / project_min))` per AC. Energy cohort math: `min(8, floor(25/3)) = 8`, so behavior identical for the active cohort.
+- Issue: `ISSUE-W2-006` (#74)
 
 ## §3.4 — Project self-registration UI
 *Implements `POST /api/projects/{id}/register` and `DELETE`. Enforces the 1-project-per-cycle exclusive constraint.*
-- Issue: TBD
+
+**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** Existing register/withdraw routes already enforce window, pod membership, 1-per-cycle (DB partial unique index + app check), and `project_max` cap. W2-006 surfaces the cap visually with "Pod full" and "X / max members" copy.
+- Issue: `ISSUE-W2-006` (#74)
 
 ## §3.5 — Pulse-check response analysis
 *Per the Wave 3 board section ("see analysis of responses"). Moderator dashboard view with aggregations across the cycle's pulse data: most-cited tools, most-cited benefits, help requests trend.*
