@@ -14,7 +14,9 @@ export const GET = withAuth(
 
     const { data, error } = await auth.supabase
       .from("solution_proposals")
-      .select("id, participant_id, proposal_text, created_at")
+      .select(
+        "id, participant_id, name, summary, proposal_data, proposal_text, created_at"
+      )
       .eq("pod_id", podId)
       .order("created_at");
 
@@ -38,9 +40,16 @@ export const POST = withAuth(
 
     const body = await parseBody(request, solutionProposalSchema);
     if (isErrorResponse(body)) return body;
-    const { proposal_text } = body;
+    const {
+      name,
+      summary,
+      description,
+      pod_problem_link,
+      why_now,
+      mvp_scope,
+      skills_wanted,
+    } = body;
 
-    // Get pod for cycle_id
     const { data: pod } = await auth.supabase
       .from("pods")
       .select("cycle_id")
@@ -51,13 +60,11 @@ export const POST = withAuth(
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
 
-    // Check window
     const window = await checkWindow(auth.supabase, pod.cycle_id, "solution_proposal");
     if (!window.open) {
       return NextResponse.json({ error: window.message }, { status: 403 });
     }
 
-    // Check active pod membership
     const { data: membership } = await auth.supabase
       .from("pod_memberships")
       .select("id")
@@ -73,15 +80,31 @@ export const POST = withAuth(
       );
     }
 
+    // UPSERT on (cycle_id, participant_id) — one submission per participant per
+    // cycle, but editable until solution_proposal_close (per ISSUE-W2-001 D3).
+    // Migration 00016 added the unique index that's our conflict target.
+    const proposalData = {
+      description,
+      ...(pod_problem_link ? { pod_problem_link } : {}),
+      ...(why_now ? { why_now } : {}),
+      ...(mvp_scope ? { mvp_scope } : {}),
+      ...(skills_wanted ? { skills_wanted } : {}),
+    };
+
     const { data, error } = await auth.supabase
       .from("solution_proposals")
-      .insert({
-        cycle_id: pod.cycle_id,
-        pod_id: podId,
-        participant_id: participantId,
-        proposal_text,
-      })
-      .select("id, created_at")
+      .upsert(
+        {
+          cycle_id: pod.cycle_id,
+          pod_id: podId,
+          participant_id: participantId,
+          name,
+          summary,
+          proposal_data: proposalData,
+        },
+        { onConflict: "cycle_id,participant_id" }
+      )
+      .select("id, name, summary, proposal_data, pod_id, created_at")
       .single();
 
     if (error) {

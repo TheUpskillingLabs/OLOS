@@ -28,13 +28,28 @@ export const POST = withAuth(
     // Get config
     const { data: config } = await auth.supabase
       .from("cycle_config")
-      .select("project_vote_threshold, max_projects")
+      .select("project_vote_threshold, max_projects, project_min")
       .eq("cycle_id", pod.cycle_id)
       .single();
 
     if (!config) {
       return NextResponse.json({ error: "Cycle config not found" }, { status: 500 });
     }
+
+    // W2-001 shortlist cap: min(max_projects, floor(active_enrollments / project_min)).
+    // Active enrollments is cycle-wide (not just this pod) per the AC.
+    const { count: participantCount } = await auth.supabase
+      .from("cycle_enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("cycle_id", pod.cycle_id)
+      .eq("status", "active");
+
+    const enrolledCount = participantCount ?? 0;
+    const projectMin = Math.max(1, config.project_min);
+    const shortlistCap = Math.min(
+      config.max_projects,
+      Math.floor(enrolledCount / projectMin)
+    );
 
     // Tally votes
     const { data: votes } = await auth.supabase
@@ -79,7 +94,7 @@ export const POST = withAuth(
       (r) => r.total_votes < config.project_vote_threshold
     );
 
-    const toCreate = eligible.slice(0, config.max_projects);
+    const toCreate = eligible.slice(0, shortlistCap);
     const projects = [];
 
     for (const prop of toCreate) {

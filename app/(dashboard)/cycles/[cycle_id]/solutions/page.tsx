@@ -2,7 +2,14 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import ProposalForm from "./proposal-form";
+import ProposalForm, { type InitialProposal } from "./proposal-form";
+
+// W2-001: submission tab visibility extends T-1 day before
+// solution_proposal_open through T+1 day after solution_proposal_close.
+// Server-side enforcement on POST is strict (open..close only); this buffer
+// only controls UI presence so participants see the upcoming window land
+// and have a day after close to read the "submission closed" state.
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default async function SolutionsPage({
   params,
@@ -29,18 +36,33 @@ export default async function SolutionsPage({
     .single();
 
   const now = new Date();
-  const isOpen =
-    config?.solution_proposal_open &&
-    config?.solution_proposal_close &&
-    now >= new Date(config.solution_proposal_open) &&
-    now <= new Date(config.solution_proposal_close);
+  const openAt = config?.solution_proposal_open ? new Date(config.solution_proposal_open) : null;
+  const closeAt = config?.solution_proposal_close ? new Date(config.solution_proposal_close) : null;
 
-  // Get user's pods for this cycle
+  const tabVisibleFrom = openAt ? new Date(openAt.getTime() - DAY_MS) : null;
+  const tabVisibleUntil = closeAt ? new Date(closeAt.getTime() + DAY_MS) : null;
+
+  const tabVisible =
+    tabVisibleFrom !== null &&
+    tabVisibleUntil !== null &&
+    now >= tabVisibleFrom &&
+    now <= tabVisibleUntil;
+
+  const submissionOpen =
+    openAt !== null && closeAt !== null && now >= openAt && now <= closeAt;
+
+  // T-2 days through close: warn participants who haven't submitted yet.
+  const warnBannerFrom = closeAt ? new Date(closeAt.getTime() - 2 * DAY_MS) : null;
+  const inWarningWindow =
+    warnBannerFrom !== null && closeAt !== null && now >= warnBannerFrom && now <= closeAt;
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   let myPods: { id: number; name: string | null }[] = [];
+  let initialProposal: InitialProposal | null = null;
+
   if (user) {
     const { data: participant } = await supabase
       .from("participants")
@@ -60,6 +82,24 @@ export default async function SolutionsPage({
         const pod = m.pods as unknown as { id: number; name: string | null };
         return { id: pod.id, name: pod.name };
       });
+
+      const { data: existing } = await supabase
+        .from("solution_proposals")
+        .select("id, pod_id, name, summary, proposal_data, proposal_text")
+        .eq("cycle_id", cycleId)
+        .eq("participant_id", participant.id)
+        .maybeSingle();
+
+      if (existing) {
+        initialProposal = {
+          id: existing.id,
+          pod_id: existing.pod_id,
+          name: existing.name,
+          summary: existing.summary,
+          proposal_data: (existing.proposal_data as Record<string, string> | null) ?? null,
+          proposal_text: existing.proposal_text,
+        };
+      }
     }
   }
 
@@ -74,28 +114,30 @@ export default async function SolutionsPage({
           {cycle.name}
         </Link>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
-          Solution proposals
+          Submit a project
         </h1>
         <p className="mt-1 text-sm text-cloud/80">
-          Propose solutions for your pod to explore.
+          Propose a project for your pod to vote on. One submission per cycle —
+          you can edit until the window closes.
         </p>
       </div>
 
-      {!isOpen ? (
+      {!tabVisible ? (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
           <p className="text-cloud/80">
-            Solution proposal submission is not currently open.
+            Project submission is not currently open.
           </p>
-          {config?.solution_proposal_open &&
-            now < new Date(config.solution_proposal_open) && (
-              <p className="mt-2 text-sm text-cloud/60 tabular-nums">
-                Opens{" "}
-                {new Date(config.solution_proposal_open).toLocaleDateString(
-                  "en-US",
-                  { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
-                )}
-              </p>
-            )}
+          {openAt && now < openAt && (
+            <p className="mt-2 text-sm text-cloud/60 tabular-nums">
+              Opens{" "}
+              {openAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </p>
+          )}
         </div>
       ) : myPods.length === 0 ? (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
@@ -110,7 +152,32 @@ export default async function SolutionsPage({
           </Link>
         </div>
       ) : (
-        <ProposalForm pods={myPods} />
+        <>
+          {inWarningWindow && !initialProposal && closeAt && (
+            <div
+              role="alert"
+              className="mb-6 rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] px-4 py-3 text-sm text-yellow-200"
+            >
+              <strong className="font-semibold">Heads up:</strong> if you don&apos;t
+              submit a project by{" "}
+              <span className="tabular-nums">
+                {closeAt.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+              , you won&apos;t be eligible to vote in the next phase.
+            </div>
+          )}
+          <ProposalForm
+            pods={myPods}
+            initialProposal={initialProposal}
+            submissionOpen={submissionOpen}
+            closeAt={closeAt?.toISOString() ?? null}
+          />
+        </>
       )}
     </div>
   );
