@@ -30,11 +30,23 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files — broad ignore + explicit re-include for the tracked example.
+# Order matters: `.env*` must come BEFORE `!.env.local.example` so the
+# negation is the last matching rule for that filename.
 .env
 .env.local
 .env*.local
+.env*
 !.env.local.example
+
+# Office docs may contain credentials/PII — never commit
+# (folded in from the original #81 chore/gitignore-office-docs branch)
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.ppt
 
 # MCP server config — may contain credentials
 .mcp.json
