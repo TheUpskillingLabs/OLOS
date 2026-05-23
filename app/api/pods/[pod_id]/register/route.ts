@@ -103,15 +103,13 @@ export const POST = withAuth(
         .eq("pod_id", podId)
         .is("inactive_at", null);
 
-      if (members) {
-        for (const m of members) {
-          await auth.supabase
-            .from("cycle_enrollments")
-            .update({ status: "active" })
-            .eq("participant_id", m.participant_id)
-            .eq("cycle_id", pod.cycle_id)
-            .eq("status", "inactive");
-        }
+      if (members && members.length > 0) {
+        await auth.supabase
+          .from("cycle_enrollments")
+          .update({ status: "active" })
+          .in("participant_id", members.map((m) => m.participant_id))
+          .eq("cycle_id", pod.cycle_id)
+          .eq("status", "inactive");
       }
     }
 

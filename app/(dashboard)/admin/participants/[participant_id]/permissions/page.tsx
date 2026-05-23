@@ -19,45 +19,24 @@ export default async function ParticipantPermissionsPage({
   if (!user) redirect("/login");
 
   const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
 
   const participantId = parseInt(participant_id);
   if (isNaN(participantId)) notFound();
 
-  // Fetch participant info
-  const { data: participant } = await serviceClient
-    .from("participants")
-    .select("id, first_name, last_name, preferred_name, email")
-    .eq("id", participantId)
-    .single();
+  const [userRoles, { data: participant }, { data: permRows }, { data: roleRows }, { data: modAssignments }] =
+    await Promise.all([
+      resolveUserRoles(serviceClient, user.id),
+      serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email").eq("id", participantId).single(),
+      serviceClient.from("participant_permissions").select("permission").eq("participant_id", participantId).is("revoked_at", null),
+      serviceClient.from("user_roles").select("role").eq("participant_id", participantId).is("revoked_at", null),
+      serviceClient.from("moderator_assignments").select("pod_id, pods (name, cycle_id, cycles (name))").eq("participant_id", participantId).is("removed_at", null),
+    ]);
 
+  if (!isAdmin(userRoles)) redirect("/cycles");
   if (!participant) notFound();
 
-  // Fetch current permissions
-  const { data: permRows } = await serviceClient
-    .from("participant_permissions")
-    .select("permission")
-    .eq("participant_id", participantId)
-    .is("revoked_at", null);
-
   const currentPermissions = (permRows ?? []).map((r) => r.permission as Permission);
-
-  // Fetch current roles (for display)
-  const { data: roleRows } = await serviceClient
-    .from("user_roles")
-    .select("role")
-    .eq("participant_id", participantId)
-    .is("revoked_at", null);
-
   const currentRoles = (roleRows ?? []).map((r) => r.role as string);
-
-  // Fetch moderator pod assignments
-  const { data: modAssignments } = await serviceClient
-    .from("moderator_assignments")
-    .select("pod_id, pods (name, cycle_id, cycles (name))")
-    .eq("participant_id", participantId)
-    .is("removed_at", null);
 
   const podAssignments = (modAssignments ?? []).map((ma) => {
     const pod = (ma.pods as unknown) as { name: string | null; cycle_id: number; cycles: { name: string } | null } | null;

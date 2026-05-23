@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const createCycleSchema = z.object({
-  name: z.string().min(1, "name is required").max(200),
+  name: z.string().min(1, "Cycle name is required").max(200),
   slug: z.string().max(200).optional(),
-  start_date: z.string().min(1, "start_date is required"),
-  end_date: z.string().min(1, "end_date is required"),
+  start_date: z.string().min(1, "Start date is required"),
+  end_date: z.string().min(1, "End date is required"),
 });
 
 export const updateCycleConfigSchema = z.object({

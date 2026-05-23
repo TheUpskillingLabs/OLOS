@@ -108,7 +108,7 @@ export default function SolutionBallot({
 
       setSubmitted(true);
     } catch {
-      setError("Network error. Please try again.");
+      setError("Network error. Try again.");
     } finally {
       setSubmitting(false);
     }

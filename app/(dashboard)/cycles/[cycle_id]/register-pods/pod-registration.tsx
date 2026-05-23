@@ -79,7 +79,7 @@ export default function PodRegistration({
         )
       );
     } catch {
-      setError("Network error. Please try again.");
+      setError("Network error. Try again.");
     } finally {
       setActionPodId(null);
     }
@@ -114,7 +114,7 @@ export default function PodRegistration({
         )
       );
     } catch {
-      setError("Network error. Please try again.");
+      setError("Network error. Try again.");
     } finally {
       setActionPodId(null);
     }

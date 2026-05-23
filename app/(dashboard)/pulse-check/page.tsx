@@ -38,11 +38,13 @@ export default async function PulseCheckPage() {
     );
   }
 
-  const { data: participant } = await service
-    .from("participants")
-    .select("last_pulse_completed_at, created_at")
-    .eq("id", participantId)
-    .single();
+  const [{ data: participant }, { data: optionRows }, { data: activeCycles }, { data: history }] =
+    await Promise.all([
+      service.from("participants").select("last_pulse_completed_at, created_at").eq("id", participantId).single(),
+      service.from("option_lists").select("id, list_name, value, display_order").eq("active", true).in("list_name", ["ai_tools", "pulse_benefits"]).order("display_order"),
+      service.from("cycles").select("id, name").eq("status", "active"),
+      service.from("pulse_checks").select("id, scheduled_date, completed_at, cycle_id, survey_responses").eq("participant_id", participantId).not("completed_at", "is", null).order("completed_at", { ascending: false }).limit(20),
+    ]);
 
   const baseline =
     participant?.last_pulse_completed_at ?? participant?.created_at ?? new Date().toISOString();
@@ -56,13 +58,6 @@ export default async function PulseCheckPage() {
     locked: status === "overdue",
   };
 
-  // Options
-  const { data: optionRows } = await service
-    .from("option_lists")
-    .select("id, list_name, value, display_order")
-    .eq("active", true)
-    .in("list_name", ["ai_tools", "pulse_benefits"])
-    .order("display_order");
   const aiTools = (optionRows ?? [])
     .filter((r) => r.list_name === "ai_tools")
     .map((r) => ({ id: r.id, value: r.value }));
@@ -70,11 +65,6 @@ export default async function PulseCheckPage() {
     .filter((r) => r.list_name === "pulse_benefits")
     .map((r) => ({ id: r.id, value: r.value }));
 
-  // Active cycle
-  const { data: activeCycles } = await service
-    .from("cycles")
-    .select("id, name")
-    .eq("status", "active");
   const activeCycle = activeCycles?.[0] ?? null;
 
   // User's pods + projects in active cycle
@@ -106,15 +96,6 @@ export default async function PulseCheckPage() {
       projects = projectRows ?? [];
     }
   }
-
-  // History (most recent 20)
-  const { data: history } = await service
-    .from("pulse_checks")
-    .select("id, scheduled_date, completed_at, cycle_id, survey_responses")
-    .eq("participant_id", participantId)
-    .not("completed_at", "is", null)
-    .order("completed_at", { ascending: false })
-    .limit(20);
 
   if (enforcement.locked) {
     return (
