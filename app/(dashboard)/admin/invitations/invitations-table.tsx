@@ -1,6 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { FormField, Input } from "@/app/components/ui/form";
+
+const inviteFormSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  role_preset: z.string().optional(),
+  cycle_id: z.string().optional(),
+  pod_id: z.string().optional(),
+});
+
+type InviteFormData = z.infer<typeof inviteFormSchema>;
 
 type Invitation = {
   id: number;
@@ -18,6 +31,9 @@ type Invitation = {
   email_sent_at: string | null;
 };
 
+const inputClass =
+  "mt-1 block rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
+
 export default function InvitationsTable({
   invitations: initialInvitations,
   cycles,
@@ -31,32 +47,30 @@ export default function InvitationsTable({
 }) {
   const [invitations, setInvitations] = useState(initialInvitations);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [sending, setSending] = useState<number | null>(null);
   const [sendError, setSendError] = useState<{ id: number; message: string } | null>(null);
 
-  // Create form state
-  const [email, setEmail] = useState("");
-  const [rolePreset, setRolePreset] = useState<string>("");
-  const [cycleId, setCycleId] = useState<string>("");
-  const [podId, setPodId] = useState<string>("");
+  const form = useForm<InviteFormData>({
+    resolver: zodResolver(inviteFormSchema),
+    defaultValues: { email: "", role_preset: "", cycle_id: "", pod_id: "" },
+  });
+  const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = form;
+
+  const rolePreset = watch("role_preset");
 
   const filtered = invitations.filter(
     (i) => statusFilter === "all" || i.status === statusFilter
   );
 
-  async function createInvitation(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setError(null);
+  async function onSubmit(data: InviteFormData) {
+    setServerError(null);
 
-    const body: Record<string, unknown> = { email };
-    if (rolePreset) body.role_preset = rolePreset;
-    if (cycleId) body.cycle_id = parseInt(cycleId);
-    if (podId) body.pod_id = parseInt(podId);
+    const body: Record<string, unknown> = { email: data.email };
+    if (data.role_preset) body.role_preset = data.role_preset;
+    if (data.cycle_id) body.cycle_id = parseInt(data.cycle_id);
+    if (data.pod_id) body.pod_id = parseInt(data.pod_id);
 
-    // Step 1: Create the invitation
     const res = await fetch("/api/invitations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -64,40 +78,34 @@ export default function InvitationsTable({
     });
 
     if (!res.ok) {
-      setCreating(false);
-      const data = await res.json();
-      setError(data.error ?? "Failed to create invitation");
+      const json = await res.json();
+      setServerError(json.error ?? "Failed to create invitation");
       return;
     }
 
-    const data = await res.json();
+    const json = await res.json();
 
-    // Step 2: Send the email immediately
-    const sendRes = await fetch(`/api/invitations/${data.id}/send`, { method: "POST" });
+    const sendRes = await fetch(`/api/invitations/${json.id}/send`, { method: "POST" });
     const sendData = await sendRes.json();
 
-    setCreating(false);
-
-    const cycleName = cycleId
-      ? cycles.find((c) => c.id === parseInt(cycleId))?.name ?? null
+    const cycleName = data.cycle_id
+      ? cycles.find((c) => c.id === parseInt(data.cycle_id!))?.name ?? null
       : null;
 
     setInvitations((prev) => [
       {
-        ...data,
-        permissions: data.permissions ?? [],
+        ...json,
+        permissions: json.permissions ?? [],
         cycle_name: cycleName,
         email_sent_at: sendRes.ok ? sendData.email_sent_at : null,
       },
       ...prev,
     ]);
-    setEmail("");
-    setRolePreset("");
-    setCycleId("");
-    setPodId("");
+
+    reset();
 
     if (!sendRes.ok) {
-      setError(sendData.error ?? "Invitation created but email failed to send");
+      setServerError(sendData.error ?? "Invitation created but email failed to send");
     }
   }
 
@@ -121,9 +129,7 @@ export default function InvitationsTable({
 
     if (res.ok) {
       setInvitations((prev) =>
-        prev.map((i) =>
-          i.id === id ? { ...i, email_sent_at: data.email_sent_at } : i
-        )
+        prev.map((i) => (i.id === id ? { ...i, email_sent_at: data.email_sent_at } : i))
       );
     } else {
       setSendError({ id, message: data.error ?? "Failed to send email" });
@@ -141,78 +147,70 @@ export default function InvitationsTable({
         <h3 className="mb-3 text-sm font-semibold tracking-tight text-white">
           Create invitation
         </h3>
-        <form onSubmit={createInvitation} className="flex flex-wrap items-end gap-3">
-          <label className="block flex-1 min-w-[200px]">
-            <span className="text-xs font-medium text-cloud/80">Email *</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="name@example.com"
-              className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            />
-          </label>
-          <label className="block">
-            <span className="text-xs font-medium text-cloud/80">Role Preset</span>
-            <select
-              value={rolePreset}
-              onChange={(e) => setRolePreset(e.target.value)}
-              className="mt-1 block rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            >
-              <option value="">No preset</option>
-              {availablePresets
-                .filter((p) => p !== "")
-                .map((p) => (
-                  <option key={p} value={p}>
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-xs font-medium text-cloud/80">Cycle</span>
-            <select
-              value={cycleId}
-              onChange={(e) => setCycleId(e.target.value)}
-              className="mt-1 block rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            >
-              <option value="">None</option>
-              {cycles.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {rolePreset === "moderator" && (
-            <label className="block">
-              <span className="text-xs font-medium text-cloud/80">Pod</span>
-              <select
-                value={podId}
-                onChange={(e) => setPodId(e.target.value)}
-                className="mt-1 block rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-              >
-                <option value="">Select pod...</option>
-                {pods.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.cycle_name})
+        <FormProvider {...form}>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-wrap items-start gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <FormField name="email" label="Email" required>
+                <Input
+                  {...register("email")}
+                  type="email"
+                  placeholder="name@example.com"
+                  invalid={!!errors.email}
+                  className="mt-1"
+                />
+              </FormField>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-cloud/80">Role Preset</label>
+              <select {...register("role_preset")} className={inputClass}>
+                <option value="">No preset</option>
+                {availablePresets
+                  .filter((p) => p !== "")
+                  .map((p) => (
+                    <option key={p} value={p}>
+                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-cloud/80">Cycle</label>
+              <select {...register("cycle_id")} className={inputClass}>
+                <option value="">None</option>
+                {cycles.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>
-            </label>
-          )}
-          <button
-            type="submit"
-            disabled={creating}
-            className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
-          >
-            {creating ? "Sending..." : "Send invite"}
-          </button>
-        </form>
-        {error && (
+            </div>
+            {rolePreset === "moderator" && (
+              <div>
+                <label className="text-xs font-medium text-cloud/80">Pod</label>
+                <select {...register("pod_id")} className={inputClass}>
+                  <option value="">Select pod...</option>
+                  {pods.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.cycle_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="pt-5">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              >
+                {isSubmitting ? "Sending..." : "Send invite"}
+              </button>
+            </div>
+          </form>
+        </FormProvider>
+        {serverError && (
           <p role="alert" className="mt-2 text-sm text-red-300">
-            {error}
+            {serverError}
           </p>
         )}
       </div>
@@ -262,17 +260,14 @@ export default function InvitationsTable({
           <tbody className="divide-y divide-whisper">
             {filtered.map((inv) => {
               const isExpired =
-                inv.status === "pending" &&
-                new Date(inv.expires_at) < new Date();
+                inv.status === "pending" && new Date(inv.expires_at) < new Date();
 
               return (
                 <tr
                   key={inv.id}
                   className="transition-colors duration-150 hover:bg-white/[0.02]"
                 >
-                  <td className="px-4 py-3 font-medium text-cloud">
-                    {inv.email}
-                  </td>
+                  <td className="px-4 py-3 font-medium text-cloud">{inv.email}</td>
                   <td className="px-4 py-3">
                     {inv.role_preset ? (
                       <span
@@ -297,9 +292,7 @@ export default function InvitationsTable({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-cloud/60">
-                    {inv.cycle_name ?? "—"}
-                  </td>
+                  <td className="px-4 py-3 text-cloud/60">{inv.cycle_name ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -323,20 +316,25 @@ export default function InvitationsTable({
                           <button
                             onClick={() => sendEmail(inv.id)}
                             disabled={sending === inv.id}
-                            title={inv.email_sent_at ? `Last sent ${new Date(inv.email_sent_at).toLocaleDateString()}` : "Resend magic link"}
+                            title={
+                              inv.email_sent_at
+                                ? `Last sent ${new Date(inv.email_sent_at).toLocaleDateString()}`
+                                : "Resend magic link"
+                            }
                             className="rounded bg-white/[0.06] px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 hover:bg-white/[0.10] hover:text-white active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
                           >
                             {sending === inv.id ? "Sending…" : "Resend"}
                           </button>
                         )}
-                        {(inv.status === "pending" || inv.status === "accepted") && !isExpired && (
-                          <button
-                            onClick={() => revokeInvitation(inv.id)}
-                            className="rounded ring-1 ring-whisper px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-red/10 hover:text-red-300 hover:ring-red/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
-                          >
-                            Revoke
-                          </button>
-                        )}
+                        {(inv.status === "pending" || inv.status === "accepted") &&
+                          !isExpired && (
+                            <button
+                              onClick={() => revokeInvitation(inv.id)}
+                              className="rounded ring-1 ring-whisper px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-red/10 hover:text-red-300 hover:ring-red/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                            >
+                              Revoke
+                            </button>
+                          )}
                       </div>
                       {sendError?.id === inv.id && (
                         <p className="text-xs text-red-300">{sendError.message}</p>
@@ -348,10 +346,7 @@ export default function InvitationsTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-8 text-center text-sm text-cloud/60"
-                >
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-cloud/60">
                   No invitations match your filter.
                 </td>
               </tr>

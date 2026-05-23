@@ -37,12 +37,17 @@ export async function resolveUserRoles(
     return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments };
   }
 
-  // Get elevated roles (owner, admin, observer, developer) — kept for audit/display
-  const { data: userRoles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("participant_id", participantId)
-    .is("revoked_at", null);
+  const [
+    { data: userRoles },
+    { data: permRows },
+    { data: modAssignments },
+    { data: enrollments },
+  ] = await Promise.all([
+    supabase.from("user_roles").select("role").eq("participant_id", participantId).is("revoked_at", null),
+    supabase.from("participant_permissions").select("permission").eq("participant_id", participantId).is("revoked_at", null),
+    supabase.from("moderator_assignments").select("pod_id").eq("participant_id", participantId).is("removed_at", null),
+    supabase.from("cycle_enrollments").select("cycle_id, status").eq("participant_id", participantId),
+  ]);
 
   if (userRoles) {
     for (const r of userRoles) {
@@ -50,25 +55,11 @@ export async function resolveUserRoles(
     }
   }
 
-  // Get granular permissions
-  const { data: permRows } = await supabase
-    .from("participant_permissions")
-    .select("permission")
-    .eq("participant_id", participantId)
-    .is("revoked_at", null);
-
   if (permRows) {
     for (const p of permRows) {
       permissions.push(p.permission as Permission);
     }
   }
-
-  // Get moderator assignments
-  const { data: modAssignments } = await supabase
-    .from("moderator_assignments")
-    .select("pod_id")
-    .eq("participant_id", participantId)
-    .is("removed_at", null);
 
   if (modAssignments && modAssignments.length > 0) {
     if (!roles.includes("moderator")) roles.push("moderator");
@@ -76,12 +67,6 @@ export async function resolveUserRoles(
       moderatorPodIds.push(a.pod_id);
     }
   }
-
-  // Get cycle enrollments
-  const { data: enrollments } = await supabase
-    .from("cycle_enrollments")
-    .select("cycle_id, status")
-    .eq("participant_id", participantId);
 
   if (enrollments) {
     for (const e of enrollments) {

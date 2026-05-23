@@ -95,37 +95,35 @@ export const POST = withAuth(
     );
 
     const toCreate = eligible.slice(0, shortlistCap);
-    const projects = [];
 
-    for (const prop of toCreate) {
-      let name: string;
-      try {
-        name = await generateName("project", prop.text);
-      } catch {
-        name = prop.text.slice(0, 40).replace(/\s+\S*$/, "").trim();
-      }
+    const names = await Promise.all(
+      toCreate.map(async (prop) => {
+        try {
+          return await generateName("project", prop.text);
+        } catch {
+          return prop.text.slice(0, 40).replace(/\s+\S*$/, "").trim();
+        }
+      })
+    );
 
-      const { data: project, error } = await auth.supabase
-        .from("projects")
-        .insert({
-          cycle_id: pod.cycle_id,
-          pod_id: podId,
-          solution_proposal_id: prop.solution_proposal_id,
-          name,
-          status: "forming",
-        })
-        .select()
-        .single();
+    const insertRows = toCreate.map((prop, i) => ({
+      cycle_id: pod.cycle_id,
+      pod_id: podId,
+      solution_proposal_id: prop.solution_proposal_id,
+      name: names[i],
+      status: "forming",
+    }));
 
-      if (!error && project) {
-        projects.push({
-          id: project.id,
-          name: project.name,
-          solution_proposal_id: prop.solution_proposal_id,
-          total_votes: prop.total_votes,
-        });
-      }
-    }
+    const { data: insertedProjects } = insertRows.length
+      ? await auth.supabase.from("projects").insert(insertRows).select()
+      : { data: [] };
+
+    const projects = (insertedProjects || []).map((project, i) => ({
+      id: project.id,
+      name: project.name,
+      solution_proposal_id: toCreate[i].solution_proposal_id,
+      total_votes: toCreate[i].total_votes,
+    }));
 
     return NextResponse.json({
       projects,

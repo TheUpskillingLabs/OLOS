@@ -3,6 +3,9 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { copy } from "./copy";
 
 interface Option {
@@ -27,21 +30,68 @@ interface Props {
 const NEW_CONNECTION_CHOICES = copy.engagement.newConnections.choices;
 type NewConnectionChoice = (typeof NEW_CONNECTION_CHOICES)[number];
 
-type Nomination = {
-  nominee_name: string;
-  nominee_email: string;
-  nominee_linkedin: string;
-  nomination_type: "upskiller" | "mentor" | "advisor";
-  reason: string;
-};
+const nominationSchema = z
+  .object({
+    nominee_name: z.string().max(255),
+    nominee_email: z.string().max(255),
+    nominee_linkedin: z.string().max(500),
+    nomination_type: z.enum(["upskiller", "mentor", "advisor"]),
+    reason: z.string().max(2000),
+  })
+  .superRefine((data, ctx) => {
+    const hasName = data.nominee_name.trim();
+    const hasReason = data.reason.trim();
+    const hasAny =
+      hasName ||
+      hasReason ||
+      data.nominee_email.trim() ||
+      data.nominee_linkedin.trim();
+    if (!hasAny) return;
+    if (!hasName) {
+      ctx.addIssue({
+        code: "custom",
+        message: copy.nominations.name.error.required,
+        path: ["nominee_name"],
+      });
+    }
+    if (!hasReason) {
+      ctx.addIssue({
+        code: "custom",
+        message: copy.nominations.reason.error.required,
+        path: ["reason"],
+      });
+    }
+  });
 
-const emptyNomination = (): Nomination => ({
+const pulseCheckFormSchema = z.object({
+  accomplishment: z
+    .string()
+    .min(1, copy.reflection.accomplishment.error.required)
+    .max(2000, copy.reflection.accomplishment.error.tooLong),
+  highlight: z.string().max(2000),
+  challenge: z.string().max(2000),
+  blockers: z.string().max(2000),
+  tailwinds: z.string().max(2000),
+  mitigation_strategy: z.string().max(2000),
+  anything_else: z.string().max(2000),
+  nominations: z.array(nominationSchema),
+});
+
+type FormData = z.infer<typeof pulseCheckFormSchema>;
+
+const emptyNomination = () => ({
   nominee_name: "",
   nominee_email: "",
   nominee_linkedin: "",
-  nomination_type: "upskiller",
+  nomination_type: "upskiller" as const,
   reason: "",
 });
+
+const inputClass =
+  "mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
+
+const textareaClass =
+  "mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function PulseCheckForm({
   enforcement,
@@ -61,10 +111,36 @@ export default function PulseCheckForm({
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [newConnections, setNewConnections] = useState<NewConnectionChoice | null>(null);
   const [showNominations, setShowNominations] = useState(false);
-  const [nominations, setNominations] = useState<Nomination[]>([emptyNomination()]);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
   const [confirmation, setConfirmation] = useState<{ nominationCount: number } | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(pulseCheckFormSchema),
+    defaultValues: {
+      accomplishment: "",
+      highlight: "",
+      challenge: "",
+      blockers: "",
+      tailwinds: "",
+      mitigation_strategy: "",
+      anything_else: "",
+      nominations: [emptyNomination()],
+    },
+  });
+
+  const { fields: nominationFields, append, remove } = useFieldArray({
+    control,
+    name: "nominations",
+  });
+
+  const watchedNominations = watch("nominations");
 
   const toolNames = useMemo(() => aiTools.map((t) => t.value), [aiTools]);
 
@@ -73,7 +149,6 @@ export default function PulseCheckForm({
     [selectedPodId, projects]
   );
 
-  // Auto-select project if exactly one
   const effectiveProjectId =
     selectedProjectId ??
     (projectsForSelectedPod.length === 1 ? projectsForSelectedPod[0].id : null);
@@ -94,16 +169,6 @@ export default function PulseCheckForm({
     setSet(next);
   };
 
-  const updateNomination = (i: number, patch: Partial<Nomination>) => {
-    setNominations((prev) => prev.map((n, idx) => (idx === i ? { ...n, ...patch } : n)));
-  };
-
-  const addNomination = () =>
-    setNominations((prev) => [...prev, emptyNomination()]);
-
-  const removeNomination = (i: number) =>
-    setNominations((prev) => prev.filter((_, idx) => idx !== i));
-
   const deadlineDate = new Date(enforcement.deadline);
   const deadlineLabel = deadlineDate.toLocaleDateString("en-US", {
     weekday: "long",
@@ -111,69 +176,27 @@ export default function PulseCheckForm({
     day: "numeric",
   });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
+  async function onSubmit(data: FormData) {
+    setServerError("");
 
-    const form = new FormData(e.currentTarget);
-
-    const accomplishment = String(form.get("accomplishment") ?? "").trim();
-    if (!accomplishment) {
-      setError(copy.reflection.accomplishment.error.required);
-      setSubmitting(false);
-      return;
-    }
-    if (accomplishment.length > 2000) {
-      setError(copy.reflection.accomplishment.error.tooLong);
-      setSubmitting(false);
-      return;
-    }
-
-    if (showNominations) {
-      for (const n of nominations) {
-        const hasName = n.nominee_name.trim();
-        const hasReason = n.reason.trim();
-        if (!hasName && !hasReason) continue; // empty card — skip
-        if (!hasName) {
-          setError(copy.nominations.name.error.required);
-          setSubmitting(false);
-          return;
-        }
-        if (!hasReason) {
-          setError(copy.nominations.reason.error.required);
-          setSubmitting(false);
-          return;
-        }
-      }
-    }
-
-    const survey_responses: Record<string, unknown> = { accomplishment };
-    if (energyLevel) survey_responses.energy_level = energyLevel;
-
-    const setIfPresent = (key: string, formKey?: string) => {
-      const v = String(form.get(formKey ?? key) ?? "").trim();
-      if (v) survey_responses[key] = v;
+    const survey_responses: Record<string, unknown> = {
+      accomplishment: data.accomplishment.trim(),
     };
-    setIfPresent("highlight");
-    setIfPresent("challenge");
-    setIfPresent("blockers");
-    setIfPresent("tailwinds");
-    setIfPresent("mitigation_strategy");
-    setIfPresent("anything_else");
+    if (energyLevel) survey_responses.energy_level = energyLevel;
+    if (data.highlight.trim()) survey_responses.highlight = data.highlight.trim();
+    if (data.challenge.trim()) survey_responses.challenge = data.challenge.trim();
+    if (data.blockers.trim()) survey_responses.blockers = data.blockers.trim();
+    if (data.tailwinds.trim()) survey_responses.tailwinds = data.tailwinds.trim();
+    if (data.mitigation_strategy.trim())
+      survey_responses.mitigation_strategy = data.mitigation_strategy.trim();
+    if (data.anything_else.trim()) survey_responses.anything_else = data.anything_else.trim();
 
-    if (selectedToolNames.length > 0) {
-      survey_responses.tools_used = selectedToolNames;
-    }
-    if (selectedBenefits.size > 0) {
-      survey_responses.benefits = Array.from(selectedBenefits);
-    }
-    if (newConnections !== null) {
-      survey_responses.new_connections = newConnections;
-    }
+    if (selectedToolNames.length > 0) survey_responses.tools_used = selectedToolNames;
+    if (selectedBenefits.size > 0) survey_responses.benefits = Array.from(selectedBenefits);
+    if (newConnections !== null) survey_responses.new_connections = newConnections;
 
     const validNominations = showNominations
-      ? nominations
+      ? data.nominations
           .filter((n) => n.nominee_name.trim() && n.reason.trim())
           .map((n) => ({
             nominee_name: n.nominee_name.trim(),
@@ -185,10 +208,7 @@ export default function PulseCheckForm({
       : [];
 
     const today = new Date().toISOString().split("T")[0];
-    const payload: Record<string, unknown> = {
-      scheduled_date: today,
-      survey_responses,
-    };
+    const payload: Record<string, unknown> = { scheduled_date: today, survey_responses };
     if (cycle) payload.cycle_id = cycle.id;
     if (selectedPodId) payload.pod_id = selectedPodId;
     if (effectiveProjectId) payload.project_id = effectiveProjectId;
@@ -201,29 +221,29 @@ export default function PulseCheckForm({
     });
 
     if (res.ok) {
-      const data = await res.json().catch(() => ({}));
+      const resData = await res.json().catch(() => ({}));
+      reset();
       setEnergyLevel(null);
       setSelectedToolNames([]);
       setSelectedBenefits(new Set());
       setNewConnections(null);
-      setNominations([emptyNomination()]);
       setShowNominations(false);
-      (e.target as HTMLFormElement).reset();
-      setConfirmation({ nominationCount: data?.nomination_count ?? validNominations.length });
+      setConfirmation({
+        nominationCount: resData?.nomination_count ?? validNominations.length,
+      });
       router.refresh();
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
     } else {
-      const data = await res.json().catch(() => ({}));
+      const resData = await res.json().catch(() => ({}));
       if (res.status === 409) {
-        setError(copy.submit.duplicateError);
+        setServerError(copy.submit.duplicateError);
       } else {
-        setError(data.error || copy.submit.genericError);
+        setServerError(resData.error || copy.submit.genericError);
       }
     }
-    setSubmitting(false);
-  };
+  }
 
   if (confirmation) {
     return (
@@ -248,32 +268,26 @@ export default function PulseCheckForm({
       <div className={`mb-4 rounded-md border p-4 text-sm ${bannerTone}`}>
         <p className="font-semibold">{copy.status.deadline(deadlineLabel)}</p>
         {cycle && (
-          <p className="mt-1 text-xs opacity-80">
-            {copy.status.cycleLabel(cycle.name)}
-          </p>
+          <p className="mt-1 text-xs opacity-80">{copy.status.cycleLabel(cycle.name)}</p>
         )}
       </div>
 
       <div className="mb-6 rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
-        <p className="text-sm font-semibold text-yellow-300">
-          {copy.status.consequenceTitle}
-        </p>
-        <p className="mt-1 text-sm text-cloud/70">
-          {copy.status.consequenceBody}
-        </p>
+        <p className="text-sm font-semibold text-yellow-300">{copy.status.consequenceTitle}</p>
+        <p className="mt-1 text-sm text-cloud/70">{copy.status.consequenceBody}</p>
       </div>
 
-      {error && (
+      {serverError && (
         <div
           role="alert"
           className="mb-4 rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300"
         >
-          {error}
+          {serverError}
         </div>
       )}
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
         className="space-y-8 rounded-md border border-whisper bg-white/[0.02] p-6"
       >
         {pods.length > 0 && (
@@ -282,9 +296,7 @@ export default function PulseCheckForm({
               {copy.context.sectionTitle}
             </h2>
             <label className="block">
-              <span className="text-sm font-medium text-cloud">
-                {copy.context.podLabel}
-              </span>
+              <span className="text-sm font-medium text-cloud">{copy.context.podLabel}</span>
               <select
                 value={selectedPodId ?? ""}
                 onChange={(e) => {
@@ -350,9 +362,7 @@ export default function PulseCheckForm({
                         : "border-white/[0.10] text-cloud/80 hover:border-white/[0.18] hover:text-cloud"
                     }`}
                   >
-                    <span className="text-base font-semibold tabular-nums">
-                      {level}
-                    </span>
+                    <span className="text-base font-semibold tabular-nums">{level}</span>
                     <span className="mt-0.5 leading-tight">{label}</span>
                   </button>
                 );
@@ -360,22 +370,28 @@ export default function PulseCheckForm({
             </div>
           </div>
 
-          <label className="block">
-            <span className="text-sm font-medium text-cloud">
+          <div>
+            <label
+              htmlFor="accomplishment"
+              className="block text-sm font-medium text-cloud"
+            >
               {copy.reflection.accomplishment.label} *
-            </span>
+            </label>
             <span className="block text-xs text-cloud/60">
               {copy.reflection.accomplishment.helper}
             </span>
             <textarea
-              name="accomplishment"
-              required
-              maxLength={2000}
+              id="accomplishment"
+              {...register("accomplishment")}
               rows={4}
-              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
+              maxLength={2000}
+              className={textareaClass}
               placeholder={copy.reflection.accomplishment.placeholder}
             />
-          </label>
+            {errors.accomplishment && (
+              <p className="mt-1 text-xs text-red-300">{errors.accomplishment.message}</p>
+            )}
+          </div>
 
           <label className="block">
             <span className="text-sm font-medium text-cloud">
@@ -384,12 +400,7 @@ export default function PulseCheckForm({
             <span className="block text-xs text-cloud/60">
               {copy.reflection.highlight.helper}
             </span>
-            <textarea
-              name="highlight"
-              maxLength={2000}
-              rows={2}
-              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <textarea {...register("highlight")} maxLength={2000} rows={2} className={textareaClass} />
           </label>
 
           <label className="block">
@@ -399,12 +410,7 @@ export default function PulseCheckForm({
             <span className="block text-xs text-cloud/60">
               {copy.reflection.challenge.helper}
             </span>
-            <textarea
-              name="challenge"
-              maxLength={2000}
-              rows={2}
-              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <textarea {...register("challenge")} maxLength={2000} rows={2} className={textareaClass} />
           </label>
         </section>
 
@@ -414,47 +420,25 @@ export default function PulseCheckForm({
           </h2>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">
-              {copy.forces.blockers.label}
-            </span>
-            <span className="block text-xs text-cloud/60">
-              {copy.forces.blockers.helper}
-            </span>
-            <textarea
-              name="blockers"
-              maxLength={2000}
-              rows={3}
-              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <span className="text-sm font-medium text-cloud">{copy.forces.blockers.label}</span>
+            <span className="block text-xs text-cloud/60">{copy.forces.blockers.helper}</span>
+            <textarea {...register("blockers")} maxLength={2000} rows={3} className={textareaClass} />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">
-              {copy.forces.tailwinds.label}
-            </span>
-            <span className="block text-xs text-cloud/60">
-              {copy.forces.tailwinds.helper}
-            </span>
-            <textarea
-              name="tailwinds"
-              maxLength={2000}
-              rows={3}
-              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <span className="text-sm font-medium text-cloud">{copy.forces.tailwinds.label}</span>
+            <span className="block text-xs text-cloud/60">{copy.forces.tailwinds.helper}</span>
+            <textarea {...register("tailwinds")} maxLength={2000} rows={3} className={textareaClass} />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">
-              {copy.forces.mitigation.label}
-            </span>
-            <span className="block text-xs text-cloud/60">
-              {copy.forces.mitigation.helper}
-            </span>
+            <span className="text-sm font-medium text-cloud">{copy.forces.mitigation.label}</span>
+            <span className="block text-xs text-cloud/60">{copy.forces.mitigation.helper}</span>
             <textarea
-              name="mitigation_strategy"
+              {...register("mitigation_strategy")}
               maxLength={2000}
               rows={3}
-              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
+              className={textareaClass}
             />
           </label>
         </section>
@@ -501,9 +485,7 @@ export default function PulseCheckForm({
                         className="hidden"
                         checked={checked}
                         disabled={disabled}
-                        onChange={() =>
-                          toggleSet(selectedBenefits, setSelectedBenefits, b.id, 3)
-                        }
+                        onChange={() => toggleSet(selectedBenefits, setSelectedBenefits, b.id, 3)}
                       />
                       <span>{b.value}</span>
                     </label>
@@ -576,121 +558,127 @@ export default function PulseCheckForm({
                   {copy.nominations.hideLabel}
                 </button>
               </div>
-              {nominations.map((n, i) => (
-                <div
-                  key={i}
-                  className="space-y-3 rounded-md border border-whisper bg-white/[0.02] p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wide text-cloud/50">
-                      {copy.nominations.cardLabel(i + 1)}
-                    </span>
-                    {nominations.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeNomination(i)}
-                        className="text-xs text-cloud/60 hover:text-red-300"
-                      >
-                        {copy.nominations.removeLabel}
-                      </button>
-                    )}
-                  </div>
-
-                  <label className="block">
-                    <span className="text-sm font-medium text-cloud">
-                      {copy.nominations.name.label} *
-                    </span>
-                    <input
-                      type="text"
-                      value={n.nominee_name}
-                      onChange={(e) =>
-                        updateNomination(i, { nominee_name: e.target.value })
-                      }
-                      maxLength={255}
-                      className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </label>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block">
-                      <span className="text-sm font-medium text-cloud">
-                        {copy.nominations.email.label}
+              {nominationFields.map((field, index) => {
+                const nameError = errors.nominations?.[index]?.nominee_name?.message;
+                const reasonError = errors.nominations?.[index]?.reason?.message;
+                return (
+                  <div
+                    key={field.id}
+                    className="space-y-3 rounded-md border border-whisper bg-white/[0.02] p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium uppercase tracking-wide text-cloud/50">
+                        {copy.nominations.cardLabel(index + 1)}
                       </span>
-                      <input
-                        type="email"
-                        value={n.nominee_email}
-                        onChange={(e) =>
-                          updateNomination(i, { nominee_email: e.target.value })
-                        }
-                        className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-sm font-medium text-cloud">
-                        {copy.nominations.linkedin.label}
-                      </span>
-                      <input
-                        type="url"
-                        value={n.nominee_linkedin}
-                        onChange={(e) =>
-                          updateNomination(i, { nominee_linkedin: e.target.value })
-                        }
-                        maxLength={500}
-                        className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder={copy.nominations.linkedin.placeholder}
-                      />
-                    </label>
-                  </div>
-
-                  <div>
-                    <span className="text-sm font-medium text-cloud">
-                      {copy.nominations.type.label}
-                    </span>
-                    <div className="mt-1 flex gap-2">
-                      {copy.nominations.type.options.map((t) => (
-                        <label
-                          key={t.value}
-                          className={`flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-midnight active:scale-[0.99] ${
-                            n.nomination_type === t.value
-                              ? "border-teal/40 bg-teal/[0.08] text-white"
-                              : "border-white/[0.10] text-cloud/70 hover:border-white/[0.18] hover:text-cloud"
-                          }`}
+                      {nominationFields.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => remove(index)}
+                          className="text-xs text-cloud/60 hover:text-red-300"
                         >
-                          <input
-                            type="radio"
-                            className="hidden"
-                            checked={n.nomination_type === t.value}
-                            onChange={() =>
-                              updateNomination(i, { nomination_type: t.value })
-                            }
-                          />
-                          {t.label}
-                        </label>
-                      ))}
+                          {copy.nominations.removeLabel}
+                        </button>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`nominations.${index}.nominee_name`}
+                        className="block text-sm font-medium text-cloud"
+                      >
+                        {copy.nominations.name.label} *
+                      </label>
+                      <input
+                        id={`nominations.${index}.nominee_name`}
+                        type="text"
+                        {...register(`nominations.${index}.nominee_name`)}
+                        maxLength={255}
+                        className={inputClass}
+                      />
+                      {nameError && (
+                        <p className="mt-1 text-xs text-red-300">{nameError}</p>
+                      )}
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block">
+                        <span className="text-sm font-medium text-cloud">
+                          {copy.nominations.email.label}
+                        </span>
+                        <input
+                          type="email"
+                          {...register(`nominations.${index}.nominee_email`)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-medium text-cloud">
+                          {copy.nominations.linkedin.label}
+                        </span>
+                        <input
+                          type="text"
+                          {...register(`nominations.${index}.nominee_linkedin`)}
+                          maxLength={500}
+                          className={inputClass}
+                          placeholder={copy.nominations.linkedin.placeholder}
+                        />
+                      </label>
+                    </div>
+
+                    <div>
+                      <span className="text-sm font-medium text-cloud">
+                        {copy.nominations.type.label}
+                      </span>
+                      <div className="mt-1 flex gap-2">
+                        {copy.nominations.type.options.map((t) => (
+                          <label
+                            key={t.value}
+                            className={`flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-midnight active:scale-[0.99] ${
+                              watchedNominations[index]?.nomination_type === t.value
+                                ? "border-teal/40 bg-teal/[0.08] text-white"
+                                : "border-white/[0.10] text-cloud/70 hover:border-white/[0.18] hover:text-cloud"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              className="hidden"
+                              value={t.value}
+                              {...register(`nominations.${index}.nomination_type`)}
+                            />
+                            {t.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor={`nominations.${index}.reason`}
+                        className="block text-sm font-medium text-cloud"
+                      >
+                        {copy.nominations.reason.label} *
+                      </label>
+                      <span className="block text-xs text-cloud/60">
+                        {copy.nominations.reason.helper}
+                      </span>
+                      <textarea
+                        id={`nominations.${index}.reason`}
+                        {...register(`nominations.${index}.reason`)}
+                        maxLength={2000}
+                        rows={3}
+                        className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                      {reasonError && (
+                        <p className="mt-1 text-xs text-red-300">{reasonError}</p>
+                      )}
                     </div>
                   </div>
-
-                  <label className="block">
-                    <span className="text-sm font-medium text-cloud">
-                      {copy.nominations.reason.label} *
-                    </span>
-                    <span className="block text-xs text-cloud/60">
-                      {copy.nominations.reason.helper}
-                    </span>
-                    <textarea
-                      value={n.reason}
-                      onChange={(e) => updateNomination(i, { reason: e.target.value })}
-                      maxLength={2000}
-                      rows={3}
-                      className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </label>
-                </div>
-              ))}
+                );
+              })}
 
               <button
                 type="button"
-                onClick={addNomination}
+                onClick={() => append(emptyNomination())}
                 className="rounded-md ring-1 ring-whisper px-3 py-1.5 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
               >
                 {copy.nominations.addLabel}
@@ -701,27 +689,23 @@ export default function PulseCheckForm({
 
         <section>
           <label className="block">
-            <span className="text-sm font-medium text-cloud">
-              {copy.closing.label}
-            </span>
-            <span className="block text-xs text-cloud/60">
-              {copy.closing.helper}
-            </span>
+            <span className="text-sm font-medium text-cloud">{copy.closing.label}</span>
+            <span className="block text-xs text-cloud/60">{copy.closing.helper}</span>
             <textarea
-              name="anything_else"
+              {...register("anything_else")}
               maxLength={2000}
               rows={3}
-              className="mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
+              className={textareaClass}
             />
           </label>
         </section>
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={isSubmitting}
           className="w-full rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? copy.submit.submitting : copy.submit.idle}
+          {isSubmitting ? copy.submit.submitting : copy.submit.idle}
         </button>
       </form>
     </>
@@ -747,17 +731,13 @@ function ToolsAutocomplete({
     const taken = new Set(selected.map((s) => s.toLowerCase()));
     const pool = suggestions.filter((s) => !taken.has(s.toLowerCase()));
     if (!q) return pool.slice(0, 8);
-    return pool
-      .filter((s) => s.toLowerCase().includes(q))
-      .slice(0, 8);
+    return pool.filter((s) => s.toLowerCase().includes(q)).slice(0, 8);
   }, [query, selected, suggestions]);
 
   const exactMatchExists = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    return [...selected, ...suggestions].some(
-      (s) => s.toLowerCase() === q
-    );
+    return [...selected, ...suggestions].some((s) => s.toLowerCase() === q);
   }, [query, selected, suggestions]);
 
   const addTag = (raw: string) => {
@@ -799,12 +779,8 @@ function ToolsAutocomplete({
 
   return (
     <div>
-      <span className="text-sm font-medium text-cloud">
-        {copy.engagement.aiTools.label}
-      </span>
-      <span className="block text-xs text-cloud/60">
-        {copy.engagement.aiTools.helper}
-      </span>
+      <span className="text-sm font-medium text-cloud">{copy.engagement.aiTools.label}</span>
+      <span className="block text-xs text-cloud/60">{copy.engagement.aiTools.helper}</span>
       <div
         ref={containerRef}
         onBlur={(e) => {
@@ -841,9 +817,7 @@ function ToolsAutocomplete({
             }}
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder={
-              selected.length === 0 ? copy.engagement.aiTools.placeholderEmpty : ""
-            }
+            placeholder={selected.length === 0 ? copy.engagement.aiTools.placeholderEmpty : ""}
             className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-sm text-white placeholder:text-cloud/40 focus:outline-none"
           />
         </div>
@@ -859,9 +833,7 @@ function ToolsAutocomplete({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => addTag(m)}
                   className={`block w-full px-3 py-2 text-left text-sm ${
-                    i === highlight
-                      ? "bg-aqua/10 text-white"
-                      : "text-cloud/80 hover:bg-white/[0.04]"
+                    i === highlight ? "bg-aqua/10 text-white" : "text-cloud/80 hover:bg-white/[0.04]"
                   }`}
                 >
                   {m}

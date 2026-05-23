@@ -42,7 +42,7 @@ export const copy = {
       placeholder: "I…",
       error: {
         required:
-          "Please describe at least one thing you accomplished — even a small one.",
+          "Describe at least one thing you accomplished — even a small one.",
         tooLong: "Keep this under 2,000 characters.",
       },
     },
@@ -116,7 +116,7 @@ export const copy = {
 
     name: {
       label: "Name",
-      error: { required: "Please add the person's name." },
+      error: { required: "Name is required." },
     },
     email: { label: "Email" },
     linkedin: {
@@ -135,7 +135,7 @@ export const copy = {
       label: "Why should The Labs know them?",
       helper:
         "A sentence or two on what they're working on or what they'd bring.",
-      error: { required: "Please share a quick note on why we should know them." },
+      error: { required: "Share a quick note on why we should know them." },
     },
   },
 
@@ -148,7 +148,7 @@ export const copy = {
   submit: {
     idle: "Submit pulse check",
     submitting: "Submitting…",
-    genericError: "Something went wrong on our end. Please try again.",
+    genericError: "Something went wrong on our end. Try again.",
     duplicateError:
       "Looks like you already submitted a pulse check today — thanks for checking in.",
   },

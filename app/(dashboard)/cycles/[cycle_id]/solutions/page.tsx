@@ -20,20 +20,15 @@ export default async function SolutionsPage({
   const cycleId = parseInt(cycle_id, 10);
   const supabase = await createClient();
 
-  const { data: cycle } = await supabase
-    .from("cycles")
-    .select("id, name, status")
-    .eq("id", cycleId)
-    .single();
+  const serviceClient = createServiceClient();
+
+  const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
+    supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
+    serviceClient.from("cycle_config").select("solution_proposal_open, solution_proposal_close").eq("cycle_id", cycleId).single(),
+    supabase.auth.getUser(),
+  ]);
 
   if (!cycle) notFound();
-
-  const serviceClient = createServiceClient();
-  const { data: config } = await serviceClient
-    .from("cycle_config")
-    .select("solution_proposal_open, solution_proposal_close")
-    .eq("cycle_id", cycleId)
-    .single();
 
   const now = new Date();
   const openAt = config?.solution_proposal_open ? new Date(config.solution_proposal_open) : null;
@@ -56,10 +51,6 @@ export default async function SolutionsPage({
   const inWarningWindow =
     warnBannerFrom !== null && closeAt !== null && now >= warnBannerFrom && now <= closeAt;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   let myPods: { id: number; name: string | null }[] = [];
   let initialProposal: InitialProposal | null = null;
 
@@ -71,24 +62,15 @@ export default async function SolutionsPage({
       .single();
 
     if (participant) {
-      const { data: memberships } = await supabase
-        .from("pod_memberships")
-        .select("pod_id, pods!inner(id, name, cycle_id)")
-        .eq("participant_id", participant.id)
-        .eq("pods.cycle_id", cycleId)
-        .is("inactive_at", null);
+      const [{ data: memberships }, { data: existing }] = await Promise.all([
+        supabase.from("pod_memberships").select("pod_id, pods!inner(id, name, cycle_id)").eq("participant_id", participant.id).eq("pods.cycle_id", cycleId).is("inactive_at", null),
+        supabase.from("solution_proposals").select("id, pod_id, name, summary, proposal_data, proposal_text").eq("cycle_id", cycleId).eq("participant_id", participant.id).maybeSingle(),
+      ]);
 
       myPods = (memberships || []).map((m) => {
         const pod = m.pods as unknown as { id: number; name: string | null };
         return { id: pod.id, name: pod.name };
       });
-
-      const { data: existing } = await supabase
-        .from("solution_proposals")
-        .select("id, pod_id, name, summary, proposal_data, proposal_text")
-        .eq("cycle_id", cycleId)
-        .eq("participant_id", participant.id)
-        .maybeSingle();
 
       if (existing) {
         initialProposal = {
@@ -158,7 +140,7 @@ export default async function SolutionsPage({
               role="alert"
               className="mb-6 rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] px-4 py-3 text-sm text-yellow-200"
             >
-              <strong className="font-semibold">Heads up:</strong> if you don&apos;t
+              <strong className="font-semibold">Heads up:</strong>{" "}if you don&apos;t
               submit a project by{" "}
               <span className="tabular-nums">
                 {closeAt.toLocaleDateString("en-US", {
