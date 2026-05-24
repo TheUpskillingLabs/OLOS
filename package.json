@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "20": "^1.0.0",
     "@anthropic-ai/sdk": "^0.98.0",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.10.0",
