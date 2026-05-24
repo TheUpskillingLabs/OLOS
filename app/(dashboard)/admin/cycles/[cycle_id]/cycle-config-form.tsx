@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 type Config = {
   cycle_id: number;
@@ -71,6 +72,11 @@ const PHASES = [
   },
 ] as const;
 
+type ScheduleKey = "phase_2_start" | "phase_3_start" |
+  typeof PHASES[number]["open"] | typeof PHASES[number]["close"];
+
+type ScheduleFormData = Record<ScheduleKey, string>;
+
 export function CycleScheduleForm({
   cycleId,
   config,
@@ -78,83 +84,82 @@ export function CycleScheduleForm({
   cycleId: number;
   config: Config;
 }) {
-  const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const { register, handleSubmit, formState: { isSubmitting } } = useForm<ScheduleFormData>({
+    defaultValues: {
+      phase_2_start: toLocal(config.phase_2_start),
+      phase_3_start: toLocal(config.phase_3_start),
+      ...Object.fromEntries(
+        PHASES.flatMap((p) => [
+          [p.open, toLocal(config[p.open as keyof Config] as string | null)],
+          [p.close, toLocal(config[p.close as keyof Config] as string | null)],
+        ])
+      ),
+    },
+  });
+
+  async function onSubmit(data: ScheduleFormData) {
     setSaved(false);
-    setError(null);
-    const fd = new FormData(e.currentTarget);
+    setServerError(null);
 
-    const body: Record<string, string | null> = {};
-    body.phase_2_start = fromLocal(fd.get("phase_2_start") as string);
-    body.phase_3_start = fromLocal(fd.get("phase_3_start") as string);
+    const body: Record<string, string | null> = {
+      phase_2_start: fromLocal(data.phase_2_start),
+      phase_3_start: fromLocal(data.phase_3_start),
+    };
     for (const phase of PHASES) {
-      body[phase.open] = fromLocal(fd.get(phase.open) as string);
-      body[phase.close] = fromLocal(fd.get(phase.close) as string);
+      body[phase.open] = fromLocal(data[phase.open as ScheduleKey]);
+      body[phase.close] = fromLocal(data[phase.close as ScheduleKey]);
     }
 
-    setLoading(true);
     const res = await fetch(`/api/cycles/${cycleId}/config`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    setLoading(false);
 
     if (res.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } else {
-      const data = await res.json();
-      setError(data.error ?? "Failed to save schedule");
+      const json = await res.json();
+      setServerError(json.error ?? "Failed to save schedule");
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {/* Cycle phase milestones */}
+    <form onSubmit={handleSubmit(onSubmit)}>
       <div className="mb-6 rounded-md border border-whisper bg-white/[0.02] p-4">
         <h3 className="mb-3 text-sm font-semibold tracking-tight text-cloud">
           Cycle Phases
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label
-              htmlFor="phase_2_start"
-              className="mb-1 block text-sm text-cloud/60"
-            >
+            <label htmlFor="phase_2_start" className="mb-1 block text-sm text-cloud/60">
               Meet The Pods (Phase 1 &rarr; 2)
             </label>
             <input
               id="phase_2_start"
               type="datetime-local"
-              name="phase_2_start"
-              defaultValue={toLocal(config.phase_2_start)}
+              {...register("phase_2_start")}
               className="block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </div>
           <div>
-            <label
-              htmlFor="phase_3_start"
-              className="mb-1 block text-sm text-cloud/60"
-            >
+            <label htmlFor="phase_3_start" className="mb-1 block text-sm text-cloud/60">
               Meet The Projects (Phase 2 &rarr; 3)
             </label>
             <input
               id="phase_3_start"
               type="datetime-local"
-              name="phase_3_start"
-              defaultValue={toLocal(config.phase_3_start)}
+              {...register("phase_3_start")}
               className="block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </div>
         </div>
       </div>
 
-      {/* Operational windows */}
       <div className="overflow-hidden rounded-md border border-whisper">
         <table className="w-full text-sm">
           <thead className="bg-white/[0.04]">
@@ -172,30 +177,19 @@ export function CycleScheduleForm({
           </thead>
           <tbody className="divide-y divide-whisper">
             {PHASES.map((phase) => (
-              <tr
-                key={phase.label}
-                className="transition-colors duration-150 hover:bg-white/[0.02]"
-              >
-                <td className="px-4 py-3 font-medium text-cloud">
-                  {phase.label}
-                </td>
+              <tr key={phase.label} className="transition-colors duration-150 hover:bg-white/[0.02]">
+                <td className="px-4 py-3 font-medium text-cloud">{phase.label}</td>
                 <td className="px-4 py-3">
                   <input
                     type="datetime-local"
-                    name={phase.open}
-                    defaultValue={toLocal(
-                      config[phase.open as keyof Config] as string | null
-                    )}
+                    {...register(phase.open as ScheduleKey)}
                     className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </td>
                 <td className="px-4 py-3">
                   <input
                     type="datetime-local"
-                    name={phase.close}
-                    defaultValue={toLocal(
-                      config[phase.close as keyof Config] as string | null
-                    )}
+                    {...register(phase.close as ScheduleKey)}
                     className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </td>
@@ -207,18 +201,14 @@ export function CycleScheduleForm({
       <div className="mt-3 flex items-center gap-3">
         <button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
-          {loading ? "Saving…" : "Save Schedule"}
+          {isSubmitting ? "Saving…" : "Save Schedule"}
         </button>
-        {saved && (
-          <span className="text-sm font-medium text-aqua">Saved.</span>
-        )}
-        {error && (
-          <span role="alert" className="text-sm text-red-300">
-            {error}
-          </span>
+        {saved && <span className="text-sm font-medium text-aqua">Saved.</span>}
+        {serverError && (
+          <span role="alert" className="text-sm text-red-300">{serverError}</span>
         )}
       </div>
     </form>
@@ -250,6 +240,9 @@ const PARAM_GROUPS = [
   },
 ] as const;
 
+type ParamKey = typeof PARAM_GROUPS[number]["fields"][number]["name"];
+type ParamsFormData = Record<ParamKey, string>;
+
 export function CycleParamsForm({
   cycleId,
   config,
@@ -257,43 +250,46 @@ export function CycleParamsForm({
   cycleId: number;
   config: Config;
 }) {
-  const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const { register, handleSubmit, formState: { isSubmitting } } = useForm<ParamsFormData>({
+    defaultValues: Object.fromEntries(
+      PARAM_GROUPS.flatMap((g) =>
+        g.fields.map((f) => [f.name, String(config[f.name as keyof Config] ?? "")])
+      )
+    ) as ParamsFormData,
+  });
+
+  async function onSubmit(data: ParamsFormData) {
     setSaved(false);
-    setError(null);
-    const fd = new FormData(e.currentTarget);
+    setServerError(null);
 
     const body: Record<string, number> = {};
     for (const group of PARAM_GROUPS) {
       for (const field of group.fields) {
-        const val = fd.get(field.name) as string;
+        const val = data[field.name as ParamKey];
         if (val !== "") body[field.name] = parseInt(val, 10);
       }
     }
 
-    setLoading(true);
     const res = await fetch(`/api/cycles/${cycleId}/config`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    setLoading(false);
 
     if (res.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } else {
-      const data = await res.json();
-      setError(data.error ?? "Failed to save parameters");
+      const json = await res.json();
+      setServerError(json.error ?? "Failed to save parameters");
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-8 sm:grid-cols-2">
         {PARAM_GROUPS.map((group) => (
           <div key={group.heading}>
@@ -302,24 +298,15 @@ export function CycleParamsForm({
             </h3>
             <div className="space-y-3">
               {group.fields.map((field) => (
-                <div
-                  key={field.name}
-                  className="flex items-center justify-between gap-4"
-                >
-                  <label
-                    htmlFor={field.name}
-                    className="text-sm text-cloud/60"
-                  >
+                <div key={field.name} className="flex items-center justify-between gap-4">
+                  <label htmlFor={field.name} className="text-sm text-cloud/60">
                     {field.label}
                   </label>
                   <input
                     id={field.name}
                     type="number"
-                    name={field.name}
                     min={0}
-                    defaultValue={
-                      config[field.name as keyof Config] as number
-                    }
+                    {...register(field.name as ParamKey)}
                     className="w-20 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-right text-sm tabular-nums text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </div>
@@ -331,18 +318,14 @@ export function CycleParamsForm({
       <div className="mt-4 flex items-center gap-3">
         <button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
         >
-          {loading ? "Saving…" : "Save Parameters"}
+          {isSubmitting ? "Saving…" : "Save Parameters"}
         </button>
-        {saved && (
-          <span className="text-sm font-medium text-aqua">Saved.</span>
-        )}
-        {error && (
-          <span role="alert" className="text-sm text-red-300">
-            {error}
-          </span>
+        {saved && <span className="text-sm font-medium text-aqua">Saved.</span>}
+        {serverError && (
+          <span role="alert" className="text-sm text-red-300">{serverError}</span>
         )}
       </div>
     </form>

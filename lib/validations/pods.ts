@@ -3,11 +3,11 @@ import { z } from "zod";
 export const nameUpdateSchema = z.object({
   name: z
     .string()
-    .min(1, "name is required")
-    .max(40, "name must be 40 characters or fewer")
+    .min(1, "Name is required")
+    .max(40, "Name must be 40 characters or fewer")
     .refine(
       (val) => val.trim().split(/\s+/).length <= 3,
-      "name must be 3 words or fewer"
+      "Name must be 3 words or fewer"
     ),
 });
 
@@ -70,8 +70,8 @@ export const reactivateSchema = z.object({
 });
 
 export const createOptionSchema = z.object({
-  list_name: z.string().min(1, "list_name is required").max(100),
-  value: z.string().min(1, "value is required").max(200),
+  list_name: z.string().min(1, "List name is required").max(100),
+  value: z.string().min(1, "Value is required").max(200),
   display_order: z.number().int().optional(),
 });
 

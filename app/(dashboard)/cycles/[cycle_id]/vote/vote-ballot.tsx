@@ -113,7 +113,7 @@ export default function VoteBallot({
       });
       setPendingVotes((prev) => ({ ...prev, [problemStatementId]: 0 }));
     } catch {
-      setError("Network error. Please try again.");
+      setError("Network error. Try again.");
     } finally {
       setSubmitting(null);
     }

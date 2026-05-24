@@ -35,21 +35,31 @@ export const GET = withAuth(
       .select("id, name")
       .eq("cycle_id", cycleId);
 
-    const podSummaries = [];
-    for (const pod of pods || []) {
-      const { data: members } = await auth.supabase
-        .from("pod_memberships")
-        .select("inactive_at")
-        .eq("pod_id", pod.id);
+    const podIds = (pods || []).map((p) => p.id);
+    const { data: allMemberships } = podIds.length
+      ? await auth.supabase
+          .from("pod_memberships")
+          .select("pod_id, inactive_at")
+          .in("pod_id", podIds)
+      : { data: [] };
 
-      podSummaries.push({
+    const membershipsByPod = new Map<number, { inactive_at: string | null }[]>();
+    for (const m of allMemberships || []) {
+      const list = membershipsByPod.get(m.pod_id) ?? [];
+      list.push(m);
+      membershipsByPod.set(m.pod_id, list);
+    }
+
+    const podSummaries = (pods || []).map((pod) => {
+      const members = membershipsByPod.get(pod.id) ?? [];
+      return {
         id: pod.id,
         name: pod.name,
-        member_count: members?.length || 0,
-        active_count: members?.filter((m) => !m.inactive_at).length || 0,
-        revoked_count: members?.filter((m) => m.inactive_at).length || 0,
-      });
-    }
+        member_count: members.length,
+        active_count: members.filter((m) => !m.inactive_at).length,
+        revoked_count: members.filter((m) => m.inactive_at).length,
+      };
+    });
 
     // Pulse check status
     const { data: pulseChecks } = await auth.supabase

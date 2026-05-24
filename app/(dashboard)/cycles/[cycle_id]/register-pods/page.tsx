@@ -13,20 +13,13 @@ export default async function RegisterPodsPage({
   const cycleId = parseInt(cycle_id, 10);
   const supabase = await createClient();
 
-  const { data: cycle } = await supabase
-    .from("cycles")
-    .select("id, name, status")
-    .eq("id", cycleId)
-    .single();
+  const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
+    supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
+    createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close").eq("cycle_id", cycleId).single(),
+    supabase.auth.getUser(),
+  ]);
 
   if (!cycle) notFound();
-
-  const serviceClient = createServiceClient();
-  const { data: config } = await serviceClient
-    .from("cycle_config")
-    .select("pod_registration_open, pod_registration_close")
-    .eq("cycle_id", cycleId)
-    .single();
 
   const now = new Date();
   const isOpen =
@@ -34,11 +27,6 @@ export default async function RegisterPodsPage({
     config?.pod_registration_close &&
     now >= new Date(config.pod_registration_open) &&
     now <= new Date(config.pod_registration_close);
-
-  // Get current user's participant_id
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   let myPodIds: number[] = [];
   if (user) {

@@ -1,4 +1,7 @@
+"use client";
+
 import * as React from "react";
+import { useFormContext, get } from "react-hook-form";
 
 const inputBase =
   "block w-full rounded-md border border-white/[0.10] bg-white/[0.04] " +
@@ -15,6 +18,7 @@ export type FieldProps = {
   required?: boolean;
   helper?: React.ReactNode;
   error?: React.ReactNode;
+  charCount?: React.ReactNode;
   htmlFor?: string;
   children: React.ReactNode;
   className?: string;
@@ -25,6 +29,7 @@ export function Field({
   required,
   helper,
   error,
+  charCount,
   htmlFor,
   children,
   className,
@@ -42,12 +47,14 @@ export function Field({
           </span>
         )}
       </label>
+      {helper && <p className="text-xs text-cloud/60">{helper}</p>}
       {children}
-      {error ? (
-        <p className="text-xs text-red-300">{error}</p>
-      ) : helper ? (
-        <p className="text-xs text-cloud/60">{helper}</p>
-      ) : null}
+      {(error || charCount) && (
+        <div className="flex items-center justify-between gap-2">
+          {error ? <p className="text-xs text-red-300">{error}</p> : <span />}
+          {charCount && <p className="text-xs text-cloud/50 tabular-nums">{charCount}</p>}
+        </div>
+      )}
     </div>
   );
 }
@@ -83,6 +90,15 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     );
   },
 );
+
+export function FormField({
+  name,
+  ...fieldProps
+}: { name: string } & FieldProps) {
+  const { formState: { errors } } = useFormContext();
+  const error = get(errors, name)?.message as string | undefined;
+  return <Field error={error} {...fieldProps} />;
+}
 
 export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   invalid?: boolean;
