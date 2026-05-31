@@ -36,20 +36,30 @@ export const POST = withAuth(
       return NextResponse.json({ error: window.message }, { status: 403 });
     }
 
-    // Check already registered for this pod
+    // Existing membership? Two cases:
+    //   - Active (inactive_at IS NULL): true duplicate registration — bail
+    //   - Inactive (inactive_at IS NOT NULL): reactivate by clearing inactive_at,
+    //     preserves the original joined_at + audit trail (architecture brief §5
+    //     "Soft delete everywhere, reactivation must be possible")
     const { data: existing } = await auth.supabase
       .from("pod_memberships")
-      .select("id")
+      .select("id, inactive_at, joined_at")
       .eq("pod_id", podId)
       .eq("participant_id", participantId)
       .maybeSingle();
 
-    if (existing) {
+    if (existing && existing.inactive_at === null) {
       return NextResponse.json(
         { error: "You are already registered for this pod." },
         { status: 400 }
       );
     }
+
+    // Reactivation path: same membership, just clearing the soft-delete marker.
+    // The 2-pod-cap check below uses `.is("inactive_at", null)` so it correctly
+    // counts only currently-active memberships — the inactive row we're about
+    // to reactivate doesn't double-count against the cap before reactivation.
+    const isReactivation = existing !== null;
 
     // Check 2-pod cap for this cycle
     const { data: cyclePods } = await auth.supabase
@@ -66,15 +76,31 @@ export const POST = withAuth(
       );
     }
 
-    // Register
-    const { data: membership, error } = await auth.supabase
-      .from("pod_memberships")
-      .insert({ participant_id: participantId, pod_id: podId })
-      .select("id, joined_at")
-      .single();
+    // Register (new INSERT) or reactivate (UPDATE clearing inactive_at)
+    let membership: { id: number; joined_at: string };
+    if (isReactivation && existing) {
+      const { data: reactivated, error: reactivateError } = await auth.supabase
+        .from("pod_memberships")
+        .update({ inactive_at: null })
+        .eq("id", existing.id)
+        .select("id, joined_at")
+        .single();
 
-    if (error) {
-      return dbError(error);
+      if (reactivateError) {
+        return dbError(reactivateError);
+      }
+      membership = reactivated;
+    } else {
+      const { data: inserted, error: insertError } = await auth.supabase
+        .from("pod_memberships")
+        .insert({ participant_id: participantId, pod_id: podId })
+        .select("id, joined_at")
+        .single();
+
+      if (insertError) {
+        return dbError(insertError);
+      }
+      membership = inserted;
     }
 
     // Check if pod should activate
@@ -156,11 +182,15 @@ export const DELETE = withAuth(
       return NextResponse.json({ error: window.message }, { status: 403 });
     }
 
+    // Soft-delete per architecture brief §5: set inactive_at rather than DROP
+    // the row. Preserves the audit trail and enables re-registration via the
+    // reactivation path in POST above.
     const { error } = await auth.supabase
       .from("pod_memberships")
-      .delete()
+      .update({ inactive_at: new Date().toISOString() })
       .eq("pod_id", podId)
-      .eq("participant_id", participantId);
+      .eq("participant_id", participantId)
+      .is("inactive_at", null);
 
     if (error) {
       return dbError(error);
