@@ -259,6 +259,52 @@ These have value but don't move the launch goal. Document so they're not lost:
 
 ---
 
+## RLS observations from smoke test (2026-05-31)
+
+### Inactive-pod-membership visibility
+
+Migration 00020's `participants_select_visible` policy was designed so a
+user must have `pm_self.inactive_at IS NULL` to satisfy the EXISTS branch.
+In practice, during dev smoke-testing we noted that participants whose
+pod_memberships are inactive can still see the names of pod-mates who
+share that same pod.
+
+This is non-blocking for the launch — the visibility is scoped to pods
+the user has any historical membership in, not the whole org, and the
+exposure is name-only (not email or contact info). The policy was
+explicit about active-only on both sides, so this likely indicates either:
+
+- A test session viewed under a role that hits the `is_admin_or_owner()`
+  short-circuit, OR
+- A cached client-side view holding rows from before the membership flipped
+  to inactive, OR
+- A subtle interaction with `current_participant_id()` that returns a
+  different participant than expected when the viewer has multiple memberships
+
+Tracking as a follow-up to re-verify post-launch; not a launch blocker
+since the exposure surface is narrow (names of own pod's historical mates).
+
+### Existing read-only `/profile` page from PR #104
+
+During lint validation we discovered Ann Marie's PR #104 already shipped
+a read-only `/profile` page at `app/(dashboard)/profile/page.tsx`. This
+**changes the Tier 1 scope** in this plan:
+
+- Original: build a new `/profile` page with two modes (voluntary edit + forced completion)
+- Revised: add an **edit mode** to the existing read-only page; preserve the read mode as the default landing
+
+The existing page has all the data wiring (participant fetch, options
+grouping, enrollments). Tier 1 becomes:
+
+1. New `/profile/edit` route OR an in-page edit toggle on `/profile`
+2. New PATCH `/api/participants/me/route.ts`
+3. New zod schema for the update payload
+4. Layout-level redirect for placeholder-name participants → `/profile/edit?required=true&next=<path>`
+5. Server-side enforcement on submission routes (proposal, vote)
+
+This is a SMALLER change than the original plan estimated. Same architectural
+benefits, less code.
+
 ## Specific risks tracked
 
 1. **8 remaining inactive participants** — no pod memberships. Need to verify
