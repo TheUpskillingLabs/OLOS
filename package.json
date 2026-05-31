@@ -9,13 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.86.1",
+    "@anthropic-ai/sdk": "^0.98.0",
+    "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.102.1",
     "lucide-react": "^1.14.0",
-    "next": "16.2.3",
+    "next": "^16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-hook-form": "^7.76.1",
     "resend": "^6.12.2",
     "zod": "^4.3.6"
   },

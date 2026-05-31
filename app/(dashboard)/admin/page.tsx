@@ -21,17 +21,14 @@ export default async function AdminPage() {
   if (!user) redirect("/login");
 
   const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
+
+  const [userRoles, { data: cycles }, { data: enrollmentRows }] = await Promise.all([
+    resolveUserRoles(serviceClient, user.id),
+    serviceClient.from("cycles").select("id, name, start_date, end_date, status").order("start_date", { ascending: false }),
+    serviceClient.from("cycle_enrollments").select("cycle_id, status"),
+  ]);
+
   if (!isAdmin(userRoles)) redirect("/cycles");
-
-  const { data: cycles } = await serviceClient
-    .from("cycles")
-    .select("id, name, start_date, end_date, status")
-    .order("start_date", { ascending: false });
-
-  const { data: enrollmentRows } = await serviceClient
-    .from("cycle_enrollments")
-    .select("cycle_id, status");
 
   const countsByCycle = new Map<number, { total: number; active: number }>();
   for (const e of enrollmentRows || []) {

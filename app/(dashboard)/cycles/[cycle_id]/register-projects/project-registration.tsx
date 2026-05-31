@@ -62,7 +62,7 @@ export default function ProjectRegistration({
       }));
       setSuccessMsg("Registered for project!");
     } catch {
-      setError("Network error. Please try again.");
+      setError("Network error. Try again.");
     } finally {
       setActionId(null);
     }
@@ -91,7 +91,7 @@ export default function ProjectRegistration({
       }));
       setSuccessMsg("Withdrawn from project.");
     } catch {
-      setError("Network error. Please try again.");
+      setError("Network error. Try again.");
     } finally {
       setActionId(null);
     }

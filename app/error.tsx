@@ -20,7 +20,7 @@ export default function RootError({
           Something went wrong
         </h2>
         <p className="mb-6 text-sm text-cloud/60">
-          An unexpected error occurred. Please try again.
+          An unexpected error occurred. Try again.
         </p>
         <button
           onClick={reset}

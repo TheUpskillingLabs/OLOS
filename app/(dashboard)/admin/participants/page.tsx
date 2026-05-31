@@ -25,38 +25,33 @@ export default async function AdminParticipantsPage() {
   if (!user) redirect("/login");
 
   const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
 
-  // Fetch all participants
-  const { data: participants } = await serviceClient
-    .from("participants")
-    .select("id, first_name, last_name, preferred_name, email, created_at")
-    .order("created_at", { ascending: false });
+  const [userRoles, { data: participants }] = await Promise.all([
+    resolveUserRoles(serviceClient, user.id),
+    serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, created_at").order("created_at", { ascending: false }),
+  ]);
+
+  if (!isAdmin(userRoles)) redirect("/cycles");
 
   const participantIds = participants?.map((p) => p.id) ?? [];
 
-  // Fetch all elevated roles
-  const { data: allRoles } = participantIds.length
-    ? await serviceClient
-        .from("user_roles")
-        .select("participant_id, role")
-        .in("participant_id", participantIds)
-        .is("revoked_at", null)
-    : { data: [] as { participant_id: number; role: string }[] };
+  const [{ data: allRoles }, { data: allEnrollments }, { data: allModAssignments }] =
+    await Promise.all([
+      participantIds.length
+        ? serviceClient.from("user_roles").select("participant_id, role").in("participant_id", participantIds).is("revoked_at", null)
+        : Promise.resolve({ data: [] as { participant_id: number; role: string }[] }),
+      participantIds.length
+        ? serviceClient.from("cycle_enrollments").select("participant_id, status, cycle_id, cycles (name)").in("participant_id", participantIds)
+        : Promise.resolve({ data: [] as { participant_id: number; status: string; cycle_id: number; cycles: unknown }[] }),
+      participantIds.length
+        ? serviceClient.from("moderator_assignments").select("participant_id, pod_id, pods (name)").in("participant_id", participantIds).is("removed_at", null)
+        : Promise.resolve({ data: [] as { participant_id: number; pod_id: number; pods: unknown }[] }),
+    ]);
 
   const rolesByParticipant: Record<number, string[]> = {};
   for (const r of allRoles ?? []) {
     (rolesByParticipant[r.participant_id] ??= []).push(r.role);
   }
-
-  // Fetch all cycle enrollments with cycle names
-  const { data: allEnrollments } = participantIds.length
-    ? await serviceClient
-        .from("cycle_enrollments")
-        .select("participant_id, status, cycle_id, cycles (name)")
-        .in("participant_id", participantIds)
-    : { data: [] as { participant_id: number; status: string; cycle_id: number; cycles: unknown }[] };
 
   const cyclesByParticipant: Record<number, { cycle_id: number; cycle_name: string; status: string }[]> = {};
   for (const e of allEnrollments ?? []) {
@@ -67,15 +62,6 @@ export default async function AdminParticipantsPage() {
       status: e.status,
     });
   }
-
-  // Fetch all moderator assignments
-  const { data: allModAssignments } = participantIds.length
-    ? await serviceClient
-        .from("moderator_assignments")
-        .select("participant_id, pod_id, pods (name)")
-        .in("participant_id", participantIds)
-        .is("removed_at", null)
-    : { data: [] as { participant_id: number; pod_id: number; pods: unknown }[] };
 
   const modPodsByParticipant: Record<number, { pod_id: number; pod_name: string }[]> = {};
   for (const ma of allModAssignments ?? []) {

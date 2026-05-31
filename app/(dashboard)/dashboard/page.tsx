@@ -24,67 +24,45 @@ export default async function DashboardPage() {
 
   const serviceClient = createServiceClient();
 
-  // Check participant exists
-  const { data: participant } = await serviceClient
-    .from("participants")
-    .select("id, preferred_name, first_name")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+  const [{ data: participant }, { data: cycles }] = await Promise.all([
+    serviceClient.from("participants").select("id, preferred_name, first_name").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
+  ]);
 
   if (!participant) redirect("/register");
 
-  // Fetch all cycles
-  const { data: cycles } = await serviceClient
-    .from("cycles")
-    .select("id, name, slug, start_date, end_date, status")
-    .order("start_date", { ascending: false });
-
   const activeCycle = cycles?.find((c) => c.status === "active") ?? null;
 
-  // Fetch config for active cycle (phase indicator + window checks)
-  let activeCycleConfig = null;
-  if (activeCycle) {
-    const { data } = await serviceClient
-      .from("cycle_config")
-      .select(
-        "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
-      )
-      .eq("cycle_id", activeCycle.id)
-      .single();
-    activeCycleConfig = data;
-  }
-
-  // Fetch user's enrollment for active cycle
-  let enrollment = null;
-  if (activeCycle) {
-    const { data } = await serviceClient
-      .from("cycle_enrollments")
-      .select("id, status")
-      .eq("participant_id", participant.id)
-      .eq("cycle_id", activeCycle.id)
-      .maybeSingle();
-    enrollment = data;
-  }
-
-  // Fetch user's pod memberships for active cycle
   type PodMembership = { id: number; pod_id: number; pods: { id: number; name: string; status: string } };
+  let activeCycleConfig = null;
+  let enrollment = null;
   let myPods: PodMembership[] = [];
-  if (activeCycle) {
-    const { data } = await serviceClient
-      .from("pod_memberships")
-      .select("id, pod_id, pods!inner(id, name, status)")
-      .eq("participant_id", participant.id)
-      .is("inactive_at", null);
 
-    // Filter to pods in the active cycle
-    if (data) {
-      const { data: cyclePods } = await serviceClient
-        .from("pods")
-        .select("id")
-        .eq("cycle_id", activeCycle.id);
-      const cyclePodIds = new Set(cyclePods?.map((p) => p.id) ?? []);
-      myPods = (data as unknown as PodMembership[]).filter((m) => cyclePodIds.has(m.pod_id));
-    }
+  if (activeCycle) {
+    const [configResult, enrollmentResult, membershipResult] = await Promise.all([
+      serviceClient
+        .from("cycle_config")
+        .select(
+          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+        )
+        .eq("cycle_id", activeCycle.id)
+        .single(),
+      serviceClient
+        .from("cycle_enrollments")
+        .select("id, status")
+        .eq("participant_id", participant.id)
+        .eq("cycle_id", activeCycle.id)
+        .maybeSingle(),
+      serviceClient
+        .from("pod_memberships")
+        .select("id, pod_id, pods!inner(id, name, status)")
+        .eq("participant_id", participant.id)
+        .eq("pods.cycle_id", activeCycle.id)
+        .is("inactive_at", null),
+    ]);
+    activeCycleConfig = configResult.data;
+    enrollment = enrollmentResult.data;
+    myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
   }
 
   // Determine pod registration window status
