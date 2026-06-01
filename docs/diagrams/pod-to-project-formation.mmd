@@ -1,0 +1,236 @@
+%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis"}} }%%
+flowchart TD
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% LEGEND
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph LEGEND["Legend"]
+        direction LR
+        LG1(["Participant screen / action"])
+        LG2[/"Poderator or Admin action"/]
+        LG3["API route"]
+        LG4[("DB table write")]
+        LG5{{"Email / notification"}}
+        LG6{"Phase gate / guard"}
+        LG7[["System / LLM action"]]
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% PHASE 0 — REGISTRATION & ONBOARDING
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph P0["Phase 0 · Registration & Onboarding"]
+        direction TB
+
+        P0_shortform(["Short-registration form<br/>(Google OAuth → short form)"])
+        P0_api["POST /api/registrations/short<br/>app/api/registrations/short/route.ts"]
+        P0_dup{"Email already exists?"}
+        P0_participants[("participants — insert")]
+        P0_enrollments[("cycle_enrollments — upsert")]
+        P0_emailA{{"Email A: Registration Confirmation<br/>route.ts:122-141 · Resend"}}
+        P0_emailB{{"Email B: Already Registered<br/>route.ts:44-55 · Resend"}}
+        P0_longform(["Long-form join page<br/>/cycles/[cycle_id]/join<br/>app/(dashboard)/cycles/[cycle_id]/join/page.tsx:1-96"])
+        P0_interest["TODO: POST /api/cycles/[cycle_id]/interest<br/>route file not found — MISSING"]
+
+        P0_shortform --> P0_api
+        P0_api --> P0_dup
+        P0_dup -->|"new user"| P0_participants
+        P0_dup -->|"duplicate"| P0_emailB
+        P0_participants --> P0_enrollments
+        P0_enrollments --> P0_emailA
+        P0_emailA --> P0_longform
+        P0_longform --> P0_interest
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% PHASE 1 — PROBLEM DISCOVERY (Weeks 1–4)
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph P1["Phase 1 · Problem Discovery (Weeks 1–4)"]
+        direction TB
+
+        P1_indicator(["Cycle phase indicator<br/>app/(dashboard)/cycles/cycle-phase-indicator.tsx:1-382"])
+        P1_propose(["Propose page<br/>/cycles/[cycle_id]/propose<br/>app/(dashboard)/cycles/[cycle_id]/propose/page.tsx:1-108"])
+        P1_ps_api["TODO: POST /api/problem-statements<br/>route file not found — MISSING"]
+        P1_ps_write[("problem_statements — insert<br/>TODO — route missing")]
+
+        P1_vote_page(["Vote page<br/>/cycles/[cycle_id]/vote<br/>app/(dashboard)/cycles/[cycle_id]/vote/page.tsx:1-81"])
+        P1_vote_window{"Window: voting_open/close<br/>lib/auth/windows.ts:20-49"}
+        P1_budget{"Budget guard<br/>submitter vs. non-submitter<br/>app/api/votes/route.ts:27"}
+        P1_vote_api["POST /api/votes<br/>app/api/votes/route.ts:1-88"]
+        P1_votes_write[("votes — insert<br/>app/api/votes/route.ts:73-77")]
+        P1_tally["GET /api/votes/[cycle_id]<br/>app/api/votes/[cycle_id]/route.ts:1-46"]
+
+        P1_indicator --> P1_propose
+        P1_propose --> P1_ps_api
+        P1_ps_api --> P1_ps_write
+        P1_ps_write -.->|"after problem_statement window closes"| P1_vote_page
+        P1_vote_page --> P1_vote_window
+        P1_vote_window -->|"open"| P1_budget
+        P1_budget --> P1_vote_api
+        P1_vote_api --> P1_votes_write
+        P1_tally -->|"display tallies"| P1_vote_page
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% PHASE 2a — POD FORMATION (Weeks 5–8)
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph P2A["Phase 2a · Pod Formation (Weeks 5–8)"]
+        direction TB
+
+        P2A_browse(["Register-pods page / dashboard widget<br/>/cycles/[cycle_id]/register-pods<br/>app/(dashboard)/cycles/[cycle_id]/register-pods/page.tsx:1-120<br/>app/(dashboard)/dashboard/pod-join-section.tsx:14-169"])
+        P2A_get_pods["GET /api/cycles/[cycle_id]/pods<br/>app/api/cycles/[cycle_id]/pods/route.ts:1-53"]
+        P2A_window{"Window: pod_registration_open/close<br/>lib/auth/windows.ts:20-49"}
+        P2A_cap{"Cap: max 2 pods per cycle<br/>app/api/pods/[pod_id]/register/route.ts"}
+
+        P2A_join_api["POST /api/pods/[pod_id]/register<br/>app/api/pods/[pod_id]/register/route.ts:1-173"]
+        P2A_membership_write[("pod_memberships — insert<br/>register/route.ts:71-74")]
+        P2A_count{"count >= pod_min?<br/>register/route.ts:93"}
+
+        P2A_pod_active[("pods.status -> active<br/>register/route.ts:94-97")]
+        P2A_enroll_batch[("cycle_enrollments batch activate<br/>all current pod members<br/>register/route.ts:99-115")]
+        P2A_enroll_single[("cycle_enrollments single activate<br/>joining active pod<br/>register/route.ts:119-126")]
+        P2A_provision[["TODO: Resource provisioning<br/>Slack channel, Drive folder,<br/>GitHub repo, Google Group<br/>at pod activation — no code found"]]
+
+        P2A_withdraw_api["DELETE /api/pods/[pod_id]/register<br/>app/api/pods/[pod_id]/register/route.ts:135-173"]
+        P2A_membership_del[("pod_memberships — hard delete<br/>register/route.ts:161-165")]
+
+        P2A_pod_name[/"PATCH /api/pods/[pod_id]/name<br/>app/api/pods/[pod_id]/name/route.ts:1-36<br/>Poderator or Admin"/]
+        P2A_pod_name_write[("pods.name — update<br/>name/route.ts:24-28")]
+
+        P2A_browse --> P2A_get_pods
+        P2A_get_pods -->|"list pods"| P2A_browse
+        P2A_browse --> P2A_window
+        P2A_window -->|"open"| P2A_cap
+        P2A_cap -->|"within limit"| P2A_join_api
+        P2A_join_api --> P2A_membership_write
+        P2A_membership_write --> P2A_count
+        P2A_count -->|"yes — first time at pod_min"| P2A_pod_active
+        P2A_pod_active --> P2A_enroll_batch
+        P2A_pod_active -.->|"TODO"| P2A_provision
+        P2A_count -->|"pod already active"| P2A_enroll_single
+        P2A_browse -->|"withdraw"| P2A_withdraw_api
+        P2A_withdraw_api --> P2A_membership_del
+        P2A_pod_name --> P2A_pod_name_write
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% PHASE 2b — SOLUTION PROPOSAL
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph P2B["Phase 2b · Solution Proposal"]
+        direction TB
+
+        P2B_page(["Solutions page<br/>/cycles/[cycle_id]/solutions<br/>app/(dashboard)/cycles/[cycle_id]/solutions/page.tsx:1-185"])
+        P2B_get_mine["GET /api/cycles/[cycle_id]/my-solution-proposal<br/>app/api/cycles/[cycle_id]/my-solution-proposal/route.ts:1-31"]
+        P2B_get_pod["GET /api/pods/[pod_id]/solution-proposals<br/>app/api/pods/[pod_id]/solution-proposals/route.ts:10-28"]
+        P2B_window{"Window: solution_proposal_open/close<br/>lib/auth/windows.ts:20-49"}
+        P2B_member{"Guard: active pod member<br/>solution-proposals/route.ts"}
+        P2B_schema{"solutionProposalSchema<br/>lib/validations/pods.ts:19-36"}
+        P2B_api["POST /api/pods/[pod_id]/solution-proposals upsert<br/>app/api/pods/[pod_id]/solution-proposals/route.ts:31-116"]
+        P2B_write[("solution_proposals — upsert<br/>ON CONFLICT (cycle_id, participant_id)<br/>solution-proposals/route.ts:94-107")]
+
+        P2B_page --> P2B_get_mine
+        P2B_page --> P2B_get_pod
+        P2B_page --> P2B_window
+        P2B_window -->|"open"| P2B_member
+        P2B_member -->|"confirmed"| P2B_schema
+        P2B_schema -->|"valid"| P2B_api
+        P2B_api --> P2B_write
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% PHASE 2c — SOLUTION VOTE
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph P2C["Phase 2c · Solution Vote"]
+        direction TB
+
+        P2C_page(["Solution-vote page<br/>/cycles/[cycle_id]/solution-vote<br/>app/(dashboard)/cycles/[cycle_id]/solution-vote/page.tsx:1-144"])
+        P2C_get["GET /api/pods/[pod_id]/project-votes<br/>app/api/pods/[pod_id]/project-votes/route.ts:11-50"]
+        P2C_window{"Window: solution_voting_open/close<br/>lib/auth/windows.ts:20-49"}
+        P2C_submitter{"Guard: must have solution_proposal<br/>(submitter-only gating)<br/>project-votes/route.ts"}
+        P2C_idempotent{"Guard: no re-vote for pod<br/>project-votes/route.ts"}
+        P2C_schema{"projectBallotSchema<br/>lib/validations/pods.ts:44-53"}
+        P2C_api["POST /api/pods/[pod_id]/project-votes<br/>app/api/pods/[pod_id]/project-votes/route.ts:68-210"]
+        P2C_write[("project_votes — insert<br/>project-votes/route.ts:196-199")]
+
+        P2C_page --> P2C_get
+        P2C_get -->|"show ballot"| P2C_page
+        P2C_page --> P2C_window
+        P2C_window -->|"open"| P2C_submitter
+        P2C_submitter -->|"has proposal"| P2C_idempotent
+        P2C_idempotent -->|"first ballot"| P2C_schema
+        P2C_schema -->|"valid"| P2C_api
+        P2C_api --> P2C_write
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% PHASE 2d — PROJECT FINALIZATION (Poderator / Admin-triggered)
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph P2D["Phase 2d · Project Finalization (Poderator / Admin-triggered, no window gate)"]
+        direction TB
+
+        P2D_trigger[/"TODO: Poderator / Admin triggers finalize<br/>dashboard UI component not traced"/]
+        P2D_api["POST /api/pods/[pod_id]/projects/finalize<br/>app/api/pods/[pod_id]/projects/finalize/route.ts:1-143"]
+        P2D_guard{"Guard: isModeratorForPod OR isAdmin<br/>finalize/route.ts"}
+        P2D_tally["Read project_votes tally<br/>+ cycle_config.project_vote_threshold<br/>finalize/route.ts"]
+        P2D_llm[["LLM name generation<br/>lib/llm/names<br/>finalize/route.ts:108-117"]]
+        P2D_write[("projects — insert status=forming<br/>finalize/route.ts:108-117")]
+
+        P2D_proj_name[/"PATCH /api/projects/[project_id]/name<br/>app/api/projects/[project_id]/name/route.ts:1-47<br/>Poderator or Admin"/]
+        P2D_proj_name_write[("projects.name — update<br/>name/route.ts:34-38")]
+
+        P2D_trigger --> P2D_api
+        P2D_api --> P2D_guard
+        P2D_guard -->|"authorized"| P2D_tally
+        P2D_tally --> P2D_llm
+        P2D_llm --> P2D_write
+        P2D_proj_name --> P2D_proj_name_write
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% PHASE 3 — PROJECT REGISTRATION (Weeks 9–13)
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph P3["Phase 3 · Project Registration (Weeks 9–13)"]
+        direction TB
+
+        P3_browse(["Register-projects page<br/>/cycles/[cycle_id]/register-projects<br/>app/(dashboard)/cycles/[cycle_id]/register-projects/page.tsx:1-173"])
+        P3_window{"Window: project_registration_open/close<br/>lib/auth/windows.ts:20-49"}
+        P3_cap{"Cap: 1 project per cycle<br/>partial unique index<br/>app/api/projects/[project_id]/register/route.ts"}
+        P3_join_api["POST /api/projects/[project_id]/register<br/>app/api/projects/[project_id]/register/route.ts:1-119"]
+        P3_membership_write[("project_memberships — insert<br/>register/route.ts:91-98")]
+        P3_count{"count >= project_min?<br/>register/route.ts:107"}
+        P3_active[("projects.status -> active<br/>register/route.ts:108-111")]
+        P3_provision[["TODO: Resource provisioning<br/>at project activation — no code found"]]
+
+        P3_withdraw["DELETE /api/projects/[project_id]/register<br/>app/api/projects/[project_id]/register/route.ts:121-160"]
+        P3_soft_del[("project_memberships.left_at — soft-delete<br/>register/route.ts:147-152")]
+
+        P3_browse --> P3_window
+        P3_window -->|"open"| P3_cap
+        P3_cap -->|"within limit"| P3_join_api
+        P3_join_api --> P3_membership_write
+        P3_membership_write --> P3_count
+        P3_count -->|"yes"| P3_active
+        P3_active -.->|"TODO"| P3_provision
+        P3_browse -->|"withdraw"| P3_withdraw
+        P3_withdraw --> P3_soft_del
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% CROSS-CUTTING — CRON / PULSE
+    %% ══════════════════════════════════════════════════════════════════
+    subgraph CC["Cross-cutting · Cron / Pulse"]
+        direction LR
+        CC_cron[["Cron: GET /api/cron/pulse-check-reminder<br/>app/api/cron/pulse-check-reminder/route.ts:31-151<br/>Requires CRON_SECRET bearer token"]]
+        CC_pulse{{"Pulse reminder emails<br/>3-day / 1-day / final-day<br/>cron/pulse-check-reminder/route.ts"}}
+        CC_cron --> CC_pulse
+    end
+
+    %% ══════════════════════════════════════════════════════════════════
+    %% INTER-PHASE FLOW EDGES
+    %% ══════════════════════════════════════════════════════════════════
+    P0 -->|"enrolled participant"| P1
+    P1 -->|"pod_registration window opens"| P2A
+    P2A_enroll_batch -->|"pod active — participant active"| P2B
+    P2A_enroll_single -->|"joined active pod"| P2B
+    P2B --> P2C
+    P2C -->|"voting window closes"| P2D
+    P2D_write -->|"projects created (forming)"| P3
