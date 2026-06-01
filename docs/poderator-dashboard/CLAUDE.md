@@ -24,7 +24,7 @@ table names, column names, or API paths. The split is intentional and final.
   functional requirements, decisions log, data model implications. **This is
   the source of truth for what to build.**
 - Mockups: [`docs/PRD-moderator-dashboard-mockups.html`](../PRD-moderator-dashboard-mockups.html) —
-  open in a browser. Three screens: All Pods view, Per-pod view, Pulse review
+  open in a browser. Three screens: All pods view, Per-pod view, Pulse review
   panel.
 - Auth: [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md) — role resolution,
   `UserRoles` shape, `withAuth` wrappers. Read before touching any guarded
@@ -37,7 +37,7 @@ table names, column names, or API paths. The split is intentional and final.
 
 | File | What it does | Relationship to Poderator dashboard |
 |---|---|---|
-| `app/(dashboard)/moderator/page.tsx` | Basic pod listing — shows assigned pods grouped by cycle, links to `/pods/[id]` | **The All Pods view stub.** Replace with the full Poderator All Pods view (§6, §7.2, §7.7, §7.9.3 of PRD). Keep the auth guard pattern. |
+| `app/(dashboard)/moderator/page.tsx` | Basic pod listing — shows assigned pods grouped by cycle, links to `/pods/[id]` | **The All pods view stub.** Replace with the full Poderator All pods view (§6, §7.2, §7.7, §7.9.3 of PRD). Keep the auth guard pattern. |
 | `app/(dashboard)/moderator/cycles/[cycle_id]/vote-progress/page.tsx` | Vote progress for a cycle | Survives as-is. The per-pod phase guidance (§7.5) will surface similar data inline. |
 | `app/(dashboard)/pods/[pod_id]/pulse-check-dashboard.tsx` | Pulse-check data for a pod | Read this before building the member roster (§7.3) and pod-level aggregations (§7.9.2). May be extractable. |
 | `app/api/pods/[pod_id]/members/route.ts` | Pod member list | Reuse for the member roster. Check the response shape before building the roster component. |
@@ -53,7 +53,7 @@ the `(dashboard)` layout already provides the nav shell and auth redirect.
 
 | URL | File | Description |
 |---|---|---|
-| `/moderator` | `app/(dashboard)/moderator/page.tsx` | All Pods view (replace the stub) |
+| `/moderator` | `app/(dashboard)/moderator/page.tsx` | All pods view (replace the stub) |
 | `/moderator/pods/[pod_id]` | `app/(dashboard)/moderator/pods/[pod_id]/page.tsx` | Per-pod dashboard |
 
 The PRD §8 originally specified `/pods/[id]/moderator`. Use
@@ -213,10 +213,10 @@ decision entry in `docs/PRD-moderator-dashboard.md §10`:
 |---|---|
 | Pod-health bands | Absolute headcount, not percentage. Configurable per cycle. |
 | Nudges in v1 | At-risk only (consecutive miss threshold). System flags; no automated outreach. |
-| Multi-pod poderators | First-class. All Pods view is the default landing. |
+| Multi-pod poderators | First-class. All pods view is the default landing. |
 | Inactive members | Hidden by default; "Show inactive" toggle. |
 | Profile visibility | Four tiers (always/hover/click-through/never). See PRD §7.3. |
-| Pulse aggregation | Three scopes: individual (side panel), pod-level (per-pod page), cross-pod (All Pods). LLM themes for free-text fields. |
+| Pulse aggregation | Three scopes: individual (side panel), pod-level (per-pod page), cross-pod (All pods). LLM themes for free-text fields. |
 | Auto-flip | Disabled for the current cycle. Don't activate it from dashboard logic. |
 | No in-product walkthrough | Tooltips only (UI mechanics). Programmatic orientation is handbook + kickoff. |
 
@@ -224,7 +224,7 @@ decision entry in `docs/PRD-moderator-dashboard.md §10`:
 
 ## Component hints
 
-- The **pod switcher** (§7.7) and the **All Pods / per-pod view toggle** are
+- The **pod switcher** (§7.7) and the **All pods / per-pod view toggle** are
   the same control. Render it as a dropdown or tab row at the top of the page.
   Persist the last selection via `PUT /api/moderator/ui-state`.
 - The **pulse review side panel** (§7.4) opens without navigating. Use a
@@ -246,7 +246,7 @@ Suggested order — each step is independently shippable:
 
 1. **Migrations** (`00019`+) — `nudge_dismissals`, `moderator_ui_state`,
    `pulse_themes`, `cycle_config` extensions.
-2. **All Pods view** — replace the existing `moderator/page.tsx` stub with the
+2. **All pods view** — replace the existing `moderator/page.tsx` stub with the
    full page: pod cards with health indicator, cross-pod nudge list, switcher.
 3. **Per-pod view** — new `moderator/pods/[pod_id]/page.tsx`: status header,
    at-risk nudge, member roster with filter/search/sort, phase guidance, pod
@@ -256,7 +256,7 @@ Suggested order — each step is independently shippable:
 5. **Pod-level pulse insights** (§7.9.2) — themes + completion trend on the
    per-pod page.
 6. **Cross-pod pulse insights** (§7.9.3) — patterns + tool grid + engagement
-   comparison on the All Pods view.
+   comparison on the All pods view.
 7. **Nudge dismissal** — `POST /api/moderator/nudges/dismiss` + dismiss button
    on each nudge card.
 8. **UI state persistence** — switcher last-view, roster filter/sort, tooltip

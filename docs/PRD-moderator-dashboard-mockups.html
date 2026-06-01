@@ -98,7 +98,7 @@ tailwind.config = {
       <span class="text-sm text-cloud/60">Poderator Dashboard</span>
     </div>
     <div class="flex items-center gap-1 rounded-full bg-white/[0.04] p-1">
-      <button onclick="showScreen('all-pods')" id="tab-all-pods" class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 mock-tab-active">All Pods</button>
+      <button onclick="showScreen('all-pods')" id="tab-all-pods" class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 mock-tab-active">All pods</button>
       <button onclick="showScreen('per-pod')" id="tab-per-pod" class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 mock-tab-inactive">Per-pod</button>
       <button onclick="showScreen('pulse')" id="tab-pulse" class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 mock-tab-inactive">Pulse Review</button>
     </div>
@@ -117,7 +117,6 @@ tailwind.config = {
         <span class="text-sm font-semibold tracking-wide text-white">OLOS</span>
         <nav class="hidden md:flex items-center gap-6 text-sm">
           <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Cycles</a>
-          <a href="#" class="text-white">Pods</a>
           <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Members</a>
         </nav>
       </div>
@@ -139,7 +138,7 @@ tailwind.config = {
         <!-- Pod switcher -->
         <div class="inline-flex items-center gap-2 rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm">
           <i data-lucide="layers" class="h-4 w-4 text-cloud/60"></i>
-          <span class="text-cloud">All Pods</span>
+          <span class="text-cloud">All pods</span>
           <span class="text-cloud/40">·</span>
           <span class="text-cloud/60 tabular-nums">3 pods</span>
           <i data-lucide="chevron-down" class="h-4 w-4 text-cloud/40 ml-1"></i>
@@ -164,11 +163,14 @@ tailwind.config = {
               <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span class="text-sm font-semibold text-white">Sarah K.</span>
                 <span class="text-xs text-cloud/50">·</span>
-                <span class="text-xs text-cloud/60">Policy analyst, Federal · evenings + weekends</span>
+                <span class="text-xs text-cloud/60">Policy analyst · Federal · evenings + weekends</span>
               </div>
               <div class="mt-1.5 flex items-center gap-2 text-sm text-yellow-300">
                 <i data-lucide="alert-triangle" class="h-4 w-4 flex-shrink-0"></i>
                 <span class="font-medium">Missed 2 consecutive pulses</span>
+                <button class="text-yellow-300/60 hover:text-yellow-300 transition-colors" title="At-risk nudge: fires when a member misses the configured consecutive-miss threshold (default 2). System flags; you follow up via Slack.">
+                  <i data-lucide="help-circle" class="h-3 w-3"></i>
+                </button>
                 <span class="text-cloud/40">·</span>
                 <span class="text-cloud/60">last active 11 days ago</span>
               </div>
@@ -187,6 +189,9 @@ tailwind.config = {
                 <i data-lucide="message-square" class="h-3.5 w-3.5"></i>
                 Slack DM
               </button>
+              <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud/70 transition-colors" aria-label="Dismiss" title="Dismiss this nudge">
+                <i data-lucide="x" class="h-4 w-4"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -199,11 +204,14 @@ tailwind.config = {
               <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span class="text-sm font-semibold text-white">Jamal R.</span>
                 <span class="text-xs text-cloud/50">·</span>
-                <span class="text-xs text-cloud/60">Program analyst, Contractor · weekday lunches</span>
+                <span class="text-xs text-cloud/60">Program analyst · Contractor · weekday lunches</span>
               </div>
               <div class="mt-1.5 flex items-center gap-2 text-sm text-yellow-300">
                 <i data-lucide="alert-triangle" class="h-4 w-4 flex-shrink-0"></i>
                 <span class="font-medium">Missed 2 consecutive pulses</span>
+                <button class="text-yellow-300/60 hover:text-yellow-300 transition-colors" title="At-risk nudge: fires when a member misses the configured consecutive-miss threshold (default 2). System flags; you follow up via Slack.">
+                  <i data-lucide="help-circle" class="h-3 w-3"></i>
+                </button>
                 <span class="text-cloud/40">·</span>
                 <span class="text-cloud/60">last active 9 days ago</span>
               </div>
@@ -222,6 +230,9 @@ tailwind.config = {
                 <i data-lucide="message-square" class="h-3.5 w-3.5"></i>
                 Slack DM
               </button>
+              <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud/70 transition-colors" aria-label="Dismiss" title="Dismiss this nudge">
+                <i data-lucide="x" class="h-4 w-4"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -234,11 +245,14 @@ tailwind.config = {
               <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span class="text-sm font-semibold text-white">Linda P.</span>
                 <span class="text-xs text-cloud/50">·</span>
-                <span class="text-xs text-cloud/60">Researcher, NGO · weekends only</span>
+                <span class="text-xs text-cloud/60">Researcher · NGO · weekends only</span>
               </div>
               <div class="mt-1.5 flex items-center gap-2 text-sm text-yellow-300">
                 <i data-lucide="alert-triangle" class="h-4 w-4 flex-shrink-0"></i>
                 <span class="font-medium">Missed 3 consecutive pulses</span>
+                <button class="text-yellow-300/60 hover:text-yellow-300 transition-colors" title="At-risk nudge: fires when a member misses the configured consecutive-miss threshold (default 2). System flags; you follow up via Slack.">
+                  <i data-lucide="help-circle" class="h-3 w-3"></i>
+                </button>
                 <span class="text-cloud/40">·</span>
                 <span class="text-cloud/60">last active 19 days ago</span>
               </div>
@@ -256,6 +270,9 @@ tailwind.config = {
               <button class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-cloud/70 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud transition-colors">
                 <i data-lucide="message-square" class="h-3.5 w-3.5"></i>
                 Slack DM
+              </button>
+              <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud/70 transition-colors" aria-label="Dismiss" title="Dismiss this nudge">
+                <i data-lucide="x" class="h-4 w-4"></i>
               </button>
             </div>
           </div>
@@ -390,6 +407,10 @@ tailwind.config = {
             <button class="rounded-full px-3 py-1 font-medium bg-teal/20 text-aqua">Last 4 weeks</button>
             <button class="rounded-full px-3 py-1 font-medium text-cloud/60 hover:text-cloud transition-colors">Full cycle</button>
           </div>
+          <button class="inline-flex items-center gap-1.5 rounded-md border border-whisper bg-white/[0.04] px-3 py-1 text-xs text-cloud/85 hover:bg-white/[0.08] hover:text-white transition-colors" title="Copies a summary of your pod data. You'll paste it into your own AI tool — OLOS doesn't send anything.">
+            <i data-lucide="copy" class="h-3 w-3"></i>
+            Copy summary prompt
+          </button>
         </div>
       </div>
 
@@ -564,10 +585,6 @@ tailwind.config = {
             </div>
           </div>
 
-          <div class="mt-5 pt-4 border-t border-whisper text-xs text-cloud/60">
-            <i data-lucide="lightbulb" class="inline h-3 w-3 text-aqua mr-1"></i>
-            Health is heavy on ChatGPT; Medical Records is leaning into Cursor. Worth a cross-pod intro.
-          </div>
         </div>
 
       </div>
@@ -636,7 +653,6 @@ tailwind.config = {
         <span class="text-sm font-semibold tracking-wide text-white">OLOS</span>
         <nav class="hidden md:flex items-center gap-6 text-sm">
           <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Cycles</a>
-          <a href="#" class="text-white">Pods</a>
           <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Members</a>
         </nav>
       </div>
@@ -665,6 +681,8 @@ tailwind.config = {
         <div class="inline-flex items-center gap-2 rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm">
           <i data-lucide="layers" class="h-4 w-4 text-cloud/60"></i>
           <span class="text-cloud">Health Systems Access</span>
+          <span class="text-cloud/40">·</span>
+          <span class="text-cloud/60 tabular-nums">3 pods</span>
           <i data-lucide="chevron-down" class="h-4 w-4 text-cloud/40 ml-1"></i>
         </div>
       </div>
@@ -689,24 +707,36 @@ tailwind.config = {
         <div class="rounded-md border border-whisper bg-white/[0.02] p-5">
           <div class="text-xs uppercase tracking-widest text-cloud/40 mb-2">Current phase</div>
           <div class="text-base font-semibold text-white">Phase 4 · Solution Proposals</div>
-          <div class="mt-2 flex items-center gap-2 text-xs">
-            <span class="inline-flex items-center gap-1.5 text-yellow-300">
+          <div class="mt-2 space-y-1 text-xs">
+            <div class="flex items-center gap-1.5 text-cloud/60">
+              <span class="text-cloud/40">Opened</span>
+              <span class="tabular-nums">May 15</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-yellow-300">
               <i data-lucide="clock" class="h-3.5 w-3.5"></i>
-              Closes in 2 days
-            </span>
-            <span class="text-cloud/40 tabular-nums">May 22</span>
+              <span>Closes May 22</span>
+              <span class="text-cloud/40">· in 2 days</span>
+            </div>
           </div>
         </div>
 
         <!-- Pulse this week -->
         <div class="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-5">
-          <div class="text-xs uppercase tracking-widest text-yellow-300/80 mb-2">Pulse this week</div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-xs uppercase tracking-widest text-yellow-300/80">Pulse this week</div>
+            <button class="text-cloud/40 hover:text-cloud transition-colors" title="Count of pod members who haven't submitted this week's pulse. Banded into healthy / warning / critical by cycle-configurable thresholds.">
+              <i data-lucide="help-circle" class="h-3.5 w-3.5"></i>
+            </button>
+          </div>
           <div class="flex items-baseline gap-2">
             <span class="text-3xl font-bold tabular-nums text-yellow-300">1</span>
             <span class="text-sm text-cloud/70">missing</span>
-            <span class="trend-down text-base ml-auto" title="Falling vs last 3 weeks">↓</span>
+            <button class="trend-down text-base ml-auto inline-flex items-center gap-1" title="Falling vs last 3 weeks. Click ? to learn how the trend is calculated.">
+              ↓
+              <i data-lucide="help-circle" class="h-3 w-3 text-cloud/40"></i>
+            </button>
           </div>
-          <div class="mt-2.5 text-xs text-cloud/60">Healthy: 0 · Warning: 1–2 · Critical: 3+</div>
+          <div class="mt-2.5 text-xs text-cloud/60">Healthy: 0 · Warning: 1–2 · Critical: 3+ <span class="text-cloud/40">(cycle defaults)</span></div>
         </div>
 
         <!-- Members -->
@@ -775,7 +805,14 @@ tailwind.config = {
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">Member</th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60 hidden md:table-cell">Background</th>
-              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">Pulse</th>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                <span class="inline-flex items-center gap-1">
+                  Pulse
+                  <button class="text-cloud/40 hover:text-cloud transition-colors" title="Current = pulsed this week. Pending = window open, no submission yet. Late = window closed, no submission. At risk = hit consecutive-miss threshold.">
+                    <i data-lucide="help-circle" class="h-3 w-3"></i>
+                  </button>
+                </span>
+              </th>
               <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60 hidden md:table-cell">Last active</th>
               <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60"></th>
             </tr>
@@ -803,7 +840,7 @@ tailwind.config = {
               <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">19 days ago</td>
               <td class="px-4 py-3 text-right">
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
-                  <i data-lucide="message-circle" class="h-4 w-4"></i>
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
                 </button>
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
                   <i data-lucide="message-square" class="h-4 w-4"></i>
@@ -832,7 +869,7 @@ tailwind.config = {
               <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">8 days ago</td>
               <td class="px-4 py-3 text-right">
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
-                  <i data-lucide="message-circle" class="h-4 w-4"></i>
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
                 </button>
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
                   <i data-lucide="message-square" class="h-4 w-4"></i>
@@ -847,7 +884,7 @@ tailwind.config = {
                   <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">PS</div>
                   <div>
                     <div class="text-sm font-medium text-white">Priya S.</div>
-                    <div class="text-xs text-cloud/50">Built one Streamlit app · weekday evenings</div>
+                    <div class="text-xs text-cloud/50">Has built with AI · weekday evenings</div>
                   </div>
                 </div>
               </td>
@@ -861,7 +898,7 @@ tailwind.config = {
               <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">2 days ago</td>
               <td class="px-4 py-3 text-right">
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
-                  <i data-lucide="message-circle" class="h-4 w-4"></i>
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
                 </button>
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
                   <i data-lucide="message-square" class="h-4 w-4"></i>
@@ -876,7 +913,7 @@ tailwind.config = {
                   <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">MW</div>
                   <div>
                     <div class="text-sm font-medium text-white">Marcus W.</div>
-                    <div class="text-xs text-cloud/50">Ships side projects · flexible</div>
+                    <div class="text-xs text-cloud/50">Ships AI projects · flexible</div>
                   </div>
                 </div>
               </td>
@@ -890,7 +927,7 @@ tailwind.config = {
               <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">Yesterday</td>
               <td class="px-4 py-3 text-right">
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
-                  <i data-lucide="message-circle" class="h-4 w-4"></i>
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
                 </button>
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
                   <i data-lucide="message-square" class="h-4 w-4"></i>
@@ -919,7 +956,7 @@ tailwind.config = {
               <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">2 days ago</td>
               <td class="px-4 py-3 text-right">
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
-                  <i data-lucide="message-circle" class="h-4 w-4"></i>
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
                 </button>
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
                   <i data-lucide="message-square" class="h-4 w-4"></i>
@@ -934,7 +971,7 @@ tailwind.config = {
                   <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">ET</div>
                   <div>
                     <div class="text-sm font-medium text-white">Eli T.</div>
-                    <div class="text-xs text-cloud/50">Returning upskiller · evenings</div>
+                    <div class="text-xs text-cloud/50">Has built with AI · evenings</div>
                   </div>
                 </div>
               </td>
@@ -948,7 +985,7 @@ tailwind.config = {
               <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">3 days ago</td>
               <td class="px-4 py-3 text-right">
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
-                  <i data-lucide="message-circle" class="h-4 w-4"></i>
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
                 </button>
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
                   <i data-lucide="message-square" class="h-4 w-4"></i>
@@ -977,7 +1014,7 @@ tailwind.config = {
               <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">Today</td>
               <td class="px-4 py-3 text-right">
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
-                  <i data-lucide="message-circle" class="h-4 w-4"></i>
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
                 </button>
                 <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
                   <i data-lucide="message-square" class="h-4 w-4"></i>
@@ -1002,6 +1039,10 @@ tailwind.config = {
             <button class="rounded-full px-3 py-1 font-medium bg-teal/20 text-aqua">Last 4 weeks</button>
             <button class="rounded-full px-3 py-1 font-medium text-cloud/60 hover:text-cloud transition-colors">Full cycle</button>
           </div>
+          <button class="inline-flex items-center gap-1.5 rounded-md border border-whisper bg-white/[0.04] px-3 py-1 text-xs text-cloud/85 hover:bg-white/[0.08] hover:text-white transition-colors" title="Copies a summary of this pod's data. You'll paste it into your own AI tool — OLOS doesn't send anything.">
+            <i data-lucide="copy" class="h-3 w-3"></i>
+            Copy summary prompt
+          </button>
         </div>
       </div>
 
@@ -1157,8 +1198,30 @@ tailwind.config = {
             <span class="text-sm text-cloud/60">of 9 members have submitted</span>
           </div>
           <!-- Inline mini-progress -->
-          <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mb-4">
             <div class="h-full bg-teal" style="width: 44%"></div>
+          </div>
+          <!-- Submitter identities (PRD §7.5) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+            <div>
+              <div class="text-cloud/40 uppercase tracking-widest text-[10px] mb-1.5">Submitted</div>
+              <ul class="space-y-1 text-cloud/85">
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>Sarah K.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>Priya S.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>Marcus T.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>James W.</li>
+              </ul>
+            </div>
+            <div>
+              <div class="text-cloud/40 uppercase tracking-widest text-[10px] mb-1.5">Not yet</div>
+              <ul class="space-y-1 text-cloud/70">
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Linda P.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>David L.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Nina O.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Ravi M.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Elena V.</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -1201,16 +1264,19 @@ tailwind.config = {
             </div>
             <i data-lucide="external-link" class="h-3.5 w-3.5 text-cloud/30 flex-shrink-0"></i>
           </a>
-          <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2.5 -mx-2 hover:bg-white/[0.04] transition-colors group">
-            <div class="h-8 w-8 rounded bg-white/[0.06] grid place-items-center flex-shrink-0">
-              <i data-lucide="github" class="h-4 w-4 text-cloud/60 group-hover:text-aqua transition-colors"></i>
+          <!-- Missing-resource state (PRD §7.6) — example of the failed-to-provision affordance -->
+          <div class="flex items-center gap-3 rounded-md px-3 py-2.5 -mx-2 bg-yellow-500/[0.06] border border-yellow-500/20">
+            <div class="h-8 w-8 rounded bg-white/[0.04] grid place-items-center flex-shrink-0">
+              <i data-lucide="github" class="h-4 w-4 text-cloud/40"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <div class="text-sm text-cloud group-hover:text-white transition-colors">GitHub repo</div>
-              <div class="text-xs text-cloud/50 truncate">tul/pod-health-systems-access</div>
+              <div class="text-sm text-cloud/70">GitHub repo</div>
+              <div class="text-xs text-yellow-300/90 flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="h-3 w-3"></i>
+                Missing — contact staff
+              </div>
             </div>
-            <i data-lucide="external-link" class="h-3.5 w-3.5 text-cloud/30 flex-shrink-0"></i>
-          </a>
+          </div>
           <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2.5 -mx-2 hover:bg-white/[0.04] transition-colors group">
             <div class="h-8 w-8 rounded bg-white/[0.06] grid place-items-center flex-shrink-0">
               <i data-lucide="mail" class="h-4 w-4 text-cloud/60 group-hover:text-aqua transition-colors"></i>
@@ -1473,12 +1539,10 @@ tailwind.config = {
       <!-- Footer actions -->
       <div class="sticky bottom-0 bg-ink border-t border-whisper px-6 py-4">
         <div class="flex items-center justify-between gap-3">
-          <button class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-cloud/70 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud transition-colors">
+          <span class="text-xs text-cloud/50">Read-only · OLOS doesn't send messages</span>
+          <button class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-cloud/85 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-white transition-colors">
             <i data-lucide="message-square" class="h-4 w-4"></i>
-            Slack DM
-          </button>
-          <button class="rounded-md bg-teal px-4 py-2 text-sm font-medium text-white hover:bg-teal/80 transition-colors shadow-[0_1px_4px_rgba(0,148,160,0.2)]">
-            Reach out
+            Open Slack DM
           </button>
         </div>
       </div>

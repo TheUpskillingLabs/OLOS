@@ -15,7 +15,7 @@ Phase 1 ships a fully functional poderator dashboard excluding §7.9 (pulse-chec
 
 **In scope:**
 - DB migrations 00019–00022
-- All Pods view (`/moderator`) — replace existing stub
+- All pods view (`/moderator`) — replace existing stub
 - Per-pod view (`/moderator/pods/[pod_id]`) — new page
 - Pod status header, at-risk nudges, member roster, pulse review side panel, phase guidance, pod resources
 - Nudge dismissal (API + button)
@@ -41,7 +41,7 @@ The pod switcher navigates between routes (route change = server re-render with 
 
 ```
 app/(dashboard)/moderator/
-  page.tsx                          ← All Pods view (RSC) — replace stub
+  page.tsx                          ← All pods view (RSC) — replace stub
   pods/[pod_id]/page.tsx            ← Per-pod view (RSC) — new
   cycles/[cycle_id]/vote-progress/  ← untouched
 ```
@@ -74,11 +74,11 @@ All routes use `withAuth` from `lib/auth/middleware.ts`. Pod-scoped routes verif
 
 ## Components
 
-### All Pods view (`/moderator`)
+### All pods view (`/moderator`)
 
 | Component | Type | Responsibility |
 |---|---|---|
-| `PodSwitcher` | Client | Tab/dropdown for All Pods + per-pod navigation. Receives `lastView` as prop from RSC page (already fetched server-side). Writes to `ui-state` API on change. Reflects selection in URL. |
+| `PodSwitcher` | Client | Tab/dropdown for All pods + per-pod navigation. Receives `lastView` as prop from RSC page (already fetched server-side). Writes to `ui-state` API on change. Reflects selection in URL. |
 | `NudgeList` | Server | Cross-pod at-risk nudge cards, each with a `NudgeDismissButton` (Client). Capped at 3 visible; "N more" affordance. |
 | `PodSummaryGrid` | Server | Card per assigned pod: name, status, health indicator + trend arrow. Links to per-pod view. |
 
@@ -86,9 +86,9 @@ All routes use `withAuth` from `lib/auth/middleware.ts`. Pod-scoped routes verif
 
 | Component | Type | Responsibility |
 |---|---|---|
-| `PodSwitcher` | Client | Same component as All Pods view. |
+| `PodSwitcher` | Client | Same component as All pods view. |
 | `PodStatusHeader` | Server | Pod name, cycle name, pod status badge, current phase + timestamps + countdown, health indicator + trend arrow. Suppresses health indicator for `forming`/`inactive` pods. |
-| `NudgeList` | Server | At-risk nudges scoped to this pod. Same component as All Pods view. |
+| `NudgeList` | Server | At-risk nudges scoped to this pod. Same component as All pods view. |
 | `MemberRoster` | Client | Filter (by pulse status), search (by name), sort (default: at-risk → late → pending → current). Persists state to `ui-state` API on change. Exposes inline Slack DM link and pulse review trigger per row. |
 | `PulseReviewPanel` | Client | Sheet/drawer. Opens on roster row action without navigation. Fetches `GET …/pulse-responses/[participant_id]` on open. Displays per-week responses (last 4 weeks default). Navigation between members re-fetches without closing. |
 | `PhaseGuidance` | Server | Plain-English phase description, deadlines, phase-specific signal block (varies by phase). |
@@ -108,7 +108,7 @@ Tooltip targets: pod-health indicator, trend arrow, engagement-status badges, at
 
 ## Data fetching
 
-### All Pods page — server-side
+### All pods page — server-side
 
 - `moderator_assignments` (or all pods if admin) → pod IDs
 - `pods + cycles` → pod name, status, cycle name, phase, timestamps
