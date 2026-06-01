@@ -3,7 +3,9 @@
 **Date authored**: 2026-05-31
 **Cycle phase**: Solution proposal phase closing today; voting opens 2026-06-01
 **Author**: Hot-fix session bundle (PR #108, ticket #107, related)
-**Status**: Tier 0 in progress (PR #108 merged to dev, promotion to main pending)
+**Status**: Tier 0 complete (PR #109 deployed to prod 14:41 UTC). Tier 3 ticket-cleanup complete; consolidated work tracked in [#110](https://github.com/TheUpskillingLabs/OLOS/issues/110). Tier 1 = Phase A of #110.
+
+**Update 2026-05-31 post-launch**: the original Tier 1 plan to ship #102's profile-edit redirect has been consolidated into a wider state-machine remediation tracked at [#110](https://github.com/TheUpskillingLabs/OLOS/issues/110). The architecture review at [docs/architecture-review-onboarding-state-machine.md](./architecture-review-onboarding-state-machine.md) surfaced 23 broken edges across 6 subsystems — including a critical `ignoreDuplicates=true` bug in `fulfillInvitation()` that the original Tier 1 scope would not have caught. See roadmap §3.7 for the consolidated plan. Tickets #102, #98, #103, #107, #94 closed as completed-via-#110; #51, #87 downgraded.
 
 ---
 
