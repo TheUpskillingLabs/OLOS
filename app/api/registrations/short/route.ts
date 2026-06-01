@@ -29,6 +29,17 @@ export async function POST(request: NextRequest) {
   const supabase = createServiceClient();
   const { auth_user_id, google_id, email, first_name, last_name, contact_consent } = body;
 
+  // Defense in depth: enforce that the body-supplied auth_user_id matches
+  // the actual Supabase session. Without this, a body field could be
+  // tampered with to link a new participants row to someone else's
+  // auth identity (architecture review broken edge — registration-onboarding).
+  if (auth_user_id !== user.id) {
+    return NextResponse.json(
+      { error: "auth_user_id does not match the authenticated session" },
+      { status: 403 }
+    );
+  }
+
   // Case-insensitive dedup check
   const { data: existing } = await supabase
     .from("participants")

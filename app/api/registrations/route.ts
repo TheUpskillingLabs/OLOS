@@ -16,6 +16,17 @@ export async function POST(request: NextRequest) {
   const body = await parseBody(request, registrationSchema);
   if (isErrorResponse(body)) return body;
 
+  // Defense in depth: when the long-form sends an auth_user_id, enforce
+  // that it matches the actual Supabase session. The field is nullable in
+  // the schema (it can also be sent as NULL for legacy / admin-driven
+  // imports) — only enforce the match when present.
+  if (body.auth_user_id && body.auth_user_id !== user.id) {
+    return NextResponse.json(
+      { error: "auth_user_id does not match the authenticated session" },
+      { status: 403 }
+    );
+  }
+
   const supabase = createServiceClient();
 
   const {

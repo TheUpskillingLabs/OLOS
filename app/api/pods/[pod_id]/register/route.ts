@@ -3,10 +3,15 @@ import { withAuth } from "@/lib/auth/middleware";
 import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
+import { createServiceClient } from "@/lib/supabase/server";
+import {
+  reconcileEnrollmentActivation,
+  reconcilePodMembers,
+} from "@/lib/enrollment/reconciler";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
-  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
+  async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
     const participantId = auth.user.participantId;
@@ -55,13 +60,9 @@ export const POST = withAuth(
       );
     }
 
-    // Reactivation path: same membership, just clearing the soft-delete marker.
-    // The 2-pod-cap check below uses `.is("inactive_at", null)` so it correctly
-    // counts only currently-active memberships — the inactive row we're about
-    // to reactivate doesn't double-count against the cap before reactivation.
     const isReactivation = existing !== null;
 
-    // Check 2-pod cap for this cycle
+    // Check 2-pod cap for this cycle (active memberships only)
     const { data: cyclePods } = await auth.supabase
       .from("pod_memberships")
       .select("id, pods!inner(cycle_id)")
@@ -76,7 +77,6 @@ export const POST = withAuth(
       );
     }
 
-    // Register (new INSERT) or reactivate (UPDATE clearing inactive_at)
     let membership: { id: number; joined_at: string };
     if (isReactivation && existing) {
       const { data: reactivated, error: reactivateError } = await auth.supabase
@@ -103,50 +103,41 @@ export const POST = withAuth(
       membership = inserted;
     }
 
-    // Check if pod should activate
-    const { data: config } = await auth.supabase
+    // Pod activation + enrollment reconciliation
+    //
+    // The pods.status flip (forming -> active) and the cycle_enrollments
+    // status updates are both gated by is_admin_or_owner() RLS, so the
+    // cookie-bound auth.supabase client would silently no-op them for
+    // regular participants. We use the service client + the centralized
+    // reconciler (lib/enrollment/reconciler.ts) instead — the single
+    // source of truth for enrollment transitions across the codebase.
+    const serviceClient = createServiceClient();
+
+    const { data: config } = await serviceClient
       .from("cycle_config")
       .select("pod_min")
       .eq("cycle_id", pod.cycle_id)
       .single();
 
-    const { count } = await auth.supabase
+    const { count } = await serviceClient
       .from("pod_memberships")
       .select("id", { count: "exact", head: true })
       .eq("pod_id", podId)
       .is("inactive_at", null);
 
     if (config && count && count >= config.pod_min && pod.status === "forming") {
-      await auth.supabase
+      // Pod just tipped past pod_min — flip to active, then reconcile every
+      // member's enrollment so the resource-provisioning invariant holds
+      // ("resources provision at activation" — architecture brief §4).
+      await serviceClient
         .from("pods")
         .update({ status: "active", updated_at: new Date().toISOString() })
         .eq("id", podId);
 
-      // Activate enrollment for all pod members
-      const { data: members } = await auth.supabase
-        .from("pod_memberships")
-        .select("participant_id")
-        .eq("pod_id", podId)
-        .is("inactive_at", null);
-
-      if (members && members.length > 0) {
-        await auth.supabase
-          .from("cycle_enrollments")
-          .update({ status: "active" })
-          .in("participant_id", members.map((m) => m.participant_id))
-          .eq("cycle_id", pod.cycle_id)
-          .eq("status", "inactive");
-      }
-    }
-
-    // If pod is already active, activate just this joining participant
-    if (pod.status === "active") {
-      await auth.supabase
-        .from("cycle_enrollments")
-        .update({ status: "active" })
-        .eq("participant_id", participantId)
-        .eq("cycle_id", pod.cycle_id)
-        .eq("status", "inactive");
+      await reconcilePodMembers(podId);
+    } else if (pod.status === "active") {
+      // Pod was already active; reconcile only the joining participant.
+      await reconcileEnrollmentActivation(participantId, pod.cycle_id);
     }
 
     return NextResponse.json(
@@ -166,7 +157,7 @@ export const DELETE = withAuth(
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
 
-    // Get pod for window check
+    // Get pod for window check + cycle reconciliation
     const { data: pod } = await auth.supabase
       .from("pods")
       .select("cycle_id")
@@ -195,6 +186,10 @@ export const DELETE = withAuth(
     if (error) {
       return dbError(error);
     }
+
+    // Reconcile the leaver's enrollment — if this was their last active pod
+    // in the cycle, their cycle_enrollments.status drops to 'inactive'.
+    await reconcileEnrollmentActivation(participantId, pod.cycle_id);
 
     return NextResponse.json({ success: true });
   }
