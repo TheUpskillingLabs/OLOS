@@ -407,10 +407,6 @@ tailwind.config = {
             <button class="rounded-full px-3 py-1 font-medium bg-teal/20 text-aqua">Last 4 weeks</button>
             <button class="rounded-full px-3 py-1 font-medium text-cloud/60 hover:text-cloud transition-colors">Full cycle</button>
           </div>
-          <button class="inline-flex items-center gap-1.5 rounded-md border border-whisper bg-white/[0.04] px-3 py-1 text-xs text-cloud/85 hover:bg-white/[0.08] hover:text-white transition-colors" title="Copies a summary of your pod data. You'll paste it into your own AI tool — OLOS doesn't send anything.">
-            <i data-lucide="copy" class="h-3 w-3"></i>
-            Copy summary prompt
-          </button>
         </div>
       </div>
 
@@ -456,101 +452,46 @@ tailwind.config = {
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-teal/15">
-          <div>
-            <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Top AI tools</div>
-            <div class="flex flex-wrap gap-1.5">
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs text-aqua">ChatGPT <span class="tabular-nums opacity-80">16</span></span>
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-0.5 text-xs text-aqua/90">Claude <span class="tabular-nums opacity-80">13</span></span>
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-0.5 text-xs text-aqua/80">Cursor <span class="tabular-nums opacity-80">8</span></span>
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-xs text-cloud/70">v0 <span class="tabular-nums opacity-80">3</span></span>
-            </div>
-          </div>
-          <div>
-            <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Top stuck-on themes</div>
-            <ol class="text-xs text-cloud/85 space-y-1 list-decimal list-inside marker:text-cloud/40">
-              <li>Confusion about proposal scope <span class="text-cloud/40 tabular-nums">· 7</span></li>
-              <li>Time pressure on pulse window <span class="text-cloud/40 tabular-nums">· 4</span></li>
-              <li>Tool setup friction <span class="text-cloud/40 tabular-nums">· 3</span></li>
-            </ol>
-          </div>
-          <div>
-            <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Top help requests</div>
-            <ol class="text-xs text-cloud/85 space-y-1 list-decimal list-inside marker:text-cloud/40">
-              <li>Pairing with a technical pod-mate <span class="text-cloud/40 tabular-nums">· 5</span></li>
-              <li>Non-technical proposal examples <span class="text-cloud/40 tabular-nums">· 4</span></li>
-              <li>Office-hours or staff time <span class="text-cloud/40 tabular-nums">· 2</span></li>
-            </ol>
+        <div class="pt-4 border-t border-teal/15">
+          <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Top AI tools — all your pods combined</div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs text-aqua">ChatGPT <span class="tabular-nums opacity-80">16</span></span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-0.5 text-xs text-aqua/90">Claude <span class="tabular-nums opacity-80">13</span></span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-0.5 text-xs text-aqua/80">Cursor <span class="tabular-nums opacity-80">8</span></span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-xs text-cloud/70">v0 <span class="tabular-nums opacity-80">3</span></span>
           </div>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        <!-- Patterns across pods -->
-        <div class="lg:col-span-2 rounded-md border border-whisper bg-white/[0.02] p-5">
-          <div class="flex items-center justify-between mb-4">
-            <div class="text-xs uppercase tracking-widest text-cloud/40">Patterns showing up in more than one pod</div>
-            <button class="text-cloud/40 hover:text-cloud transition-colors p-1" title="How themes are generated">
-              <i data-lucide="help-circle" class="h-4 w-4"></i>
-            </button>
+        <!-- AI-assisted summary block (§7.10.3) -->
+        <div class="lg:col-span-2 rounded-md border border-teal/25 bg-teal/[0.04] p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-aqua/80 mb-1">AI-assisted summary</div>
+              <div class="text-sm text-cloud/85">Bundle recent pulse comments with a ready-to-use prompt and paste into ChatGPT, Claude, or your AI tool of choice.</div>
+            </div>
+            <i data-lucide="sparkles" class="h-5 w-5 text-aqua/70 flex-shrink-0 mt-0.5"></i>
           </div>
 
-          <div class="space-y-3">
-            <div class="rounded-md border border-whisper bg-white/[0.01] p-4 hover:bg-white/[0.03] transition-colors cursor-pointer">
-              <div class="flex items-start justify-between gap-3 mb-2">
-                <div class="text-sm font-semibold text-cloud">Confusion about solution proposal scope</div>
-                <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">7 members</span>
-              </div>
-              <div class="flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/70">
-                  <i data-lucide="users" class="h-3 w-3"></i>
-                  Health Systems Access
-                </span>
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/70">
-                  <i data-lucide="users" class="h-3 w-3"></i>
-                  Medical Records Consolidation
-                </span>
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/70">
-                  <i data-lucide="users" class="h-3 w-3"></i>
-                  Energy Grid Resilience
-                </span>
-              </div>
+          <div class="rounded-md bg-ink/40 border border-whisper p-4 mb-3 max-h-48 overflow-y-auto">
+            <div class="text-[10px] uppercase tracking-widest text-cloud/40 mb-2">Pulse comments included · last 4 weeks · 27 responses across 3 pods</div>
+            <div class="space-y-2.5 text-xs text-cloud/80">
+              <div><span class="text-cloud/45">[LP · Health · week 4]</span> I don't really understand what a "solution proposal" is supposed to look like. The example was technical and I'm not sure how to scope something I could actually contribute to.</div>
+              <div><span class="text-cloud/45">[SK · Medical · week 4]</span> Pulse window keeps closing while I'm in meetings — would love a longer evening window.</div>
+              <div><span class="text-cloud/45">[JR · Energy · week 4]</span> Stuck on Cursor setup — keep getting auth errors. Anyone got a working config?</div>
+              <div><span class="text-cloud/45">[MW · Health · week 3]</span> Would love to pair with someone more technical — happy to bring policy framing.</div>
+              <div class="text-cloud/45 italic">…23 more comments included in the copy</div>
             </div>
+          </div>
 
-            <div class="rounded-md border border-whisper bg-white/[0.01] p-4 hover:bg-white/[0.03] transition-colors cursor-pointer">
-              <div class="flex items-start justify-between gap-3 mb-2">
-                <div class="text-sm font-semibold text-cloud">Wanting to pair with a more technical pod-mate</div>
-                <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">5 members</span>
-              </div>
-              <div class="flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/70">
-                  <i data-lucide="users" class="h-3 w-3"></i>
-                  Health Systems Access
-                </span>
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/70">
-                  <i data-lucide="users" class="h-3 w-3"></i>
-                  Medical Records Consolidation
-                </span>
-              </div>
-            </div>
-
-            <div class="rounded-md border border-whisper bg-white/[0.01] p-4 hover:bg-white/[0.03] transition-colors cursor-pointer">
-              <div class="flex items-start justify-between gap-3 mb-2">
-                <div class="text-sm font-semibold text-cloud">Time pressure on weekday pulse window</div>
-                <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">4 members</span>
-              </div>
-              <div class="flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/70">
-                  <i data-lucide="users" class="h-3 w-3"></i>
-                  Medical Records Consolidation
-                </span>
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/70">
-                  <i data-lucide="users" class="h-3 w-3"></i>
-                  Energy Grid Resilience
-                </span>
-              </div>
-            </div>
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-xs text-cloud/50">OLOS doesn't send anything. You'll paste this into your own AI tool.</span>
+            <button class="inline-flex items-center gap-2 rounded-md bg-teal/80 hover:bg-teal px-4 py-2 text-sm font-medium text-white transition-colors shadow-[0_1px_4px_rgba(0,148,160,0.2)]">
+              <i data-lucide="copy" class="h-4 w-4"></i>
+              Copy prompt + responses
+            </button>
           </div>
         </div>
 
@@ -1048,68 +989,33 @@ tailwind.config = {
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        <!-- Top stuck-on + help themes -->
-        <div class="lg:col-span-2 rounded-md border border-whisper bg-white/[0.02] p-5">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- AI-assisted summary block (§7.10.3) — per-pod scope -->
+        <div class="lg:col-span-2 rounded-md border border-teal/25 bg-teal/[0.04] p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
             <div>
-              <div class="flex items-center justify-between mb-3">
-                <div class="text-xs uppercase tracking-widest text-cloud/40">What members are stuck on</div>
-                <i data-lucide="help-circle" class="h-3.5 w-3.5 text-cloud/30"></i>
-              </div>
-              <div class="space-y-2">
-                <div class="rounded border border-whisper bg-white/[0.01] p-3 hover:bg-white/[0.03] transition-colors cursor-pointer">
-                  <div class="flex items-start justify-between gap-2 mb-1">
-                    <div class="text-sm text-cloud">Confusion about proposal scope</div>
-                    <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">4 members</span>
-                  </div>
-                  <div class="text-xs text-cloud/50">Linda P., Sarah K., Aisha M., Diane R.</div>
-                </div>
-                <div class="rounded border border-whisper bg-white/[0.01] p-3 hover:bg-white/[0.03] transition-colors cursor-pointer">
-                  <div class="flex items-start justify-between gap-2 mb-1">
-                    <div class="text-sm text-cloud">Cursor setup &amp; first run</div>
-                    <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">2 members</span>
-                  </div>
-                  <div class="text-xs text-cloud/50">Priya S., Aisha M.</div>
-                </div>
-                <div class="rounded border border-whisper bg-white/[0.01] p-3 hover:bg-white/[0.03] transition-colors cursor-pointer">
-                  <div class="flex items-start justify-between gap-2 mb-1">
-                    <div class="text-sm text-cloud">Time pressure on weekday pulse</div>
-                    <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">2 members</span>
-                  </div>
-                  <div class="text-xs text-cloud/50">Linda P., Eli T.</div>
-                </div>
-              </div>
+              <div class="text-xs uppercase tracking-widest text-aqua/80 mb-1">AI-assisted summary</div>
+              <div class="text-sm text-cloud/85">Bundle this pod's recent pulse comments with a ready-to-use prompt. Paste into ChatGPT, Claude, or your AI tool of choice for analysis.</div>
             </div>
+            <i data-lucide="sparkles" class="h-5 w-5 text-aqua/70 flex-shrink-0 mt-0.5"></i>
+          </div>
 
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <div class="text-xs uppercase tracking-widest text-cloud/40">Help members are asking for</div>
-                <i data-lucide="help-circle" class="h-3.5 w-3.5 text-cloud/30"></i>
-              </div>
-              <div class="space-y-2">
-                <div class="rounded border border-whisper bg-white/[0.01] p-3 hover:bg-white/[0.03] transition-colors cursor-pointer">
-                  <div class="flex items-start justify-between gap-2 mb-1">
-                    <div class="text-sm text-cloud">Pair with a technical pod-mate</div>
-                    <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">3 members</span>
-                  </div>
-                  <div class="text-xs text-cloud/50">Linda P., Sarah K., Diane R.</div>
-                </div>
-                <div class="rounded border border-whisper bg-white/[0.01] p-3 hover:bg-white/[0.03] transition-colors cursor-pointer">
-                  <div class="flex items-start justify-between gap-2 mb-1">
-                    <div class="text-sm text-cloud">Non-technical proposal examples</div>
-                    <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">2 members</span>
-                  </div>
-                  <div class="text-xs text-cloud/50">Linda P., Aisha M.</div>
-                </div>
-                <div class="rounded border border-whisper bg-white/[0.01] p-3 hover:bg-white/[0.03] transition-colors cursor-pointer">
-                  <div class="flex items-start justify-between gap-2 mb-1">
-                    <div class="text-sm text-cloud">Office-hours with staff</div>
-                    <span class="text-xs text-cloud/40 tabular-nums whitespace-nowrap">2 members</span>
-                  </div>
-                  <div class="text-xs text-cloud/50">Priya S., Sarah K.</div>
-                </div>
-              </div>
+          <div class="rounded-md bg-ink/40 border border-whisper p-4 mb-3 max-h-48 overflow-y-auto">
+            <div class="text-[10px] uppercase tracking-widest text-cloud/40 mb-2">Pulse comments included · last 4 weeks · 12 responses</div>
+            <div class="space-y-2.5 text-xs text-cloud/80">
+              <div><span class="text-cloud/45">[LP · week 4]</span> I don't really understand what a "solution proposal" is supposed to look like. The example was technical and I'm not sure how to scope something I could actually contribute to.</div>
+              <div><span class="text-cloud/45">[SK · week 4]</span> Would love to pair with someone more technical — happy to bring policy framing.</div>
+              <div><span class="text-cloud/45">[PS · week 4]</span> Cursor install hit auth errors — spent 2 hours on it before giving up. Need a known-good config.</div>
+              <div><span class="text-cloud/45">[AM · week 3]</span> Non-technical examples would help — most of what's been shared looks like a software project.</div>
+              <div class="text-cloud/45 italic">…8 more comments included in the copy</div>
             </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-xs text-cloud/50">OLOS doesn't send anything. You'll paste this into your own AI tool.</span>
+            <button class="inline-flex items-center gap-2 rounded-md bg-teal/80 hover:bg-teal px-4 py-2 text-sm font-medium text-white transition-colors shadow-[0_1px_4px_rgba(0,148,160,0.2)]">
+              <i data-lucide="copy" class="h-4 w-4"></i>
+              Copy prompt + responses
+            </button>
           </div>
         </div>
 
@@ -1407,39 +1313,11 @@ tailwind.config = {
           </div>
 
           <!-- Aggregation grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-4 border-t border-teal/15">
-            <div>
-              <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Tools she's used</div>
-              <div class="flex flex-wrap gap-1.5">
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs text-aqua">ChatGPT <span class="tabular-nums opacity-80">3</span></span>
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-0.5 text-xs text-aqua/90">Claude <span class="tabular-nums opacity-80">2</span></span>
-              </div>
-            </div>
-            <div>
-              <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Recurring stuck-on themes</div>
-              <ul class="text-xs text-cloud/85 space-y-1">
-                <li class="flex items-center justify-between gap-2 hover:text-aqua transition-colors cursor-pointer">
-                  <span>Confusion about proposal scope</span>
-                  <span class="text-cloud/40 tabular-nums">2</span>
-                </li>
-                <li class="flex items-center justify-between gap-2 hover:text-aqua transition-colors cursor-pointer">
-                  <span>Feeling behind technically</span>
-                  <span class="text-cloud/40 tabular-nums">2</span>
-                </li>
-              </ul>
-            </div>
-            <div class="sm:col-span-2 pt-4 border-t border-teal/15">
-              <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Help she's asked for</div>
-              <ul class="text-xs text-cloud/85 space-y-1">
-                <li class="flex items-center justify-between gap-2 hover:text-aqua transition-colors cursor-pointer">
-                  <span>Pair with a more technical pod-mate</span>
-                  <span class="text-cloud/40 tabular-nums">2 weeks</span>
-                </li>
-                <li class="flex items-center justify-between gap-2 hover:text-aqua transition-colors cursor-pointer">
-                  <span>Non-technical proposal examples</span>
-                  <span class="text-cloud/40 tabular-nums">1 week</span>
-                </li>
-              </ul>
+          <div class="pt-4 border-t border-teal/15">
+            <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Tools she's used</div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs text-aqua">ChatGPT <span class="tabular-nums opacity-80">3</span></span>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-0.5 text-xs text-aqua/90">Claude <span class="tabular-nums opacity-80">2</span></span>
             </div>
           </div>
         </div>

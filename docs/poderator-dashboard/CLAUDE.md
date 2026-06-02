@@ -70,8 +70,8 @@ correctly (PRD §7.7).
 | `GET /api/moderator/pods` | All pods for the authed poderator (wraps `moderator_assignments`). Admins get all pods. |
 | `GET /api/moderator/pods/[pod_id]` | Single pod detail + phase signal + member roster with pulse status |
 | `GET /api/moderator/pods/[pod_id]/pulse-responses/[participant_id]` | Per-member pulse history for the side panel (§7.4). Returns 403 if caller is not assigned to the pod. |
-| `GET /api/moderator/pods/[pod_id]/insights` | Pod-level aggregations (§7.9.2): top tools, stuck-on themes, help themes, completion trend |
-| `GET /api/moderator/insights` | Cross-pod aggregations (§7.9.3): patterns across all assigned pods |
+| `GET /api/moderator/pods/[pod_id]/insights` | Pod-level structured aggregates (§7.9.2): top AI tools, weekly completion trend. Plus the bundle for the AI-assisted summary block (§7.10.3): recent pulse comments (initials only) + the canonical `cycle_config.ai_summary_prompt` string. |
+| `GET /api/moderator/insights` | Cross-pod structured aggregates (§7.9.3): AI tool adoption by pod, engagement comparison. Plus the AI-assisted summary bundle scoped across all assigned pods. |
 | `POST /api/moderator/nudges/dismiss` | Dismiss a nudge instance. Body: `{ pod_id, nudge_key }`. Writes to `nudge_dismissals`. |
 | `GET /api/moderator/ui-state` | Last-selected switcher view + roster filter/sort state |
 | `PUT /api/moderator/ui-state` | Persist switcher selection, roster filter, tooltip suppression keys |
@@ -112,8 +112,10 @@ loss of assignment takes effect immediately (PRD §8).
 
 ## New DB tables
 
-Next migration number: **00019** (latest is `00018_solution_proposals_rich_fields.sql`).
-Split into logical migration files; don't bundle everything in one.
+Next migration number: **00023** (latest at time of writing is
+`00022_pod_memberships_select_hide_soft_deleted.sql`; 00019–00022 were
+consumed by the RLS soft-delete fixes in PR #110/#111). Split into
+logical migration files; don't bundle everything in one.
 
 ### `nudge_dismissals`
 
@@ -147,27 +149,21 @@ create table moderator_ui_state (
 
 Upsert on every PUT. One row per poderator.
 
-### `pulse_themes`
+### `participants` extension
+
+Add the member-preview structured fields (PRD §7.3.1):
 
 ```sql
-create table pulse_themes (
-  id                    bigint generated always as identity primary key,
-  scope_type            text not null check (scope_type in ('individual','pod','cross_pod')),
-  scope_id              bigint not null,  -- participant_id, pod_id, or moderator participant_id
-  scope_window_start    date not null,
-  scope_window_end      date not null,
-  source_field          text not null check (source_field in ('stuck_on','help_needed','what_went_well')),
-  theme_label           text not null,
-  member_count          int  not null default 0,
-  mention_count         int  not null default 0,
-  contributing_pulse_ids bigint[] not null default '{}',
-  generated_at          timestamptz not null default now()
-);
-create index on pulse_themes (scope_type, scope_id, scope_window_start, scope_window_end);
+-- AI experience level enum
+create type ai_experience_level as enum ('new', 'consumer', 'builder', 'shipper');
+
+alter table participants
+  add column if not exists ai_experience_level ai_experience_level not null default 'new',
+  add column if not exists availability_snippet text;
 ```
 
-Themes are written by a server action / cron that runs after each pulse
-window closes. They are read-only from the dashboard.
+Legacy rows default to `new`. UI labels for the enum are program-team-owned
+copy (see PRD §7.3.1 table); the enum is the canonical sort/filter key.
 
 ### `cycle_config` extensions
 
@@ -182,11 +178,20 @@ alter table cycle_config
   -- At-risk nudge threshold
   add column if not exists at_risk_consecutive_misses int default 2,
   -- Default aggregation window (weeks)
-  add column if not exists pulse_agg_default_weeks int default 4;
+  add column if not exists pulse_agg_default_weeks int default 4,
+  -- Canonical AI summary prompt (§7.10.3); same prompt for both All pods and per-pod scopes
+  add column if not exists ai_summary_prompt text;
 ```
 
 Global defaults (1/3/2/4) apply when the cycle hasn't set its own values
-(PRD §7.1, §7.2).
+(PRD §7.1, §7.2). The `ai_summary_prompt` is program-team-owned and
+defaults to a single string applied globally; cycles can override.
+
+### NOT building
+
+No `pulse_themes` table. No LLM theme-extraction pipeline. No
+`pulse_check_aggregates` materialized view. All free-text analysis is
+pushed to the poderator's own AI tool via §7.10.3.
 
 ---
 
@@ -216,7 +221,8 @@ decision entry in `docs/PRD-moderator-dashboard.md §10`:
 | Multi-pod poderators | First-class. All pods view is the default landing. |
 | Inactive members | Hidden by default; "Show inactive" toggle. |
 | Profile visibility | Four tiers (always/hover/click-through/never). See PRD §7.3. |
-| Pulse aggregation | Three scopes: individual (side panel), pod-level (per-pod page), cross-pod (All pods). LLM themes for free-text fields. |
+| Pulse aggregation | Three scopes: individual (side panel), pod-level (per-pod page), cross-pod (All pods). Structured fields only (AI tool counts, completion rates). No LLM in OLOS — free-text analysis is via the §7.10.3 Copy-prompt block. |
+| AI summary approach | OLOS does not run any LLM. The "AI-assisted summary block" (§7.10.3) bundles recent pulse comments with a canonical prompt and copies the bundle to clipboard; the poderator pastes into ChatGPT/Claude/etc. themselves. One prompt, owned by program team, stored on `cycle_config`. |
 | Auto-flip | Disabled for the current cycle. Don't activate it from dashboard logic. |
 | No in-product walkthrough | Tooltips only (UI mechanics). Programmatic orientation is handbook + kickoff. |
 
@@ -234,6 +240,11 @@ decision entry in `docs/PRD-moderator-dashboard.md §10`:
   library — filled dot = submitted, outlined dot = missed.
 - The **completion trend bars** (§7.9.2, §7.9.3) are simple `<div>` bars with
   inline `height` percentages, as in the mockup. No chart library needed.
+- The **AI-assisted summary block** (§7.10.3) is a thin client component: the
+  RSC page assembles the bundle (recent pulse comments by initials +
+  `cycle_config.ai_summary_prompt`) and passes it as a prop. The Client
+  Component renders the preview and a Copy button that writes the bundle to
+  the clipboard. No API call on copy, no telemetry required, no modal.
 - Tooltips (§7.8): auto-suppress after 1–2 encounters per key. Store seen keys
   in `moderator_ui_state.tooltip_seen[]`. Always show a `?` icon so the
   poderator can re-trigger.
@@ -244,22 +255,30 @@ decision entry in `docs/PRD-moderator-dashboard.md §10`:
 
 Suggested order — each step is independently shippable:
 
-1. **Migrations** (`00019`+) — `nudge_dismissals`, `moderator_ui_state`,
-   `pulse_themes`, `cycle_config` extensions.
+1. **Migrations** (`00023`–`00026`) — `nudge_dismissals`, `moderator_ui_state`,
+   `participants.ai_experience_level` + `availability_snippet`, `cycle_config`
+   extensions including `ai_summary_prompt`. No `pulse_themes`.
 2. **All pods view** — replace the existing `moderator/page.tsx` stub with the
-   full page: pod cards with health indicator, cross-pod nudge list, switcher.
-3. **Per-pod view** — new `moderator/pods/[pod_id]/page.tsx`: status header,
-   at-risk nudge, member roster with filter/search/sort, phase guidance, pod
-   resources.
+   full page: nudge list, pod summary cards (§7.10.1), members-needing-
+   attention rollup (§7.10.2), switcher.
+3. **Per-pod view** — new `moderator/pods/[pod_id]/page.tsx`: status header
+   (with open + close timestamps), at-risk nudges, member roster with
+   filter/search/sort, phase guidance (incl. submitter identities in the
+   solution-proposal phase), pod resources (incl. missing-resource affordance).
 4. **Pulse review side panel** — per-member pulse history + individual
-   aggregation block (§7.9.1). Opens from roster row.
-5. **Pod-level pulse insights** (§7.9.2) — themes + completion trend on the
-   per-pod page.
-6. **Cross-pod pulse insights** (§7.9.3) — patterns + tool grid + engagement
-   comparison on the All pods view.
-7. **Nudge dismissal** — `POST /api/moderator/nudges/dismiss` + dismiss button
-   on each nudge card.
-8. **UI state persistence** — switcher last-view, roster filter/sort, tooltip
-   suppression.
-9. **Tooltip layer** — attach to pod-health indicator, trend arrow, status
-   badges, nudge type, phase guidance header.
+   aggregation block (§7.9.1: AI tools + engagement trajectory only). Opens
+   from roster row.
+5. **Pod-level pulse insights** (§7.9.2) — top AI tools + weekly completion
+   trend on the per-pod page.
+6. **Cross-pod pulse insights** (§7.9.3) — AI tool adoption by pod +
+   engagement comparison on the All pods view. Suppressed for single-pod
+   poderators.
+7. **AI-assisted summary block** (§7.10.3) — assemble the comment bundle
+   server-side, render preview + Copy button in a shared Client Component.
+   Used on both All pods and per-pod insights sections.
+8. **Nudge dismissal** — `POST /api/moderator/nudges/dismiss` + dismiss button
+   on each nudge card (on both All pods and per-pod nudges).
+9. **UI state persistence** — switcher last-view, roster filter/sort
+   (including by `ai_experience_level`), tooltip suppression.
+10. **Tooltip layer** — attach to pod-health indicator, trend arrow, status
+    badges, nudge type, phase guidance header.

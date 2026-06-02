@@ -68,7 +68,7 @@ Within a per-pod view, sections render top to bottom as follows:
 6. Phase guidance (§7.5)
 7. Pod resources (§7.6)
 
-The All pods view shows, top to bottom: cross-pod at-risk nudges (§7.2), pod summary cards (§7.10.1), a members-needing-attention rollup (§7.10.2), cross-pod pulse insights (§7.9.3), and an LLM summary prompt export affordance (§7.10.3). The switcher and the poderator's last-selected view are described in §7.7.
+The All pods view shows, top to bottom: cross-pod at-risk nudges (§7.2), pod summary cards (§7.10.1), a members-needing-attention rollup (§7.10.2), cross-pod pulse insights (§7.9.3), and an AI-assisted summary block (§7.10.3). The switcher and the poderator's last-selected view are described in §7.7.
 
 ## 7. Functional requirements
 
@@ -210,44 +210,34 @@ Lightweight tooltips assist with UI-mechanic orientation, particularly for first
 
 Aggregated views of pulse-check data surface patterns the per-week response stream can't show on its own. Aggregations are computed server-side and render at three scopes: individual, pod, and across-pods.
 
-The structured fields on each pulse check (AI tools used, multi-select option lists) aggregate by deterministic counts. The free-text fields ("what went well," "what I'm stuck on," "help I need") are reduced to themes by an LLM pass and stored with citations back to the source pulse responses, so a poderator can always trace a theme back to who said what.
+Aggregations cover **structured fields only** — AI tools selected, multi-select options, pulse-completion rates. Free-text fields ("what went well," "what I'm stuck on," "help I need") are not summarized by OLOS; they surface as raw responses in the pulse response review (§7.4) and feed the AI-assisted summary block (§7.10.3) where the poderator can run their own analysis on them.
 
 #### 7.9.1 Individual aggregation
 
 Rendered as a block at the top of the pulse response review side panel (§7.4), above the per-week responses. Scoped to a single member across the full active cycle.
 
 - **Top AI tools used.** Up to five tools, ordered by frequency of selection across that member's pulse responses. Each shows a count of the number of pulses in which the member named it.
-- **Recurring "stuck on" themes.** Up to three themes derived from the member's free-text responses, ordered by frequency. Each theme is one short phrase plus a count of pulses where it surfaced.
-- **Recurring help requests.** Up to three themes from the "help I need" field, same shape as above.
 - **Engagement trajectory.** A small sparkline or week-by-week dot row showing pulse completion across the cycle (submitted / missed) so the poderator can see at a glance whether engagement has been rising, falling, or stable.
-- Each theme links back to the source pulse responses, scrolling the panel to the relevant week(s) on click.
 
 #### 7.9.2 Pod-level aggregation
 
 Rendered as a section on the per-pod dashboard, between the member roster (§7.3) and the phase guidance (§7.5). Scoped to one pod, default to the last four weeks with a toggle for the full cycle.
 
 - **Top AI tools across the pod.** Up to five tools, ordered by the count of pod members who named them in their pulse responses (not by raw mention count, so one heavy user doesn't dominate). Each shows the count of pod members.
-- **Top "stuck on" themes.** Up to three LLM-derived themes from the pod's free-text responses, each with a count of distinct members who surfaced it. Themes that appear in only one member's responses are suppressed.
-- **Top help requests.** Same shape as stuck-on themes.
 - **Pulse completion trend.** A small bar or line showing the pod's pulse-completion rate over the displayed range, week by week.
-- Each theme item links to the underlying pulse responses, opening the pulse review panel (§7.4) for the relevant member(s) and scrolling to the matching week.
-- A clear empty state when the pod has insufficient data (fewer than two members with pulse responses in the range): "Not enough pulse data yet to show themes."
 
 #### 7.9.3 Cross-pod aggregation
 
 Rendered as a section on the All pods view, beneath the pod-summary cards. Scoped to all of the poderator's assigned pods, default to the last four weeks with a toggle for the full cycle.
 
-- **Patterns across your pods.** LLM-derived themes that appear in two or more of the poderator's pods, surfaced as a list with per-pod breakdown (e.g. "Confusion about solution proposal scope — Health Systems Access · Energy Grid Resilience"). Helps a poderator notice when a problem is structural to the program rather than specific to one pod.
 - **AI tool adoption by pod.** A small grid comparing the top tools in each pod side by side. Useful for cross-pollination: if Pod A is getting traction with Cursor and Pod B isn't using it yet, the poderator can route that knowledge.
 - **Engagement comparison.** Each pod's pulse-completion rate over the displayed range, shown as side-by-side mini-trends so the poderator can spot a pod whose engagement is sliding relative to the others.
 - Section is suppressed entirely for single-pod poderators.
 
 #### Cross-cutting requirements
 
-- **Computation.** Theme extraction runs after each pulse submission window closes and is cached. Structured-field aggregates are computed live (cheap) unless `pulse_check_aggregates` is in use.
-- **LLM provenance.** Each LLM-derived theme records which pulse-response rows contributed to it. Poderators see this as "from N responses across M members" with a link to the underlying responses.
-- **Privacy.** Themes are visible to poderators of pods the responses came from. Cross-pod themes are visible only to poderators with assignments in all contributing pods (no leakage between unrelated pods).
-- **Tone.** Theme labels are descriptive, not judgmental. The system surfaces "Confusion about proposal scope," not "Members seem lost." This is a design rule for prompts that generate themes; copy review is required.
+- **Computation.** All aggregates are computed live from existing tables (pulse responses, AI tool selections). No theme-extraction pipeline; no LLM dependency.
+- **Privacy.** Aggregates are visible only to poderators of pods the responses came from. Cross-pod aggregates are visible only to poderators with assignments in all contributing pods (no leakage between unrelated pods).
 
 ### 7.10 All pods view composition
 
@@ -273,17 +263,40 @@ A four-metric KPI block summarizing engagement across all assigned pods. Rendere
 - **Pulses this period.** Count of pulses submitted over total possible pulses across the displayed range. Range follows the §7.9.3 last-4-weeks / full-cycle toggle.
 - **Engagement trend.** Aggregate weekly completion rate as a percentage, with a three-week trend arrow and the prior-week comparison value.
 
-#### 7.10.3 LLM summary prompt export
+#### 7.10.3 AI-assisted summary block
 
-The dashboard provides a "Copy summary prompt" affordance that produces a templated prompt the poderator can paste into a third-party LLM (ChatGPT, Claude, Gemini, etc.) to get a narrative summary of what's going on with their pods. OLOS does not call any LLM as part of this affordance — the poderator's own tool does the work.
+OLOS does not summarize free-text pulse responses internally — there is no LLM pipeline running inside OLOS for this dashboard. Instead, each insights section includes a small block that bundles the raw pulse comments with a canonical instruction prompt and gives the poderator a one-click way to copy the bundle to their own AI tool (ChatGPT, Claude, Gemini, etc.) for analysis.
 
-- The affordance renders on both the All pods view (covering all assigned pods) and each per-pod dashboard (covering one pod). Placement is alongside the §7.9 cross-pod / pod-level insights section.
-- Clicking opens a preview modal showing the exact prompt that will be copied, with the poderator's current data interpolated.
-- The prompt template, including its phrasing and the instruction to the LLM (e.g. "Summarize what's going on with these pods this week and flag anything I should pay attention to"), is stored as a versioned string the program team can edit without code changes.
-- Interpolated data: pod names, current phase per pod, count of members per pod, weekly pulse-completion rate per pod, top stuck-on themes and top help-request themes from §7.9, at-risk member count per pod.
-- **Privacy.** The prompt excludes by default: member full names (use initials), free-text pulse responses, contact information, and any field listed in §7.3 as "never exposed to the poderator." The preview is the source of truth — the poderator sees exactly what will be copied, so they can review before pasting into a third-party LLM.
-- A short disclaimer renders beside the affordance: "Copies a summary of your pod data. You'll paste it into your own AI tool — OLOS doesn't send anything." The exact copy is program-team-owned.
-- Telemetry: log copy events (poderator id, scope = `all_pods` or `pod_id`, timestamp) to gauge feature usage without recording prompt contents.
+**Where it renders.**
+
+- Per-pod insights section (§7.9.2 surface) — bundle scoped to that pod.
+- All pods cross-pod insights section (§7.9.3 surface) — bundle scoped to all the poderator's assigned pods.
+
+**What the block contains.**
+
+- A short header explaining what the block is and what clicking will do.
+- A preview list of the recent pulse comments (free-text answers) included in the bundle. Members are referenced by initials only.
+- A single button: **"Copy prompt + responses"** that copies the full bundle (prompt text + comment list) to the clipboard.
+- A passive disclaimer beneath the button: "OLOS doesn't send anything. You'll paste this into your own AI tool."
+
+**The prompt.**
+
+One canonical prompt, owned by the program team. Stored as a string the program team can update without code changes (location TBD by implementer — `cycle_config`, a simple admin form, or a constant in code; not part of this PRD's scope). The prompt instructs the LLM to:
+
+- Identify themes across the pulse comments.
+- Flag members or topics the poderator should pay attention to this week.
+- Cite the responses it draws conclusions from.
+- Be descriptive, not judgmental. (Same tone rule that applied to the previous LLM-extraction approach: "Confusion about proposal scope," not "Members seem lost.")
+
+The prompt is the **same prompt** on both the All pods and per-pod surfaces. Only the bundled comments change scope.
+
+**Privacy.**
+
+- Member full names are excluded from the bundle. Initials only.
+- Fields listed in §7.3 as "never exposed to the poderator" (phone, free-text notes, contact-consent flags) are excluded.
+- The preview is the source of truth — the poderator sees the comments before copying, so they can review what will leave the dashboard.
+
+**Scope of bundled comments.** Last four weeks by default. Follows the same time-range toggle as §7.9 (last 4 weeks / full cycle).
 
 ## 8. Permissions and access control
 
@@ -304,9 +317,8 @@ This PRD primarily consumes existing data. The following additions are anticipat
 
 - **`nudge_dismissals`** — new table. Schema: `(moderator_participant_id, pod_id, nudge_key, dismissed_at)`. Records dismissed nudge instances so they remain dismissed across sessions.
 - **`moderator_ui_state`** — new table. Tracks per-poderator switcher last-selected view (`all_pods` or a specific `pod_id`), roster filter/sort state, and tooltip suppression keys. Applies to admins and poderators alike.
-- **`pulse_themes`** — new table. Schema: `(theme_id, scope_type, scope_id, scope_window_start, scope_window_end, source_field, theme_label, member_count, mention_count, contributing_pulse_ids[], generated_at)`. Stores LLM-derived themes for §7.9 aggregations. `scope_type` is one of `individual`, `pod`, or `cross_pod`. Theme labels are subject to the tone rules in §7.9. Populated by the LLM theme-extraction pipeline that runs after each pulse submission window closes.
-- **`pulse_check_aggregates`** — deferred. May be introduced later if live query performance on `pulse_themes` proves insufficient.
-- **`cycle_config` extensions** — new fields for: pod-health band thresholds (healthy/warning/critical headcount cutoffs), the consecutive-miss threshold for the at-risk nudge, and the default time window for pulse aggregations (e.g. last four weeks vs full cycle). Global defaults applied when a cycle hasn't set its own values.
+- **`participants` extensions** — new column `ai_experience_level` (enum: `new`, `consumer`, `builder`, `shipper`) and a short `availability_snippet` string. Backs §7.3.1 member preview. Captured at registration; default `new` for legacy rows.
+- **`cycle_config` extensions** — new fields for: pod-health band thresholds (healthy/warning/critical headcount cutoffs), the consecutive-miss threshold for the at-risk nudge, the default time window for pulse aggregations (e.g. last four weeks vs full cycle), and the canonical AI-summary prompt string used by §7.10.3. Global defaults applied when a cycle hasn't set its own values.
 
 All other data — pod metadata, poderator assignments, pod memberships, pulse checks, pod-resource URLs, cycle and phase windows — is sourced from existing tables. No modification to existing core schemas is proposed.
 
@@ -324,7 +336,8 @@ This section records the decisions made during PRD review. Each decision superse
 | Profile visibility tiering | Four tiers: always in row (AI experience + availability), on expansion/hover (role, industry, employer, interest areas, work style, group strengths, labs goals), click-through to profile (AI tools, cycle-fit signal, city-level location), never visible (phone, free-text notes, contact-consent flags). Registration form copy must disclose poderator visibility. |
 | First-poderator onboarding | No in-product walkthrough. Programmatic orientation via poderator handbook + kickoff session (program-team-owned). In-product tooltips cover UI mechanics, auto-suppressing after first 1–2 encounters per element. |
 | Inactive members | Hidden from roster by default. "Show inactive" toggle reveals them at reduced opacity, sorted to the bottom, each with their inactive-since date. |
-| Pulse-check aggregations | Three scopes: individual (in the pulse response side panel), pod-level (in the per-pod dashboard), and cross-pod (in the All pods view, single-pod poderators excluded). Structured fields aggregate by counts; free-text fields are reduced to themes by an LLM pass with provenance back to source responses. Default range last 4 weeks, full-cycle toggle available. Ships with the dashboard in a single phase. |
+| Pulse-check aggregations | Three scopes: individual (in the pulse response side panel), pod-level (in the per-pod dashboard), and cross-pod (in the All pods view, single-pod poderators excluded). Structured fields only (AI tool counts, pulse-completion rates); free-text fields are not summarized internally. Default range last 4 weeks, full-cycle toggle available. |
+| AI summary approach | OLOS does not run any LLM internally. Free-text pulse responses are bundled with a canonical instruction prompt into a copy-to-clipboard block (§7.10.3) that poderators paste into their own AI tool. One prompt, owned by the program team. |
 | Route structure | Routes use `/moderator` (All pods) and `/moderator/pods/[id]` (per-pod), not the `/pods/[id]/moderator` pattern in the original PRD draft. All poderator routes live under `app/(dashboard)/moderator/`. |
 | Admin ui-state | Admins receive `moderator_ui_state` rows like poderators. Filter/sort/tooltip state persists for admins too. |
 
