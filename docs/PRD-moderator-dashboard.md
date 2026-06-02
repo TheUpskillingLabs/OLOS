@@ -44,18 +44,18 @@ A poderator today has no purpose-built place in OLOS to do their job. The inform
 
 ## 5. Glossary
 
-- **Poderator** — community member assigned to one or more pods for one cycle. Stored as one or more rows in `poderator_assignments` with `removed_at IS NULL`. See [`personas.md`](personas.md#poderator).
+- **Poderator** — community member assigned to one or more pods for one cycle. Stored as one or more rows in `moderator_assignments` with `removed_at IS NULL`. See [`personas.md`](personas.md#poderator).
 - **Pod** — group within a cycle, seeded by a top-voted problem statement.
 - **Pulse check** — weekly check-in completed by active participants. The configured number of consecutive missed pulses (default: 2) is the canonical disengagement signal.
 - **Phase** — one of the seven cycle stages (problem submission, pod voting, pod registration, solution submission, project voting, project shortlist, project registration).
-- **All Pods view** — the cross-pod overview presented to multi-pod poderators, aggregating at-risk-member nudges from all assigned pods into a single list.
+- **All pods view** — the cross-pod overview presented to multi-pod poderators, aggregating at-risk-member nudges from all assigned pods into a single list.
 - **Per-pod view** — the full dashboard scoped to one pod, comprising the pod status header, member roster, pulse response review, phase guidance, and pod resources.
 
 ## 6. Information architecture
 
 The dashboard exposes two views, navigated via a switcher control at the top of the page:
 
-- **All Pods view** — cross-pod aggregated nudges only. Default landing for multi-pod poderators on first sign-in.
+- **All pods view** — cross-pod aggregated nudges only. Default landing for multi-pod poderators on first sign-in.
 - **Per-pod view** — full per-pod content (status header, nudges scoped to that pod, member roster, phase guidance, pod resources). Default landing for single-pod poderators.
 
 Within a per-pod view, sections render top to bottom as follows:
@@ -68,7 +68,7 @@ Within a per-pod view, sections render top to bottom as follows:
 6. Phase guidance (§7.5)
 7. Pod resources (§7.6)
 
-The All Pods view shows cross-pod at-risk nudges (§7.2) and cross-pod pulse insights (§7.9). The switcher and the poderator's last-selected view are described in §7.7.
+The All pods view shows, top to bottom: cross-pod at-risk nudges (§7.2), pod summary cards (§7.10.1), a members-needing-attention rollup (§7.10.2), cross-pod pulse insights (§7.9.3), and an AI-assisted summary block (§7.10.3). The switcher and the poderator's last-selected view are described in §7.7.
 
 ## 7. Functional requirements
 
@@ -94,7 +94,7 @@ Nudges are server-computed and surfaced on the dashboard. Only one nudge type sh
 - Dismissal is per poderator, per nudge instance. A dismissed nudge does not suppress future at-risk nudges for the same member if the condition re-triggers.
 - Render no more than three nudges at any time per view. Excess collapses into a "see N more" affordance.
 - The system flags only. The poderator follows up via Slack DM or other means; the dashboard does not initiate outreach.
-- In the per-pod view, nudges are scoped to the pod. In the All Pods view, nudges aggregate across all of the poderator's pod assignments and each nudge identifies the source pod.
+- In the per-pod view, nudges are scoped to the pod. In the All pods view, nudges aggregate across all of the poderator's pod assignments and each nudge identifies the source pod.
 - Delivery is dashboard-only in v1. No email or Slack push. Backend nudge computation is decoupled from delivery so future channels (e.g. weekly digest email) can be added without changing the underlying logic.
 - The miss-threshold for the nudge is configurable per cycle in cycle-config.
 
@@ -103,8 +103,8 @@ Nudges are server-computed and surfaced on the dashboard. Only one nudge type sh
 The roster lists every member of the pod with engagement signal.
 
 - One row per member.
-- Each row displays: member name, **always-visible profile preview** (AI experience level + availability snippet), pulse-engagement status, and last-activity timestamp formatted as a relative time.
-- On row expansion or hover, additional profile fields are revealed: professional role, industry, employer, interest areas, work style, group strengths, labs goals.
+- Each row displays the **member preview** (§7.3.1 below), the pulse-engagement status badge, and the last-activity timestamp formatted as a relative time.
+- On row expansion or hover, additional profile fields are revealed: employer, interest areas, work style, group strengths, labs goals.
 - A click-through to the member's full profile additionally exposes: AI tools used, cycle-fit signal, city-level location.
 - Never exposed to the poderator: phone number, free-text personal notes, contact-consent flags. The registration form must disclose to upskillers which fields their poderator can see (program-team-owned copy update, ships alongside this dashboard).
 - Pulse-engagement status values:
@@ -117,6 +117,38 @@ The roster lists every member of the pod with engagement signal.
 - Each row exposes two quick actions: open the member's pulse response history (links into §7.4) and open a Slack DM to the member (deep-link to Slack).
 - Members with `cycle_enrollments.status = 'inactive'` are excluded from the default view. A "Show inactive" toggle reveals them, rendered at reduced opacity, sorted to the bottom, each showing their inactive-since date.
 
+#### 7.3.1 Member preview shape
+
+The same structured **member preview** is used everywhere a poderator sees a member at-a-glance: the per-pod roster, the All pods nudges (§7.2), and the pulse response panel header (§7.4). One shape, rendered slightly differently per surface but with no field redefinition.
+
+| Field | Type | Source |
+|---|---|---|
+| `name` | string — first name + last initial (e.g. "Linda P.") | `participants.first_name`, `participants.last_name` |
+| `ai_experience_level` | enum: `new`, `consumer`, `builder`, `shipper` | `participants.ai_experience_level` (new column) |
+| `professional_role` | string (short — e.g. "Researcher") | `participants.professional_role` |
+| `industry` | string (short — e.g. "NGO", "Federal") | `participants.industry` |
+| `availability` | string (short, freeform — e.g. "weekends only") | `participants.availability_snippet` |
+
+UI labels for `ai_experience_level` (program-team-owned copy, may be edited without code changes):
+
+| Enum value | Default UI label |
+|---|---|
+| `new` | New to building |
+| `consumer` | Consumer of AI tools |
+| `builder` | Has built with AI |
+| `shipper` | Ships AI projects |
+
+Render rules per surface:
+
+- **Per-pod roster row.** Two-line display: line 1 — `name`; line 2 — `{ai_experience_level label} · {availability}`. A separate "Background" table column shows `{professional_role} · {industry}` on viewports md and above.
+- **All pods nudges (§7.2).** Single-line preview: `{name}` · `{professional_role} · {industry}` · `{availability}`. AI experience level is omitted at the cross-pod triage stage to keep the line scannable; the poderator can drill in for it.
+- **Pulse response panel header (§7.4).** Same as the roster row plus the pod name as a chip; field shape unchanged.
+
+Filter/sort:
+
+- Roster filter supports filtering by `ai_experience_level` value (e.g. "show me everyone new to building").
+- Roster sort options include AI experience level (alphabetical by enum-ordered display).
+
 ### 7.4 Pulse response review
 
 The pulse response review is a drill-in surface accessed from the member roster.
@@ -125,10 +157,11 @@ The pulse response review is a drill-in surface accessed from the member roster.
 - Displays an **individual-level aggregate block** at the top of the panel, summarizing this member's pulse history across the cycle (see §7.9.1).
 - Displays the selected member's per-week pulse responses below the aggregate, most recent first.
 - Each response shows: submission timestamp, free-text answers, and selected options for multi-select fields.
-- Default range for per-week responses: last four weeks of responses for the active cycle. Configurable up to the full cycle. The aggregate block always reflects the full cycle.
-- Read-only. The poderator cannot edit pulse responses; only the participant can submit or modify their own.
+- Default range for per-week responses: last four weeks of responses for the active cycle. The poderator can expand to the full cycle via an inline "Show full cycle history" control at the bottom of the per-week stream. The aggregate block always reflects the full cycle regardless of the expand state.
+- Read-only with respect to OLOS state: the poderator cannot edit pulse responses, send messages from the panel, or initiate any outreach from inside OLOS. Only the participant can submit or modify their own responses. The panel renders a visible "Read-only — OLOS doesn't send messages" stance in the panel footer to make the no-automated-outreach posture (§4) explicit.
+- The panel surfaces a single passive affordance: an **Open Slack DM** link that deep-links to Slack for the currently-viewed member. The same affordance from §7.3 carries into the panel for one-click convenience; OLOS does not send the message — Slack does, and only after the poderator types and sends.
 - Access is scoped to the poderator's assigned pods. Attempts to load responses for members outside the poderator's pod assignments return 403.
-- Navigation between members within the panel does not close the panel; the aggregate block re-renders for the new member.
+- Navigation between members within the panel does not close the panel; the aggregate block re-renders for the new member. The panel header shows a "Member N of M" indicator reflecting the member's position in the current roster sort, with previous/next arrows that follow that order.
 
 ### 7.5 Phase guidance
 
@@ -154,13 +187,13 @@ The resources panel surfaces external resources provisioned for the pod.
 
 ### 7.7 Switcher and last-view persistence
 
-The switcher is the primary navigation control between the All Pods view and per-pod views.
+The switcher is the primary navigation control between the All pods view and per-pod views.
 
 - The switcher appears at the top of every dashboard page.
-- The switcher options are: "All Pods" (overview) and each pod the poderator is assigned to, listed by name.
-- Single-pod poderators see a switcher with one option; the All Pods entry is suppressed.
+- The switcher options are: "All pods" (overview) and each pod the poderator is assigned to, listed by name.
+- Single-pod poderators see a switcher with one option; the All pods entry is suppressed.
 - A poderator's most recent selection persists across sessions. They land wherever they last were.
-- First-time multi-pod poderators land on **All Pods** by default.
+- First-time multi-pod poderators land on **All pods** by default.
 - First-time single-pod poderators land on their single pod's view.
 - The active selection is reflected in the URL path so that links between poderators (e.g. shared in Slack) deep-link correctly.
 
@@ -175,71 +208,117 @@ Lightweight tooltips assist with UI-mechanic orientation, particularly for first
 
 ### 7.9 Pulse-check aggregations
 
-> **Phase 2 — not shipped in the initial dashboard release.** The aggregation UI sections do not render at all in Phase 1 (no empty states, no placeholders). The `pulse_themes` table is created in Phase 1 migrations so Phase 2 can populate it without schema changes. See §10 decisions log.
-
 Aggregated views of pulse-check data surface patterns the per-week response stream can't show on its own. Aggregations are computed server-side and render at three scopes: individual, pod, and across-pods.
 
-The structured fields on each pulse check (AI tools used, multi-select option lists) aggregate by deterministic counts. The free-text fields ("what went well," "what I'm stuck on," "help I need") are reduced to themes by an LLM pass and stored with citations back to the source pulse responses, so a poderator can always trace a theme back to who said what.
+Aggregations cover **structured fields only** — AI tools selected, multi-select options, pulse-completion rates. Free-text fields ("what went well," "what I'm stuck on," "help I need") are not summarized by OLOS; they surface as raw responses in the pulse response review (§7.4) and feed the AI-assisted summary block (§7.10.3) where the poderator can run their own analysis on them.
 
 #### 7.9.1 Individual aggregation
 
 Rendered as a block at the top of the pulse response review side panel (§7.4), above the per-week responses. Scoped to a single member across the full active cycle.
 
 - **Top AI tools used.** Up to five tools, ordered by frequency of selection across that member's pulse responses. Each shows a count of the number of pulses in which the member named it.
-- **Recurring "stuck on" themes.** Up to three themes derived from the member's free-text responses, ordered by frequency. Each theme is one short phrase plus a count of pulses where it surfaced.
-- **Recurring help requests.** Up to three themes from the "help I need" field, same shape as above.
 - **Engagement trajectory.** A small sparkline or week-by-week dot row showing pulse completion across the cycle (submitted / missed) so the poderator can see at a glance whether engagement has been rising, falling, or stable.
-- Each theme links back to the source pulse responses, scrolling the panel to the relevant week(s) on click.
 
 #### 7.9.2 Pod-level aggregation
 
 Rendered as a section on the per-pod dashboard, between the member roster (§7.3) and the phase guidance (§7.5). Scoped to one pod, default to the last four weeks with a toggle for the full cycle.
 
 - **Top AI tools across the pod.** Up to five tools, ordered by the count of pod members who named them in their pulse responses (not by raw mention count, so one heavy user doesn't dominate). Each shows the count of pod members.
-- **Top "stuck on" themes.** Up to three LLM-derived themes from the pod's free-text responses, each with a count of distinct members who surfaced it. Themes that appear in only one member's responses are suppressed.
-- **Top help requests.** Same shape as stuck-on themes.
 - **Pulse completion trend.** A small bar or line showing the pod's pulse-completion rate over the displayed range, week by week.
-- Each theme item links to the underlying pulse responses, opening the pulse review panel (§7.4) for the relevant member(s) and scrolling to the matching week.
-- A clear empty state when the pod has insufficient data (fewer than two members with pulse responses in the range): "Not enough pulse data yet to show themes."
 
 #### 7.9.3 Cross-pod aggregation
 
-Rendered as a section on the All Pods view, beneath the pod-summary cards. Scoped to all of the poderator's assigned pods, default to the last four weeks with a toggle for the full cycle.
+Rendered as a section on the All pods view, beneath the pod-summary cards. Scoped to all of the poderator's assigned pods, default to the last four weeks with a toggle for the full cycle.
 
-- **Patterns across your pods.** LLM-derived themes that appear in two or more of the poderator's pods, surfaced as a list with per-pod breakdown (e.g. "Confusion about solution proposal scope — Health Systems Access · Energy Grid Resilience"). Helps a poderator notice when a problem is structural to the program rather than specific to one pod.
 - **AI tool adoption by pod.** A small grid comparing the top tools in each pod side by side. Useful for cross-pollination: if Pod A is getting traction with Cursor and Pod B isn't using it yet, the poderator can route that knowledge.
 - **Engagement comparison.** Each pod's pulse-completion rate over the displayed range, shown as side-by-side mini-trends so the poderator can spot a pod whose engagement is sliding relative to the others.
 - Section is suppressed entirely for single-pod poderators.
 
 #### Cross-cutting requirements
 
-- **Computation.** Theme extraction runs after each pulse submission window closes and is cached. Structured-field aggregates are computed live (cheap) unless `pulse_check_aggregates` is in use.
-- **LLM provenance.** Each LLM-derived theme records which pulse-response rows contributed to it. Poderators see this as "from N responses across M members" with a link to the underlying responses.
-- **Privacy.** Themes are visible to poderators of pods the responses came from. Cross-pod themes are visible only to poderators with assignments in all contributing pods (no leakage between unrelated pods).
-- **Tone.** Theme labels are descriptive, not judgmental. The system surfaces "Confusion about proposal scope," not "Members seem lost." This is a design rule for prompts that generate themes; copy review is required.
+- **Computation.** All aggregates are computed live from existing tables (pulse responses, AI tool selections). No theme-extraction pipeline; no LLM dependency.
+- **Privacy.** Aggregates are visible only to poderators of pods the responses came from. Cross-pod aggregates are visible only to poderators with assignments in all contributing pods (no leakage between unrelated pods).
+
+### 7.10 All pods view composition
+
+The All pods view aggregates signal across every pod the poderator is assigned to. In addition to cross-pod nudges (§7.2) and cross-pod insights (§7.9.3), three All-Pods-specific surfaces render here.
+
+Single-pod poderators do not see §7.10.1 or §7.10.2 (their default landing is the per-pod view). §7.10.3 renders on both the All pods view and on each per-pod dashboard.
+
+#### 7.10.1 Pod summary cards
+
+One card per assigned pod, rendered in a horizontal grid beneath the cross-pod nudges.
+
+- Each card displays: pod name, pod status (`forming`, `active`, `inactive`), cycle phase name + week number, headline pulse-health figure (count of members missing this week's pulse), and a three-week trend arrow (↑ / ↓ / →).
+- The headline figure uses the same band thresholds as §7.1 (healthy / warning / critical).
+- Each card is a click-through to that pod's per-pod view.
+- Default sort: pods with non-zero at-risk nudge counts first, then alphabetical by pod name.
+
+#### 7.10.2 Members-needing-attention rollup
+
+A four-metric KPI block summarizing engagement across all assigned pods. Rendered between the pod summary cards (§7.10.1) and the cross-pod insights (§7.9.3).
+
+- **Pulsing this week.** Count of members who have submitted this week's pulse over total active members across all assigned pods.
+- **At risk.** Count of members at the configured consecutive-miss threshold (§7.2 nudge condition), with count of pods affected.
+- **Pulses this period.** Count of pulses submitted over total possible pulses across the displayed range. Range follows the §7.9.3 last-4-weeks / full-cycle toggle.
+- **Engagement trend.** Aggregate weekly completion rate as a percentage, with a three-week trend arrow and the prior-week comparison value.
+
+#### 7.10.3 AI-assisted summary block
+
+OLOS does not summarize free-text pulse responses internally — there is no LLM pipeline running inside OLOS for this dashboard. Instead, each insights section includes a small block that bundles the raw pulse comments with a canonical instruction prompt and gives the poderator a one-click way to copy the bundle to their own AI tool (ChatGPT, Claude, Gemini, etc.) for analysis.
+
+**Where it renders.**
+
+- Per-pod insights section (§7.9.2 surface) — bundle scoped to that pod.
+- All pods cross-pod insights section (§7.9.3 surface) — bundle scoped to all the poderator's assigned pods.
+
+**What the block contains.**
+
+- A short header explaining what the block is and what clicking will do.
+- A preview list of the recent pulse comments (free-text answers) included in the bundle. Members are referenced by initials only.
+- A single button: **"Copy prompt + responses"** that copies the full bundle (prompt text + comment list) to the clipboard.
+- A passive disclaimer beneath the button: "OLOS doesn't send anything. You'll paste this into your own AI tool."
+
+**The prompt.**
+
+One canonical prompt, owned by the program team. Stored as a string the program team can update without code changes (location TBD by implementer — `cycle_config`, a simple admin form, or a constant in code; not part of this PRD's scope). The prompt instructs the LLM to:
+
+- Identify themes across the pulse comments.
+- Flag members or topics the poderator should pay attention to this week.
+- Cite the responses it draws conclusions from.
+- Be descriptive, not judgmental. (Same tone rule that applied to the previous LLM-extraction approach: "Confusion about proposal scope," not "Members seem lost.")
+
+The prompt is the **same prompt** on both the All pods and per-pod surfaces. Only the bundled comments change scope.
+
+**Privacy.**
+
+- Member full names are excluded from the bundle. Initials only.
+- Fields listed in §7.3 as "never exposed to the poderator" (phone, free-text notes, contact-consent flags) are excluded.
+- The preview is the source of truth — the poderator sees the comments before copying, so they can review what will leave the dashboard.
+
+**Scope of bundled comments.** Last four weeks by default. Follows the same time-range toggle as §7.9 (last 4 weeks / full cycle).
 
 ## 8. Permissions and access control
 
 - Routes:
-  - `/moderator` — All Pods view.
+  - `/moderator` — All pods view.
   - `/moderator/pods/[id]` — per-pod view.
 - Authorization is enforced at the route level and re-checked at each underlying API endpoint.
 - Visible to:
-  - Users with one or more poderator assignments (`moderator_assignments` row, `removed_at IS NULL`). The All Pods view aggregates across all the poderator's assignments; the per-pod view requires assignment to the specific pod.
+  - Users with one or more poderator assignments (`moderator_assignments` row, `removed_at IS NULL`). The All pods view aggregates across all the poderator's assignments; the per-pod view requires assignment to the specific pod.
   - Admins and owners (global access to all pods on both views).
   - Observers (read-only access; nudge dismissals disabled).
 - A poderator with both poderator and participant roles can navigate between the poderator dashboard and the participant view without re-authentication. Role-stacking is preserved.
-- Loss of poderator assignment (`removed_at` is set) revokes access immediately on the next request, including in the All Pods view aggregation.
+- Loss of poderator assignment (`removed_at` is set) revokes access immediately on the next request, including in the All pods view aggregation.
 
 ## 9. Data model implications
 
 This PRD primarily consumes existing data. The following additions are anticipated:
 
-- **`nudge_dismissals`** — new table. Schema: `(moderator_participant_id, pod_id, nudge_key, dismissed_at)`. Records dismissed nudge instances so they remain dismissed across sessions. Created in Phase 1.
-- **`moderator_ui_state`** — new table. Tracks per-poderator switcher last-selected view (`all_pods` or a specific `pod_id`), roster filter/sort state, and tooltip suppression keys. Applies to admins and poderators alike. Created in Phase 1.
-- **`pulse_themes`** — new table. Schema: `(theme_id, scope_type, scope_id, scope_window_start, scope_window_end, source_field, theme_label, member_count, mention_count, contributing_pulse_ids[], generated_at)`. Stores LLM-derived themes for §7.9 aggregations. `scope_type` is one of `individual`, `pod`, or `cross_pod`. Theme labels are subject to the tone rules in §7.9. **Table created in Phase 1 migrations; populated by the Phase 2 LLM pipeline.**
-- **`pulse_check_aggregates`** — deferred. May be introduced in Phase 2 if live query performance on `pulse_themes` proves insufficient.
-- **`cycle_config` extensions** — new fields for: pod-health band thresholds (healthy/warning/critical headcount cutoffs), the consecutive-miss threshold for the at-risk nudge, and the default time window for pulse aggregations (e.g. last four weeks vs full cycle). Global defaults applied when a cycle hasn't set its own values. Created in Phase 1.
+- **`nudge_dismissals`** — new table. Schema: `(moderator_participant_id, pod_id, nudge_key, dismissed_at)`. Records dismissed nudge instances so they remain dismissed across sessions.
+- **`moderator_ui_state`** — new table. Tracks per-poderator switcher last-selected view (`all_pods` or a specific `pod_id`), roster filter/sort state, and tooltip suppression keys. Applies to admins and poderators alike.
+- **`participants` extensions** — new column `ai_experience_level` (enum: `new`, `consumer`, `builder`, `shipper`) and a short `availability_snippet` string. Backs §7.3.1 member preview. Captured at registration; default `new` for legacy rows.
+- **`cycle_config` extensions** — new fields for: pod-health band thresholds (healthy/warning/critical headcount cutoffs), the consecutive-miss threshold for the at-risk nudge, the default time window for pulse aggregations (e.g. last four weeks vs full cycle), and the canonical AI-summary prompt string used by §7.10.3. Global defaults applied when a cycle hasn't set its own values.
 
 All other data — pod metadata, poderator assignments, pod memberships, pulse checks, pod-resource URLs, cycle and phase windows — is sourced from existing tables. No modification to existing core schemas is proposed.
 
@@ -252,14 +331,14 @@ This section records the decisions made during PRD review. Each decision superse
 | Pod-health indicator bands | Absolute-headcount thresholds (not percentages). Single-week headline figure with a three-week trend arrow alongside. Configurable per cycle in cycle-config; global defaults apply when not overridden. |
 | Nudges in v1 | One type only: **at-risk member** (configured consecutive-miss threshold, default 2). System flags, poderator follows up; no automated outreach. Configurable per cycle. |
 | Nudge delivery | Dashboard-only for v1. Backend logic decoupled from delivery channel so a weekly digest email or per-event push can be added later without rewriting. |
-| Multi-pod poderator assignment | First-class case. Switcher offers "All Pods" overview view + per-pod views. Cross-pod aggregation applies only to nudges; rosters, phase guidance, and resources stay per-pod. |
-| View persistence | The poderator's most recent switcher selection persists across sessions. First-time multi-pod poderators default to All Pods; first-time single-pod poderators default to their pod's view. |
+| Multi-pod poderator assignment | First-class case. Switcher offers "All pods" overview view + per-pod views. Cross-pod aggregation applies only to nudges; rosters, phase guidance, and resources stay per-pod. |
+| View persistence | The poderator's most recent switcher selection persists across sessions. First-time multi-pod poderators default to All pods; first-time single-pod poderators default to their pod's view. |
 | Profile visibility tiering | Four tiers: always in row (AI experience + availability), on expansion/hover (role, industry, employer, interest areas, work style, group strengths, labs goals), click-through to profile (AI tools, cycle-fit signal, city-level location), never visible (phone, free-text notes, contact-consent flags). Registration form copy must disclose poderator visibility. |
 | First-poderator onboarding | No in-product walkthrough. Programmatic orientation via poderator handbook + kickoff session (program-team-owned). In-product tooltips cover UI mechanics, auto-suppressing after first 1–2 encounters per element. |
 | Inactive members | Hidden from roster by default. "Show inactive" toggle reveals them at reduced opacity, sorted to the bottom, each with their inactive-since date. |
-| Pulse-check aggregations | Three scopes: individual (in the pulse response side panel), pod-level (in the per-pod dashboard), and cross-pod (in the All Pods view, single-pod poderators excluded). Structured fields aggregate by counts; free-text fields are reduced to themes by an LLM pass with provenance back to source responses. Default range last 4 weeks, full-cycle toggle available. |
-| Phase 1 / Phase 2 split | §7.9 (pulse-check aggregations) is deferred entirely to Phase 2. No aggregation UI renders in Phase 1 — no empty states, no placeholders. The `pulse_themes` table is created in Phase 1 so Phase 2 can populate it without schema changes. |
-| Route structure | Routes use `/moderator` (All Pods) and `/moderator/pods/[id]` (per-pod), not the `/pods/[id]/moderator` pattern in the original PRD draft. All poderator routes live under `app/(dashboard)/moderator/`. |
+| Pulse-check aggregations | Three scopes: individual (in the pulse response side panel), pod-level (in the per-pod dashboard), and cross-pod (in the All pods view, single-pod poderators excluded). Structured fields only (AI tool counts, pulse-completion rates); free-text fields are not summarized internally. Default range last 4 weeks, full-cycle toggle available. |
+| AI summary approach | OLOS does not run any LLM internally. Free-text pulse responses are bundled with a canonical instruction prompt into a copy-to-clipboard block (§7.10.3) that poderators paste into their own AI tool. One prompt, owned by the program team. |
+| Route structure | Routes use `/moderator` (All pods) and `/moderator/pods/[id]` (per-pod), not the `/pods/[id]/moderator` pattern in the original PRD draft. All poderator routes live under `app/(dashboard)/moderator/`. |
 | Admin ui-state | Admins receive `moderator_ui_state` rows like poderators. Filter/sort/tooltip state persists for admins too. |
 
 ## 11. Operational note: auto-flip

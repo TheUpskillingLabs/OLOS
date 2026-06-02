@@ -1,3 +1,12 @@
+-- Renumbered from 00015 → 00028 on 2026-06-02. The original filename
+-- collided with 00015_grant_role_privileges.sql, which broke
+-- `supabase db push --include-all` (schema_migrations.version is a PK).
+-- The DDL below is idempotent (`ADD COLUMN IF NOT EXISTS`); on any
+-- environment where the original 00015 file had already been applied,
+-- this file is a no-op on the schema. The schema_migrations.version
+-- row is what changes — see the renumber entry in supabase/CLAUDE.md
+-- for the repair SQL.
+--
 -- ROADMAP §1.4 / ISSUE-W1-004 / D1 (resolved: preserve)
 -- Add preference_rank to pod_memberships so the legacy migration script can
 -- write Seat 1 / Seat 2 / Seat 3 form responses with their original rank

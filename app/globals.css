@@ -1,9 +1,14 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Brand surfaces */
-  --color-midnight: #0b1016;
-  --color-ink: #0e1520;
+  /* Brand surfaces — lifted from #0b1016/#0e1520 on 2026-06-02 (style/lighter-theme)
+     to ease the heavy near-black feel while keeping the dark-UI aesthetic.
+     Layered transparencies (bg-white/[0.02..0.08]) and text/border tokens
+     auto-adjust against the new base. Hardcoded rgba(28,34,48,X)
+     overlays in layout.tsx / sheet.tsx / tooltip.tsx / switcher.tsx /
+     globals.css :: dialog::backdrop are kept in sync with this value. */
+  --color-midnight: #2a3142;
+  --color-ink: #343c4e;
 
   /* Brand colors */
   --color-teal: #0094a0;
@@ -70,7 +75,7 @@ label[for] {
 
 /* Native modal backdrop per design system */
 dialog::backdrop {
-  background: rgba(11, 16, 22, 0.8);
+  background: rgba(42, 49, 66, 0.8);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
 }
