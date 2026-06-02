@@ -26,10 +26,36 @@ export type WeeklyCompletion = {
   rate: number;
 };
 
+/**
+ * Per-week average free-text length across submitted pulses. Engagement
+ * proxy — a pod going from paragraphs to one-liners is disengaging.
+ * `avgChars` is rounded to the nearest integer; `samples` is the count
+ * of submitted pulses with any free text in that week (zero-length
+ * responses are excluded so they don't drag the average to zero).
+ */
+export type WeeklyDepth = {
+  scheduled_date: string;
+  avgChars: number;
+  samples: number;
+};
+
+/**
+ * Per-week count of submitted pulses mentioning blockers vs tailwinds.
+ * A pulse counts in both buckets if it has both fields. Surfaced as a
+ * morale gauge — higher tailwinds:blockers suggests momentum.
+ */
+export type WeeklySentiment = {
+  scheduled_date: string;
+  tailwinds: number;
+  blockers: number;
+};
+
 export type PodInsights = {
   range: "4w" | "full";
   topTools: PodToolCount[];
   weekly: WeeklyCompletion[];
+  depth: WeeklyDepth[];
+  sentiment: WeeklySentiment[];
   /** Sample of recent free-text pulse comments — feeds the §7.10.3 bundle. */
   recentComments: PulseComment[];
 };
@@ -155,6 +181,47 @@ export async function getPodInsights(
       rate: b.total === 0 ? 0 : b.completed / b.total,
     }));
 
+  // Weekly response depth + sentiment (blockers vs tailwinds).
+  const depthByWeek = new Map<string, { chars: number; samples: number }>();
+  const sentimentByWeek = new Map<
+    string,
+    { tailwinds: number; blockers: number }
+  >();
+  for (const p of pulseRows) {
+    if (!p.completed_at) continue;
+    const text = collectFreeText(p.survey_responses);
+    if (text.length > 0) {
+      const d = depthByWeek.get(p.scheduled_date) ?? { chars: 0, samples: 0 };
+      d.chars += text.length;
+      d.samples += 1;
+      depthByWeek.set(p.scheduled_date, d);
+    }
+    const sr = p.survey_responses ?? {};
+    const hasTail = nonEmptyString((sr as Record<string, unknown>).tailwinds);
+    const hasBlk = nonEmptyString((sr as Record<string, unknown>).blockers);
+    if (hasTail || hasBlk) {
+      const s =
+        sentimentByWeek.get(p.scheduled_date) ?? { tailwinds: 0, blockers: 0 };
+      if (hasTail) s.tailwinds += 1;
+      if (hasBlk) s.blockers += 1;
+      sentimentByWeek.set(p.scheduled_date, s);
+    }
+  }
+  const depth: WeeklyDepth[] = Array.from(depthByWeek.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([scheduled_date, d]) => ({
+      scheduled_date,
+      avgChars: Math.round(d.chars / d.samples),
+      samples: d.samples,
+    }));
+  const sentiment: WeeklySentiment[] = Array.from(sentimentByWeek.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([scheduled_date, s]) => ({
+      scheduled_date,
+      tailwinds: s.tailwinds,
+      blockers: s.blockers,
+    }));
+
   // Recent comments for §7.10.3 bundle. Most recent 24 completed pulses
   // with at least one free-text field, newest first.
   const recentComments: PulseComment[] = [];
@@ -176,7 +243,11 @@ export async function getPodInsights(
     });
   }
 
-  return { range, topTools, weekly, recentComments };
+  return { range, topTools, weekly, depth, sentiment, recentComments };
+}
+
+function nonEmptyString(v: unknown): boolean {
+  return typeof v === "string" && v.trim().length > 0;
 }
 
 function collectFreeText(

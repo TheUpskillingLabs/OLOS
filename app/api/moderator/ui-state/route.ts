@@ -24,6 +24,7 @@ type Row = {
   roster_filters: Record<string, unknown> | null;
   roster_sort: string | null;
   tooltip_seen: string[] | null;
+  last_pod_tab: string | null;
 };
 
 const EMPTY_STATE: Row = {
@@ -31,6 +32,7 @@ const EMPTY_STATE: Row = {
   roster_filters: {},
   roster_sort: null,
   tooltip_seen: [],
+  last_pod_tab: null,
 };
 
 export const GET = withAuth(
@@ -46,7 +48,7 @@ export const GET = withAuth(
 
     const { data, error } = await auth.supabase
       .from("moderator_ui_state")
-      .select("last_view, roster_filters, roster_sort, tooltip_seen")
+      .select("last_view, roster_filters, roster_sort, tooltip_seen, last_pod_tab")
       .eq("participant_id", participantId)
       .maybeSingle();
 
@@ -83,11 +85,13 @@ export const PUT = withAuth(
     if (parsed.roster_sort !== undefined) patch.roster_sort = parsed.roster_sort;
     if (parsed.tooltip_seen !== undefined)
       patch.tooltip_seen = parsed.tooltip_seen;
+    if (parsed.last_pod_tab !== undefined)
+      patch.last_pod_tab = parsed.last_pod_tab;
 
     const { data, error } = await auth.supabase
       .from("moderator_ui_state")
       .upsert(patch, { onConflict: "participant_id" })
-      .select("last_view, roster_filters, roster_sort, tooltip_seen")
+      .select("last_view, roster_filters, roster_sort, tooltip_seen, last_pod_tab")
       .single();
 
     if (error) {

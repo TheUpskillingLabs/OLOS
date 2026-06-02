@@ -89,7 +89,7 @@ export function AISummaryBlock({
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div>
         <button
           onClick={onCopy}
           disabled={comments.length === 0}
@@ -97,9 +97,6 @@ export function AISummaryBlock({
         >
           {copied ? "Copied!" : "Copy prompt + responses"}
         </button>
-        <div className="text-xs text-cloud/50">
-          OLOS doesn&apos;t send anything. Paste into your own AI tool.
-        </div>
       </div>
     </div>
   );

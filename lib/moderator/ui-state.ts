@@ -16,7 +16,11 @@ export type ModeratorUiState = {
   roster_filters: RosterFilters;
   roster_sort: RosterSort | null;
   tooltip_seen: string[];
+  last_pod_tab: PodTab | null;
 };
+
+/** Per-pod page tab (PRD §7.7 — UI state persists per poderator). */
+export type PodTab = "members" | "recent_pulses";
 
 export type RosterFilters = {
   search?: string;
@@ -26,8 +30,6 @@ export type RosterFilters = {
 };
 
 export type RosterSort =
-  | "joined_at_asc"
-  | "joined_at_desc"
   | "name_asc"
   | "name_desc"
   | "pulse_status"
@@ -40,6 +42,7 @@ const EMPTY: ModeratorUiState = {
   roster_filters: {},
   roster_sort: null,
   tooltip_seen: [],
+  last_pod_tab: null,
 };
 
 export async function getUiState(
@@ -49,7 +52,7 @@ export async function getUiState(
   if (!participantId) return EMPTY;
   const { data } = await supabase
     .from("moderator_ui_state")
-    .select("last_view, roster_filters, roster_sort, tooltip_seen")
+    .select("last_view, roster_filters, roster_sort, tooltip_seen, last_pod_tab")
     .eq("participant_id", participantId)
     .maybeSingle();
   if (!data) return EMPTY;
@@ -58,5 +61,6 @@ export async function getUiState(
     roster_filters: ((data.roster_filters as RosterFilters | null) ?? {}) as RosterFilters,
     roster_sort: (data.roster_sort as RosterSort | null) ?? null,
     tooltip_seen: (data.tooltip_seen as string[] | null) ?? [],
+    last_pod_tab: (data.last_pod_tab as PodTab | null) ?? null,
   };
 }

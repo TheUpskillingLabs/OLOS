@@ -136,6 +136,7 @@ export function persistUiState(patch: {
   roster_filters?: Record<string, unknown>;
   roster_sort?: string;
   tooltip_seen?: string[];
+  last_pod_tab?: "members" | "recent_pulses";
 }) {
   fetch("/api/moderator/ui-state", {
     method: "PUT",

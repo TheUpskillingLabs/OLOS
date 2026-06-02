@@ -42,13 +42,11 @@ const AI_LEVELS = ["new", "consumer", "builder", "shipper"] as const;
 const PULSE_STATUSES = ["current", "pending", "late", "at_risk"] as const;
 
 const SORT_OPTIONS: { value: RosterSort; label: string }[] = [
-  { value: "joined_at_asc", label: "Joined (oldest)" },
-  { value: "joined_at_desc", label: "Joined (newest)" },
+  { value: "last_activity_desc", label: "Last activity (recent)" },
+  { value: "last_activity_asc", label: "Last activity (stale)" },
   { value: "name_asc", label: "Name A→Z" },
   { value: "name_desc", label: "Name Z→A" },
   { value: "pulse_status", label: "Pulse (at-risk first)" },
-  { value: "last_activity_desc", label: "Last activity (recent)" },
-  { value: "last_activity_asc", label: "Last activity (stale)" },
   { value: "ai_level", label: "AI level" },
 ];
 
@@ -76,7 +74,7 @@ export function RosterTable({
   podName: string;
 }) {
   const [filters, setFilters] = React.useState<RosterFilters>({});
-  const [sort, setSort] = React.useState<RosterSort>("joined_at_asc");
+  const [sort, setSort] = React.useState<RosterSort>("last_activity_desc");
   const [selected, setSelected] = React.useState<RosterRow | null>(null);
   const initialLoadedRef = React.useRef(false);
 
@@ -117,6 +115,9 @@ export function RosterTable({
   const showInactive = filters.show_inactive === true;
   const activeCount = members.filter((m) => !m.is_inactive).length;
   const inactiveCount = members.length - activeCount;
+  const trendingCount = members.filter(
+    (m) => m.is_trending_at_risk && !m.is_inactive
+  ).length;
 
   const visible = React.useMemo(() => {
     let rows = members.slice();
@@ -190,6 +191,14 @@ export function RosterTable({
         onSort={setSort}
       />
 
+      {trendingCount > 0 && (
+        <div className="mb-3 rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] px-3 py-2 text-xs text-yellow-200/90">
+          {trendingCount === 1
+            ? "1 member trending — one miss from at-risk."
+            : `${trendingCount} members trending — one miss from at-risk.`}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-md border border-whisper">
         <table className="w-full text-left text-sm">
           <thead className="bg-white/[0.02]">
@@ -232,23 +241,50 @@ export function RosterTable({
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <ManagedTooltip
-                    tooltipKey={`pulse_status_${m.pulse_status}`}
-                    content={pulseStatusTooltip(m.pulse_status)}
-                  >
-                    <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PULSE_STATUS_COLOR[m.pulse_status]}`}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <ManagedTooltip
+                      tooltipKey={`pulse_status_${m.pulse_status}`}
+                      content={pulseStatusTooltip(m.pulse_status)}
                     >
-                      {PULSE_STATUS_LABEL[m.pulse_status]}
-                    </span>
-                  </ManagedTooltip>
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PULSE_STATUS_COLOR[m.pulse_status]}`}
+                      >
+                        {PULSE_STATUS_LABEL[m.pulse_status]}
+                      </span>
+                    </ManagedTooltip>
+                    {m.is_trending_at_risk && (
+                      <ManagedTooltip
+                        tooltipKey="trending_at_risk"
+                        content="Trending toward at-risk: one more missed pulse and this member crosses the at-risk threshold."
+                      >
+                        <span className="inline-flex rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-300">
+                          trending
+                        </span>
+                      </ManagedTooltip>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 tabular-nums text-cloud/70">
-                  {m.last_activity_at ? (
-                    `${daysAgo(m.last_activity_at)} days ago`
-                  ) : (
-                    <span className="text-cloud/40">no pulse yet</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {m.last_activity_at ? (
+                      <span>{daysAgo(m.last_activity_at)} days ago</span>
+                    ) : (
+                      <span className="text-cloud/40">no pulse yet</span>
+                    )}
+                    {m.streak >= 2 && (
+                      <ManagedTooltip
+                        tooltipKey="streak_badge"
+                        content="Consecutive submitted pulses (looking back from the most recent scheduled date)."
+                      >
+                        <span
+                          className="inline-flex items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-medium text-orange-300"
+                          title={`${m.streak}-pulse streak`}
+                        >
+                          🔥 {m.streak}
+                        </span>
+                      </ManagedTooltip>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -368,10 +404,6 @@ function FilterGroup({
 function comparatorFor(sort: RosterSort) {
   return (a: RosterRow, b: RosterRow): number => {
     switch (sort) {
-      case "joined_at_asc":
-        return a.joined_at.localeCompare(b.joined_at);
-      case "joined_at_desc":
-        return b.joined_at.localeCompare(a.joined_at);
       case "name_asc":
         return a.display_name.localeCompare(b.display_name);
       case "name_desc":

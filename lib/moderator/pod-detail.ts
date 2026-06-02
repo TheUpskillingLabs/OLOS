@@ -44,6 +44,20 @@ export type RosterRow = {
   nudge_key: string | null;
   /** True when the caller (poderator) has dismissed this specific nudge. */
   nudge_dismissed: boolean;
+  /**
+   * Current consecutive-submitted pulse streak, computed from most recent
+   * scheduled date walking back until a missed pulse. Zero when the most
+   * recent pulse was missed (or no pulses yet). Surfaced as a 🔥 badge
+   * in the roster.
+   */
+  streak: number;
+  /**
+   * True when consecutive misses == at_risk_threshold - 1 AND status is
+   * not yet at_risk. Early warning: one more miss flips this member to
+   * at_risk and a nudge card appears. Surfaced as a "trending" pill on
+   * the roster row.
+   */
+  is_trending_at_risk: boolean;
 };
 
 export type PodDetail = {
@@ -176,6 +190,12 @@ export async function getPodDetail(
 
     const memberPulses = pulsesByMember.get(m.participant_id as number) ?? [];
     const status = computePulseStatus(memberPulses, atRiskThreshold);
+    const streak = computeStreak(memberPulses);
+    const consecutiveMisses = countConsecutiveMisses(memberPulses);
+    const isTrendingAtRisk =
+      status !== "at_risk" &&
+      atRiskThreshold > 1 &&
+      consecutiveMisses === atRiskThreshold - 1;
     const lastCompleted = memberPulses
       .filter((q) => q.completed_at)
       .sort((a, b) => (b.completed_at ?? "").localeCompare(a.completed_at ?? ""))[0];
@@ -210,6 +230,8 @@ export async function getPodDetail(
       last_activity_at: lastCompleted?.completed_at ?? null,
       nudge_key,
       nudge_dismissed,
+      streak,
+      is_trending_at_risk: isTrendingAtRisk,
     };
   });
 
@@ -276,6 +298,51 @@ function computePulseStatus(
   const scheduledMs = new Date(mostRecent.scheduled_date).getTime();
   const ageDays = (Date.now() - scheduledMs) / 86_400_000;
   return ageDays > 7 ? "late" : "pending";
+}
+
+/**
+ * Count consecutive submitted pulses from the most recent scheduled date
+ * walking back. Stops at the first missed pulse. Returns 0 when the most
+ * recent pulse was missed or when there are no pulses.
+ *
+ * Note: this only sees the 4-week window pulled by getPodDetail, so a
+ * streak older than 4 weeks reads as 4. Good enough for the roster
+ * badge; the side panel has the full-cycle trajectory if precise streak
+ * length matters.
+ */
+function computeStreak(
+  pulses: { scheduled_date: string; completed_at: string | null }[]
+): number {
+  if (pulses.length === 0) return 0;
+  const sorted = [...pulses].sort((a, b) =>
+    b.scheduled_date.localeCompare(a.scheduled_date)
+  );
+  let n = 0;
+  for (const p of sorted) {
+    if (!p.completed_at) break;
+    n += 1;
+  }
+  return n;
+}
+
+/**
+ * Count consecutive missed pulses from the most recent scheduled date
+ * walking back. Mirrors computeStreak but for misses; powers the
+ * is_trending_at_risk early-warning flag.
+ */
+function countConsecutiveMisses(
+  pulses: { scheduled_date: string; completed_at: string | null }[]
+): number {
+  if (pulses.length === 0) return 0;
+  const sorted = [...pulses].sort((a, b) =>
+    b.scheduled_date.localeCompare(a.scheduled_date)
+  );
+  let n = 0;
+  for (const p of sorted) {
+    if (p.completed_at) break;
+    n += 1;
+  }
+  return n;
 }
 
 /** Bucket pulse rows into weeks. */

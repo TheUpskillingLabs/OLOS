@@ -1,14 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  AlertTriangle,
-  Code2,
-  ExternalLink,
-  Folder,
-  Hash,
-  Mail,
-  Users,
-} from "lucide-react";
+import { AlertTriangle, Users } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
@@ -16,7 +8,6 @@ import { getPodDetail, type PodDetail, type RosterRow } from "@/lib/moderator/po
 import { phaseGuidance } from "@/lib/moderator/phase-guidance";
 import { getPodInsights } from "@/lib/moderator/pod-insights";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
-import { RosterTable } from "./roster-table";
 import { PodInsightsSection } from "./insights-section";
 import { DismissButton } from "./dismiss-button";
 import { Switcher } from "../../switcher";
@@ -24,6 +15,7 @@ import { PersistLastView } from "./persist-last-view";
 import { ManagedTooltip } from "../../tooltip-state";
 import { getPodsForUser } from "@/lib/moderator/pods-list";
 import { getUiState } from "@/lib/moderator/ui-state";
+import { PodContentTabs } from "./pod-content-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +25,12 @@ export const dynamic = "force-dynamic";
  * Composition:
  *   - status header (pod + cycle + phase + pulse-health + close timestamp)
  *   - at-risk nudge cards (read-only — dismiss action is chunk 8)
- *   - phase guidance copy (§7.5 plain-English + close/open timestamps)
- *   - member roster (server-rendered, sorted by joined_at; filter/sort
+ *   - phase guidance copy (§7.5 plain-English + close-only timestamp)
+ *   - member roster (server-rendered, sorted by last activity; filter/sort
  *     persistence is step 9)
- *   - pod resources block (§7.6 deep links + missing-resource affordance)
  *
- * Roster rows are inert here. The pulse review side panel is step 4 of
- * the build order.
+ * Pod Resources (§7.6) and the second "phase opened" deadline cell were
+ * intentionally removed — see docs/PRD-moderator-dashboard.md §10.
  */
 export default async function ModeratorPodPage({
   params,
@@ -70,11 +61,9 @@ export default async function ModeratorPodPage({
     getUiState(serviceClient, userRoles.participantId),
   ]);
   if (!detail) notFound();
-  // uiState is read here for symmetry with the All pods view; the
-  // client RosterTable will pick up filter/sort from /api/moderator/ui-state
-  // when the user actually opens the roster, so we don't need to pass it
-  // through props. (Future chunk wires server→client roster state.)
-  void uiState;
+  // Pass last_pod_tab through to seed the tab wrapper. Filter/sort still
+  // hydrates from /api/moderator/ui-state in the client (see RosterTable).
+  const initialTab = uiState.last_pod_tab ?? "members";
 
   // §7.9.2 pod-level insights — pre-compute both ranges so the client
   // toggle doesn't need a round-trip. Plus the AI-summary prompt for
@@ -124,15 +113,13 @@ export default async function ModeratorPodPage({
         />
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <PhaseGuidance detail={detail} />
-        <PodResources resources={detail.resources} />
-      </div>
+      <PhaseGuidance detail={detail} />
 
-      <RosterTable
+      <PodContentTabs
         members={detail.members}
         podId={detail.id}
         podName={detail.name ?? `Pod ${detail.id}`}
+        initialTab={initialTab}
       />
 
       {fourWeeksInsights && fullCycleInsights && (
@@ -369,7 +356,7 @@ function PhaseGuidance({ detail }: { detail: PodDetail }) {
     detail.phase_num as Parameters<typeof phaseGuidance>[0]
   );
   return (
-    <div className="rounded-md border border-whisper bg-white/[0.02] p-6 lg:col-span-2">
+    <div className="rounded-md border border-whisper bg-white/[0.02] p-6">
       <ManagedTooltip
         tooltipKey="phase_guidance_header"
         content="What this phase asks of your pod. The copy is curated per phase; the deadlines come from the cycle schedule."
@@ -399,7 +386,7 @@ function PhaseGuidance({ detail }: { detail: PodDetail }) {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-4 border-t border-whisper pt-4">
+      <div className="border-t border-whisper pt-4">
         <DeadlineCell
           label={detail.phase_is_active ? "Current phase closes" : "Phase opens"}
           when={
@@ -408,15 +395,6 @@ function PhaseGuidance({ detail }: { detail: PodDetail }) {
               : detail.phase_open_at
           }
           accent={detail.phase_is_active ? "warning" : "muted"}
-        />
-        <DeadlineCell
-          label={detail.phase_is_active ? "Phase opened" : "Phase closes"}
-          when={
-            detail.phase_is_active
-              ? detail.phase_open_at
-              : detail.phase_close_at
-          }
-          accent="muted"
         />
       </div>
     </div>
@@ -463,110 +441,6 @@ function DeadlineCell({
             : `in ${days} day${days === 1 ? "" : "s"}`}
       </div>
     </div>
-  );
-}
-
-// ─── Pod resources (§7.6) ────────────────────────────────────────────
-
-function PodResources({
-  resources,
-}: {
-  resources: PodDetail["resources"];
-}) {
-  return (
-    <div className="rounded-md border border-whisper bg-white/[0.02] p-6">
-      <div className="mb-4 text-xs uppercase tracking-widest text-cloud/40">
-        Pod resources
-      </div>
-      <div className="space-y-2">
-        <ResourceLink
-          icon={Hash}
-          label="Slack channel"
-          value={
-            resources.slack_channel_id ? `#${resources.slack_channel_id}` : null
-          }
-          href={
-            resources.slack_channel_id
-              ? `slack://channel?id=${resources.slack_channel_id}`
-              : null
-          }
-        />
-        <ResourceLink
-          icon={Folder}
-          label="Drive folder"
-          value={resources.drive_folder_id}
-          href={
-            resources.drive_folder_id
-              ? `https://drive.google.com/drive/folders/${resources.drive_folder_id}`
-              : null
-          }
-        />
-        <ResourceLink
-          icon={Code2}
-          label="GitHub repo"
-          value={resources.github_repo_url}
-          href={resources.github_repo_url}
-        />
-        <ResourceLink
-          icon={Mail}
-          label="Google Group"
-          value={null}
-          href={null}
-          // Google Group url isn't on the pods table; flagged as missing
-          // until §7.6 wiring lands.
-        />
-      </div>
-    </div>
-  );
-}
-
-function ResourceLink({
-  icon: Icon,
-  label,
-  value,
-  href,
-}: {
-  icon: typeof Hash;
-  label: string;
-  value: string | null;
-  href: string | null;
-}) {
-  if (!href) {
-    return (
-      <div className="-mx-2 flex items-center gap-3 rounded-md border border-yellow-500/20 bg-yellow-500/[0.06] px-3 py-2.5">
-        <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded bg-white/[0.04]">
-          <Icon className="h-4 w-4 text-cloud/40" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm text-cloud/70">{label}</div>
-          <div className="flex items-center gap-1.5 text-xs text-yellow-300/90">
-            <AlertTriangle className="h-3 w-3" />
-            Missing — contact staff
-          </div>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="group -mx-2 flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
-    >
-      <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded bg-white/[0.06]">
-        <Icon className="h-4 w-4 text-cloud/60 transition-colors group-hover:text-aqua" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm text-cloud transition-colors group-hover:text-white">
-          {label}
-        </div>
-        {value && (
-          <div className="truncate text-xs text-cloud/50">{value}</div>
-        )}
-      </div>
-      <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-cloud/30" />
-    </a>
   );
 }
 

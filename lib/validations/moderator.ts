@@ -35,6 +35,7 @@ export const uiStatePutSchema = z.object({
   roster_filters: z.record(z.string(), z.unknown()).optional(),
   roster_sort: z.string().min(1).max(64).optional(),
   tooltip_seen: tooltipSeenSchema.optional(),
+  last_pod_tab: z.enum(["members", "recent_pulses"]).optional(),
 });
 
 export type UiStatePutInput = z.infer<typeof uiStatePutSchema>;

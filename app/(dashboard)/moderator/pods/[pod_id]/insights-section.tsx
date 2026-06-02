@@ -77,6 +77,35 @@ export function PodInsightsSection({
             <CompletionBars weekly={active.weekly} />
           )}
         </div>
+
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-5 lg:col-span-2">
+          <div className="mb-3 flex items-baseline justify-between">
+            <div className="text-xs uppercase tracking-widest text-cloud/40">
+              Response depth trend
+            </div>
+            <div className="text-[10px] text-cloud/40">
+              avg chars per submitted pulse
+            </div>
+          </div>
+          {active.depth.length === 0 ? (
+            <div className="text-sm text-cloud/60">
+              No free-text responses yet.
+            </div>
+          ) : (
+            <DepthBars depth={active.depth} />
+          )}
+        </div>
+
+        <div className="rounded-md border border-whisper bg-white/[0.02] p-5">
+          <div className="mb-3 text-xs uppercase tracking-widest text-cloud/40">
+            Tailwinds vs blockers
+          </div>
+          <SentimentBlock sentiment={active.sentiment} />
+          <div className="mt-3 text-xs text-cloud/50">
+            Count of pulses mentioning each. Higher tailwinds : blockers
+            suggests momentum.
+          </div>
+        </div>
       </div>
 
       <div className="mt-4">
@@ -147,6 +176,103 @@ function CompletionBars({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function DepthBars({ depth }: { depth: PodInsights["depth"] }) {
+  // Scale bars relative to the max in-range, so trend (up or down) is
+  // legible at a glance. Absolute char count is still shown on the right.
+  const max = Math.max(1, ...depth.map((d) => d.avgChars));
+  return (
+    <div className="space-y-2.5">
+      {depth.map((d) => {
+        const pct = Math.round((d.avgChars / max) * 100);
+        return (
+          <div key={d.scheduled_date} className="flex items-center gap-3">
+            <div className="w-24 flex-shrink-0 text-xs tabular-nums text-cloud/60">
+              {formatWeek(d.scheduled_date)}
+            </div>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+              <div
+                className="h-full bg-aqua/70 transition-[width]"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="w-14 text-right text-xs tabular-nums text-cloud/70">
+              {d.avgChars} ch
+            </div>
+            <div className="w-10 text-right text-xs tabular-nums text-cloud/50">
+              n={d.samples}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SentimentBlock({
+  sentiment,
+}: {
+  sentiment: PodInsights["sentiment"];
+}) {
+  if (sentiment.length === 0) {
+    return (
+      <div className="text-sm text-cloud/60">
+        No tailwind or blocker comments yet.
+      </div>
+    );
+  }
+  const totals = sentiment.reduce(
+    (acc, s) => ({
+      tailwinds: acc.tailwinds + s.tailwinds,
+      blockers: acc.blockers + s.blockers,
+    }),
+    { tailwinds: 0, blockers: 0 }
+  );
+  const ratio =
+    totals.blockers === 0
+      ? totals.tailwinds === 0
+        ? null
+        : Infinity
+      : totals.tailwinds / totals.blockers;
+  const ratioLabel =
+    ratio === null
+      ? "—"
+      : ratio === Infinity
+        ? "all tailwinds"
+        : `${ratio.toFixed(1)}×`;
+
+  // Stacked bar visualizing the in-range split.
+  const total = totals.tailwinds + totals.blockers;
+  const tailPct = total === 0 ? 0 : (totals.tailwinds / total) * 100;
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <div className="text-2xl font-bold tabular-nums text-white">
+          {ratioLabel}
+        </div>
+        <div className="text-xs text-cloud/60">tailwinds : blockers</div>
+      </div>
+      <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="h-full bg-aqua" style={{ width: `${tailPct}%` }} />
+        <div
+          className="h-full bg-yellow-400/80"
+          style={{ width: `${100 - tailPct}%` }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[11px] tabular-nums text-cloud/60">
+        <span>
+          <span className="text-aqua">●</span> {totals.tailwinds} tailwind
+          {totals.tailwinds === 1 ? "" : "s"}
+        </span>
+        <span>
+          {totals.blockers} blocker
+          {totals.blockers === 1 ? "" : "s"}{" "}
+          <span className="text-yellow-300">●</span>
+        </span>
+      </div>
     </div>
   );
 }
