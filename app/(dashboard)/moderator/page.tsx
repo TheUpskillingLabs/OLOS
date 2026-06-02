@@ -6,6 +6,10 @@ import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { EmptyState, StatusBadge } from "@/app/components/ui";
 import { getPodsForUser, type PodCard } from "@/lib/moderator/pods-list";
 import { getRollup } from "@/lib/moderator/rollup";
+import { getCrossPodInsights } from "@/lib/moderator/cross-pod-insights";
+import { CrossPodInsightsSection } from "./cross-pod-insights-section";
+import { getUiState } from "@/lib/moderator/ui-state";
+import { Switcher } from "./switcher";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
 
 /**
@@ -37,19 +41,72 @@ export default async function ModeratorPage() {
   if (!hasPodAccess) redirect("/cycles");
 
   const admin = isAdmin(userRoles) || can(userRoles, "pods:read");
-  const cards = await getPodsForUser(serviceClient, userRoles);
+  const [cards, uiState] = await Promise.all([
+    getPodsForUser(serviceClient, userRoles),
+    getUiState(serviceClient, userRoles.participantId),
+  ]);
+
+  // PRD §7.7: first-time single-pod poderators land on their pod;
+  // first-time multi-pod poderators land here. Returning poderators
+  // land wherever they last were — if they last viewed a pod we redirect.
+  if (!admin && cards.length === 1 && uiState.last_view === null) {
+    redirect(`/moderator/pods/${cards[0].id}`);
+  }
+  if (uiState.last_view && uiState.last_view !== "all_pods") {
+    const numericId = Number(uiState.last_view);
+    if (
+      !Number.isNaN(numericId) &&
+      cards.some((c) => c.id === numericId)
+    ) {
+      redirect(`/moderator/pods/${numericId}`);
+    }
+  }
 
   // Single-pod poderators don't see the All pods aggregates (PRD §7.10).
   // Admins always see the full view because their assignment count is
   // effectively unbounded.
   const showAggregates = admin || cards.length > 1;
 
-  const rollup = showAggregates
-    ? await getRollup(serviceClient, { podIds: cards.map((c) => c.id) })
-    : null;
+  const podIds = cards.map((c) => c.id);
+  const cycleIds = Array.from(new Set(cards.map((c) => c.cycle_id)));
+
+  const [rollup, crossPodFourWeeks, crossPodFullCycle, aiPromptRow] =
+    showAggregates
+      ? await Promise.all([
+          getRollup(serviceClient, { podIds }),
+          getCrossPodInsights(serviceClient, podIds, "4w"),
+          getCrossPodInsights(serviceClient, podIds, "full"),
+          cycleIds.length > 0
+            ? serviceClient
+                .from("cycle_config")
+                .select("ai_summary_prompt")
+                .in("cycle_id", cycleIds)
+                .limit(1)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+        ])
+      : [null, null, null, { data: null }];
+
+  const aiSummaryPrompt =
+    (aiPromptRow.data?.ai_summary_prompt as string | null) ?? null;
+
+  const switcherPods = cards.map((c) => ({
+    id: c.id,
+    name: c.name ?? `Pod ${c.id}`,
+  }));
+  const showAllPodsEntry = admin || cards.length > 1;
 
   return (
     <div>
+      {(showAllPodsEntry || cards.length > 0) && (
+        <div className="mb-4">
+          <Switcher
+            pods={switcherPods}
+            current="all_pods"
+            showAllPods={showAllPodsEntry}
+          />
+        </div>
+      )}
       <h1 className="mb-2 text-2xl font-bold tracking-tight text-white">
         {admin ? "All pods" : "My pods"}
       </h1>
@@ -78,6 +135,13 @@ export default async function ModeratorPage() {
             <RollupBlock
               rollup={rollup}
               podCount={cards.length}
+            />
+          )}
+          {crossPodFourWeeks && crossPodFullCycle && (
+            <CrossPodInsightsSection
+              fourWeeks={crossPodFourWeeks}
+              fullCycle={crossPodFullCycle}
+              aiSummaryPrompt={aiSummaryPrompt}
             />
           )}
         </div>

@@ -19,6 +19,7 @@ import {
   type Trend,
   type PulseHealthCfg,
 } from "./pulse-health";
+import { atRiskNudgeKey, deriveAtRiskRun, loadDismissedKeys, isDismissed } from "./nudges";
 
 const DEFAULT_AT_RISK_MISSES = 2;
 
@@ -36,6 +37,13 @@ export type RosterRow = {
   inactive_since: string | null;
   pulse_status: PulseStatus;
   last_activity_at: string | null;
+  /**
+   * Nudge instance key for at-risk members. Null when not at-risk.
+   * Re-fires when the consecutive-miss run starts over after a recovery.
+   */
+  nudge_key: string | null;
+  /** True when the caller (poderator) has dismissed this specific nudge. */
+  nudge_dismissed: boolean;
 };
 
 export type PodDetail = {
@@ -65,7 +73,9 @@ export type PodDetail = {
 
 export async function getPodDetail(
   supabase: SupabaseClient,
-  podId: number
+  podId: number,
+  /** Caller's participant id; used to load their nudge dismissals. */
+  callerParticipantId: number | null = null
 ): Promise<PodDetail | null> {
   const { data: pod, error: podErr } = await supabase
     .from("pods")
@@ -145,6 +155,9 @@ export async function getPodDetail(
     pulsesByMember.set(p.participant_id, arr);
   }
 
+  // Load this poderator's nudge dismissals for this pod.
+  const dismissedKeys = await loadDismissedKeys(supabase, callerParticipantId, [podId]);
+
   const members: RosterRow[] = (memberRows ?? []).map((m) => {
     const p = (m.participants as unknown) as {
       id: number;
@@ -170,6 +183,19 @@ export async function getPodDetail(
     const enrollment = enrollmentsByParticipant.get(m.participant_id as number);
     const isInactive = enrollment?.status === "inactive";
 
+    // For at-risk members, derive the nudge_key from the current
+    // consecutive-miss run so re-trips after recovery produce a fresh
+    // key the dismissal table hasn't seen.
+    let nudge_key: string | null = null;
+    let nudge_dismissed = false;
+    if (status === "at_risk") {
+      const run = deriveAtRiskRun(m.participant_id as number, memberPulses);
+      if (run) {
+        nudge_key = atRiskNudgeKey(run);
+        nudge_dismissed = isDismissed(dismissedKeys, podId, nudge_key);
+      }
+    }
+
     return {
       participant_id: m.participant_id as number,
       initials,
@@ -182,6 +208,8 @@ export async function getPodDetail(
       inactive_since: m.inactive_at as string | null,
       pulse_status: status,
       last_activity_at: lastCompleted?.completed_at ?? null,
+      nudge_key,
+      nudge_dismissed,
     };
   });
 

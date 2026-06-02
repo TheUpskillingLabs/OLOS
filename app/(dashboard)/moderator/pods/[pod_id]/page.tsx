@@ -14,8 +14,16 @@ import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
 import { getPodDetail, type PodDetail, type RosterRow } from "@/lib/moderator/pod-detail";
 import { phaseGuidance } from "@/lib/moderator/phase-guidance";
+import { getPodInsights } from "@/lib/moderator/pod-insights";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
 import { RosterTable } from "./roster-table";
+import { PodInsightsSection } from "./insights-section";
+import { DismissButton } from "./dismiss-button";
+import { Switcher } from "../../switcher";
+import { PersistLastView } from "./persist-last-view";
+import { ManagedTooltip } from "../../tooltip-state";
+import { getPodsForUser } from "@/lib/moderator/pods-list";
+import { getUiState } from "@/lib/moderator/ui-state";
 
 export const dynamic = "force-dynamic";
 
@@ -56,21 +64,61 @@ export default async function ModeratorPodPage({
     redirect("/moderator");
   }
 
-  const detail = await getPodDetail(serviceClient, podId);
+  const [detail, switcherCards, uiState] = await Promise.all([
+    getPodDetail(serviceClient, podId, userRoles.participantId),
+    getPodsForUser(serviceClient, userRoles),
+    getUiState(serviceClient, userRoles.participantId),
+  ]);
   if (!detail) notFound();
+  // uiState is read here for symmetry with the All pods view; the
+  // client RosterTable will pick up filter/sort from /api/moderator/ui-state
+  // when the user actually opens the roster, so we don't need to pass it
+  // through props. (Future chunk wires server→client roster state.)
+  void uiState;
+
+  // §7.9.2 pod-level insights — pre-compute both ranges so the client
+  // toggle doesn't need a round-trip. Plus the AI-summary prompt for
+  // §7.10.3.
+  const [fourWeeksInsights, fullCycleInsights, aiPromptRow] = await Promise.all([
+    getPodInsights(serviceClient, podId, "4w"),
+    getPodInsights(serviceClient, podId, "full"),
+    serviceClient
+      .from("cycle_config")
+      .select("ai_summary_prompt")
+      .eq("cycle_id", detail.cycle_id)
+      .maybeSingle(),
+  ]);
+  const aiSummaryPrompt =
+    (aiPromptRow.data?.ai_summary_prompt as string | null) ?? null;
 
   const atRiskMembers = detail.members.filter(
-    (m) => m.pulse_status === "at_risk" && !m.is_inactive
+    (m) => m.pulse_status === "at_risk" && !m.is_inactive && !m.nudge_dismissed
   );
+
+  const switcherPods = switcherCards.map((c) => ({
+    id: c.id,
+    name: c.name ?? `Pod ${c.id}`,
+  }));
+  const showAllPodsEntry =
+    isAdmin(userRoles) || switcherCards.length > 1;
 
   return (
     <div className="space-y-8">
-      <BackLink />
+      <PersistLastView podId={detail.id} />
+      <div className="flex items-center gap-3">
+        <BackLink />
+        <Switcher
+          pods={switcherPods}
+          current={{ pod_id: detail.id }}
+          showAllPods={showAllPodsEntry}
+        />
+      </div>
       <StatusHeader detail={detail} />
 
       {atRiskMembers.length > 0 && (
         <AtRiskSection
           members={atRiskMembers}
+          podId={detail.id}
           podName={detail.name ?? `Pod ${detail.id}`}
           threshold={detail.at_risk_threshold}
         />
@@ -86,6 +134,14 @@ export default async function ModeratorPodPage({
         podId={detail.id}
         podName={detail.name ?? `Pod ${detail.id}`}
       />
+
+      {fourWeeksInsights && fullCycleInsights && (
+        <PodInsightsSection
+          fourWeeks={fourWeeksInsights}
+          fullCycle={fullCycleInsights}
+          aiSummaryPrompt={aiSummaryPrompt}
+        />
+      )}
     </div>
   );
 }
@@ -164,7 +220,12 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
           )}
         </div>
         <div>
-          <div className="mb-1 text-xs text-cloud/60">Pulse this week</div>
+          <ManagedTooltip
+            tooltipKey="pod_health_indicator"
+            content="Count of active pod members who haven't submitted this week's pulse. Banded into healthy / warning / critical by cycle-configurable thresholds."
+          >
+            <div className="mb-1 text-xs text-cloud/60">Pulse this week</div>
+          </ManagedTooltip>
           <div className="flex items-baseline gap-1.5">
             <span
               className={`text-2xl font-bold tabular-nums ${BAND_TEXT[detail.band]}`}
@@ -172,9 +233,14 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
               {detail.missing_this_week}
             </span>
             <span className="text-xs text-cloud/50">missing</span>
-            <span className={`ml-auto text-xs ${TREND_COLOR[detail.trend]}`}>
-              {TREND_ARROW[detail.trend]}
-            </span>
+            <ManagedTooltip
+              tooltipKey="trend_arrow"
+              content="Trend vs. the prior 3 weeks. ↑ rising completion, ↓ falling, → flat (within 5pp tolerance)."
+            >
+              <span className={`ml-auto text-xs ${TREND_COLOR[detail.trend]}`}>
+                {TREND_ARROW[detail.trend]}
+              </span>
+            </ManagedTooltip>
           </div>
           <div className="mt-1 text-xs text-cloud/50">
             band: {detail.band}
@@ -195,10 +261,12 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
 
 function AtRiskSection({
   members,
+  podId,
   podName,
   threshold,
 }: {
   members: RosterRow[];
+  podId: number;
   podName: string;
   threshold: number;
 }) {
@@ -214,7 +282,12 @@ function AtRiskSection({
       </div>
       <div className="space-y-3">
         {members.map((m) => (
-          <AtRiskCard key={m.participant_id} member={m} podName={podName} />
+          <AtRiskCard
+            key={m.participant_id}
+            member={m}
+            podId={podId}
+            podName={podName}
+          />
         ))}
       </div>
     </section>
@@ -223,9 +296,11 @@ function AtRiskSection({
 
 function AtRiskCard({
   member,
+  podId,
   podName,
 }: {
   member: RosterRow;
+  podId: number;
   podName: string;
 }) {
   const lastActiveCopy = member.last_activity_at
@@ -253,7 +328,12 @@ function AtRiskCard({
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-yellow-300">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-            <span className="font-medium">Missed consecutive pulses</span>
+            <ManagedTooltip
+              tooltipKey="at_risk_nudge_type"
+              content="At-risk nudge: fires when a member misses the configured consecutive-miss threshold. System flags only — you follow up via Slack or email."
+            >
+              <span className="font-medium">Missed consecutive pulses</span>
+            </ManagedTooltip>
             <span className="text-cloud/40">·</span>
             <span className="text-cloud/60">{lastActiveCopy}</span>
           </div>
@@ -264,14 +344,19 @@ function AtRiskCard({
             </span>
           </div>
         </div>
-        {member.email && (
-          <a
-            href={`mailto:${member.email}`}
-            className="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua transition-colors hover:bg-teal/30"
-          >
-            Email
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {member.email && (
+            <a
+              href={`mailto:${member.email}`}
+              className="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua transition-colors hover:bg-teal/30"
+            >
+              Email
+            </a>
+          )}
+          {member.nudge_key && (
+            <DismissButton podId={podId} nudgeKey={member.nudge_key} />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -285,9 +370,14 @@ function PhaseGuidance({ detail }: { detail: PodDetail }) {
   );
   return (
     <div className="rounded-md border border-whisper bg-white/[0.02] p-6 lg:col-span-2">
-      <div className="mb-1.5 text-xs uppercase tracking-widest text-teal">
-        Phase guidance
-      </div>
+      <ManagedTooltip
+        tooltipKey="phase_guidance_header"
+        content="What this phase asks of your pod. The copy is curated per phase; the deadlines come from the cycle schedule."
+      >
+        <div className="mb-1.5 text-xs uppercase tracking-widest text-teal">
+          Phase guidance
+        </div>
+      </ManagedTooltip>
       <h3 className="mb-4 text-lg font-semibold text-white">
         {detail.phase_display_name ?? "Between phases"}
       </h3>
