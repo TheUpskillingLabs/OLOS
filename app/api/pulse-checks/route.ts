@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { pulseCheckWithNominationsSchema } from "@/lib/validations/pulse-checks";
+import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -22,6 +23,9 @@ export const POST = withAuth(
     if (!participant_id) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
+
+    const guard = await requireCompleteProfile(auth.supabase, participant_id);
+    if (guard) return guard;
 
     const dupeQuery = auth.supabase
       .from("pulse_checks")

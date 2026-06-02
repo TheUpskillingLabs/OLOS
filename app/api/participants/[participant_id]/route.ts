@@ -3,6 +3,9 @@ import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
+import { parseBody, isErrorResponse } from "@/lib/api/request";
+import { dbError } from "@/lib/api/errors";
+import { participantsUpdateSchema } from "@/lib/validations/participants-update";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -50,5 +53,59 @@ export const GET = withAuth(
       work_style: grouped["work_style"] || [],
       group_strengths: grouped["group_strengths"] || [],
     });
+  }
+);
+
+/**
+ * PATCH /api/participants/[participant_id]
+ *
+ * Partial update of a participant row. Powers three Phase B affordances
+ * that share this single endpoint:
+ *   - Mode A: voluntary self-edit from /profile/edit (auth = self)
+ *   - Mode B: forced placeholder-name completion via layout redirect (auth = self)
+ *   - Admin name-edit from /admin/participants/[id]/permissions (auth = admin)
+ *
+ * Authorization is application-layer (isSelf || isAdmin) with RLS as defense
+ * in depth — migration 00021's WITH CHECK on participants_update_own enforces
+ * the same predicate at the database level. The cookie-bound client is used
+ * deliberately so RLS fires: if the application check ever drifted, the
+ * write would still fail at the database layer rather than silently succeed.
+ *
+ * Body validation: lib/validations/participants-update.ts. The schema uses
+ * .partial().strict() so only whitelisted fields can be touched (no
+ * auth_user_id / email / id / etc. hijacking via tampered request bodies).
+ */
+export const PATCH = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
+    const targetId = parseIntParam(params.participant_id, "participant_id");
+    if (targetId instanceof NextResponse) return targetId;
+
+    const isSelf = auth.user.participantId === targetId;
+    if (!isSelf && !isAdmin(auth.user)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await parseBody(request, participantsUpdateSchema);
+    if (isErrorResponse(body)) return body;
+
+    if (Object.keys(body).length === 0) {
+      return NextResponse.json(
+        { error: "No fields to update" },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await auth.supabase
+      .from("participants")
+      .update(body)
+      .eq("id", targetId)
+      .select("id, first_name, last_name, preferred_name, email")
+      .single();
+
+    if (error) {
+      return dbError(error, "patch-participant");
+    }
+
+    return NextResponse.json(data);
   }
 );

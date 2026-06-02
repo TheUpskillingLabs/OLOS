@@ -8,6 +8,7 @@ import {
   reconcileEnrollmentActivation,
   reconcilePodMembers,
 } from "@/lib/enrollment/reconciler";
+import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -19,6 +20,9 @@ export const POST = withAuth(
     if (!participantId) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
+
+    const guard = await requireCompleteProfile(auth.supabase, participantId);
+    if (guard) return guard;
 
     // Get pod to check status and cycle
     const { data: pod } = await auth.supabase
