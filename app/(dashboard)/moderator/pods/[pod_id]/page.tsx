@@ -15,6 +15,7 @@ import { StatusBadge } from "@/app/components/ui";
 import { getPodDetail, type PodDetail, type RosterRow } from "@/lib/moderator/pod-detail";
 import { phaseGuidance } from "@/lib/moderator/phase-guidance";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
+import { RosterTable } from "./roster-table";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,11 @@ export default async function ModeratorPodPage({
         <PodResources resources={detail.resources} />
       </div>
 
-      <MemberRoster members={detail.members} />
+      <RosterTable
+        members={detail.members}
+        podId={detail.id}
+        podName={detail.name ?? `Pod ${detail.id}`}
+      />
     </div>
   );
 }
@@ -472,100 +477,6 @@ function ResourceLink({
       </div>
       <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-cloud/30" />
     </a>
-  );
-}
-
-// ─── Member roster (§7.3) ────────────────────────────────────────────
-
-const PULSE_STATUS_LABEL: Record<RosterRow["pulse_status"], string> = {
-  current: "current",
-  pending: "pending",
-  late: "late",
-  at_risk: "at risk",
-};
-
-const PULSE_STATUS_COLOR: Record<RosterRow["pulse_status"], string> = {
-  current: "bg-teal/20 text-aqua",
-  pending: "bg-white/[0.06] text-cloud/70",
-  late: "bg-yellow-500/20 text-yellow-300",
-  at_risk: "bg-red-500/20 text-red-300",
-};
-
-const AI_LEVEL_LABEL: Record<string, string> = {
-  new: "New to AI",
-  consumer: "AI consumer",
-  builder: "AI builder",
-  shipper: "AI shipper",
-};
-
-function MemberRoster({ members }: { members: RosterRow[] }) {
-  const active = members.filter((m) => !m.is_inactive);
-  const inactive = members.filter((m) => m.is_inactive);
-
-  return (
-    <section>
-      <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold text-white">Members</h2>
-        <span className="text-xs text-cloud/60">
-          {active.length} active{inactive.length > 0 && ` · ${inactive.length} inactive (hidden)`}
-        </span>
-      </div>
-      <div className="overflow-hidden rounded-md border border-whisper">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-white/[0.02]">
-            <tr className="text-xs uppercase tracking-widest text-cloud/40">
-              <th className="px-4 py-3 font-medium">Member</th>
-              <th className="px-4 py-3 font-medium">AI level</th>
-              <th className="px-4 py-3 font-medium">Availability</th>
-              <th className="px-4 py-3 font-medium">Pulse</th>
-              <th className="px-4 py-3 font-medium">Last activity</th>
-            </tr>
-          </thead>
-          <tbody>
-            {active.map((m) => (
-              <tr
-                key={m.participant_id}
-                className="border-t border-whisper text-cloud/85"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.08] text-xs font-semibold text-cloud">
-                      {m.initials}
-                    </div>
-                    <div className="font-medium text-white">{m.display_name}</div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-cloud/70">
-                  {AI_LEVEL_LABEL[m.ai_experience_level] ?? m.ai_experience_level}
-                </td>
-                <td className="px-4 py-3 text-cloud/70">
-                  {m.availability_snippet ?? <span className="text-cloud/40">—</span>}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PULSE_STATUS_COLOR[m.pulse_status]}`}
-                  >
-                    {PULSE_STATUS_LABEL[m.pulse_status]}
-                  </span>
-                </td>
-                <td className="px-4 py-3 tabular-nums text-cloud/70">
-                  {m.last_activity_at
-                    ? `${daysAgo(m.last_activity_at)} days ago`
-                    : <span className="text-cloud/40">no pulse yet</span>}
-                </td>
-              </tr>
-            ))}
-            {active.length === 0 && (
-              <tr className="border-t border-whisper">
-                <td className="px-4 py-6 text-center text-cloud/60" colSpan={5}>
-                  No active members in this pod.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
   );
 }
 
