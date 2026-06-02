@@ -129,7 +129,7 @@ export default async function DashboardLayout({
             )}
             {showPods && (
               <Link href="/moderator" className={navLinkClass}>
-                My Pods
+                {moderatorUser ? "Poderator" : "All pods"}
               </Link>
             )}
             {adminUser && (
