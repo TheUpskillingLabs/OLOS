@@ -1,15 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import ProfileEditForm from "./profile-edit-form";
-
-const PLACEHOLDER = /^unknown$/i;
-
-function hasPlaceholderName(first: string | null, last: string | null): boolean {
-  return (
-    PLACEHOLDER.test((first ?? "").trim()) ||
-    PLACEHOLDER.test((last ?? "").trim())
-  );
-}
 
 // Allow only same-origin relative paths in the `next` query param so the
 // redirect cannot be hijacked to push users at an arbitrary external URL.

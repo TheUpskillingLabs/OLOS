@@ -4,15 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
 import { escapeEmailForIlike } from "@/lib/auth/email";
 import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
-
-const PLACEHOLDER_NAME = "unknown";
-
-function hasPlaceholderName(first: string | null, last: string | null): boolean {
-  return (
-    (first ?? "").trim().toLowerCase() === PLACEHOLDER_NAME ||
-    (last ?? "").trim().toLowerCase() === PLACEHOLDER_NAME
-  );
-}
+import { hasPlaceholderName } from "@/lib/participants/placeholder";
 
 async function fulfillInvitation(
   serviceClient: ReturnType<typeof createServiceClient>,
