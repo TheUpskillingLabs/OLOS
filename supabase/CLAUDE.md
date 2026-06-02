@@ -71,6 +71,16 @@ Fresh installs use the baseline; deployed environments are unaffected (they've a
 
 ---
 
+## Renumber history
+
+| Original | Renamed to | Date | Reason |
+|---|---|---|---|
+| `00015_pod_memberships_preference_rank.sql` | `00028_pod_memberships_preference_rank.sql` | 2026-06-02 | Filename collided with `00015_grant_role_privileges.sql`. `supabase_migrations.schema_migrations.version` is a PK, so `supabase db push --include-all` couldn't insert both. The preference-rank DDL was already applied to dev; renumbering the disk file plus a one-row repair on the remote brought tracking back in sync. See the renamed file's header for the repair SQL pointer. |
+
+Going forward: **never reuse a migration number.** Before writing a new file, `ls supabase/migrations/ | tail -1` to confirm the next free number.
+
+---
+
 ## Active issue: ISSUE-W1-002 (#40) — seed `option_lists` (remaining 4 lists)
 
 Roadmap anchor: [§1.2](../docs/OLOS-roadmap.md). Unblocks §1.9 (pulse-check endpoint validates `tools_used` / `benefits` against these IDs) and §1.11 (registration form fetches options from `GET /api/options`). The schema for `option_lists` already exists at [migrations/00001_initial_schema.sql:108-116](migrations/00001_initial_schema.sql#L108-L116), including the `UNIQUE(list_name, value)` constraint we use for idempotency. The read endpoint is shipped at [app/api/options/route.ts](../app/api/options/route.ts) — verifying its output is the acceptance test, not new work.
