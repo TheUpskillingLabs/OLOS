@@ -25,7 +25,22 @@ import type { Band, Trend } from "@/lib/moderator/pulse-health";
  * Rollup + summary cards are suppressed for single-pod poderators per
  * PRD §7.10 (their default landing is the per-pod view).
  */
-export default async function ModeratorPage() {
+export default async function ModeratorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const sp = await searchParams;
+  /**
+   * Explicit "show me All pods" intent — set by the back-arrow link on
+   * per-pod pages and by the Switcher's "All pods" item. Required to
+   * defeat the returning-poderator auto-redirect below, which would
+   * otherwise immediately bounce the user back to the pod they came
+   * from (last_view still points at it; the persist call is
+   * fire-and-forget and races the navigation).
+   */
+  const explicitAllPods = sp.view === "all";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -48,11 +63,12 @@ export default async function ModeratorPage() {
 
   // PRD §7.7: first-time single-pod poderators land on their pod;
   // first-time multi-pod poderators land here. Returning poderators
-  // land wherever they last were — if they last viewed a pod we redirect.
-  if (!admin && cards.length === 1 && uiState.last_view === null) {
+  // land wherever they last were — if they last viewed a pod we redirect,
+  // UNLESS the request explicitly opted into All pods via ?view=all.
+  if (!explicitAllPods && !admin && cards.length === 1 && uiState.last_view === null) {
     redirect(`/moderator/pods/${cards[0].id}`);
   }
-  if (uiState.last_view && uiState.last_view !== "all_pods") {
+  if (!explicitAllPods && uiState.last_view && uiState.last_view !== "all_pods") {
     const numericId = Number(uiState.last_view);
     if (
       !Number.isNaN(numericId) &&

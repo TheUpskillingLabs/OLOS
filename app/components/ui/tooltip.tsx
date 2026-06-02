@@ -75,7 +75,7 @@ export function Tooltip({
       {visible && (
         <span
           role="tooltip"
-          className={`pointer-events-none absolute left-1/2 z-[70] w-max max-w-xs -translate-x-1/2 rounded-md border border-whisper bg-[rgba(11,16,22,0.98)] px-2.5 py-1.5 text-xs text-cloud shadow-lg ${
+          className={`pointer-events-none absolute left-1/2 z-[70] w-max max-w-xs -translate-x-1/2 rounded-md border border-whisper bg-[rgba(42,49,66,0.98)] px-2.5 py-1.5 text-xs text-cloud shadow-lg ${
             placement === "top" ? "bottom-full mb-2" : "top-full mt-2"
           }`}
         >

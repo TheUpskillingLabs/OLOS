@@ -71,7 +71,7 @@ export function Sheet({
 
       {/* Panel */}
       <div
-        className={`absolute right-0 top-0 flex h-full ${widthClass} flex-col border-l border-whisper bg-[rgba(11,16,22,0.98)] shadow-[-12px_0_32px_rgba(0,0,0,0.5)]`}
+        className={`absolute right-0 top-0 flex h-full ${widthClass} flex-col border-l border-whisper bg-[rgba(42,49,66,0.98)] shadow-[-12px_0_32px_rgba(0,0,0,0.5)]`}
       >
         {/* Header — only renders if a title is supplied */}
         {(title || description) && (
@@ -104,7 +104,7 @@ export function Sheet({
 
         {/* Footer — sticky at bottom if provided */}
         {footer && (
-          <div className="border-t border-whisper bg-[rgba(11,16,22,0.98)] px-6 py-4">
+          <div className="border-t border-whisper bg-[rgba(42,49,66,0.98)] px-6 py-4">
             {footer}
           </div>
         )}

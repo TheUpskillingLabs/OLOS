@@ -5,7 +5,6 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
 import { getPodDetail, type PodDetail, type RosterRow } from "@/lib/moderator/pod-detail";
-import { phaseGuidance } from "@/lib/moderator/phase-guidance";
 import { getPodInsights } from "@/lib/moderator/pod-insights";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
 import { PodInsightsSection } from "./insights-section";
@@ -20,17 +19,18 @@ import { PodContentTabs } from "./pod-content-tabs";
 export const dynamic = "force-dynamic";
 
 /**
- * Per-pod view (PRD §7.1, §7.2, §7.3, §7.5, §7.6).
+ * Per-pod view (PRD §7.1, §7.2, §7.3).
  *
- * Composition:
+ * Composition (top → bottom):
  *   - status header (pod + cycle + phase + pulse-health + close timestamp)
  *   - at-risk nudge cards (read-only — dismiss action is chunk 8)
- *   - phase guidance copy (§7.5 plain-English + close-only timestamp)
- *   - member roster (server-rendered, sorted by last activity; filter/sort
- *     persistence is step 9)
+ *   - pulse insights (§7.9.2 + §7.10.3 AI summary)
+ *   - members / recent-pulses tab wrapper
  *
- * Pod Resources (§7.6) and the second "phase opened" deadline cell were
- * intentionally removed — see docs/PRD-moderator-dashboard.md §10.
+ * Pod Resources (§7.6), the second "phase opened" deadline cell, and
+ * the Phase Guidance prose panel (§7.5) were intentionally removed —
+ * the phase + close timestamp already live in the status header, and
+ * the prose was judged not decision-driving.
  */
 export default async function ModeratorPodPage({
   params,
@@ -113,15 +113,6 @@ export default async function ModeratorPodPage({
         />
       )}
 
-      <PhaseGuidance detail={detail} />
-
-      <PodContentTabs
-        members={detail.members}
-        podId={detail.id}
-        podName={detail.name ?? `Pod ${detail.id}`}
-        initialTab={initialTab}
-      />
-
       {fourWeeksInsights && fullCycleInsights && (
         <PodInsightsSection
           fourWeeks={fourWeeksInsights}
@@ -129,15 +120,26 @@ export default async function ModeratorPodPage({
           aiSummaryPrompt={aiSummaryPrompt}
         />
       )}
+
+      <PodContentTabs
+        members={detail.members}
+        podId={detail.id}
+        podName={detail.name ?? `Pod ${detail.id}`}
+        initialTab={initialTab}
+      />
     </div>
   );
 }
 
 function BackLink() {
+  // ?view=all is required: /moderator auto-redirects returning poderators
+  // back to their last-viewed pod, which is the very pod we're leaving.
+  // The query param flags this as an explicit "All pods" intent so the
+  // page skips the redirect.
   return (
     <Link
-      href="/moderator"
-      className="inline-flex items-center gap-1.5 text-xs text-cloud/60 transition-colors hover:text-cloud"
+      href="/moderator?view=all"
+      className="inline-flex items-center gap-1.5 text-xs text-cloud/75 transition-colors hover:text-cloud"
     >
       ← All pods
     </Link>
@@ -349,101 +351,6 @@ function AtRiskCard({
   );
 }
 
-// ─── Phase guidance (§7.5) ───────────────────────────────────────────
-
-function PhaseGuidance({ detail }: { detail: PodDetail }) {
-  const guidance = phaseGuidance(
-    detail.phase_num as Parameters<typeof phaseGuidance>[0]
-  );
-  return (
-    <div className="rounded-md border border-whisper bg-white/[0.02] p-6">
-      <ManagedTooltip
-        tooltipKey="phase_guidance_header"
-        content="What this phase asks of your pod. The copy is curated per phase; the deadlines come from the cycle schedule."
-      >
-        <div className="mb-1.5 text-xs uppercase tracking-widest text-teal">
-          Phase guidance
-        </div>
-      </ManagedTooltip>
-      <h3 className="mb-4 text-lg font-semibold text-white">
-        {detail.phase_display_name ?? "Between phases"}
-      </h3>
-
-      {guidance ? (
-        <>
-          <p className="mb-3 text-sm leading-relaxed text-cloud/85">
-            {guidance.description}
-          </p>
-          {guidance.watchFor && (
-            <p className="mb-5 text-sm leading-relaxed text-cloud/70">
-              {guidance.watchFor}
-            </p>
-          )}
-        </>
-      ) : (
-        <p className="mb-5 text-sm leading-relaxed text-cloud/70">
-          No active phase right now. Check in with your pod about what&apos;s next.
-        </p>
-      )}
-
-      <div className="border-t border-whisper pt-4">
-        <DeadlineCell
-          label={detail.phase_is_active ? "Current phase closes" : "Phase opens"}
-          when={
-            detail.phase_is_active
-              ? detail.phase_close_at
-              : detail.phase_open_at
-          }
-          accent={detail.phase_is_active ? "warning" : "muted"}
-        />
-      </div>
-    </div>
-  );
-}
-
-function DeadlineCell({
-  label,
-  when,
-  accent,
-}: {
-  label: string;
-  when: string | null;
-  accent: "warning" | "muted";
-}) {
-  if (!when) {
-    return (
-      <div>
-        <div className="mb-1.5 text-xs uppercase tracking-widest text-cloud/40">
-          {label}
-        </div>
-        <div className="text-sm text-cloud/60">—</div>
-      </div>
-    );
-  }
-  const days = daysUntil(when);
-  return (
-    <div>
-      <div className="mb-1.5 text-xs uppercase tracking-widest text-cloud/40">
-        {label}
-      </div>
-      <div className="text-sm tabular-nums text-cloud">{formatDateTime(when)}</div>
-      <div
-        className={`mt-1 text-xs ${
-          accent === "warning" && days >= 0 && days <= 2
-            ? "text-yellow-300"
-            : "text-cloud/60"
-        }`}
-      >
-        {days < 0
-          ? `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`
-          : days === 0
-            ? "today"
-            : `in ${days} day${days === 1 ? "" : "s"}`}
-      </div>
-    </div>
-  );
-}
-
 // ─── Date helpers ────────────────────────────────────────────────────
 
 function formatDateTime(iso: string): string {
@@ -461,9 +368,4 @@ function formatDateTime(iso: string): string {
 function daysAgo(iso: string): number {
   const diffMs = Date.now() - new Date(iso).getTime();
   return Math.max(0, Math.floor(diffMs / 86_400_000));
-}
-
-function daysUntil(iso: string): number {
-  const diffMs = new Date(iso).getTime() - Date.now();
-  return Math.ceil(diffMs / 86_400_000);
 }

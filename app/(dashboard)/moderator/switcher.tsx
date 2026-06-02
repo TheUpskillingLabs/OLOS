@@ -65,7 +65,7 @@ export function Switcher({
         aria-expanded={open}
         className="inline-flex items-center gap-2 rounded-md border border-whisper bg-white/[0.02] px-3 py-1.5 text-sm text-cloud transition-colors hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
       >
-        <span className="text-xs uppercase tracking-widest text-cloud/40">
+        <span className="text-xs uppercase tracking-widest text-cloud/60">
           View
         </span>
         <span className="font-medium text-white">{currentLabel}</span>
@@ -75,13 +75,13 @@ export function Switcher({
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 top-full z-40 mt-1 min-w-[240px] overflow-hidden rounded-md border border-whisper bg-[rgba(11,16,22,0.98)] py-1 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-1 min-w-[240px] overflow-hidden rounded-md border border-whisper bg-[rgba(42,49,66,0.98)] py-1 shadow-xl"
         >
           {showAllPods && (
             <SwitcherItem
               label="All pods"
               selected={current === "all_pods"}
-              onClick={() => select("all_pods", "/moderator")}
+              onClick={() => select("all_pods", "/moderator?view=all")}
             />
           )}
           {pods.map((p) => (

@@ -38,11 +38,11 @@ export function PodInsightsSection({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-md border border-whisper bg-white/[0.02] p-5">
-          <div className="mb-3 text-xs uppercase tracking-widest text-cloud/40">
+          <div className="mb-3 text-xs uppercase tracking-widest text-cloud/60">
             Top AI tools
           </div>
           {active.topTools.length === 0 ? (
-            <div className="text-sm text-cloud/60">No AI tools named yet.</div>
+            <div className="text-sm text-cloud/85">No AI tools named yet.</div>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {active.topTools.map((t, i) => (
@@ -62,17 +62,17 @@ export function PodInsightsSection({
               ))}
             </div>
           )}
-          <div className="mt-3 text-xs text-cloud/50">
+          <div className="mt-3 text-xs text-cloud/70">
             Count is members who named the tool, not raw mentions.
           </div>
         </div>
 
         <div className="rounded-md border border-whisper bg-white/[0.02] p-5 lg:col-span-2">
-          <div className="mb-3 text-xs uppercase tracking-widest text-cloud/40">
+          <div className="mb-3 text-xs uppercase tracking-widest text-cloud/60">
             Pulse completion trend
           </div>
           {active.weekly.length === 0 ? (
-            <div className="text-sm text-cloud/60">No pulse history yet.</div>
+            <div className="text-sm text-cloud/85">No pulse history yet.</div>
           ) : (
             <CompletionBars weekly={active.weekly} />
           )}
@@ -80,15 +80,15 @@ export function PodInsightsSection({
 
         <div className="rounded-md border border-whisper bg-white/[0.02] p-5 lg:col-span-2">
           <div className="mb-3 flex items-baseline justify-between">
-            <div className="text-xs uppercase tracking-widest text-cloud/40">
+            <div className="text-xs uppercase tracking-widest text-cloud/60">
               Response depth trend
             </div>
-            <div className="text-[10px] text-cloud/40">
+            <div className="text-[10px] text-cloud/60">
               avg chars per submitted pulse
             </div>
           </div>
           {active.depth.length === 0 ? (
-            <div className="text-sm text-cloud/60">
+            <div className="text-sm text-cloud/85">
               No free-text responses yet.
             </div>
           ) : (
@@ -97,11 +97,11 @@ export function PodInsightsSection({
         </div>
 
         <div className="rounded-md border border-whisper bg-white/[0.02] p-5">
-          <div className="mb-3 text-xs uppercase tracking-widest text-cloud/40">
+          <div className="mb-3 text-xs uppercase tracking-widest text-cloud/60">
             Tailwinds vs blockers
           </div>
           <SentimentBlock sentiment={active.sentiment} />
-          <div className="mt-3 text-xs text-cloud/50">
+          <div className="mt-3 text-xs text-cloud/70">
             Count of pulses mentioning each. Higher tailwinds : blockers
             suggests momentum.
           </div>
@@ -219,7 +219,7 @@ function SentimentBlock({
 }) {
   if (sentiment.length === 0) {
     return (
-      <div className="text-sm text-cloud/60">
+      <div className="text-sm text-cloud/85">
         No tailwind or blocker comments yet.
       </div>
     );

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import type { PulseComment } from "@/lib/moderator/pod-insights";
 
 /**
@@ -14,6 +14,13 @@ import type { PulseComment } from "@/lib/moderator/pod-insights";
  * Same component used on both All pods (cross-pod scope) and per-pod
  * surfaces — the scope only changes what `comments` and `rangeLabel`
  * are passed in.
+ *
+ * Two paths to clipboard:
+ *   1. "Copy prompt + responses" — one-click copy, no preview
+ *   2. "Preview" — opens a modal showing the full bundle (full prompt +
+ *      every included comment, not just the first 4); modal has its own
+ *      Copy button so the user can confirm what's about to paste into
+ *      their AI tool before sending it.
  */
 export function AISummaryBlock({
   scope,
@@ -27,12 +34,14 @@ export function AISummaryBlock({
   rangeLabel: string;
 }) {
   const [copied, setCopied] = React.useState(false);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
 
   const fallbackPrompt =
     "Summarize the themes across these pulse comments. Flag members or topics worth attention this week. Cite specific responses. Be descriptive, not judgmental.";
 
+  const bundle = buildBundle(prompt ?? fallbackPrompt, comments);
+
   const onCopy = async () => {
-    const bundle = buildBundle(prompt ?? fallbackPrompt, comments);
     try {
       await navigator.clipboard.writeText(bundle);
       setCopied(true);
@@ -89,7 +98,14 @@ export function AISummaryBlock({
         )}
       </div>
 
-      <div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setPreviewOpen(true)}
+          disabled={comments.length === 0}
+          className="rounded border border-whisper bg-white/[0.02] px-3 py-1.5 text-xs font-medium text-cloud transition-colors hover:border-white/[0.12] hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Preview
+        </button>
         <button
           onClick={onCopy}
           disabled={comments.length === 0}
@@ -98,7 +114,116 @@ export function AISummaryBlock({
           {copied ? "Copied!" : "Copy prompt + responses"}
         </button>
       </div>
+
+      <PreviewDialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        bundle={bundle}
+        rangeLabel={rangeLabel}
+        scopeLabel={scopeLabel}
+        commentCount={comments.length}
+      />
     </div>
+  );
+}
+
+/**
+ * Modal preview of the AI-summary bundle. Uses the native <dialog>
+ * element — backdrop styling is in app/globals.css. The dialog renders
+ * the full text (not truncated to 4 comments like the inline preview)
+ * in a read-only textarea, with its own Copy button so the user can
+ * confirm before pasting.
+ */
+function PreviewDialog({
+  open,
+  onClose,
+  bundle,
+  rangeLabel,
+  scopeLabel,
+  commentCount,
+}: {
+  open: boolean;
+  onClose: () => void;
+  bundle: string;
+  rangeLabel: string;
+  scopeLabel: string;
+  commentCount: number;
+}) {
+  const dialogRef = React.useRef<HTMLDialogElement>(null);
+  const [dialogCopied, setDialogCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    const d = dialogRef.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+
+  // Reset copy feedback whenever the dialog reopens.
+  React.useEffect(() => {
+    if (open) setDialogCopied(false);
+  }, [open]);
+
+  const onDialogCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(bundle);
+      setDialogCopied(true);
+      setTimeout(() => setDialogCopied(false), 2500);
+    } catch {
+      // ignore — textarea is selectable as fallback
+    }
+  };
+
+  return (
+    <dialog
+      ref={dialogRef}
+      onClose={onClose}
+      onCancel={onClose}
+      className="w-full max-w-3xl rounded-md border border-whisper bg-ink p-0 text-cloud shadow-2xl backdrop:bg-[rgba(28,34,48,0.7)]"
+    >
+      <div className="flex items-start justify-between gap-4 border-b border-whisper px-5 py-4">
+        <div>
+          <div className="mb-1 text-xs uppercase tracking-widest text-aqua/80">
+            AI summary bundle
+          </div>
+          <div className="text-xs text-cloud/70">
+            {rangeLabel} · {commentCount} response
+            {commentCount === 1 ? "" : "s"} from {scopeLabel}
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="rounded p-1 text-cloud/60 transition-colors hover:bg-white/[0.04] hover:text-cloud"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="px-5 py-4">
+        <textarea
+          readOnly
+          value={bundle}
+          className="h-96 w-full resize-none rounded-md border border-whisper bg-midnight px-3 py-2 font-mono text-xs leading-relaxed text-cloud/90 focus-visible:border-teal focus-visible:outline-none"
+        />
+        <div className="mt-1 text-[10px] text-cloud/50">
+          This is exactly what gets copied. Select-all + ⌘C also works.
+        </div>
+      </div>
+      <div className="flex items-center justify-end gap-2 border-t border-whisper px-5 py-3">
+        <button
+          onClick={onClose}
+          className="rounded border border-whisper bg-white/[0.02] px-3 py-1.5 text-xs font-medium text-cloud transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
+        >
+          Close
+        </button>
+        <button
+          onClick={onDialogCopy}
+          className="rounded bg-teal/25 px-3 py-1.5 text-xs font-medium text-aqua transition-colors hover:bg-teal/35"
+        >
+          {dialogCopied ? "Copied!" : "Copy"}
+        </button>
+      </div>
+    </dialog>
   );
 }
 
