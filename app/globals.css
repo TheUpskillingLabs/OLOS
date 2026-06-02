@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Brand surfaces — lifted from #0b1016/#0e1520 on 2026-06-02 (style/lighter-theme)
-     to ease the heavy near-black feel while keeping the dark-UI aesthetic.
-     Layered transparencies (bg-white/[0.02..0.08]) and text/border tokens
-     auto-adjust against the new base. Hardcoded rgba(28,34,48,X)
+  /* Brand surfaces — lifted from #0b1016/#0e1520 on 2026-06-02 to ease the
+     heavy near-black feel while keeping the dark-UI aesthetic. Layered
+     transparencies (bg-white/[0.02..0.08]) and text/border tokens
+     auto-adjust against the new base. Hardcoded rgba(42,49,66,X)
      overlays in layout.tsx / sheet.tsx / tooltip.tsx / switcher.tsx /
-     globals.css :: dialog::backdrop are kept in sync with this value. */
+     globals.css :: dialog::backdrop are kept in sync with --color-midnight
+     (#2a3142 = rgb(42,49,66)). If you change --color-midnight, update those
+     too — or replace with a CSS color-mix when we move to tokenized alphas. */
   --color-midnight: #2a3142;
   --color-ink: #343c4e;
 
