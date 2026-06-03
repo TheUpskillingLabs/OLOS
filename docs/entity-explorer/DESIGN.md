@@ -109,6 +109,42 @@ declares how to show one entity. Per entity:
 | `softDeleteColumn` | `removed_at` / `left_at` / `revoked_at` / none |
 | `foreignKeys` | Map of column → target entity key, for click-through |
 | `defaultSort` | Column + direction for the initial view |
+| `relations` | Reverse relations: tables that reference this entity, for the detail/360 view (§6.1) |
+
+### 6.1 Reverse relations & the record detail (360) view
+
+A participant's data is spread across ~10 tables (`user_roles`, `cycle_enrollments`,
+`pod_memberships`, `moderator_assignments`, `problem_statements`, `votes`,
+`solution_proposals`, `project_votes`, `project_memberships`, `pulse_checks`).
+The flat list only does *forward* FK hopping, so seeing "everything about one
+participant" would mean manually visiting each table. The **detail view** solves
+this: open one record and see the base row plus every related collection on one
+page.
+
+Each registry entry declares its `relations` — the tables that point *back* at
+it and the column they point through. For `participants`:
+
+```
+relations: [
+  { entity: "user_roles",            via: "participant_id", label: "Roles" },
+  { entity: "cycle_enrollments",     via: "participant_id", label: "Cycle enrollments" },
+  { entity: "pod_memberships",       via: "participant_id", label: "Pod memberships" },
+  { entity: "moderator_assignments", via: "participant_id", label: "Moderator assignments" },
+  { entity: "problem_statements",    via: "participant_id", label: "Problem statements" },
+  { entity: "votes",                 via: "voter_id",       label: "Votes cast" },
+  { entity: "solution_proposals",    via: "participant_id", label: "Solution proposals" },
+  { entity: "project_votes",         via: "voter_id",       label: "Project votes" },
+  { entity: "project_memberships",   via: "participant_id", label: "Project memberships" },
+  { entity: "pulse_checks",          via: "participant_id", label: "Pulse checks" },
+]
+```
+
+The detail page fetches the base row, then fetches each relation in parallel
+(`.eq(via, id)`, soft-delete filter applied), and renders a section per relation
+— exactly the in-memory-join pattern `/admin/participants/page.tsx` already uses,
+generalized. The *same* mechanism gives a **pod 360** and **project 360** for
+free; only the `relations` list differs. Empty relations render as explicit
+"no rows" sections so nothing looks missing.
 
 **Explicit allowlist, not schema reflection.** We list entities and columns by
 hand rather than auto-reflecting the schema. This means a future migration can't
@@ -148,10 +184,12 @@ All new code is contained in two folders.
 
 ```
 app/(dashboard)/admin/explore/
-  page.tsx            # RSC: reads ?entity, ?cycle, ?page; guards; fetches; renders
-  entity-table.tsx    # Client/server component: generic table + pagination controls
-  entity-picker.tsx   # Entity dropdown + cycle filter + show-deleted toggle
-  env-banner.tsx      # "DEV" / "PROD" banner
+  page.tsx                 # RSC: list view — reads ?entity, ?cycle, ?page; guards; fetches; renders
+  [entity]/[id]/page.tsx   # RSC: detail/360 view — base row + reverse relations (§6.1)
+  entity-table.tsx         # Generic table + pagination controls
+  entity-detail.tsx        # Generic base-row + relation-sections renderer
+  entity-picker.tsx        # Entity dropdown + cycle filter + show-deleted toggle
+  env-banner.tsx           # "DEV" / "PROD" banner
 
 lib/entity-explorer/
   registry.ts         # the allowlist config (§6)
@@ -218,8 +256,8 @@ the code deploys.
 ## 11. UI surface (v1)
 
 Mockups: [`docs/entity-explorer/mockups.html`](./mockups.html) — open in a
-browser. Interactive: the entity dropdown and FK links work, plus a PROD-banner
-variant.
+browser. Interactive: the entity dropdown and FK links work. Includes the list
+view, the **participant 360 detail view** (§6.1), and a PROD-banner variant.
 
 - Top bar: entity dropdown · cycle filter · "Show deleted" toggle · env banner.
 - Table: explicit columns from the registry, FK cells as links, JSONB cells
@@ -245,6 +283,16 @@ whole table; always paginate; expose a small fixed set of structural filters.**
 
 ## 12. Implementation plan (when we proceed)
 
+**Branch & integration (decided):** `feat/entity-explorer` branches off `dev`.
+The feature integrates to `dev` in a **single merge once complete** — `dev` never
+carries a half-built explorer. The four steps below are built as stacked sub-PRs
+*into the feature branch* (not into `dev`) to keep each review small, especially
+the registry step. The feature flag stays: since organizers also see the `dev`
+deployment, the flag keeps the merged code dormant until it's deliberately
+flipped on — so "merge to dev" and "expose to organizers" remain separate
+decisions. FK links in step 3 hop between list views; they upgrade to detail-route
+links in step 4.
+
 Each step is independently reviewable.
 
 1. **Registry + types** (`lib/entity-explorer/registry.ts`, `types.ts`) — define
@@ -252,14 +300,18 @@ Each step is independently reviewable.
    reviewable contract.
 2. **Generic fetch** (`fetch.ts`) — base query, pagination, cycle filter,
    soft-delete filter, FK-label batch resolution. Unit-testable in isolation.
-3. **Route + table** (`explore/page.tsx`, `entity-table.tsx`, `entity-picker.tsx`)
-   — wire the registry + fetch into a guarded RSC and the generic renderer.
-4. **Env banner + nav link** (`env-banner.tsx`, one nav entry) behind
+3. **List route + table** (`explore/page.tsx`, `entity-table.tsx`,
+   `entity-picker.tsx`) — wire the registry + fetch into a guarded RSC and the
+   generic renderer. FK cells link to the detail route.
+4. **Detail / 360 route** (`[entity]/[id]/page.tsx`, `entity-detail.tsx`) — base
+   row + parallel reverse-relation fetches rendered as sections (§6.1). This is
+   the "see everything for a participant/pod/project" view.
+5. **Env banner + nav link** (`env-banner.tsx`, one nav entry) behind
    `ENTITY_EXPLORER_ENABLED`.
-5. **Verification** — `tsc --noEmit` + eslint clean; manual pass on dev against a
+6. **Verification** — `tsc --noEmit` + eslint clean; manual pass on dev against a
    real cycle (every entity loads, FK links resolve, deleted toggle works,
-   pagination works); confirm the banner reads correctly on a prod-pointing
-   build before exposing it.
+   pagination works, a participant's detail view shows all related rows); confirm
+   the banner reads correctly on a prod-pointing build before exposing it.
 
 Estimated: ~1 day for a solid read-only v1.
 
@@ -278,7 +330,6 @@ Estimated: ~1 day for a solid read-only v1.
 - Per-column search, free-text filter, multi-column sort.
 - Saved views / persisted filters (would need a table — avoided deliberately).
 - Any write/edit capability.
-- Row detail drill-down pages (v1 is list + FK link-hopping only).
 - Export to CSV.
 
 These are intentionally deferred — if we need them, we're probably ready to build

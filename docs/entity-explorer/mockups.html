@@ -158,6 +158,32 @@
   }
   .note b { color: var(--ink); }
   h2.section { font-size: 14px; margin: 34px 0 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+
+  /* Detail / 360 view */
+  .detail-head {
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+    padding:16px 18px; background:var(--accent-soft); border:1px solid #cfe3d8;
+    border-radius:10px; margin-bottom:8px;
+  }
+  .dh-name { font-size:16px; font-weight:700; }
+  .dh-meta { color:#54707f; font-size:12px; margin-top:4px; font-family:var(--mono); }
+  .breadcrumb { font-size:12px; color:var(--muted); margin: 0 0 12px; }
+  .breadcrumb a.fk { border:none; }
+  .rel-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .rel-card { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
+  .rel-head {
+    display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f4f6f8;
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+    color:var(--muted); border-bottom:1px solid var(--line);
+  }
+  .rel-count { background:var(--ink); color:#fff; border-radius:999px; font-size:10px; padding:0 7px; font-weight:700; }
+  .rel-count.zero { background:#c8ced3; }
+  .rel-tbl { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .rel-tbl td, .rel-tbl th { padding:7px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  .rel-tbl th { font-size:10px; text-transform:uppercase; color:var(--muted); letter-spacing:.03em; font-weight:600; }
+  .rel-tbl tr:last-child td { border-bottom:none; }
+  .rel-empty { padding:10px 12px; color:#9aa3ab; font-size:12px; font-style:italic; }
+  @media (max-width:720px){ .rel-grid{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -198,14 +224,28 @@
           <div class="ctl">
             <label>Entity</label>
             <select id="entitySel" onchange="renderEntity(this.value)">
-              <option value="pods">Pods</option>
-              <option value="participants">Participants</option>
-              <option value="solution_proposals">Solution proposals</option>
-              <option value="moderator_assignments">Moderator assignments</option>
-              <option value="cycles">Cycles</option>
-              <option value="problem_statements">Problem statements</option>
-              <option value="votes">Votes</option>
-              <option value="pulse_checks">Pulse checks</option>
+              <optgroup label="Core">
+                <option value="cycles">Cycles</option>
+                <option value="participants">Participants (users)</option>
+                <option value="cycle_enrollments">Cycle enrollments</option>
+              </optgroup>
+              <optgroup label="Pods">
+                <option value="problem_statements">Problem statements</option>
+                <option value="votes">Votes</option>
+                <option value="pods" selected>Pods</option>
+                <option value="pod_memberships">Pod memberships</option>
+                <option value="moderator_assignments">Moderator assignments</option>
+              </optgroup>
+              <optgroup label="Projects">
+                <option value="solution_proposals">Solution proposals</option>
+                <option value="project_votes">Project votes</option>
+                <option value="projects">Projects</option>
+                <option value="project_memberships">Project memberships</option>
+              </optgroup>
+              <optgroup label="Auth & engagement">
+                <option value="user_roles">User roles</option>
+                <option value="pulse_checks">Pulse checks</option>
+              </optgroup>
             </select>
           </div>
           <div class="ctl">
@@ -251,6 +291,121 @@
           registry. Try <b>Solution proposals</b> (JSONB), <b>Participants</b> (PII columns), or
           <b>Moderator assignments</b> then toggle <b>Show deleted</b>.
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN 1b: participant 360 detail ===================== -->
+  <h2 class="section">Participant detail — everything in one place</h2>
+  <div class="frame">
+    <div class="frame-cap"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      &nbsp;app.theupskillinglabs.org/admin/explore/participants/1208</div>
+    <div class="envbar dev">● DEV — cethihabtddiujzayaxe</div>
+    <div class="main" style="padding:18px 22px;">
+      <p class="breadcrumb"><a class="fk" onclick="jump('participants')">Participants</a> &rsaquo; #1208</p>
+
+      <div class="detail-head">
+        <div>
+          <div class="dh-name">Amara O. &nbsp;<span class="tag">participant #1208</span></div>
+          <div class="dh-meta">amara.okoye@example.org · google_id 1078…4421 · joined 2026-02-18</div>
+        </div>
+        <div><span class="pill active">owner</span></div>
+      </div>
+      <p class="page-sub" style="margin:0 0 16px;">
+        Base row up top; every table that references this participant rendered below as its own
+        section. All assembled from the registry's reverse relations — no bespoke query per entity.
+      </p>
+
+      <div class="rel-grid">
+
+        <div class="rel-card">
+          <div class="rel-head">Cycle enrollments <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>cycle</th><th>status</th><th>enrolled_at</th></tr>
+            <tr><td><a class="fk" onclick="jump('cycles')">Cycle 3</a></td><td><span class="pill active">active</span></td><td>2026-02-25</td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">User roles <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>role</th><th>granted_at</th><th>revoked_at</th></tr>
+            <tr><td><span class="pill active">owner</span></td><td>2026-02-18</td><td>—</td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Pod memberships <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>pod</th><th>joined</th><th>left_at</th></tr>
+            <tr><td><a class="fk" onclick="jump('pods')">Civic Data Pod</a></td><td>2026-03-10</td><td>—</td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Moderator assignments <span class="rel-count zero">0</span></div>
+          <div class="rel-empty">No related rows.</div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Problem statements <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>id</th><th>name</th><th>votes</th></tr>
+            <tr><td class="id">301</td><td><a class="fk" onclick="jump('problem_statements')">Public records are slow to access</a></td><td>14</td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Votes cast <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>problem_statement</th><th>vote_count</th><th>at</th></tr>
+            <tr><td><a class="fk" onclick="jump('problem_statements')">#301</a></td><td>2</td><td>2026-03-15</td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Solution proposals <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>id</th><th>name</th><th>pod</th></tr>
+            <tr><td class="id">77</td><td><a class="fk" onclick="jump('solution_proposals')">Realtime FOIA tracker</a></td><td><a class="fk" onclick="jump('pods')">Civic Data Pod</a></td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Project memberships <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>project</th><th>joined</th></tr>
+            <tr><td><a class="fk" onclick="jump('projects')">FOIA Tracker</a></td><td>2026-04-24</td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Project votes <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>solution_proposal</th><th>vote_count</th><th>at</th></tr>
+            <tr><td><a class="fk" onclick="jump('solution_proposals')">#79</a></td><td>3</td><td>2026-04-19</td></tr>
+          </table>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-head">Pulse checks <span class="rel-count">1</span></div>
+          <table class="rel-tbl">
+            <tr><th>week</th><th>responses</th><th>at</th></tr>
+            <tr><td>wk-6</td><td><span class="json" onclick="(function(){var o=document.getElementById('pcD');o.style.display=o.style.display==='block'?'none':'block';})()">{…} <span class="chev">▸</span></span><div class="json-open" id="pcD" style="display:none">{
+  "blocked": false,
+  "hours": 7,
+  "ai_tool": "claude"
+}</div></td><td>2026-04-20</td></tr>
+          </table>
+        </div>
+
+      </div>
+
+      <div class="note" style="margin-top:14px;">
+        <b>How you get here:</b> click a participant's id anywhere in the flat browser (or any FK
+        cell). The same detail pattern produces a <b>pod 360</b> and a <b>project 360</b> — each
+        entity just declares which tables reference it. <b>0</b> counts (e.g. Moderator assignments)
+        render as an explicit empty section so nothing looks missing.
       </div>
     </div>
   </div>
@@ -329,6 +484,68 @@ const DATA = {
     ],
     deletedRows: [
       ['9', ()=>link('#1208','participants'), ()=>link('Climate Tools Pod','pods'), ()=>link('Cycle 3','cycles'),'2026-03-02','<span class="pill delbadge">2026-03-29</span>'],
+    ],
+  },
+  projects: {
+    desc: 'Table <b>projects</b> · cycle-scoped',
+    cols: ['id','name','pod_id','solution_proposal_id','status','cycle_id','created_at'],
+    rows: [
+      ['22','FOIA Tracker', ()=>link('Civic Data Pod','pods'), ()=>link('#77','solution_proposals'),'<span class="pill active">active</span>', ()=>link('Cycle 3','cycles'),'2026-04-22'],
+      ['23','Clinic Wait Map', ()=>link('Health Equity Pod','pods'), ()=>link('#78','solution_proposals'),'<span class="pill active">active</span>', ()=>link('Cycle 3','cycles'),'2026-04-23'],
+      ['24','Grant Finder', ()=>link('EdTech Pod','pods'), ()=>link('#79','solution_proposals'),'<span class="pill forming">forming</span>', ()=>link('Cycle 3','cycles'),'2026-04-23'],
+    ],
+  },
+  project_memberships: {
+    desc: 'Table <b>project_memberships</b> · max 1 active per participant per cycle',
+    cols: ['id','participant_id','project_id','joined_at'],
+    rows: [
+      ['51', ()=>link('#1208','participants'), ()=>link('FOIA Tracker','projects'),'2026-04-24'],
+      ['52', ()=>link('#1210','participants'), ()=>link('Clinic Wait Map','projects'),'2026-04-24'],
+      ['53', ()=>link('#1212','participants'), ()=>link('Grant Finder','projects'),'2026-04-25'],
+    ],
+  },
+  project_votes: {
+    desc: 'Table <b>project_votes</b> · cycle-scoped · <b>large</b>',
+    cols: ['id','voter_id','solution_proposal_id','vote_count','created_at'],
+    rows: [
+      ['7102', ()=>link('#1209','participants'), ()=>link('#77','solution_proposals'),'2','2026-04-18'],
+      ['7103', ()=>link('#1211','participants'), ()=>link('#78','solution_proposals'),'1','2026-04-18'],
+      ['7104', ()=>link('#1208','participants'), ()=>link('#79','solution_proposals'),'3','2026-04-19'],
+    ],
+    bigCount: 'rows 1–50 of 803',
+  },
+  pod_memberships: {
+    desc: 'Table <b>pod_memberships</b> · soft-delete via <code>left_at</code>',
+    cols: ['id','participant_id','pod_id','joined_at','left_at'],
+    rows: [
+      ['61', ()=>link('#1208','participants'), ()=>link('Civic Data Pod','pods'),'2026-03-10','—'],
+      ['62', ()=>link('#1210','participants'), ()=>link('Health Equity Pod','pods'),'2026-03-10','—'],
+      ['63', ()=>link('#1212','participants'), ()=>link('EdTech Pod','pods'),'2026-03-11','—'],
+    ],
+    deletedRows: [
+      ['58', ()=>link('#1211','participants'), ()=>link('Climate Tools Pod','pods'),'2026-03-08','<span class="pill delbadge">2026-03-30</span>'],
+    ],
+  },
+  cycle_enrollments: {
+    desc: 'Table <b>cycle_enrollments</b> · cycle-scoped · status flag',
+    cols: ['id','participant_id','cycle_id','status','enrolled_at'],
+    rows: [
+      ['401', ()=>link('#1208','participants'), ()=>link('Cycle 3','cycles'),'<span class="pill active">active</span>','2026-02-25'],
+      ['402', ()=>link('#1209','participants'), ()=>link('Cycle 3','cycles'),'<span class="pill active">active</span>','2026-02-25'],
+      ['403', ()=>link('#1210','participants'), ()=>link('Cycle 3','cycles'),'<span class="pill inactive">inactive</span>','2026-02-26'],
+      ['404', ()=>link('#1211','participants'), ()=>link('Cycle 3','cycles'),'<span class="pill revoked">revoked</span>','2026-02-26'],
+    ],
+  },
+  user_roles: {
+    desc: 'Table <b>user_roles</b> · soft-delete via <code>revoked_at</code> · who is admin/owner',
+    cols: ['id','participant_id','role','granted_at','revoked_at'],
+    rows: [
+      ['7', ()=>link('#1208','participants'),'<span class="pill active">owner</span>','2026-02-18','—'],
+      ['8', ()=>link('#1210','participants'),'<span class="pill active">admin</span>','2026-02-19','—'],
+      ['9', ()=>link('#1212','participants'),'<span class="pill inactive">observer</span>','2026-02-21','—'],
+    ],
+    deletedRows: [
+      ['5', ()=>link('#1209','participants'),'<span class="pill inactive">admin</span>','2026-01-04','<span class="pill delbadge">2026-02-15</span>'],
     ],
   },
   cycles: {
