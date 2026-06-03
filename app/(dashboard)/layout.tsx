@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import LogoutButton from "./components/logout-button";
+import FeedbackWidget from "@/app/components/feedback/feedback-widget";
 import { copy as pulseCopy } from "./pulse-check/copy";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -153,6 +154,7 @@ export default async function DashboardLayout({
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {children}
       </main>
+      <FeedbackWidget />
     </div>
   );
 }
