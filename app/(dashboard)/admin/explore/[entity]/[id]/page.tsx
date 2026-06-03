@@ -4,14 +4,13 @@
 // RLS, so this gate is the only protection — DESIGN.md §8). Fetches the base row
 // plus every reverse relation and renders the 360. Read-only.
 
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { fetchEntityDetail } from "@/lib/entity-explorer/fetch";
 import { getEntityConfig } from "@/lib/entity-explorer/registry";
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
+import { Breadcrumbs } from "../../breadcrumbs";
 import { EnvBanner } from "../../env-banner";
 import { EntityDetail } from "../../entity-detail";
 
@@ -50,17 +49,14 @@ export default async function ExploreDetailPage({
     <div>
       <EnvBanner />
 
-      <p className="mb-4 text-sm text-cloud/60">
-        <Link
-          href={`/admin/explore?entity=${config.key}`}
-          className="inline-flex items-center gap-1.5 transition-colors hover:text-aqua"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          {config.label}
-        </Link>
-        <span className="mx-1.5 text-cloud/30">/</span>
-        <span className="text-cloud/85">#{id}</span>
-      </p>
+      <Breadcrumbs
+        items={[
+          { label: "Admin", href: "/admin" },
+          { label: "Entity Explorer", href: "/admin/explore" },
+          { label: config.label, href: `/admin/explore?entity=${config.key}` },
+          { label: `#${id}` },
+        ]}
+      />
 
       <EntityDetail result={result} />
     </div>

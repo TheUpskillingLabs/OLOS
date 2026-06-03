@@ -8,8 +8,6 @@
 // NOTE: the ENTITY_EXPLORER_ENABLED flag + nav link land in step 4; until then
 // this route is reachable only by typing the URL and only by admins.
 
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
@@ -17,6 +15,7 @@ import { fetchEntityList } from "@/lib/entity-explorer/fetch";
 import { isEntityKey } from "@/lib/entity-explorer/registry";
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import type { EntityKey } from "@/lib/entity-explorer/types";
+import { Breadcrumbs } from "./breadcrumbs";
 import { EnvBanner } from "./env-banner";
 import { EntityPicker, type CycleOption } from "./entity-picker";
 import { EntityTable } from "./entity-table";
@@ -73,15 +72,15 @@ export default async function ExplorePage({
     <div>
       <EnvBanner />
 
+      <Breadcrumbs
+        items={[
+          { label: "Admin", href: "/admin" },
+          { label: "Entity Explorer" },
+        ]}
+      />
+
       <div className="mb-6">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:text-aqua focus-visible:outline-none"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          Admin
-        </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Entity Explorer
         </h1>
         <p className="mt-1 text-sm text-cloud/60">
