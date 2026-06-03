@@ -15,6 +15,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { fetchEntityList } from "@/lib/entity-explorer/fetch";
 import { isEntityKey } from "@/lib/entity-explorer/registry";
+import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import type { EntityKey } from "@/lib/entity-explorer/types";
 import { EnvBanner } from "./env-banner";
 import { EntityPicker, type CycleOption } from "./entity-picker";
@@ -27,6 +28,9 @@ export default async function ExplorePage({
 }: {
   searchParams: Promise<{ entity?: string; cycle?: string; page?: string; deleted?: string }>;
 }) {
+  // Feature flag (DESIGN.md §4): off → the route doesn't exist.
+  if (!ENTITY_EXPLORER_ENABLED) notFound();
+
   const sp = await searchParams;
 
   // ── Auth: admin only. This is the sole guard over service-role reads. ──

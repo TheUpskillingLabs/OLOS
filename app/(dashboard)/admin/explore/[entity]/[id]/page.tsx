@@ -11,6 +11,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { fetchEntityDetail } from "@/lib/entity-explorer/fetch";
 import { getEntityConfig } from "@/lib/entity-explorer/registry";
+import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import { EnvBanner } from "../../env-banner";
 import { EntityDetail } from "../../entity-detail";
 
@@ -19,6 +20,9 @@ export default async function ExploreDetailPage({
 }: {
   params: Promise<{ entity: string; id: string }>;
 }) {
+  // Feature flag (DESIGN.md §4): off → the route doesn't exist.
+  if (!ENTITY_EXPLORER_ENABLED) notFound();
+
   const { entity: entityParam, id: idParam } = await params;
 
   // ── Auth: admin only (sole guard over service-role reads). ──
