@@ -63,23 +63,23 @@ export function renderCell(
     return (
       <Link
         href={detailHref(fk.target, value as number | string)}
-        className="text-aqua underline decoration-dotted underline-offset-2 hover:text-teal"
+        className="font-medium text-aqua underline decoration-dotted underline-offset-2 transition hover:decoration-solid hover:brightness-110"
       >
         {label}
       </Link>
     );
   }
 
-  if (value == null) return <span className="text-cloud/40">—</span>;
+  if (value == null) return <span className="text-cloud/45">—</span>;
 
   // JSONB → collapsed, pretty-printed (DESIGN.md §9.5).
   if (typeof value === "object") {
     return (
       <details className="group">
-        <summary className="cursor-pointer list-none font-mono text-xs text-cloud/60 hover:text-cloud">
-          {"{…}"} <span className="text-cloud/40">▸</span>
+        <summary className="cursor-pointer list-none font-mono text-xs text-aqua/90 hover:text-aqua">
+          {"{…}"} <span className="text-aqua/60">▸</span>
         </summary>
-        <pre className="mt-1 overflow-x-auto rounded border border-whisper bg-black/20 p-2 font-mono text-[11px] text-cloud/80">
+        <pre className="mt-1 overflow-x-auto rounded border border-teal/25 bg-black/30 p-2 font-mono text-[11px] text-cloud/90">
           {JSON.stringify(value, null, 2)}
         </pre>
       </details>
@@ -100,12 +100,12 @@ export function renderCell(
     return (
       <Link
         href={detailHref(config.key, value as number | string)}
-        className="font-mono text-xs text-aqua hover:text-teal"
+        className="font-mono text-xs text-aqua transition hover:brightness-110"
       >
         {String(value)}
       </Link>
     );
   }
 
-  return <span className="text-cloud/85">{String(value)}</span>;
+  return <span className="text-cloud">{String(value)}</span>;
 }

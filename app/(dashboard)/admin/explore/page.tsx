@@ -83,7 +83,7 @@ export default async function ExplorePage({
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Entity Explorer
         </h1>
-        <p className="mt-1 text-sm text-cloud/60">
+        <p className="mt-1 text-sm text-cloud/70">
           Browse raw records by entity. Read-only.
         </p>
       </div>

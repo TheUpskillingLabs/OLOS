@@ -45,12 +45,12 @@ export function EntityPicker({
   };
 
   const selectClass =
-    "rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
+    "rounded-md border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-white transition-colors duration-150 hover:border-teal/60 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
   const labelClass =
-    "text-[11px] font-semibold uppercase tracking-wider text-cloud/60";
+    "text-[11px] font-semibold uppercase tracking-wider text-aqua/80";
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-4 rounded-md border border-whisper bg-white/[0.02] p-4">
+    <div className="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4">
       {/* Entity */}
       <div className="flex flex-col gap-1">
         <label htmlFor="ee-entity" className={labelClass}>Entity</label>
