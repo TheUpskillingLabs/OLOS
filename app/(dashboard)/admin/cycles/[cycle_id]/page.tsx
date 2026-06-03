@@ -41,6 +41,12 @@ export type ParticipantRow = {
   inactive_date: string | null;
   pods: number[];
   roles: string[];
+  // True when an access_revocations row exists for this (participant, cycle).
+  // Combined with status='inactive', has_revocation=false identifies
+  // 'stuck inactive' participants — never legitimately revoked, just
+  // never activated in the first place (architecture review broken edge
+  // #15). The participants-table filter uses this to surface them.
+  has_revocation: boolean;
 };
 
 export default async function AdminCycleDetailPage({
@@ -138,6 +144,16 @@ export default async function AdminCycleDetailPage({
     (rolesByParticipant[r.participant_id] ??= []).push(r.role);
   }
 
+  const { data: revocations } = await serviceClient
+    .from("access_revocations")
+    .select("participant_id, reason, revocation_scope, revoked_at, revoked_systems")
+    .eq("cycle_id", cycleId)
+    .order("revoked_at", { ascending: false });
+
+  const revokedParticipantIds = new Set(
+    (revocations ?? []).map((r) => r.participant_id)
+  );
+
   const participants: ParticipantRow[] = (enrollments ?? []).map((e) => {
     const p = (e.participants as unknown) as {
       first_name: string;
@@ -155,14 +171,9 @@ export default async function AdminCycleDetailPage({
       inactive_date: e.inactive_date,
       pods: podsByParticipant[e.participant_id] ?? [],
       roles: rolesByParticipant[e.participant_id] ?? [],
+      has_revocation: revokedParticipantIds.has(e.participant_id),
     };
   });
-
-  const { data: revocations } = await serviceClient
-    .from("access_revocations")
-    .select("participant_id, reason, revocation_scope, revoked_at, revoked_systems")
-    .eq("cycle_id", cycleId)
-    .order("revoked_at", { ascending: false });
 
   const activeCount = participants.filter((p) => p.status === "active").length;
 
@@ -359,7 +370,7 @@ export default async function AdminCycleDetailPage({
           <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
             Participants ({participants.length})
           </h2>
-          <ParticipantsTable participants={participants} />
+          <ParticipantsTable participants={participants} cycleId={cycleId} />
         </section>
 
         <hr className="border-whisper" />

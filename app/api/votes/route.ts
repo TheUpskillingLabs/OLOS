@@ -5,6 +5,7 @@ import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { voteSchema } from "@/lib/validations/votes";
+import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -17,6 +18,9 @@ export const POST = withAuth(
     if (!voter_id) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
+
+    const guard = await requireCompleteProfile(auth.supabase, voter_id);
+    if (guard) return guard;
 
     // Check window
     const window = await checkWindow(auth.supabase, cycle_id, "voting");

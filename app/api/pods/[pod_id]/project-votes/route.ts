@@ -6,6 +6,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { projectBallotSchema } from "@/lib/validations/pods";
+import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
@@ -74,6 +75,9 @@ export const POST = withAuth(
     if (!voterId) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
+
+    const guard = await requireCompleteProfile(auth.supabase, voterId);
+    if (guard) return guard;
 
     const body = await parseBody(request, projectBallotSchema);
     if (isErrorResponse(body)) return body;

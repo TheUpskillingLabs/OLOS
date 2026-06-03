@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
+import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import LogoutButton from "./components/logout-button";
 import FeedbackWidget from "@/app/components/feedback/feedback-widget";
 import { copy as pulseCopy } from "./pulse-check/copy";
@@ -35,6 +36,41 @@ export default async function DashboardLayout({
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
+  // Resolve the current pathname once and use it for every redirect gate
+  // below. The header order tries Next 16's canonical key first, then the
+  // older invoke-path key, then a generic fallback for any edge runtime
+  // that surfaces the URL under a different name.
+  const hdrs = await headers();
+  const pathname =
+    hdrs.get("x-pathname") ||
+    hdrs.get("x-invoke-path") ||
+    hdrs.get("next-url") ||
+    "";
+
+  // Placeholder-name gate (architecture review broken edge #3).
+  //
+  // Participants with first_name='Unknown' or last_name='Unknown' must
+  // complete their profile before any dashboard interaction. The migration
+  // script wrote these stubs for rows missing name data; without this
+  // gate they would reach /dashboard rendering as "Welcome, Unknown".
+  //
+  // Runs BEFORE the pulse-check enforcement because Phase B.4's submission-
+  // endpoint guards will reject placeholder-name participants from pulse
+  // submission anyway — they must fix their name first. Order: identity
+  // first, then phase obligations.
+  //
+  // Skip when already on /profile/edit (would infinite-loop). The
+  // ?next= query param preserves where they were headed so the form's
+  // Mode B post-save handler can return them to the original path.
+  if (
+    participant &&
+    hasPlaceholderName(participant.first_name, participant.last_name) &&
+    !pathname.startsWith("/profile/edit")
+  ) {
+    const next = pathname || "/dashboard";
+    redirect(`/profile/edit?required=true&next=${encodeURIComponent(next)}`);
+  }
+
   // Compute pulse-check enforcement status
   let enforcementStatus: EnforcementStatus = "ok";
   if (participant) {
@@ -49,12 +85,6 @@ export default async function DashboardLayout({
   }
 
   // Hard block: if overdue and not on the pulse-check page, redirect.
-  const hdrs = await headers();
-  const pathname =
-    hdrs.get("x-pathname") ||
-    hdrs.get("x-invoke-path") ||
-    hdrs.get("next-url") ||
-    "";
   if (
     enforcementStatus === "overdue" &&
     !pathname.startsWith("/pulse-check") &&
