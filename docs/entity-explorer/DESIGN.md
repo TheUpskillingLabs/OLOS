@@ -217,13 +217,31 @@ the code deploys.
 
 ## 11. UI surface (v1)
 
+Mockups: [`docs/entity-explorer/mockups.html`](./mockups.html) — open in a
+browser. Interactive: the entity dropdown and FK links work, plus a PROD-banner
+variant.
+
 - Top bar: entity dropdown · cycle filter · "Show deleted" toggle · env banner.
 - Table: explicit columns from the registry, FK cells as links, JSONB cells
   collapsed, soft-deleted rows badged.
 - Footer: prev/next pagination + "rows X–Y".
 
-That's the whole surface. Per-column search and free-text filter are explicitly
-v2.
+### Data vs. filters (decision)
+
+The question of "show the whole table vs. filter it" resolves to: **never show a
+whole table; always paginate; expose a small fixed set of structural filters.**
+
+- **Always paginated.** Server-side, 50 rows/page. `votes` (~1k+ rows) and
+  `pulse_checks` (~600+) make an unbounded fetch a non-starter, so pagination is
+  in from day one, not a later add-on.
+- **Structural filters — always present in v1:** the entity selector, the cycle
+  filter (auto-applied to any `cycleScoped` entity), and the show-deleted toggle.
+  These are cheap, registry-driven, and make every view immediately useful given
+  how cycle-scoped the schema is.
+- **Per-column / free-text search — v2.** Deliberately deferred. The mockup shows
+  a disabled search box to mark where it would sit. Reaching for rich filtering
+  is usually the signal we're ready to build the real admin rather than extend
+  this stopgap.
 
 ## 12. Implementation plan (when we proceed)
 

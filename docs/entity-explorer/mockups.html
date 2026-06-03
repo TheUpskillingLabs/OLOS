@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Entity Explorer — Mockups</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --ink: #1d2329;
+    --muted: #6b7682;
+    --line: #e4e7eb;
+    --line-strong: #d3d8dd;
+    --accent: #2f6f4f;
+    --accent-soft: #e8f1ec;
+    --link: #2563a8;
+    --warn: #b42318;
+    --warn-soft: #fde8e6;
+    --chip: #eef1f4;
+    --radius: 10px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 80px; }
+  .doc-head h1 { font-size: 22px; margin: 0 0 4px; }
+  .doc-head p { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px; padding: 12px 14px; margin: 0 0 22px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    font-size: 12.5px; color: var(--muted);
+  }
+  .legend b { color: var(--ink); }
+  .legend .v2tag { background: #fff4d6; color: #8a6d1a; border: 1px solid #ecd9a0; }
+  .tag {
+    display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px;
+    font-weight: 600; background: var(--chip); color: var(--muted);
+  }
+
+  /* App frame */
+  .frame {
+    background: var(--panel); border: 1px solid var(--line-strong);
+    border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(16,24,40,.04);
+    margin-bottom: 30px;
+  }
+  .frame-cap {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; background: #f0f2f4; border-bottom: 1px solid var(--line);
+    font-size: 12px; color: var(--muted);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #cfd5da; }
+
+  /* Env banner */
+  .envbar {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 5px; font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  }
+  .envbar.dev { background: #eef1f4; color: #5a6671; }
+  .envbar.prod { background: var(--warn-soft); color: var(--warn); }
+
+  /* Dashboard shell */
+  .shell { display: grid; grid-template-columns: 196px 1fr; min-height: 540px; }
+  .nav { background: #fbfcfd; border-right: 1px solid var(--line); padding: 16px 10px; }
+  .nav .brand { font-weight: 700; font-size: 14px; padding: 4px 10px 14px; }
+  .nav a {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px;
+    color: var(--muted); text-decoration: none; font-size: 13px; margin-bottom: 2px;
+  }
+  .nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .nav a .ic { width: 15px; text-align: center; opacity: .7; }
+  .nav .flagged { position: relative; }
+  .nav .flagged::after {
+    content: "flag"; font-size: 9px; font-weight: 700; color: #8a6d1a;
+    background: #fff4d6; border: 1px solid #ecd9a0; border-radius: 4px;
+    padding: 0 4px; margin-left: auto;
+  }
+
+  .main { padding: 20px 22px; min-width: 0; }
+  .page-title { font-size: 17px; font-weight: 700; margin: 0 0 2px; }
+  .page-sub { color: var(--muted); margin: 0 0 16px; font-size: 12.5px; }
+
+  /* Control bar */
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: end; gap: 12px;
+    padding: 14px; background: #fbfcfd; border: 1px solid var(--line);
+    border-radius: var(--radius); margin-bottom: 14px;
+  }
+  .ctl { display: flex; flex-direction: column; gap: 4px; }
+  .ctl label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  select, input[type=text] {
+    font: inherit; padding: 7px 10px; border: 1px solid var(--line-strong);
+    border-radius: 8px; background: #fff; color: var(--ink); min-width: 150px;
+  }
+  .toggle { display: flex; align-items: center; gap: 7px; font-size: 13px; padding-bottom: 7px; }
+  .switch {
+    width: 34px; height: 19px; border-radius: 999px; background: var(--accent);
+    position: relative; flex: none;
+  }
+  .switch::after { content:""; position:absolute; top:2px; right:2px; width:15px; height:15px; border-radius:50%; background:#fff; }
+  .switch.off { background: #c8ced3; }
+  .switch.off::after { right: auto; left: 2px; }
+
+  .v2box { position: relative; opacity: .65; }
+  .v2box::after {
+    content: "v2"; position: absolute; top: -8px; right: -8px;
+    font-size: 9px; font-weight: 700; color: #8a6d1a;
+    background: #fff4d6; border: 1px solid #ecd9a0; border-radius: 5px; padding: 0 4px;
+  }
+
+  /* Table */
+  .tbl-meta { display:flex; justify-content: space-between; align-items:center; margin: 4px 2px 8px; color: var(--muted); font-size: 12px; }
+  .tbl-wrap { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 9px 12px; background: #f4f6f8; color: var(--muted);
+    font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em;
+    border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafbfc; }
+  td.id { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  a.fk { color: var(--link); text-decoration: none; border-bottom: 1px dotted var(--link); cursor: pointer; }
+  a.fk:hover { background: #eef4fb; }
+  .pill { display:inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.active { background: var(--accent-soft); color: var(--accent); }
+  .pill.forming { background: #fef3e2; color: #92600a; }
+  .pill.inactive { background: #eef1f4; color: #6b7682; }
+  .pill.revoked { background: var(--warn-soft); color: var(--warn); }
+  tr.deleted td { color: #9aa3ab; }
+  tr.deleted td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+  .delbadge { background: var(--warn-soft); color: var(--warn); }
+  .json {
+    font-family: var(--mono); font-size: 11.5px; color: #475059;
+    background: #f4f6f8; border: 1px solid var(--line); border-radius: 6px;
+    padding: 2px 8px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .json .chev { color: var(--muted); }
+  .json-open { display:block; white-space: pre; background:#f4f6f8; border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-family:var(--mono); font-size:11.5px; color:#3a424a; margin-top:4px; }
+
+  /* Pagination */
+  .pager { display:flex; align-items:center; justify-content: space-between; padding: 10px 4px 0; font-size: 12.5px; color: var(--muted); }
+  .pager .btns { display:flex; gap: 6px; }
+  .pager button {
+    font: inherit; font-size: 12.5px; padding: 5px 11px; border: 1px solid var(--line-strong);
+    background: #fff; border-radius: 7px; cursor: pointer; color: var(--ink);
+  }
+  .pager button[disabled] { opacity: .45; cursor: default; }
+
+  .note {
+    margin-top: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--muted);
+    background: #fbfcfd; border: 1px dashed var(--line-strong); border-radius: 8px;
+  }
+  .note b { color: var(--ink); }
+  h2.section { font-size: 14px; margin: 34px 0 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="doc-head">
+    <h1>Entity Explorer — Screen Mockups</h1>
+    <p>Read-only admin entity browser (stopgap). Pick an entity, see its rows. Organizers = admins.
+       These are static mockups; the entity dropdown and table are wired so you can click around.
+       Annotations in dashed boxes explain behaviour.</p>
+  </div>
+
+  <div class="legend">
+    <span><span class="tag">structural filter</span> always present in v1</span>
+    <span><span class="tag v2tag">v2</span> deferred — shown to indicate placement only</span>
+    <span><b>Underlined blue</b> = foreign-key click-through</span>
+    <span><b>Red left edge</b> = soft-deleted row</span>
+  </div>
+
+  <!-- ===================== SCREEN 1: main explorer (DEV) ===================== -->
+  <div class="frame">
+    <div class="frame-cap"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      &nbsp;app.theupskillinglabs.org/admin/explore?entity=pods&amp;cycle=3</div>
+    <div class="envbar dev">● DEV — cethihabtddiujzayaxe</div>
+    <div class="shell">
+      <nav class="nav">
+        <div class="brand">OLOS Admin</div>
+        <a><span class="ic">▦</span> Overview</a>
+        <a><span class="ic">◴</span> Cycles</a>
+        <a><span class="ic">◷</span> Participants</a>
+        <a><span class="ic">◇</span> Invitations</a>
+        <a class="active flagged"><span class="ic">⌗</span> Explore</a>
+      </nav>
+      <div class="main">
+        <h2 class="page-title">Entity Explorer</h2>
+        <p class="page-sub">Browse raw records by entity. Read-only.</p>
+
+        <div class="controls">
+          <div class="ctl">
+            <label>Entity</label>
+            <select id="entitySel" onchange="renderEntity(this.value)">
+              <option value="pods">Pods</option>
+              <option value="participants">Participants</option>
+              <option value="solution_proposals">Solution proposals</option>
+              <option value="moderator_assignments">Moderator assignments</option>
+              <option value="cycles">Cycles</option>
+              <option value="problem_statements">Problem statements</option>
+              <option value="votes">Votes</option>
+              <option value="pulse_checks">Pulse checks</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label>Cycle</label>
+            <select id="cycleSel">
+              <option>Cycle 3 — Spring 2026</option>
+              <option>Cycle 2 — Winter 2026</option>
+              <option>All cycles</option>
+            </select>
+          </div>
+          <div class="toggle">
+            <span class="switch off" id="delSwitch" onclick="toggleDeleted()"></span>
+            <span>Show deleted</span>
+          </div>
+          <div class="ctl v2box" style="margin-left:auto;">
+            <label>Search rows</label>
+            <input type="text" placeholder="filter any column…" disabled />
+          </div>
+        </div>
+
+        <div class="tbl-meta">
+          <span id="entityDesc">Table <b>pods</b> · cycle-scoped</span>
+          <span id="rowRange">rows 1–6 of 6</span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <span>50 rows / page</span>
+          <div class="btns">
+            <button disabled>← Prev</button>
+            <button disabled>Next →</button>
+          </div>
+        </div>
+
+        <div class="note" id="screenNote">
+          <b>Switch the Entity dropdown above</b> to see how one generic table renders different
+          entities — columns, foreign-key links, status pills and JSONB cells all come from the
+          registry. Try <b>Solution proposals</b> (JSONB), <b>Participants</b> (PII columns), or
+          <b>Moderator assignments</b> then toggle <b>Show deleted</b>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN 2: PROD banner detail ===================== -->
+  <h2 class="section">Environment banner — same screen, prod deploy</h2>
+  <div class="frame">
+    <div class="frame-cap"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      &nbsp;app.theupskillinglabs.org/admin/explore?entity=participants</div>
+    <div class="envbar prod">⚠ PROD — live participant data — cdbgkgkjnomjnpicaxqe</div>
+    <div class="main" style="padding:16px 22px;">
+      <p class="page-sub" style="margin:0;">
+        Identical code; only the banner changes. It reads the deployment's Supabase URL, so an
+        organizer always knows whether they're looking at real participant data. No per-environment
+        logic anywhere else.
+      </p>
+    </div>
+  </div>
+
+  <div class="note" style="background:#fbfcfd;">
+    <b>The data-vs-filters question, settled for v1:</b> we never dump a full table — every view is
+    server-paginated (50/page). Three <b>structural filters</b> are always on: the <b>entity</b>
+    selector, the <b>cycle</b> filter (applied automatically to cycle-scoped entities), and the
+    <b>show-deleted</b> toggle. A free-text / per-column <b>search</b> is intentionally <span class="tag v2tag">v2</span>
+    — the disabled box on the right shows where it lands. If we find we need rich filtering, that's
+    usually the signal we're ready to build the real admin instead of extending this stopgap.
+  </div>
+</div>
+
+<script>
+const link = (label, entity) => `<a class="fk" onclick="jump('${entity}')">${label}</a>`;
+
+const DATA = {
+  pods: {
+    desc: 'Table <b>pods</b> · cycle-scoped',
+    cols: ['id','name','status','cycle_id','members','created_at'],
+    rows: [
+      ['41','Civic Data Pod','<span class="pill active">active</span>', ()=>link('Cycle 3','cycles'),'5','2026-03-04'],
+      ['42','Health Equity Pod','<span class="pill active">active</span>', ()=>link('Cycle 3','cycles'),'4','2026-03-04'],
+      ['43','Climate Tools Pod','<span class="pill forming">forming</span>', ()=>link('Cycle 3','cycles'),'6','2026-03-05'],
+      ['44','EdTech Pod','<span class="pill active">active</span>', ()=>link('Cycle 3','cycles'),'5','2026-03-05'],
+      ['45','Accessibility Pod','<span class="pill forming">forming</span>', ()=>link('Cycle 3','cycles'),'3','2026-03-06'],
+      ['46','Open Gov Pod','<span class="pill inactive">inactive</span>', ()=>link('Cycle 3','cycles'),'0','2026-03-06'],
+    ],
+  },
+  participants: {
+    desc: 'Table <b>participants</b> · not cycle-scoped · <b>PII visible</b> (organizers = admins)',
+    cols: ['id','preferred_name','email','google_id','created_at'],
+    rows: [
+      ['1208','Amara O.','amara.okoye@example.org','1078…4421','2026-02-18'],
+      ['1209','Devin','devin.li@example.org','1180…9035','2026-02-18'],
+      ['1210','Priya R.','priya.r@example.org','1023…7782','2026-02-19'],
+      ['1211','Sam','sam.tucker@example.org','1142…3360','2026-02-20'],
+      ['1212','Jianyu','j.chen@example.org','1099…5518','2026-02-21'],
+    ],
+  },
+  solution_proposals: {
+    desc: 'Table <b>solution_proposals</b> · cycle-scoped · has <b>JSONB</b> column',
+    cols: ['id','name','pod_id','participant_id','proposal_data','created_at'],
+    rows: [
+      ['77','Realtime FOIA tracker', ()=>link('Civic Data Pod','pods'), ()=>link('#1208','participants'),
+        ()=>jsonCell('sp77','{\n  "stack": ["next","supabase"],\n  "scope": "mvp",\n  "ai_tools": ["claude","cursor"]\n}'),'2026-04-11'],
+      ['78','Clinic wait-time map', ()=>link('Health Equity Pod','pods'), ()=>link('#1210','participants'),
+        ()=>jsonCell('sp78','{\n  "stack": ["react","postgres"],\n  "scope": "pilot",\n  "ai_tools": ["chatgpt"]\n}'),'2026-04-12'],
+      ['79','Grant-finder assistant', ()=>link('EdTech Pod','pods'), ()=>link('#1212','participants'),
+        ()=>jsonCell('sp79','{\n  "stack": ["python","fastapi"],\n  "scope": "mvp",\n  "ai_tools": ["claude"]\n}'),'2026-04-12'],
+    ],
+  },
+  moderator_assignments: {
+    desc: 'Table <b>moderator_assignments</b> · cycle-scoped · soft-delete via <code>removed_at</code>',
+    cols: ['id','participant_id','pod_id','cycle_id','assigned_at','removed_at'],
+    rows: [
+      ['12', ()=>link('#1209','participants'), ()=>link('Civic Data Pod','pods'), ()=>link('Cycle 3','cycles'),'2026-03-07','—'],
+      ['13', ()=>link('#1211','participants'), ()=>link('Health Equity Pod','pods'), ()=>link('Cycle 3','cycles'),'2026-03-07','—'],
+      ['14', ()=>link('#1212','participants'), ()=>link('EdTech Pod','pods'), ()=>link('Cycle 3','cycles'),'2026-03-08','—'],
+    ],
+    deletedRows: [
+      ['9', ()=>link('#1208','participants'), ()=>link('Climate Tools Pod','pods'), ()=>link('Cycle 3','cycles'),'2026-03-02','<span class="pill delbadge">2026-03-29</span>'],
+    ],
+  },
+  cycles: {
+    desc: 'Table <b>cycles</b> · not cycle-scoped',
+    cols: ['id','name','slug','status','start_date','end_date'],
+    rows: [
+      ['3','Spring 2026','spring-2026','<span class="pill active">active</span>','2026-03-01','2026-06-30'],
+      ['2','Winter 2026','winter-2026','<span class="pill inactive">closed</span>','2025-12-01','2026-02-28'],
+      ['1','Autumn 2025','autumn-2025','<span class="pill inactive">closed</span>','2025-09-01','2025-11-30'],
+    ],
+  },
+  problem_statements: {
+    desc: 'Table <b>problem_statements</b> · cycle-scoped',
+    cols: ['id','name','participant_id','cycle_id','votes','created_at'],
+    rows: [
+      ['301','Public records are slow to access', ()=>link('#1208','participants'), ()=>link('Cycle 3','cycles'),'14','2026-03-12'],
+      ['302','Clinic wait times are opaque', ()=>link('#1210','participants'), ()=>link('Cycle 3','cycles'),'11','2026-03-12'],
+      ['303','Grant discovery is fragmented', ()=>link('#1212','participants'), ()=>link('Cycle 3','cycles'),'9','2026-03-13'],
+    ],
+  },
+  votes: {
+    desc: 'Table <b>votes</b> · cycle-scoped · <b>large</b> — paginated',
+    cols: ['id','voter_id','problem_statement_id','vote_count','created_at'],
+    rows: [
+      ['5521', ()=>link('#1208','participants'), ()=>link('#301','problem_statements'),'2','2026-03-15'],
+      ['5522', ()=>link('#1209','participants'), ()=>link('#301','problem_statements'),'1','2026-03-15'],
+      ['5523', ()=>link('#1210','participants'), ()=>link('#302','problem_statements'),'3','2026-03-15'],
+      ['5524', ()=>link('#1211','participants'), ()=>link('#303','problem_statements'),'1','2026-03-16'],
+    ],
+    bigCount: 'rows 1–50 of 1,284',
+  },
+  pulse_checks: {
+    desc: 'Table <b>pulse_checks</b> · cycle-scoped · has <b>JSONB</b> · <b>large</b>',
+    cols: ['id','participant_id','cycle_id','week','responses','created_at'],
+    rows: [
+      ['9001', ()=>link('#1208','participants'), ()=>link('Cycle 3','cycles'),'wk-6',
+        ()=>jsonCell('pc1','{\n  "blocked": false,\n  "hours": 7,\n  "ai_tool": "claude"\n}'),'2026-04-20'],
+      ['9002', ()=>link('#1210','participants'), ()=>link('Cycle 3','cycles'),'wk-6',
+        ()=>jsonCell('pc2','{\n  "blocked": true,\n  "hours": 3,\n  "ai_tool": "chatgpt"\n}'),'2026-04-20'],
+    ],
+    bigCount: 'rows 1–50 of 612',
+  },
+};
+
+let showDeleted = false;
+
+function jsonCell(id, content){
+  return `<span class="json" onclick="(function(e){var o=document.getElementById('${id}');o.style.display=o.style.display==='block'?'none':'block';})()">`
+    + `{…} <span class="chev">▸</span></span><div class="json-open" id="${id}" style="display:none">${content}</div>`;
+}
+
+function cell(v){ return typeof v === 'function' ? v() : v; }
+
+function renderEntity(key){
+  const d = DATA[key];
+  document.getElementById('entityDesc').innerHTML = d.desc;
+  document.getElementById('thead').innerHTML =
+    '<tr>' + d.cols.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+
+  let rows = d.rows.slice();
+  let extraDeleted = (showDeleted && d.deletedRows) ? d.deletedRows : [];
+  const body = [
+    ...rows.map(r => `<tr>${r.map(c=>tdFor(c)).join('')}</tr>`),
+    ...extraDeleted.map(r => `<tr class="deleted">${r.map(c=>tdFor(c)).join('')}</tr>`),
+  ].join('');
+  document.getElementById('tbody').innerHTML = body;
+
+  const total = rows.length + extraDeleted.length;
+  document.getElementById('rowRange').textContent = d.bigCount || `rows 1–${total} of ${total}`;
+}
+
+function tdFor(c){
+  const v = cell(c);
+  const isId = /^(\d+)$/.test(typeof c === 'string' ? c : '');
+  return `<td class="${isId ? 'id':''}">${v}</td>`;
+}
+
+function toggleDeleted(){
+  showDeleted = !showDeleted;
+  document.getElementById('delSwitch').classList.toggle('off', !showDeleted);
+  renderEntity(document.getElementById('entitySel').value);
+}
+
+function jump(entity){
+  if(!DATA[entity]) return;
+  document.getElementById('entitySel').value = entity;
+  renderEntity(entity);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+renderEntity('pods');
+</script>
+</body>
+</html>
