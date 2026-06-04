@@ -49,6 +49,25 @@
 -- route.ts has a related but separate idempotency gap (no DB-backed
 -- per-send tracking; in-run Set<number> dedup only). Tracked as a
 -- follow-up; out of scope for Phase C.
+--
+-- Predicate detail — exclude reason='reactivated'
+-- -----------------------------------------------
+-- The index predicate excludes `reason='reactivated'` because the existing
+-- admin reactivate route at
+-- app/api/revocations/reactivate/[participant_id]/route.ts writes audit
+-- markers to this table with that reason value (semantic misuse — those
+-- are reactivation events, not revocations). At least two duplicate pairs
+-- exist on prod from the May 2026 hot-fix work where participants were
+-- cycled revoke → reactivate → revoke → reactivate. The cron only writes
+-- 'not_in_pod' and 'missed_pulses', so excluding 'reactivated' preserves
+-- the idempotency guarantee for the cron's writes without touching the
+-- existing audit data. The semantic cleanup (move 'reactivated' to a
+-- different table or scope) is tracked at #125.
+--
+-- DROP-then-CREATE: this migration uses an explicit DROP IF EXISTS so it's
+-- safe to re-apply against any environment that may have an earlier
+-- broader-predicate version of the index (e.g. from an in-flight feature
+-- branch). Idempotent against fresh installs too.
 
 ALTER TABLE cycle_enrollments
   ADD COLUMN IF NOT EXISTS warned_at      TIMESTAMP,
@@ -59,12 +78,14 @@ COMMENT ON COLUMN cycle_enrollments.warned_at IS
 COMMENT ON COLUMN cycle_enrollments.warning_reason IS
   'Reason identifier matching the cron''s revocation rules. v1 values: ''missed_pulses''. Future values may include ''not_in_pod''. Mirrors the convention in access_revocations.reason.';
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_access_revocations_unique_full
+DROP INDEX IF EXISTS idx_access_revocations_unique_full;
+
+CREATE UNIQUE INDEX idx_access_revocations_unique_full
   ON access_revocations (participant_id, cycle_id, reason)
-  WHERE revocation_scope = 'full';
+  WHERE revocation_scope = 'full' AND reason <> 'reactivated';
 
 COMMENT ON INDEX idx_access_revocations_unique_full IS
-  'Idempotency guard for the revocation cron. Allows INSERT ... ON CONFLICT DO NOTHING to safely retry without producing duplicate revocation rows for the same (participant, cycle, reason). Partial on revocation_scope = ''full'' so future non-full scopes (per-subsystem) can write multiple rows for the same participant.';
+  'Idempotency guard for the revocation cron. Excludes reason=''reactivated'' to avoid collision with admin-reactivate audit markers (semantic-misuse cleanup tracked at #125). Partial on revocation_scope = ''full'' so future non-full scopes (per-subsystem) can write multiple rows for the same participant.';
 
 -- DOWN (manual rollback — forward-only repo policy):
 -- DROP INDEX IF EXISTS idx_access_revocations_unique_full;
