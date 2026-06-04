@@ -231,6 +231,57 @@ graph TD
 *Per the Wave 3 board section ("see projects membership"). Moderator can see which of their pod's members ended up in which project.*
 - Issue: TBD
 
+## §3.7 — Cross-cutting: onboarding state-machine consolidation
+*Authored 2026-05-31 after a 7-agent architectural review of the May launch hot-fix cascade. Consolidates the participant onboarding lifecycle into a single idempotent state machine. Cuts across Wave 1 follow-ups, Wave 2 account-management work, and Wave 3 cron infrastructure — placed here because the work lands during Wave 3 but its scope is cross-wave.*
+
+**Background:** the May 2026 Energy-cohort cascade revealed that `cycle_enrollments.status inactive → active` is written from only one code path (`app/api/pods/[pod_id]/register/route.ts`), while pod and pod_membership writes happen from many — admin SQL, migration script, seed, invitation callback. Combined with a buggy revocation cron, this revoked ~75% of the cohort. The full diagnosis spans 23 broken edges across 6 subsystems — see [docs/architecture-review-onboarding-state-machine.md](./architecture-review-onboarding-state-machine.md).
+
+**Solution:** one `reconcileEnrollmentActivation` helper called by every lifecycle code path, plus admin/moderator UI for the manual fixes currently requiring SQL, plus a redesigned revocation cron with cycle-scoped checks and a warning state before revocation.
+
+**Three phases:**
+- **Phase A** ([PR #111](https://github.com/TheUpskillingLabs/OLOS/pull/111), merged) — reconciler + auth-callback `ignoreDuplicates` fix + placeholder-name guard in `fulfillInvitation` + RLS `WITH CHECK` migration + `pod_memberships_select` tightening.
+- **Phase B** ([PR #116](https://github.com/TheUpskillingLabs/OLOS/pull/116), merged) — admin/moderator self-service UI: PATCH /api/participants/[id], `/profile/edit` dual mode (Mode A self-edit, Mode B forced completion), admin pod-membership add/remove, admin pod-status override, stuck-inactive filter.
+- **Phase C** (in flight, branch `110-phase-c-cron-v2`) — revocation cron v2: cycle-scoped queries, baseline = `MAX(activated_at, pod_registration_open_at)`, two-stage handler (warning + 3-day grace, then revoke), idempotency via unique partial index on `access_revocations`. Re-register cron in `vercel.json` after ≥48h staging soak.
+
+### Phase C design decisions captured (2026-06-03)
+
+Scope-shrinking findings from a pre-Phase-C audit of Madhu's recent `feat/poderator-dashboard` work that landed on dev:
+
+- **Threshold config already exists.** Migration `00026_cycle_config_extensions.sql` added `at_risk_consecutive_misses INT NOT NULL DEFAULT 2`. Matches the architecture brief's "2+ consecutive missed pulses" rule verbatim. Phase C reads this column rather than creating a parallel one.
+- **At-risk predicate already exists.** `lib/moderator/nudges.ts` exports `deriveAtRiskRun(participantId, pulses)` which returns the current consecutive-miss run. Phase C imports this rather than reimplementing the logic — same predicate powers both the moderator's at-risk nudge AND the cron's revocation candidate identification. (If a third caller emerges, file a follow-up to extract to `lib/engagement/at-risk.ts`; YAGNI for now.)
+- **Warning state: column, not table.** Adding `warned_at` + `warning_reason` columns to `cycle_enrollments` (Option A) rather than a new `enrollment_warnings` table (Option B). Reasoning:
+  - One warning type today (missed_pulses); multi-reason warnings are hypothetical
+  - Cron is currently disabled — warning volume is zero, will be modest when re-enabled
+  - Email-send idempotency is solved separately by the planned `pulse_check_reminders_sent` ledger
+  - Forward-compatible: migration A → B is ~30 minutes when needs evolve (INSERT one row per existing `warned_at`, drop the columns)
+  - Accepted trade-off: warnings that resolve via recovery (not revocation) leave no historical row. `access_revocations` continues to log completed revocations. If "show me every warning we sent this cycle" becomes a real ask, Option B is the trigger.
+- **Migration numbering.** Phase C's migration is `00030_revocation_warnings_and_idempotency.sql` (after MJ's 00029_feedback). The `supabase/CLAUDE.md` renumber-history section captures the 00015→00028 lesson — Phase C's number is chosen by reading `ls supabase/migrations/ | tail -1` per that doc's guidance.
+
+### Phase C concrete deliverables
+
+1. **Migration 00030** — adds `warned_at TIMESTAMP NULL` and `warning_reason VARCHAR(100) NULL` to `cycle_enrollments`. Adds unique partial index on `access_revocations(participant_id, cycle_id, reason) WHERE revocation_scope = 'full'`.
+2. **Rewrite `app/api/cron/revocation-check/route.ts`** — service client (unchanged), CRON_SECRET auth (unchanged), cycle-scoped queries (fixed from cross-cycle bug), `deriveAtRiskRun` import (new), two-stage warn-then-revoke handler with 3-day grace (new), reconciler integration with `logRevocation=true` (new).
+3. **`pulse_check_reminders_sent` table or equivalent** — verify existing pulse-check-reminder cron's idempotency state before designing; reuse pattern if present.
+4. **Re-register cron in `vercel.json`** — last step, gated by ≥48h staging soak.
+
+
+**Subsumed tickets** (closed as completed via the link-back convention, since the work IS being done — in #110):
+- #102 (profile-completion redirect Mode B) → Phase B
+- #98 (Mode A profile edit) → Phase B
+- #103 (fulfillInvitation guard) → Phase A
+- #107 (revocation cron redesign) → Phase C
+- #94 (Unknown-names root cause) → root cause documented in §1.6 of the architecture review; remediation via Phase B admin UI
+
+**Downgraded follow-ups** (left open at size/s after #110 ships):
+- #51 (members API with pulse status) → depends on Phase B UI scaffolding
+- #87 (per-member pulse indicator) → depends on #51 + Phase B
+
+**Independent (not consolidated):**
+- #86 (already-submitted-this-week pulse-check page state) — UX-only, no state-machine interaction
+- #97 (multi-pulse question) — product/content decision, not architecture
+
+- Issue: [#110](https://github.com/TheUpskillingLabs/OLOS/issues/110)
+
 ---
 
 # §4 — Backlog (post-Showcase)
@@ -278,8 +329,8 @@ These block specific issues. Resolve before the affected work starts.
 | §1.10 | [ISSUE-W1-010](https://github.com/TheUpskillingLabs/OLOS/issues/48) | superseded | — | n/a | No GET API endpoint needed — moderator review reads Supabase directly via [pulse-check-dashboard.tsx](../app/(dashboard)/pods/%5Bpod_id%5D/pulse-check-dashboard.tsx) with RLS enforcing role-based scoping. Re-open if a non-UI consumer of pulse history emerges. |
 | §1.11 | [ISSUE-W1-011](https://github.com/TheUpskillingLabs/OLOS/issues/49) | shipped, AC gaps | — | shipped pre-#49 | Route at [app/(dashboard)/pulse-check/page.tsx](../app/(dashboard)/pulse-check/page.tsx); submits to `/api/pulse-checks` ([form line 197](../app/(dashboard)/pulse-check/pulse-check-form.tsx#L197)). **Gaps vs AC**: (1) "already submitted this week" UX missing — form renders even after submission and relies on server 409; (2) uses native React state, not `react-hook-form` + `zod`; (3) options read server-side from `option_lists`, not via `GET /api/options`. Locking semantic differs: 7-day-from-last-pulse, not week-anchored. Keyboard nav + inline error UX needs manual verification. |
 | §1.12 | [ISSUE-W1-012](https://github.com/TheUpskillingLabs/OLOS/issues/50) | shipped | — | shipped pre-#50 | [copy.ts](../app/(dashboard)/pulse-check/copy.ts) — 13 keyed sections (page, status, context, reflection, forces, engagement, nominations, closing, submit, confirmation, history, locked, nav). No `TODO` / `Lorem ipsum` placeholders. Stakeholder-review AC is a process item (Brendan / Ann Marie), not a code item. Copy work — non-engineering. |
-| §1.13 | [ISSUE-W1-013](https://github.com/TheUpskillingLabs/OLOS/issues/51) | shipped, AC gap | — | shipped pre-#51 | [app/api/pods/[pod_id]/members/route.ts](../app/api/pods/%5Bpod_id%5D/members/route.ts) exists with `?status=active` filter + RLS-based 403. **Gap**: response does NOT include `last_pulse_check.{scheduled_date, completed_at}` per AC. UI side-steps the gap by querying `pulse_checks` directly server-side from the pod detail page. Either extend the route OR close acknowledging the bypass. |
-| §1.14 | [ISSUE-W1-014](https://github.com/TheUpskillingLabs/OLOS/issues/52) | shipped, AC gaps | — | shipped pre-#52 | Members table + `PulseCheckDashboard` render at [app/(dashboard)/pods/[pod_id]/page.tsx](../app/(dashboard)/pods/%5Bpod_id%5D/page.tsx), gated on `isAdmin / isModeratorForPod / pulse_checks:read`. **Gaps vs AC**: (1) route is `/pods/[id]`, not `/pods/[id]/members`; (2) members table shows active/inactive, not per-member pulse indicator — pulse data lives in a separate aggregate-stats dashboard below; (3) no traffic-light semantics (green/yellow/red); (4) no sortable list + URL query param; (5) non-moderator visitors see the page without the pulse dashboard rather than a hard 403. |
+| §1.13 | [ISSUE-W1-013](https://github.com/TheUpskillingLabs/OLOS/issues/51) | downgraded to size/s follow-up after #110 | — | shipped pre-#51 | [app/api/pods/[pod_id]/members/route.ts](../app/api/pods/%5Bpod_id%5D/members/route.ts) exists with `?status=active` filter + RLS-based 403. **Gap**: response does NOT include `last_pulse_check.{scheduled_date, completed_at}` per AC. UI side-steps the gap by querying `pulse_checks` directly server-side from the pod detail page. **2026-05-31:** downgraded as part of the §3.7 / #110 consolidation — read-only enhancement that depends on Phase B UI scaffolding but is not subsumed. Pick up after #110 lands. |
+| §1.14 | [ISSUE-W1-014](https://github.com/TheUpskillingLabs/OLOS/issues/52) | shipped, AC gaps; follow-up #87 downgraded | — | shipped pre-#52 | Members table + `PulseCheckDashboard` render at [app/(dashboard)/pods/[pod_id]/page.tsx](../app/(dashboard)/pods/%5Bpod_id%5D/page.tsx), gated on `isAdmin / isModeratorForPod / pulse_checks:read`. **Gaps vs AC**: (1) route is `/pods/[id]`, not `/pods/[id]/members`; (2) members table shows active/inactive, not per-member pulse indicator — pulse data lives in a separate aggregate-stats dashboard below; (3) no traffic-light semantics (green/yellow/red); (4) no sortable list + URL query param; (5) non-moderator visitors see the page without the pulse dashboard rather than a hard 403. The per-member pulse-indicator follow-up [#87](https://github.com/TheUpskillingLabs/OLOS/issues/87) downgraded to size/s + priority/p2 on 2026-05-31 as part of the §3.7 / #110 consolidation — depends on #51 + Phase B. |
 
 ---
 

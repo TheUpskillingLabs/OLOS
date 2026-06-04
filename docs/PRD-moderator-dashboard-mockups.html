@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Poderator Dashboard — Mid-fi Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        midnight: '#0b1016',
+        ink: '#0e1520',
+        teal: '#0094a0',
+        aqua: '#4dbbc2',
+        'shadow-teal': '#006b73',
+        red: '#ee1c25',
+        crimson: '#7a0f14',
+        cloud: '#e6e6e6',
+        ghost: '#ffffff',
+        whisper: 'rgba(255,255,255,0.07)',
+      },
+      fontFamily: {
+        sans: ['Geologica', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Helvetica Neue', 'sans-serif']
+      },
+      transitionTimingFunction: {
+        'spring': 'cubic-bezier(0.32, 0.72, 0, 1)',
+        'out-soft': 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+      }
+    }
+  }
+}
+</script>
+<style>
+  html, body { background: #0b1016; }
+  body {
+    font-family: 'Geologica', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #0b1016;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0, 148, 160, 0.10), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, rgba(77, 187, 194, 0.04), transparent 60%);
+    color: #e6e6e6;
+    min-height: 100vh;
+  }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  *::-webkit-tap-highlight-color { background: transparent; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .mock-tab-active {
+    background: rgba(0, 148, 160, 0.20);
+    color: #4dbbc2;
+  }
+  .mock-tab-inactive {
+    color: rgba(230, 230, 230, 0.6);
+  }
+  .mock-tab-inactive:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #e6e6e6;
+  }
+  /* Live pulse dot */
+  @keyframes ping-soft {
+    75%, 100% { transform: scale(2); opacity: 0; }
+  }
+  .pulse-dot::before {
+    content: ''; position: absolute; inset: 0;
+    border-radius: 9999px; background: #0094a0;
+    animation: ping-soft 1.6s cubic-bezier(0,0,0.2,1) infinite;
+    opacity: 0.6;
+  }
+  /* Trend arrow */
+  .trend-up { color: #f6b56d; }
+  .trend-down { color: #4dbbc2; }
+  .trend-flat { color: rgba(230,230,230,0.5); }
+  /* Side panel backdrop */
+  .panel-backdrop {
+    background: rgba(11, 16, 22, 0.65);
+    backdrop-filter: blur(6px) saturate(140%);
+  }
+</style>
+</head>
+<body class="font-sans antialiased">
+
+<!-- ===================================================================== -->
+<!-- MOCKUP REVIEWER TOP BAR (not part of product) -->
+<!-- ===================================================================== -->
+<div class="sticky top-0 z-50 border-b border-white/[0.07] bg-[rgba(11,16,22,0.97)] backdrop-blur-sm">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <span class="text-xs uppercase tracking-[0.25em] text-teal font-semibold">OLOS · Mockups</span>
+      <span class="text-cloud/30">/</span>
+      <span class="text-sm text-cloud/60">Poderator Dashboard</span>
+    </div>
+    <div class="flex items-center gap-1 rounded-full bg-white/[0.04] p-1">
+      <button onclick="showScreen('all-pods')" id="tab-all-pods" class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 mock-tab-active">All pods</button>
+      <button onclick="showScreen('per-pod')" id="tab-per-pod" class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 mock-tab-inactive">Per-pod</button>
+      <button onclick="showScreen('pulse')" id="tab-pulse" class="rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 mock-tab-inactive">Pulse Review</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<!-- SCREEN 1 — ALL PODS VIEW -->
+<!-- ===================================================================== -->
+<section id="screen-all-pods" class="screen active">
+
+  <!-- Product nav -->
+  <header class="border-b border-white/[0.07] bg-[rgba(11,16,22,0.97)] backdrop-blur-sm">
+    <div class="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-8">
+        <span class="text-sm font-semibold tracking-wide text-white">OLOS</span>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Cycles</a>
+          <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Members</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-xs font-medium text-blue-300">Poderator</span>
+        <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud">MJ</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-16">
+
+    <!-- Page header + switcher -->
+    <div class="mb-8 space-y-3">
+      <div class="text-xs uppercase tracking-widest text-cloud/40">Energy &amp; Climate · Q3 2026</div>
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <h1 class="text-2xl font-bold tracking-tight text-white">Your pods</h1>
+
+        <!-- Pod switcher -->
+        <div class="inline-flex items-center gap-2 rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm">
+          <i data-lucide="layers" class="h-4 w-4 text-cloud/60"></i>
+          <span class="text-cloud">All pods</span>
+          <span class="text-cloud/40">·</span>
+          <span class="text-cloud/60 tabular-nums">3 pods</span>
+          <i data-lucide="chevron-down" class="h-4 w-4 text-cloud/40 ml-1"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members needing attention -->
+    <section class="mb-10">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white">Members needing attention</h2>
+        <span class="text-xs text-cloud/40 tabular-nums">3 across your pods</span>
+      </div>
+
+      <div class="space-y-3">
+
+        <!-- Nudge 1 -->
+        <div class="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
+          <div class="flex items-start gap-4">
+            <div class="h-10 w-10 rounded-full bg-white/[0.08] grid place-items-center text-sm font-semibold text-cloud flex-shrink-0">SK</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span class="text-sm font-semibold text-white">Sarah K.</span>
+                <span class="text-xs text-cloud/50">·</span>
+                <span class="text-xs text-cloud/60">Policy analyst · Federal · evenings + weekends</span>
+              </div>
+              <div class="mt-1.5 flex items-center gap-2 text-sm text-yellow-300">
+                <i data-lucide="alert-triangle" class="h-4 w-4 flex-shrink-0"></i>
+                <span class="font-medium">Missed 2 consecutive pulses</span>
+                <button class="text-yellow-300/60 hover:text-yellow-300 transition-colors" title="At-risk nudge: fires when a member misses the configured consecutive-miss threshold (default 2). System flags; you follow up via Slack.">
+                  <i data-lucide="help-circle" class="h-3 w-3"></i>
+                </button>
+                <span class="text-cloud/40">·</span>
+                <span class="text-cloud/60">last active 11 days ago</span>
+              </div>
+              <div class="mt-3 flex items-center gap-2 text-xs">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-cloud/70">
+                  <i data-lucide="users" class="h-3 w-3"></i>
+                  Medical Records Consolidation
+                </span>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 flex-shrink-0">
+              <button class="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua hover:bg-teal/30 transition-colors">
+                Open pod
+              </button>
+              <button class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-cloud/70 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud transition-colors">
+                <i data-lucide="message-square" class="h-3.5 w-3.5"></i>
+                Slack DM
+              </button>
+              <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud/70 transition-colors" aria-label="Dismiss" title="Dismiss this nudge">
+                <i data-lucide="x" class="h-4 w-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nudge 2 -->
+        <div class="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
+          <div class="flex items-start gap-4">
+            <div class="h-10 w-10 rounded-full bg-white/[0.08] grid place-items-center text-sm font-semibold text-cloud flex-shrink-0">JR</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span class="text-sm font-semibold text-white">Jamal R.</span>
+                <span class="text-xs text-cloud/50">·</span>
+                <span class="text-xs text-cloud/60">Program analyst · Contractor · weekday lunches</span>
+              </div>
+              <div class="mt-1.5 flex items-center gap-2 text-sm text-yellow-300">
+                <i data-lucide="alert-triangle" class="h-4 w-4 flex-shrink-0"></i>
+                <span class="font-medium">Missed 2 consecutive pulses</span>
+                <button class="text-yellow-300/60 hover:text-yellow-300 transition-colors" title="At-risk nudge: fires when a member misses the configured consecutive-miss threshold (default 2). System flags; you follow up via Slack.">
+                  <i data-lucide="help-circle" class="h-3 w-3"></i>
+                </button>
+                <span class="text-cloud/40">·</span>
+                <span class="text-cloud/60">last active 9 days ago</span>
+              </div>
+              <div class="mt-3 flex items-center gap-2 text-xs">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-cloud/70">
+                  <i data-lucide="users" class="h-3 w-3"></i>
+                  Energy Grid Resilience
+                </span>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 flex-shrink-0">
+              <button class="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua hover:bg-teal/30 transition-colors">
+                Open pod
+              </button>
+              <button class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-cloud/70 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud transition-colors">
+                <i data-lucide="message-square" class="h-3.5 w-3.5"></i>
+                Slack DM
+              </button>
+              <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud/70 transition-colors" aria-label="Dismiss" title="Dismiss this nudge">
+                <i data-lucide="x" class="h-4 w-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nudge 3 -->
+        <div class="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
+          <div class="flex items-start gap-4">
+            <div class="h-10 w-10 rounded-full bg-white/[0.08] grid place-items-center text-sm font-semibold text-cloud flex-shrink-0">LP</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span class="text-sm font-semibold text-white">Linda P.</span>
+                <span class="text-xs text-cloud/50">·</span>
+                <span class="text-xs text-cloud/60">Researcher · NGO · weekends only</span>
+              </div>
+              <div class="mt-1.5 flex items-center gap-2 text-sm text-yellow-300">
+                <i data-lucide="alert-triangle" class="h-4 w-4 flex-shrink-0"></i>
+                <span class="font-medium">Missed 3 consecutive pulses</span>
+                <button class="text-yellow-300/60 hover:text-yellow-300 transition-colors" title="At-risk nudge: fires when a member misses the configured consecutive-miss threshold (default 2). System flags; you follow up via Slack.">
+                  <i data-lucide="help-circle" class="h-3 w-3"></i>
+                </button>
+                <span class="text-cloud/40">·</span>
+                <span class="text-cloud/60">last active 19 days ago</span>
+              </div>
+              <div class="mt-3 flex items-center gap-2 text-xs">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-cloud/70">
+                  <i data-lucide="users" class="h-3 w-3"></i>
+                  Health Systems Access
+                </span>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-2 flex-shrink-0">
+              <button class="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua hover:bg-teal/30 transition-colors">
+                Open pod
+              </button>
+              <button class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-cloud/70 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud transition-colors">
+                <i data-lucide="message-square" class="h-3.5 w-3.5"></i>
+                Slack DM
+              </button>
+              <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud/70 transition-colors" aria-label="Dismiss" title="Dismiss this nudge">
+                <i data-lucide="x" class="h-4 w-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Your pods at a glance -->
+    <section class="mb-10">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white">Your pods at a glance</h2>
+        <span class="text-xs text-cloud/40 tabular-nums">Week 6 of 13</span>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Pod card 1 -->
+        <a href="#" class="block rounded-md border border-whisper bg-white/[0.02] p-5 hover:border-white/[0.12] hover:bg-white/[0.04] transition-colors">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">Pod</div>
+              <div class="text-base font-semibold text-white">Health Systems Access</div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+              <span class="h-1.5 w-1.5 rounded-full bg-aqua"></span>
+              Active
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-5">
+            <div>
+              <div class="text-xs text-cloud/60 mb-1">Pulse this week</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold tabular-nums text-yellow-300">1</span>
+                <span class="text-xs text-cloud/50">missing</span>
+                <span class="trend-down text-xs ml-auto">↓</span>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-cloud/60 mb-1">Members</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold tabular-nums text-white">9</span>
+                <span class="text-xs text-cloud/50">active</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-5 pt-4 border-t border-whisper text-xs text-cloud/60">
+            <span class="text-cloud/40">Phase 4</span> · Solution Proposals · closes in 2d
+          </div>
+        </a>
+
+        <!-- Pod card 2 -->
+        <a href="#" class="block rounded-md border border-whisper bg-white/[0.02] p-5 hover:border-white/[0.12] hover:bg-white/[0.04] transition-colors">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">Pod</div>
+              <div class="text-base font-semibold text-white">Medical Records Consolidation</div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+              <span class="h-1.5 w-1.5 rounded-full bg-aqua"></span>
+              Active
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-5">
+            <div>
+              <div class="text-xs text-cloud/60 mb-1">Pulse this week</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold tabular-nums text-yellow-300">1</span>
+                <span class="text-xs text-cloud/50">missing</span>
+                <span class="trend-flat text-xs ml-auto">→</span>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-cloud/60 mb-1">Members</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold tabular-nums text-white">8</span>
+                <span class="text-xs text-cloud/50">active</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-5 pt-4 border-t border-whisper text-xs text-cloud/60">
+            <span class="text-cloud/40">Phase 4</span> · Solution Proposals · closes in 2d
+          </div>
+        </a>
+
+        <!-- Pod card 3 -->
+        <a href="#" class="block rounded-md border border-whisper bg-white/[0.02] p-5 hover:border-white/[0.12] hover:bg-white/[0.04] transition-colors">
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">Pod</div>
+              <div class="text-base font-semibold text-white">Energy Grid Resilience</div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+              <span class="h-1.5 w-1.5 rounded-full bg-aqua"></span>
+              Active
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mt-5">
+            <div>
+              <div class="text-xs text-cloud/60 mb-1">Pulse this week</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold tabular-nums text-white">0</span>
+                <span class="text-xs text-cloud/50">missing</span>
+                <span class="trend-down text-xs ml-auto">↓</span>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-cloud/60 mb-1">Members</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold tabular-nums text-white">7</span>
+                <span class="text-xs text-cloud/50">active</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-5 pt-4 border-t border-whisper text-xs text-cloud/60">
+            <span class="text-cloud/40">Phase 4</span> · Solution Proposals · closes in 2d
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- Cross-pod pulse insights (§7.9.3) -->
+    <section>
+      <div class="mb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-teal mb-1.5">Across your pods</div>
+          <h2 class="text-lg font-semibold text-white">Pulse insights</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="inline-flex items-center gap-1 rounded-full bg-white/[0.04] p-1 text-xs">
+            <button class="rounded-full px-3 py-1 font-medium bg-teal/20 text-aqua">Last 4 weeks</button>
+            <button class="rounded-full px-3 py-1 font-medium text-cloud/60 hover:text-cloud transition-colors">Full cycle</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combined all-pods rollup -->
+      <div class="rounded-md border border-teal/20 bg-teal/[0.04] p-5 mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-xs uppercase tracking-widest text-aqua/80">All your pods combined</div>
+          <span class="text-xs text-cloud/50 tabular-nums">24 members across 3 pods</span>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+          <div>
+            <div class="text-xs text-cloud/60 mb-1.5">Pulsing this week</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold tabular-nums text-white">22</span>
+              <span class="text-xs text-cloud/60">of 24</span>
+            </div>
+            <div class="mt-1 text-xs text-cloud/50 tabular-nums">92%</div>
+          </div>
+          <div>
+            <div class="text-xs text-cloud/60 mb-1.5">At risk</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold tabular-nums text-yellow-300">3</span>
+              <span class="text-xs text-cloud/60">members</span>
+            </div>
+            <div class="mt-1 text-xs text-cloud/50">2 pods affected</div>
+          </div>
+          <div>
+            <div class="text-xs text-cloud/60 mb-1.5">Pulses this period</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold tabular-nums text-white">81</span>
+              <span class="text-xs text-cloud/60">submitted</span>
+            </div>
+            <div class="mt-1 text-xs text-cloud/50 tabular-nums">of 96 possible</div>
+          </div>
+          <div>
+            <div class="text-xs text-cloud/60 mb-1.5">Engagement trend</div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-bold tabular-nums text-white">85%</span>
+              <span class="trend-down text-base">↓</span>
+            </div>
+            <div class="mt-1 text-xs text-cloud/50">down from 92% last week</div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-teal/15">
+          <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Top AI tools — all your pods combined</div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs text-aqua">ChatGPT <span class="tabular-nums opacity-80">16</span></span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-0.5 text-xs text-aqua/90">Claude <span class="tabular-nums opacity-80">13</span></span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-0.5 text-xs text-aqua/80">Cursor <span class="tabular-nums opacity-80">8</span></span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-xs text-cloud/70">v0 <span class="tabular-nums opacity-80">3</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- AI-assisted summary block (§7.10.3) -->
+        <div class="lg:col-span-2 rounded-md border border-teal/25 bg-teal/[0.04] p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-aqua/80 mb-1">AI-assisted summary</div>
+              <div class="text-sm text-cloud/85">Bundle recent pulse comments with a ready-to-use prompt and paste into ChatGPT, Claude, or your AI tool of choice.</div>
+            </div>
+            <i data-lucide="sparkles" class="h-5 w-5 text-aqua/70 flex-shrink-0 mt-0.5"></i>
+          </div>
+
+          <div class="rounded-md bg-ink/40 border border-whisper p-4 mb-3 max-h-48 overflow-y-auto">
+            <div class="text-[10px] uppercase tracking-widest text-cloud/40 mb-2">Pulse comments included · last 4 weeks · 27 responses across 3 pods</div>
+            <div class="space-y-2.5 text-xs text-cloud/80">
+              <div><span class="text-cloud/45">[LP · Health · week 4]</span> I don't really understand what a "solution proposal" is supposed to look like. The example was technical and I'm not sure how to scope something I could actually contribute to.</div>
+              <div><span class="text-cloud/45">[SK · Medical · week 4]</span> Pulse window keeps closing while I'm in meetings — would love a longer evening window.</div>
+              <div><span class="text-cloud/45">[JR · Energy · week 4]</span> Stuck on Cursor setup — keep getting auth errors. Anyone got a working config?</div>
+              <div><span class="text-cloud/45">[MW · Health · week 3]</span> Would love to pair with someone more technical — happy to bring policy framing.</div>
+              <div class="text-cloud/45 italic">…23 more comments included in the copy</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-xs text-cloud/50">OLOS doesn't send anything. You'll paste this into your own AI tool.</span>
+            <button class="inline-flex items-center gap-2 rounded-md bg-teal/80 hover:bg-teal px-4 py-2 text-sm font-medium text-white transition-colors shadow-[0_1px_4px_rgba(0,148,160,0.2)]">
+              <i data-lucide="copy" class="h-4 w-4"></i>
+              Copy prompt + responses
+            </button>
+          </div>
+        </div>
+
+        <!-- AI tool adoption by pod -->
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5">
+          <div class="text-xs uppercase tracking-widest text-cloud/40 mb-4">Top AI tools by pod</div>
+
+          <div class="space-y-4">
+            <div>
+              <div class="text-xs text-cloud/60 mb-1.5 truncate">Health Systems Access</div>
+              <div class="flex flex-wrap gap-1">
+                <span class="inline-flex items-center gap-1 rounded-full bg-teal/15 px-2 py-0.5 text-[11px] text-aqua">ChatGPT <span class="tabular-nums opacity-70">7</span></span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-teal/10 px-2 py-0.5 text-[11px] text-aqua/80">Claude <span class="tabular-nums opacity-70">5</span></span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] text-cloud/70">Cursor <span class="tabular-nums opacity-70">2</span></span>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-cloud/60 mb-1.5 truncate">Medical Records Consolidation</div>
+              <div class="flex flex-wrap gap-1">
+                <span class="inline-flex items-center gap-1 rounded-full bg-teal/15 px-2 py-0.5 text-[11px] text-aqua">Cursor <span class="tabular-nums opacity-70">6</span></span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-teal/10 px-2 py-0.5 text-[11px] text-aqua/80">ChatGPT <span class="tabular-nums opacity-70">5</span></span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] text-cloud/70">v0 <span class="tabular-nums opacity-70">3</span></span>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-cloud/60 mb-1.5 truncate">Energy Grid Resilience</div>
+              <div class="flex flex-wrap gap-1">
+                <span class="inline-flex items-center gap-1 rounded-full bg-teal/15 px-2 py-0.5 text-[11px] text-aqua">Claude <span class="tabular-nums opacity-70">5</span></span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-teal/10 px-2 py-0.5 text-[11px] text-aqua/80">ChatGPT <span class="tabular-nums opacity-70">4</span></span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] text-cloud/70">Replit <span class="tabular-nums opacity-70">2</span></span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Engagement comparison -->
+      <div class="mt-4 rounded-md border border-whisper bg-white/[0.02] p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="text-xs uppercase tracking-widest text-cloud/40">Pulse completion trend · last 4 weeks</div>
+          <div class="text-xs text-cloud/40 tabular-nums">% of members pulsing</div>
+        </div>
+
+        <div class="space-y-3">
+          <!-- Pod A -->
+          <div class="flex items-center gap-4">
+            <div class="w-44 text-sm text-cloud truncate">Health Systems Access</div>
+            <div class="flex-1 flex items-end gap-1.5 h-10">
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 100%;"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 88%;"></div>
+              <div class="flex-1 rounded-t bg-teal/30" style="height: 77%;"></div>
+              <div class="flex-1 rounded-t bg-yellow-500/40" style="height: 66%;"></div>
+            </div>
+            <div class="text-sm tabular-nums text-yellow-300 w-12 text-right">66%</div>
+            <div class="trend-down w-4 text-center">↓</div>
+          </div>
+          <!-- Pod B -->
+          <div class="flex items-center gap-4">
+            <div class="w-44 text-sm text-cloud truncate">Medical Records Consolidation</div>
+            <div class="flex-1 flex items-end gap-1.5 h-10">
+              <div class="flex-1 rounded-t bg-teal/30" style="height: 75%;"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 88%;"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 88%;"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 88%;"></div>
+            </div>
+            <div class="text-sm tabular-nums text-aqua w-12 text-right">88%</div>
+            <div class="trend-flat w-4 text-center">→</div>
+          </div>
+          <!-- Pod C -->
+          <div class="flex items-center gap-4">
+            <div class="w-44 text-sm text-cloud truncate">Energy Grid Resilience</div>
+            <div class="flex-1 flex items-end gap-1.5 h-10">
+              <div class="flex-1 rounded-t bg-teal/30" style="height: 71%;"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 86%;"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 100%;"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 100%;"></div>
+            </div>
+            <div class="text-sm tabular-nums text-aqua w-12 text-right">100%</div>
+            <div class="trend-down w-4 text-center">↓</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+</section>
+
+<!-- ===================================================================== -->
+<!-- SCREEN 2 — PER-POD DASHBOARD -->
+<!-- ===================================================================== -->
+<section id="screen-per-pod" class="screen">
+
+  <!-- Product nav -->
+  <header class="border-b border-white/[0.07] bg-[rgba(11,16,22,0.97)] backdrop-blur-sm">
+    <div class="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-8">
+        <span class="text-sm font-semibold tracking-wide text-white">OLOS</span>
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Cycles</a>
+          <a href="#" class="text-cloud/60 hover:text-aqua transition-colors">Members</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-xs font-medium text-blue-300">Poderator</span>
+        <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud">MJ</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-16">
+
+    <!-- Back link / breadcrumb -->
+    <a href="#" onclick="showScreen('all-pods'); return false;" class="inline-flex items-center gap-1.5 text-sm text-cloud/60 hover:text-aqua transition-colors mb-5">
+      <i data-lucide="chevron-left" class="h-4 w-4"></i>
+      All pods
+    </a>
+
+    <!-- Page header + switcher -->
+    <div class="mb-8 space-y-3">
+      <div class="text-xs uppercase tracking-widest text-cloud/40">Energy &amp; Climate · Q3 2026 · Week 6</div>
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <h1 class="text-2xl font-bold tracking-tight text-white">Health Systems Access</h1>
+
+        <!-- Pod switcher -->
+        <div class="inline-flex items-center gap-2 rounded-md border border-whisper bg-white/[0.04] px-3 py-2 text-sm">
+          <i data-lucide="layers" class="h-4 w-4 text-cloud/60"></i>
+          <span class="text-cloud">Health Systems Access</span>
+          <span class="text-cloud/40">·</span>
+          <span class="text-cloud/60 tabular-nums">3 pods</span>
+          <i data-lucide="chevron-down" class="h-4 w-4 text-cloud/40 ml-1"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 1 — Pod status header -->
+    <section class="mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <!-- Status -->
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5">
+          <div class="text-xs uppercase tracking-widest text-cloud/40 mb-2">Status</div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+              <span class="h-1.5 w-1.5 rounded-full bg-aqua"></span>
+              Active
+            </span>
+          </div>
+          <div class="mt-3 text-xs text-cloud/60">9 active members</div>
+        </div>
+
+        <!-- Current phase -->
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5">
+          <div class="text-xs uppercase tracking-widest text-cloud/40 mb-2">Current phase</div>
+          <div class="text-base font-semibold text-white">Phase 4 · Solution Proposals</div>
+          <div class="mt-2 space-y-1 text-xs">
+            <div class="flex items-center gap-1.5 text-cloud/60">
+              <span class="text-cloud/40">Opened</span>
+              <span class="tabular-nums">May 15</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-yellow-300">
+              <i data-lucide="clock" class="h-3.5 w-3.5"></i>
+              <span>Closes May 22</span>
+              <span class="text-cloud/40">· in 2 days</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pulse this week -->
+        <div class="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-5">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-xs uppercase tracking-widest text-yellow-300/80">Pulse this week</div>
+            <button class="text-cloud/40 hover:text-cloud transition-colors" title="Count of pod members who haven't submitted this week's pulse. Banded into healthy / warning / critical by cycle-configurable thresholds.">
+              <i data-lucide="help-circle" class="h-3.5 w-3.5"></i>
+            </button>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-bold tabular-nums text-yellow-300">1</span>
+            <span class="text-sm text-cloud/70">missing</span>
+            <button class="trend-down text-base ml-auto inline-flex items-center gap-1" title="Falling vs last 3 weeks. Click ? to learn how the trend is calculated.">
+              ↓
+              <i data-lucide="help-circle" class="h-3 w-3 text-cloud/40"></i>
+            </button>
+          </div>
+          <div class="mt-2.5 text-xs text-cloud/60">Healthy: 0 · Warning: 1–2 · Critical: 3+ <span class="text-cloud/40">(cycle defaults)</span></div>
+        </div>
+
+        <!-- Members -->
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5">
+          <div class="text-xs uppercase tracking-widest text-cloud/40 mb-2">Members</div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-bold tabular-nums text-white">9</span>
+            <span class="text-sm text-cloud/60">active</span>
+          </div>
+          <div class="mt-2.5 text-xs text-cloud/60">0 pending invites</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2 — At-risk nudge -->
+    <section class="mb-8">
+      <div class="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
+        <div class="flex items-start gap-4">
+          <i data-lucide="alert-triangle" class="h-5 w-5 text-yellow-300 flex-shrink-0 mt-0.5"></i>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold text-yellow-300">Linda P. has missed 3 consecutive pulses.</div>
+            <div class="mt-1 text-sm text-cloud/80">Last active 19 days ago. Consider reaching out before they fully disengage.</div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button class="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua hover:bg-teal/30 transition-colors">View responses</button>
+            <button class="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium text-cloud/70 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-cloud transition-colors">
+              <i data-lucide="message-square" class="h-3.5 w-3.5"></i>
+              Slack DM
+            </button>
+            <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud/70 transition-colors" aria-label="Dismiss">
+              <i data-lucide="x" class="h-4 w-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3 — Member roster -->
+    <section class="mb-8">
+
+      <div class="mb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <h2 class="text-lg font-semibold text-white">Pod members</h2>
+        <div class="flex items-center gap-2">
+          <!-- Search -->
+          <div class="relative">
+            <i data-lucide="search" class="h-4 w-4 text-cloud/40 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+            <input type="text" placeholder="Search name" class="rounded-md border border-white/[0.10] bg-white/[0.04] pl-8 pr-3 py-1.5 text-sm text-white placeholder:text-cloud/40 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal w-44">
+          </div>
+          <!-- Status filter -->
+          <button class="inline-flex items-center gap-1.5 rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-sm text-cloud hover:bg-white/[0.06] transition-colors">
+            <i data-lucide="filter" class="h-3.5 w-3.5 text-cloud/60"></i>
+            All statuses
+            <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-cloud/40"></i>
+          </button>
+          <!-- Show inactive toggle -->
+          <label class="inline-flex items-center gap-2 text-xs text-cloud/60 ml-1">
+            <input type="checkbox" class="h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] text-teal focus:ring-teal focus:ring-offset-0">
+            Show inactive
+          </label>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-md border border-whisper">
+        <table class="w-full text-sm">
+          <thead class="bg-white/[0.04]">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">Member</th>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60 hidden md:table-cell">Background</th>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                <span class="inline-flex items-center gap-1">
+                  Pulse
+                  <button class="text-cloud/40 hover:text-cloud transition-colors" title="Current = pulsed this week. Pending = window open, no submission yet. Late = window closed, no submission. At risk = hit consecutive-miss threshold.">
+                    <i data-lucide="help-circle" class="h-3 w-3"></i>
+                  </button>
+                </span>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60 hidden md:table-cell">Last active</th>
+              <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-whisper">
+
+            <!-- Row: at-risk -->
+            <tr class="hover:bg-white/[0.02] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">LP</div>
+                  <div>
+                    <div class="text-sm font-medium text-white">Linda P.</div>
+                    <div class="text-xs text-cloud/50">New to building · weekends only</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-cloud/70 hidden md:table-cell">Researcher · NGO</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-xs font-medium text-yellow-300">
+                  <i data-lucide="alert-triangle" class="h-3 w-3"></i>
+                  At risk
+                </span>
+              </td>
+              <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">19 days ago</td>
+              <td class="px-4 py-3 text-right">
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                </button>
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
+                  <i data-lucide="message-square" class="h-4 w-4"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Row: late -->
+            <tr class="hover:bg-white/[0.02] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">SK</div>
+                  <div>
+                    <div class="text-sm font-medium text-white">Sarah K.</div>
+                    <div class="text-xs text-cloud/50">Consumer of AI tools · evenings + weekends</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-cloud/70 hidden md:table-cell">Policy analyst · Federal</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-300">
+                  <span class="h-1.5 w-1.5 rounded-full bg-yellow-300"></span>
+                  Late
+                </span>
+              </td>
+              <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">8 days ago</td>
+              <td class="px-4 py-3 text-right">
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                </button>
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
+                  <i data-lucide="message-square" class="h-4 w-4"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Row: pending -->
+            <tr class="hover:bg-white/[0.02] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">PS</div>
+                  <div>
+                    <div class="text-sm font-medium text-white">Priya S.</div>
+                    <div class="text-xs text-cloud/50">Has built with AI · weekday evenings</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-cloud/70 hidden md:table-cell">Data scientist · Federal</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-cloud/70">
+                  <span class="h-1.5 w-1.5 rounded-full bg-cloud/60"></span>
+                  Pending
+                </span>
+              </td>
+              <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">2 days ago</td>
+              <td class="px-4 py-3 text-right">
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                </button>
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
+                  <i data-lucide="message-square" class="h-4 w-4"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Row: current -->
+            <tr class="hover:bg-white/[0.02] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">MW</div>
+                  <div>
+                    <div class="text-sm font-medium text-white">Marcus W.</div>
+                    <div class="text-xs text-cloud/50">Ships AI projects · flexible</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-cloud/70 hidden md:table-cell">Tech lead · Contractor</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+                  <i data-lucide="check" class="h-3 w-3"></i>
+                  Current
+                </span>
+              </td>
+              <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">Yesterday</td>
+              <td class="px-4 py-3 text-right">
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                </button>
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
+                  <i data-lucide="message-square" class="h-4 w-4"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Row: current -->
+            <tr class="hover:bg-white/[0.02] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">AM</div>
+                  <div>
+                    <div class="text-sm font-medium text-white">Aisha M.</div>
+                    <div class="text-xs text-cloud/50">Consumer of AI tools · weekday lunches</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-cloud/70 hidden md:table-cell">Communications · Federal</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+                  <i data-lucide="check" class="h-3 w-3"></i>
+                  Current
+                </span>
+              </td>
+              <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">2 days ago</td>
+              <td class="px-4 py-3 text-right">
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                </button>
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
+                  <i data-lucide="message-square" class="h-4 w-4"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Row: current -->
+            <tr class="hover:bg-white/[0.02] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">ET</div>
+                  <div>
+                    <div class="text-sm font-medium text-white">Eli T.</div>
+                    <div class="text-xs text-cloud/50">Has built with AI · evenings</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-cloud/70 hidden md:table-cell">Program manager · NGO</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+                  <i data-lucide="check" class="h-3 w-3"></i>
+                  Current
+                </span>
+              </td>
+              <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">3 days ago</td>
+              <td class="px-4 py-3 text-right">
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                </button>
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
+                  <i data-lucide="message-square" class="h-4 w-4"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Row: current -->
+            <tr class="hover:bg-white/[0.02] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud flex-shrink-0">DR</div>
+                  <div>
+                    <div class="text-sm font-medium text-white">Diane R.</div>
+                    <div class="text-xs text-cloud/50">Consumer of AI tools · evenings + weekends</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-cloud/70 hidden md:table-cell">Health policy · Federal</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs font-medium text-aqua">
+                  <i data-lucide="check" class="h-3 w-3"></i>
+                  Current
+                </span>
+              </td>
+              <td class="px-4 py-3 text-cloud/60 hidden md:table-cell tabular-nums">Today</td>
+              <td class="px-4 py-3 text-right">
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="View pulse responses" onclick="showScreen('pulse')">
+                  <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                </button>
+                <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" title="Slack DM">
+                  <i data-lucide="message-square" class="h-4 w-4"></i>
+                </button>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 3.5 — Pod-level pulse insights (§7.9.2) -->
+    <section class="mb-8">
+      <div class="mb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div>
+          <div class="text-xs uppercase tracking-widest text-teal mb-1.5">This pod</div>
+          <h2 class="text-lg font-semibold text-white">Pulse insights</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="inline-flex items-center gap-1 rounded-full bg-white/[0.04] p-1 text-xs">
+            <button class="rounded-full px-3 py-1 font-medium bg-teal/20 text-aqua">Last 4 weeks</button>
+            <button class="rounded-full px-3 py-1 font-medium text-cloud/60 hover:text-cloud transition-colors">Full cycle</button>
+          </div>
+          <button class="inline-flex items-center gap-1.5 rounded-md border border-whisper bg-white/[0.04] px-3 py-1 text-xs text-cloud/85 hover:bg-white/[0.08] hover:text-white transition-colors" title="Copies a summary of this pod's data. You'll paste it into your own AI tool — OLOS doesn't send anything.">
+            <i data-lucide="copy" class="h-3 w-3"></i>
+            Copy summary prompt
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- AI-assisted summary block (§7.10.3) — per-pod scope -->
+        <div class="lg:col-span-2 rounded-md border border-teal/25 bg-teal/[0.04] p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-aqua/80 mb-1">AI-assisted summary</div>
+              <div class="text-sm text-cloud/85">Bundle this pod's recent pulse comments with a ready-to-use prompt. Paste into ChatGPT, Claude, or your AI tool of choice for analysis.</div>
+            </div>
+            <i data-lucide="sparkles" class="h-5 w-5 text-aqua/70 flex-shrink-0 mt-0.5"></i>
+          </div>
+
+          <div class="rounded-md bg-ink/40 border border-whisper p-4 mb-3 max-h-48 overflow-y-auto">
+            <div class="text-[10px] uppercase tracking-widest text-cloud/40 mb-2">Pulse comments included · last 4 weeks · 12 responses</div>
+            <div class="space-y-2.5 text-xs text-cloud/80">
+              <div><span class="text-cloud/45">[LP · week 4]</span> I don't really understand what a "solution proposal" is supposed to look like. The example was technical and I'm not sure how to scope something I could actually contribute to.</div>
+              <div><span class="text-cloud/45">[SK · week 4]</span> Would love to pair with someone more technical — happy to bring policy framing.</div>
+              <div><span class="text-cloud/45">[PS · week 4]</span> Cursor install hit auth errors — spent 2 hours on it before giving up. Need a known-good config.</div>
+              <div><span class="text-cloud/45">[AM · week 3]</span> Non-technical examples would help — most of what's been shared looks like a software project.</div>
+              <div class="text-cloud/45 italic">…8 more comments included in the copy</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-xs text-cloud/50">OLOS doesn't send anything. You'll paste this into your own AI tool.</span>
+            <button class="inline-flex items-center gap-2 rounded-md bg-teal/80 hover:bg-teal px-4 py-2 text-sm font-medium text-white transition-colors shadow-[0_1px_4px_rgba(0,148,160,0.2)]">
+              <i data-lucide="copy" class="h-4 w-4"></i>
+              Copy prompt + responses
+            </button>
+          </div>
+        </div>
+
+        <!-- Top AI tools + completion trend -->
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5 flex flex-col gap-5">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-3">Top AI tools this pod</div>
+            <div class="space-y-2">
+              <div class="flex items-center gap-3">
+                <div class="text-xs text-cloud w-20">ChatGPT</div>
+                <div class="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div class="h-full bg-teal" style="width: 78%;"></div>
+                </div>
+                <div class="text-xs text-cloud/60 tabular-nums w-6 text-right">7</div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="text-xs text-cloud w-20">Claude</div>
+                <div class="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div class="h-full bg-teal" style="width: 56%;"></div>
+                </div>
+                <div class="text-xs text-cloud/60 tabular-nums w-6 text-right">5</div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="text-xs text-cloud w-20">Cursor</div>
+                <div class="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div class="h-full bg-teal/70" style="width: 22%;"></div>
+                </div>
+                <div class="text-xs text-cloud/60 tabular-nums w-6 text-right">2</div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="text-xs text-cloud/80 w-20">v0</div>
+                <div class="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div class="h-full bg-teal/50" style="width: 11%;"></div>
+                </div>
+                <div class="text-xs text-cloud/60 tabular-nums w-6 text-right">1</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-whisper">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-xs uppercase tracking-widest text-cloud/40">Completion trend</div>
+              <div class="text-xs text-cloud/40">Last 4 weeks</div>
+            </div>
+            <div class="flex items-end gap-1.5 h-12">
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 100%;" title="Week of Apr 27: 100%"></div>
+              <div class="flex-1 rounded-t bg-teal/40" style="height: 88%;" title="Week of May 4: 88%"></div>
+              <div class="flex-1 rounded-t bg-teal/30" style="height: 77%;" title="Week of May 11: 77%"></div>
+              <div class="flex-1 rounded-t bg-yellow-500/40" style="height: 66%;" title="Week of May 18: 66%"></div>
+            </div>
+            <div class="mt-2 flex items-center justify-between text-xs">
+              <span class="text-cloud/40 tabular-nums">Apr 27</span>
+              <span class="text-yellow-300 tabular-nums">66% ↓</span>
+              <span class="text-cloud/40 tabular-nums">May 18</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECTION 4 + 5 — Phase guidance + Pod resources (two-column) -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Phase guidance — wider -->
+      <div class="lg:col-span-2 rounded-md border border-whisper bg-white/[0.02] p-6">
+        <div class="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-teal mb-1.5">Phase guidance</div>
+            <h3 class="text-lg font-semibold text-white">Phase 4 · Solution Proposals</h3>
+          </div>
+          <button class="text-cloud/40 hover:text-cloud transition-colors p-1" title="What this phase asks of your pod">
+            <i data-lucide="help-circle" class="h-4 w-4"></i>
+          </button>
+        </div>
+
+        <p class="text-sm text-cloud/80 leading-relaxed mb-5">
+          Members of your pod are drafting solution proposals to the problem your pod is built around. A healthy pod at this stage has at least one proposal from most active members. Watch for upskillers who haven't started — that often precedes disengagement.
+        </p>
+
+        <!-- Phase-specific signal -->
+        <div class="rounded-md border border-teal/20 bg-teal/[0.04] p-4 mb-5">
+          <div class="text-xs uppercase tracking-widest text-aqua/80 mb-2">Submissions so far</div>
+          <div class="flex items-baseline gap-2 mb-3">
+            <span class="text-3xl font-bold tabular-nums text-white">4</span>
+            <span class="text-sm text-cloud/60">of 9 members have submitted</span>
+          </div>
+          <!-- Inline mini-progress -->
+          <div class="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mb-4">
+            <div class="h-full bg-teal" style="width: 44%"></div>
+          </div>
+          <!-- Submitter identities (PRD §7.5) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+            <div>
+              <div class="text-cloud/40 uppercase tracking-widest text-[10px] mb-1.5">Submitted</div>
+              <ul class="space-y-1 text-cloud/85">
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>Sarah K.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>Priya S.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>Marcus T.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-aqua"></span>James W.</li>
+              </ul>
+            </div>
+            <div>
+              <div class="text-cloud/40 uppercase tracking-widest text-[10px] mb-1.5">Not yet</div>
+              <ul class="space-y-1 text-cloud/70">
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Linda P.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>David L.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Nina O.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Ravi M.</li>
+                <li class="flex items-center gap-2"><span class="inline-flex h-1.5 w-1.5 rounded-full bg-white/[0.15]"></span>Elena V.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deadlines -->
+        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-whisper">
+          <div>
+            <div class="text-xs text-cloud/40 uppercase tracking-widest mb-1.5">Current phase closes</div>
+            <div class="text-sm text-cloud tabular-nums">May 22, 2026 · 11:59 PM ET</div>
+            <div class="text-xs text-yellow-300 mt-1">In 2 days</div>
+          </div>
+          <div>
+            <div class="text-xs text-cloud/40 uppercase tracking-widest mb-1.5">Next phase opens</div>
+            <div class="text-sm text-cloud tabular-nums">May 23, 2026 · 12:00 AM ET</div>
+            <div class="text-xs text-cloud/60 mt-1">Phase 5 · Project Voting</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pod resources -->
+      <div class="rounded-md border border-whisper bg-white/[0.02] p-6">
+        <div class="text-xs uppercase tracking-widest text-cloud/40 mb-4">Pod resources</div>
+        <div class="space-y-2">
+          <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2.5 -mx-2 hover:bg-white/[0.04] transition-colors group">
+            <div class="h-8 w-8 rounded bg-white/[0.06] grid place-items-center flex-shrink-0">
+              <i data-lucide="hash" class="h-4 w-4 text-cloud/60 group-hover:text-aqua transition-colors"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-cloud group-hover:text-white transition-colors">Slack channel</div>
+              <div class="text-xs text-cloud/50 truncate">#pod-health-systems-access</div>
+            </div>
+            <i data-lucide="external-link" class="h-3.5 w-3.5 text-cloud/30 flex-shrink-0"></i>
+          </a>
+          <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2.5 -mx-2 hover:bg-white/[0.04] transition-colors group">
+            <div class="h-8 w-8 rounded bg-white/[0.06] grid place-items-center flex-shrink-0">
+              <i data-lucide="folder" class="h-4 w-4 text-cloud/60 group-hover:text-aqua transition-colors"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-cloud group-hover:text-white transition-colors">Drive folder</div>
+              <div class="text-xs text-cloud/50 truncate">Pod · Health Systems Access</div>
+            </div>
+            <i data-lucide="external-link" class="h-3.5 w-3.5 text-cloud/30 flex-shrink-0"></i>
+          </a>
+          <!-- Missing-resource state (PRD §7.6) — example of the failed-to-provision affordance -->
+          <div class="flex items-center gap-3 rounded-md px-3 py-2.5 -mx-2 bg-yellow-500/[0.06] border border-yellow-500/20">
+            <div class="h-8 w-8 rounded bg-white/[0.04] grid place-items-center flex-shrink-0">
+              <i data-lucide="github" class="h-4 w-4 text-cloud/40"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-cloud/70">GitHub repo</div>
+              <div class="text-xs text-yellow-300/90 flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="h-3 w-3"></i>
+                Missing — contact staff
+              </div>
+            </div>
+          </div>
+          <a href="#" class="flex items-center gap-3 rounded-md px-3 py-2.5 -mx-2 hover:bg-white/[0.04] transition-colors group">
+            <div class="h-8 w-8 rounded bg-white/[0.06] grid place-items-center flex-shrink-0">
+              <i data-lucide="mail" class="h-4 w-4 text-cloud/60 group-hover:text-aqua transition-colors"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-cloud group-hover:text-white transition-colors">Google Group</div>
+              <div class="text-xs text-cloud/50 truncate">pod-health-systems@…</div>
+            </div>
+            <i data-lucide="external-link" class="h-3.5 w-3.5 text-cloud/30 flex-shrink-0"></i>
+          </a>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+</section>
+
+<!-- ===================================================================== -->
+<!-- SCREEN 3 — PULSE RESPONSE REVIEW (per-pod with side panel overlay) -->
+<!-- ===================================================================== -->
+<section id="screen-pulse" class="screen">
+
+  <!-- Background: dimmed per-pod (re-uses simplified version) -->
+  <div class="relative">
+
+    <!-- Faded background nav -->
+    <header class="border-b border-white/[0.07] bg-[rgba(11,16,22,0.97)] backdrop-blur-sm opacity-40 pointer-events-none">
+      <div class="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-8">
+          <span class="text-sm font-semibold tracking-wide text-white">OLOS</span>
+          <nav class="hidden md:flex items-center gap-6 text-sm">
+            <a href="#" class="text-cloud/60">Cycles</a>
+            <a href="#" class="text-white">Pods</a>
+            <a href="#" class="text-cloud/60">Members</a>
+          </nav>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-xs font-medium text-blue-300">Poderator</span>
+          <div class="h-8 w-8 rounded-full bg-white/[0.08] grid place-items-center text-xs font-semibold text-cloud">MJ</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Faded background content (snippet of the per-pod page) -->
+    <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-16 opacity-30 pointer-events-none">
+      <div class="text-xs uppercase tracking-widest text-cloud/40 mb-2">Energy &amp; Climate · Q3 2026 · Week 6</div>
+      <h1 class="text-2xl font-bold tracking-tight text-white mb-8">Health Systems Access</h1>
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5 h-28"></div>
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5 h-28"></div>
+        <div class="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-5 h-28"></div>
+        <div class="rounded-md border border-whisper bg-white/[0.02] p-5 h-28"></div>
+      </div>
+      <div class="rounded-md border border-whisper bg-white/[0.02] h-96"></div>
+    </main>
+
+    <!-- Backdrop -->
+    <div class="fixed inset-0 panel-backdrop z-30" onclick="showScreen('per-pod')"></div>
+
+    <!-- Side panel -->
+    <aside class="fixed top-0 right-0 bottom-0 z-40 w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl 2xl:max-w-[800px] bg-ink border-l border-whisper shadow-2xl overflow-y-auto">
+
+      <!-- Panel header -->
+      <div class="sticky top-0 bg-ink border-b border-whisper px-6 py-4 z-10">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="h-10 w-10 rounded-full bg-white/[0.08] grid place-items-center text-sm font-semibold text-cloud flex-shrink-0">LP</div>
+            <div class="min-w-0">
+              <div class="text-base font-semibold text-white">Linda P.</div>
+              <div class="text-xs text-cloud/60 truncate">Health Systems Access</div>
+            </div>
+          </div>
+          <button class="p-1.5 rounded text-cloud/40 hover:bg-white/[0.04] hover:text-cloud transition-colors" aria-label="Close" onclick="showScreen('per-pod')">
+            <i data-lucide="x" class="h-5 w-5"></i>
+          </button>
+        </div>
+
+        <!-- Member context strip -->
+        <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/20 px-2.5 py-0.5 font-medium text-yellow-300">
+            <i data-lucide="alert-triangle" class="h-3 w-3"></i>
+            At risk
+          </span>
+          <span class="text-cloud/60">New to building</span>
+          <span class="text-cloud/30">·</span>
+          <span class="text-cloud/60">Weekends only</span>
+          <span class="text-cloud/30">·</span>
+          <span class="text-cloud/60">Last active 19 days ago</span>
+        </div>
+
+        <!-- Prev / next member -->
+        <div class="mt-4 flex items-center justify-between">
+          <button class="inline-flex items-center gap-1.5 text-xs text-cloud/60 hover:text-aqua transition-colors">
+            <i data-lucide="chevron-left" class="h-4 w-4"></i>
+            Sarah K.
+          </button>
+          <span class="text-xs text-cloud/40 tabular-nums">Member 2 of 9</span>
+          <button class="inline-flex items-center gap-1.5 text-xs text-cloud/60 hover:text-aqua transition-colors">
+            Priya S.
+            <i data-lucide="chevron-right" class="h-4 w-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pulse responses -->
+      <div class="p-6 space-y-5">
+
+        <!-- Individual aggregation (§7.9.1) -->
+        <div class="rounded-md border border-teal/20 bg-teal/[0.04] p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-xs uppercase tracking-widest text-aqua/80">Across the cycle so far</div>
+            <span class="text-xs text-cloud/50 tabular-nums">3 of 6 pulses submitted</span>
+          </div>
+
+          <!-- Engagement trajectory -->
+          <div class="mb-5">
+            <div class="text-xs text-cloud/60 mb-2">Engagement trajectory · weekly</div>
+            <div class="flex items-center gap-1.5">
+              <span class="h-2.5 w-2.5 rounded-full bg-teal/60" title="Week 1: submitted"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-teal/60" title="Week 2: submitted"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-teal/60" title="Week 3: submitted"></span>
+              <span class="h-2.5 w-2.5 rounded-full border border-yellow-500/40 bg-yellow-500/10" title="Week 4: missed"></span>
+              <span class="h-2.5 w-2.5 rounded-full border border-yellow-500/40 bg-yellow-500/10" title="Week 5: missed"></span>
+              <span class="h-2.5 w-2.5 rounded-full border border-yellow-500/40 bg-yellow-500/10" title="Week 6: missed"></span>
+            </div>
+            <div class="mt-2 text-xs text-yellow-300">Three weeks without a pulse, after three consecutive submissions.</div>
+          </div>
+
+          <!-- Aggregation grid -->
+          <div class="pt-4 border-t border-teal/15">
+            <div class="text-xs uppercase tracking-widest text-aqua/70 mb-2">Tools she's used</div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/20 px-2.5 py-0.5 text-xs text-aqua">ChatGPT <span class="tabular-nums opacity-80">3</span></span>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-0.5 text-xs text-aqua/90">Claude <span class="tabular-nums opacity-80">2</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-xs uppercase tracking-widest text-cloud/40 pt-2">Week by week</div>
+
+        <!-- Missed week 1 -->
+        <div class="rounded-md border border-dashed border-whisper bg-white/[0.01] p-4 text-center">
+          <div class="inline-flex items-center gap-2 text-xs font-medium text-cloud/50">
+            <i data-lucide="circle-slash" class="h-3.5 w-3.5"></i>
+            No submission · Week of May 18
+          </div>
+        </div>
+
+        <!-- Missed week 2 -->
+        <div class="rounded-md border border-dashed border-whisper bg-white/[0.01] p-4 text-center">
+          <div class="inline-flex items-center gap-2 text-xs font-medium text-cloud/50">
+            <i data-lucide="circle-slash" class="h-3.5 w-3.5"></i>
+            No submission · Week of May 11
+          </div>
+        </div>
+
+        <!-- Missed week 3 -->
+        <div class="rounded-md border border-dashed border-whisper bg-white/[0.01] p-4 text-center">
+          <div class="inline-flex items-center gap-2 text-xs font-medium text-cloud/50">
+            <i data-lucide="circle-slash" class="h-3.5 w-3.5"></i>
+            No submission · Week of May 4
+          </div>
+        </div>
+
+        <!-- Response 1 -->
+        <article class="rounded-md border border-whisper bg-white/[0.02] p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-semibold text-white">Week of April 27</div>
+            <div class="text-xs text-cloud/50 tabular-nums">Submitted Apr 28</div>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">What went well</div>
+            <p class="text-sm text-cloud/85 leading-relaxed">I joined the pod kickoff call and met everyone. Felt out of my depth on the technical side but Marcus offered to walk me through Cursor.</p>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">What I'm stuck on</div>
+            <p class="text-sm text-cloud/85 leading-relaxed">I don't really understand what a "solution proposal" is supposed to look like. The example was technical and I'm not sure how to scope something I could actually contribute to.</p>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">Help I need</div>
+            <p class="text-sm text-cloud/85 leading-relaxed">Is there an example proposal from a non-technical person? Or could someone pair with me for 30 min this weekend?</p>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-2">AI tools used this week</div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-xs text-cloud/80">ChatGPT</span>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-xs text-cloud/80">Claude</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Response 2 -->
+        <article class="rounded-md border border-whisper bg-white/[0.02] p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-semibold text-white">Week of April 20</div>
+            <div class="text-xs text-cloud/50 tabular-nums">Submitted Apr 21</div>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">What went well</div>
+            <p class="text-sm text-cloud/85 leading-relaxed">I voted on the problem statements and was excited my top pick made the shortlist.</p>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-1.5">What I'm stuck on</div>
+            <p class="text-sm text-cloud/85 leading-relaxed">Trying to figure out how to register for the pod and which pod I'd be most useful in.</p>
+          </div>
+
+          <div>
+            <div class="text-xs uppercase tracking-widest text-cloud/40 mb-2">AI tools used this week</div>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-0.5 text-xs text-cloud/80">ChatGPT</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Range expand -->
+        <div class="pt-2 text-center">
+          <button class="inline-flex items-center gap-1.5 text-xs text-cloud/60 hover:text-aqua transition-colors">
+            Show full cycle history
+            <i data-lucide="chevron-down" class="h-3.5 w-3.5"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Footer actions -->
+      <div class="sticky bottom-0 bg-ink border-t border-whisper px-6 py-4">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs text-cloud/50">Read-only · OLOS doesn't send messages</span>
+          <button class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-cloud/85 ring-1 ring-whisper hover:bg-white/[0.04] hover:text-white transition-colors">
+            <i data-lucide="message-square" class="h-4 w-4"></i>
+            Open Slack DM
+          </button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<script>
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    ['all-pods', 'per-pod', 'pulse'].forEach(n => {
+      const btn = document.getElementById('tab-' + n);
+      if (n === name) {
+        btn.classList.add('mock-tab-active');
+        btn.classList.remove('mock-tab-inactive');
+      } else {
+        btn.classList.remove('mock-tab-active');
+        btn.classList.add('mock-tab-inactive');
+      }
+    });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+  });
+</script>
+
+</body>
+</html>

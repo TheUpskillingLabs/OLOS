@@ -72,3 +72,6 @@ next-env.d.ts
 
 # local dev scripts (untracked utilities)
 scripts/dev/
+
+# superpowers skill runner (local tooling, not project source)
+.superpowers/

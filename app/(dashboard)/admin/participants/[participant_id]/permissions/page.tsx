@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import type { Permission } from "@/lib/auth/permissions";
 import PermissionsEditor from "./permissions-editor";
+import AdminNameEditForm from "./admin-name-edit-form";
 
 export default async function ParticipantPermissionsPage({
   params,
@@ -88,6 +89,15 @@ export default async function ParticipantPermissionsPage({
           </div>
         )}
       </div>
+
+      <AdminNameEditForm
+        participantId={participantId}
+        initial={{
+          first_name: participant.first_name ?? "",
+          last_name: participant.last_name ?? "",
+          preferred_name: participant.preferred_name ?? "",
+        }}
+      />
 
       <PermissionsEditor
         participantId={participantId}

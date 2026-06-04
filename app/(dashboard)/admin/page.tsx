@@ -3,6 +3,9 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+// The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
+// as the route; removing the feature = delete this block + the two folders.
+import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import CreateCycleForm from "./cycles/create-cycle-form";
 
 type CycleStatus = "active" | "closed" | "draft";
@@ -63,6 +66,17 @@ export default async function AdminPage() {
           >
             All participants
           </Link>
+          {ENTITY_EXPLORER_ENABLED && (
+            <Link
+              href="/admin/explore"
+              className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold tracking-tight text-cloud/80 ring-1 ring-whisper transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+            >
+              Explore
+              <span className="rounded bg-yellow-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-yellow-300">
+                flag
+              </span>
+            </Link>
+          )}
           <CreateCycleForm />
         </div>
       </div>
