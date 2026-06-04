@@ -239,9 +239,31 @@ graph TD
 **Solution:** one `reconcileEnrollmentActivation` helper called by every lifecycle code path, plus admin/moderator UI for the manual fixes currently requiring SQL, plus a redesigned revocation cron with cycle-scoped checks and a warning state before revocation.
 
 **Three phases:**
-- **Phase A** (~half-day) — reconciler + auth-callback `ignoreDuplicates` fix + placeholder-name guard in `fulfillInvitation` + RLS `WITH CHECK` migration + `pod_memberships_select` tightening.
-- **Phase B** (~one day) — admin/moderator self-service UI: PATCH /api/participants/[id], `/profile/edit` dual mode (Mode A self-edit, Mode B forced completion), admin pod-membership add/remove, admin pod-status override, stuck-inactive filter.
-- **Phase C** (~1–2 days) — revocation cron v2: cycle-scoped queries, baseline = `MAX(activated_at, pod_registration_open_at)`, two-stage handler (warning + 3-day grace, then revoke), idempotency via unique partial index on `access_revocations`. Re-register cron in `vercel.json` after ≥48h staging soak.
+- **Phase A** ([PR #111](https://github.com/TheUpskillingLabs/OLOS/pull/111), merged) — reconciler + auth-callback `ignoreDuplicates` fix + placeholder-name guard in `fulfillInvitation` + RLS `WITH CHECK` migration + `pod_memberships_select` tightening.
+- **Phase B** ([PR #116](https://github.com/TheUpskillingLabs/OLOS/pull/116), merged) — admin/moderator self-service UI: PATCH /api/participants/[id], `/profile/edit` dual mode (Mode A self-edit, Mode B forced completion), admin pod-membership add/remove, admin pod-status override, stuck-inactive filter.
+- **Phase C** (in flight, branch `110-phase-c-cron-v2`) — revocation cron v2: cycle-scoped queries, baseline = `MAX(activated_at, pod_registration_open_at)`, two-stage handler (warning + 3-day grace, then revoke), idempotency via unique partial index on `access_revocations`. Re-register cron in `vercel.json` after ≥48h staging soak.
+
+### Phase C design decisions captured (2026-06-03)
+
+Scope-shrinking findings from a pre-Phase-C audit of Madhu's recent `feat/poderator-dashboard` work that landed on dev:
+
+- **Threshold config already exists.** Migration `00026_cycle_config_extensions.sql` added `at_risk_consecutive_misses INT NOT NULL DEFAULT 2`. Matches the architecture brief's "2+ consecutive missed pulses" rule verbatim. Phase C reads this column rather than creating a parallel one.
+- **At-risk predicate already exists.** `lib/moderator/nudges.ts` exports `deriveAtRiskRun(participantId, pulses)` which returns the current consecutive-miss run. Phase C imports this rather than reimplementing the logic — same predicate powers both the moderator's at-risk nudge AND the cron's revocation candidate identification. (If a third caller emerges, file a follow-up to extract to `lib/engagement/at-risk.ts`; YAGNI for now.)
+- **Warning state: column, not table.** Adding `warned_at` + `warning_reason` columns to `cycle_enrollments` (Option A) rather than a new `enrollment_warnings` table (Option B). Reasoning:
+  - One warning type today (missed_pulses); multi-reason warnings are hypothetical
+  - Cron is currently disabled — warning volume is zero, will be modest when re-enabled
+  - Email-send idempotency is solved separately by the planned `pulse_check_reminders_sent` ledger
+  - Forward-compatible: migration A → B is ~30 minutes when needs evolve (INSERT one row per existing `warned_at`, drop the columns)
+  - Accepted trade-off: warnings that resolve via recovery (not revocation) leave no historical row. `access_revocations` continues to log completed revocations. If "show me every warning we sent this cycle" becomes a real ask, Option B is the trigger.
+- **Migration numbering.** Phase C's migration is `00030_revocation_warnings_and_idempotency.sql` (after MJ's 00029_feedback). The `supabase/CLAUDE.md` renumber-history section captures the 00015→00028 lesson — Phase C's number is chosen by reading `ls supabase/migrations/ | tail -1` per that doc's guidance.
+
+### Phase C concrete deliverables
+
+1. **Migration 00030** — adds `warned_at TIMESTAMP NULL` and `warning_reason VARCHAR(100) NULL` to `cycle_enrollments`. Adds unique partial index on `access_revocations(participant_id, cycle_id, reason) WHERE revocation_scope = 'full'`.
+2. **Rewrite `app/api/cron/revocation-check/route.ts`** — service client (unchanged), CRON_SECRET auth (unchanged), cycle-scoped queries (fixed from cross-cycle bug), `deriveAtRiskRun` import (new), two-stage warn-then-revoke handler with 3-day grace (new), reconciler integration with `logRevocation=true` (new).
+3. **`pulse_check_reminders_sent` table or equivalent** — verify existing pulse-check-reminder cron's idempotency state before designing; reuse pattern if present.
+4. **Re-register cron in `vercel.json`** — last step, gated by ≥48h staging soak.
+
 
 **Subsumed tickets** (closed as completed via the link-back convention, since the work IS being done — in #110):
 - #102 (profile-completion redirect Mode B) → Phase B
