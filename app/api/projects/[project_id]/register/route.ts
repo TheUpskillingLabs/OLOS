@@ -32,18 +32,37 @@ export const POST = withAuth(
       return NextResponse.json({ error: window.message }, { status: 403 });
     }
 
-    // Must be active pod member
-    const { data: podMembership } = await auth.supabase
-      .from("pod_memberships")
-      .select("id")
-      .eq("pod_id", project.pod_id)
+    // Must be an active participant in THIS CYCLE (any pod).
+    //
+    // Previously this route required active membership in the project's own
+    // pod, scoping registration to within-pod. That was a misread of the
+    // architecture brief: Phase 5 (solution voting) is intentionally
+    // within-pod, but Phase 7 (project self-registration) is meant to be
+    // cycle-wide — any participant who is active in the cycle can join any
+    // project that interests them. The pod-scope check was effectively
+    // siloing participants to their proposing pod's project set, which
+    // wasn't the intent.
+    //
+    // Authoritative check now: cycle_enrollments.status='active' for the
+    // project's cycle. Phase A's reconciler (lib/enrollment/reconciler.ts)
+    // keeps this status in sync with actual pod-membership reality, so an
+    // 'active' enrollment implies the participant has at least one active
+    // pod_membership in an active pod within the cycle — i.e. they're a
+    // bona fide cohort member, just not necessarily of THIS pod.
+    //
+    // The 1-project-per-cycle cap below still applies, so a participant
+    // can't register for more than one project per cycle regardless of
+    // which pod the projects belong to.
+    const { data: enrollment } = await auth.supabase
+      .from("cycle_enrollments")
+      .select("status")
+      .eq("cycle_id", project.cycle_id)
       .eq("participant_id", participantId)
-      .is("inactive_at", null)
       .maybeSingle();
 
-    if (!podMembership) {
+    if (!enrollment || enrollment.status !== "active") {
       return NextResponse.json(
-        { error: "You must be an active member of this pod to register." },
+        { error: "You must be an active participant in this cycle to register for a project." },
         { status: 400 }
       );
     }
