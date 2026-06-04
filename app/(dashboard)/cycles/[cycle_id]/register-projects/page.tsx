@@ -37,12 +37,14 @@ export default async function RegisterProjectsPage({
     now >= new Date(config.project_registration_open) &&
     now <= new Date(config.project_registration_close);
 
-  // Get user's pods for this cycle
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let myPods: { id: number; name: string | null }[] = [];
+  // Project registration is cycle-wide (not pod-scoped). The eligibility
+  // gate is an active cycle_enrollment row, mirroring the server check in
+  // app/api/projects/[project_id]/register/route.ts.
+  let enrollmentActive = false;
   let currentProjectId: number | null = null;
 
   if (user) {
@@ -53,19 +55,15 @@ export default async function RegisterProjectsPage({
       .single();
 
     if (participant) {
-      const { data: memberships } = await supabase
-        .from("pod_memberships")
-        .select("pod_id, pods!inner(id, name, cycle_id)")
+      const { data: enrollment } = await supabase
+        .from("cycle_enrollments")
+        .select("status")
+        .eq("cycle_id", cycleId)
         .eq("participant_id", participant.id)
-        .eq("pods.cycle_id", cycleId)
-        .is("inactive_at", null);
+        .maybeSingle();
 
-      myPods = (memberships || []).map((m) => {
-        const pod = m.pods as unknown as { id: number; name: string | null };
-        return { id: pod.id, name: pod.name };
-      });
+      enrollmentActive = enrollment?.status === "active";
 
-      // Check current project registration
       const { data: existingReg } = await supabase
         .from("project_memberships")
         .select("project_id")
@@ -78,38 +76,43 @@ export default async function RegisterProjectsPage({
     }
   }
 
-  // Fetch projects for the user's pods
-  const podIds = myPods.map((p) => p.id);
+  // All pods in this cycle — needed to label projects with their originating
+  // pod name in the grouped view (a participant may see projects from pods
+  // they're not in).
+  const { data: allPods } = await supabase
+    .from("pods")
+    .select("id, name")
+    .eq("cycle_id", cycleId);
+  const cyclePods = allPods ?? [];
+
+  // Fetch all projects in this cycle (any pod).
   let projects: { id: number; name: string | null; status: string; pod_id: number; member_count: number }[] = [];
-  if (podIds.length > 0) {
-    const { data: projectData } = await supabase
-      .from("projects")
-      .select("id, name, status, pod_id")
-      .in("pod_id", podIds)
-      .order("created_at");
+  const { data: projectData } = await supabase
+    .from("projects")
+    .select("id, name, status, pod_id")
+    .eq("cycle_id", cycleId)
+    .order("created_at");
 
-    if (projectData) {
-      // Get member counts
-      const projectIds = projectData.map((p) => p.id);
-      const { data: projectMemberships } = await supabase
-        .from("project_memberships")
-        .select("project_id")
-        .in("project_id", projectIds.length > 0 ? projectIds : [0])
-        .is("left_at", null);
+  if (projectData && projectData.length > 0) {
+    const projectIds = projectData.map((p) => p.id);
+    const { data: projectMemberships } = await supabase
+      .from("project_memberships")
+      .select("project_id")
+      .in("project_id", projectIds)
+      .is("left_at", null);
 
-      const countMap: Record<number, number> = {};
-      for (const m of projectMemberships || []) {
-        countMap[m.project_id] = (countMap[m.project_id] || 0) + 1;
-      }
-
-      projects = projectData.map((p) => ({
-        id: p.id,
-        name: p.name,
-        status: p.status,
-        pod_id: p.pod_id,
-        member_count: countMap[p.id] || 0,
-      }));
+    const countMap: Record<number, number> = {};
+    for (const m of projectMemberships || []) {
+      countMap[m.project_id] = (countMap[m.project_id] || 0) + 1;
     }
+
+    projects = projectData.map((p) => ({
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      pod_id: p.pod_id,
+      member_count: countMap[p.id] || 0,
+    }));
   }
 
   return (
@@ -126,7 +129,7 @@ export default async function RegisterProjectsPage({
           Register for a project
         </h1>
         <p className="mt-1 text-sm text-cloud/80">
-          Join a project within your pod. You can register for one project per
+          Join any project in this cycle. You can register for one project per
           cycle.
         </p>
       </div>
@@ -147,10 +150,10 @@ export default async function RegisterProjectsPage({
               </p>
             )}
         </div>
-      ) : myPods.length === 0 ? (
+      ) : !enrollmentActive ? (
         <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
           <p className="text-cloud/80">
-            You are not a member of any pods in this cycle.
+            You are not an active participant in this cycle.
           </p>
           <Link
             href={`/cycles/${cycle.id}`}
@@ -161,7 +164,7 @@ export default async function RegisterProjectsPage({
         </div>
       ) : (
         <ProjectRegistration
-          pods={myPods}
+          pods={cyclePods}
           projects={projects}
           initialCurrentProjectId={currentProjectId}
           projectMax={config?.project_max ?? 7}
