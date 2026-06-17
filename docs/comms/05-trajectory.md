@@ -11,7 +11,8 @@
   • cron: report-only + preview + grace + sandbox │
   • #122  #123  #121  #37  + cron re-enable        │
  Foundation       ████████                         │
-  • dev/prod split + CI   (#72 #76 #77 #78)        │
+  • promotion gate + CI + auto-migrate (#72 #76 #77 #78)
+    (the dev/prod split already exists)            │
   • migration ready       (#42 → #43)              │
  Audit trail         ████   (#115, before #117)    │
                                                    │
@@ -26,8 +27,9 @@
 - **Left of the line = must be done before we open the cohort.** Two themes are the blockers:
   - **Safety** — re-enable the cron without repeating May, plus the late-join grace and the test
     sandbox (the D-1…D-3 decisions).
-  - **Foundation** — split dev from prod and add automated checks so a mid-cycle fix can't ship
-    straight to the cohort unchecked.
+  - **Foundation** — the dev/prod environments already exist (separate DBs, Vercel deployments, and
+    domains); what's missing is the governance on top: CI checks on PRs, an enforced promotion gate
+    for dev→main, and auto-applied migrations, so a mid-cycle fix can't reach prod unchecked.
 - **Audit columns (#115)** land just before the stewardship tools (#117), so every manual fix an
   admin makes is traceable from day one.
 - **Right of the line = improves the experience while the cycle runs** — moderator pulse visibility

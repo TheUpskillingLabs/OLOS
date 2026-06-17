@@ -23,10 +23,12 @@ cohort opens.
 | **Revocation cron** (auto-marks inactive) | **OFF** | Rewritten, never validated live, no human-review step |
 | Late-join after pod registration closes | Gap | Engaged-but-slow people can get locked out |
 | Test isolation (safe place to exercise flows) | Gap | Testing risks polluting / revoking real data |
-| dev/prod split + automated checks (CI) | None | Every change still ships straight to live |
+| Separate **dev & prod** environments (DBs, Vercel, domains) | In place | `dev` branch -> dev site/DB; `main` -> prod site/DB |
+| Promotion gate, CI checks, auto-applied migrations | Missing | dev->main is a manual merge; no CI on PRs; prod migrations run by hand |
 
 **27 open issues**, almost all funneling through two gates: **#110** (onboarding/cron) and **#72**
-(dev/prod split). **Most P0/P1 issues have no owner** — the top process risk.
+(promotion gate + CI on top of the existing dev/prod split). **Most P0/P1 issues have no owner** —
+the top process risk.
 
 ## 2 · The cycle journey (where lock-out happens)
 
@@ -91,7 +93,8 @@ the late-join grace doesn't run past Solution-Proposal open.
   Safety        ############                      |
    - cron: report-only + preview + grace + sandbox|     (#122 #123 #121 #37 + re-enable)
   Foundation       ########                       |
-   - dev/prod split + CI; migration ready         |     (#72 #76 #77 #78; #42 -> #43)
+   - promotion gate + CI + auto-migrate           |     (#72 #76 #77 #78; #42 -> #43)
+     (dev/prod split already exists)              |
   Audit trail         ####  (#115, before #117)   |
   Steward tools          .....########------------|-->  (#117)
   Pulse visibility                                |   ########   (#51 #87 #86 #97 #38)

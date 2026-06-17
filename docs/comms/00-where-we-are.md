@@ -16,13 +16,15 @@ that caused the May cascade — the automated job that marks disengaged people "
 | **Revocation cron** (auto-marks people inactive) | 🔴 **Off** | Rewritten, but never validated against live data and has no human-review step |
 | Late-join after pod registration closes | 🟡 No path | Engaged-but-slow people can get stuck / locked out |
 | Test isolation (a safe place to exercise flows) | 🟡 None | Testing risks polluting or revoking real data |
-| dev/prod split + CI (auto-checks on changes) | 🔴 None | Every change still ships straight to the live cohort |
+| Separate **dev & prod environments** (DBs + Vercel + domains) | 🟢 In place | `dev` branch → dev site/DB; `main` → prod site/DB |
+| Promotion gate, CI checks, auto-applied migrations | 🟡 Missing | dev→main is a manual merge; no CI on PRs; prod migrations are run by hand |
 
 ## The shape of the backlog
 
 - **27 open issues.** Almost everything funnels through **two gates**:
   - **#110** — onboarding state machine + the revocation cron.
-  - **#72** — splitting dev from prod with a promotion gate.
+  - **#72** — the promotion gate + CI layer **on top of the existing dev/prod split** (enforced
+    review, automated checks, auto-applied migrations).
 - **Most P0/P1 issues currently have no owner.** This is the single biggest *process* risk — unowned
   high-priority work is how the May cron sat broken.
 
@@ -30,7 +32,8 @@ that caused the May cascade — the automated job that marks disengaged people "
 
 We are in good shape on the *participant-facing* product. The work before the next cycle is almost
 entirely **safety and foundation**: re-enable the cron without repeating May, give late joiners a
-way in, create a safe place to test, and stop shipping straight to live.
+way in, create a safe place to test, and add guardrails (CI + an enforced promotion gate +
+auto-applied migrations) **on top of the dev/prod environments we already have**.
 
 > Next: [01-cycle-journey.md](01-cycle-journey.md) — how someone moves through a cycle, and where
 > the lock-out risk lives.
