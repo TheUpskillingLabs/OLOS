@@ -59,6 +59,11 @@ supabase/.branches/
 docs/Upskiller Community Manager*.xlsx
 docs/Upskiller Community Manager*.csv
 
+# Per-cycle operational docs — contain participant PII (names, emails,
+# pulse-check signals, registration status). Internal use only; never commit.
+docs/cycle-*-*.md
+docs/cycle-*-*.pdf
+
 # migration script venv + run logs
 scripts/migration/.venv/
 scripts/migration/run_*.log
