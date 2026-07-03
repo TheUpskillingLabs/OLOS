@@ -418,6 +418,93 @@ erDiagram
 
 ---
 
+## ERD — Public Content (the CMS)
+
+The public web's content tables (migration `00033_public_content.sql`), ported 1:1 from the onboarding-proto content directories (`events/ library/ labs/` data.js files — HANDOFF.md §4). These serve the public landing and the `/events/[slug]`, `/library/[slug]`, `/labs/[slug]` pages. Rows are seeded and refreshed idempotently by `00034_seed_public_content.sql` (slug-keyed upserts); edit content in the prototype's data.js first, then re-generate the seed.
+
+```mermaid
+erDiagram
+    events {
+        int id PK
+        varchar api_id UK
+        varchar slug UK
+        varchar name
+        varchar kind
+        timestamp start_at
+        timestamp end_at
+        varchar location_type
+        varchar location_name
+        varchar img
+        varchar grad
+        varchar cost
+        varchar host
+        text description
+        varchar bring
+        jsonb body
+        jsonb gallery
+        boolean anchor
+        varchar status
+    }
+
+    resources {
+        int id PK
+        varchar slug UK
+        varchar title
+        varchar content_type
+        varchar meta
+        varchar img
+        varchar grad
+        text summary
+        jsonb tags
+        varchar status
+        varchar from_line
+        varchar author
+        varchar url
+        varchar license
+        jsonb body
+    }
+
+    metros {
+        int id PK
+        varchar slug UK
+        varchar name
+        varchar st
+        varchar status
+        varchar partner
+        int members
+        int waiting_baseline
+        text blurb
+    }
+
+    metro_waitlist_signups {
+        int id PK
+        int metro_id FK
+        int participant_id FK
+        timestamptz created_at
+    }
+
+    event_rsvps {
+        int id PK
+        int event_id FK
+        varchar email
+        timestamptz created_at
+    }
+
+    metros ||--o{ metro_waitlist_signups : "collects"
+    participants ||--o{ metro_waitlist_signups : "joins"
+    events ||--o{ event_rsvps : "collects"
+```
+
+**`events.start_at` / `end_at`:** plain `TIMESTAMP` holding local wall time, rendered as written — the prototype's Luma-shaped date strings. `anchor = TRUE` marks the cycle's six anchor events (✦ in the UI). `location_type`: `in_person` · `virtual`.
+
+**`resources.content_type`:** `guide` · `recording` · `template` · `course` · `playbook`. `from_line` carries commons provenance ("BenefitsBot · Spring 2026 Cycle") — rendered as the "From the commons" band.
+
+**`metros.status`:** two states only (owner decision) — `active` (DC) or `waitlist`. The rendered waiting count is `waiting_baseline + COUNT(metro_waitlist_signups)`.
+
+**RLS:** `events`/`resources` allow anon SELECT of `status = 'published'` rows; `metros` allows anon SELECT unconditionally (the public city search). `metro_waitlist_signups` is self-read only; `event_rsvps` has no public read. All writes go through service-role API routes — `POST /api/metros/[metro_id]/waitlist` (authed) and `POST /api/events/[event_id]/rsvp` (public, email-only by owner rule).
+
+---
+
 ## Table Summary
 
 | Table | Group | Purpose |
@@ -441,3 +528,8 @@ erDiagram
 | `projects` | Project Layer | Shortlisted solutions with external integrations |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
+| `events` | Public Content | Public events/workshops (Luma-shaped cache; the source until live sync) |
+| `resources` | Public Content | Learning Library items (guides, recordings, templates, courses, playbooks) |
+| `metros` | Public Content | Local labs / cities — `active` or `waitlist` |
+| `metro_waitlist_signups` | Public Content | Participant ↔ metro waitlist joins (unique pair) |
+| `event_rsvps` | Public Content | Email-only public RSVPs (never account-gated) |
