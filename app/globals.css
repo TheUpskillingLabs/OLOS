@@ -1,48 +1,129 @@
 @import "tailwindcss";
 
-@theme inline {
-  /* Brand surfaces — lifted from #0b1016/#0e1520 on 2026-06-02 to ease the
-     heavy near-black feel while keeping the dark-UI aesthetic. Layered
-     transparencies (bg-white/[0.02..0.08]) and text/border tokens
-     auto-adjust against the new base. Hardcoded rgba(42,49,66,X)
-     overlays in layout.tsx / sheet.tsx / tooltip.tsx / switcher.tsx /
-     globals.css :: dialog::backdrop are kept in sync with --color-midnight
-     (#2a3142 = rgb(42,49,66)). If you change --color-midnight, update those
-     too — or replace with a CSS color-mix when we move to tokenized alphas. */
-  --color-midnight: #2a3142;
-  --color-ink: #343c4e;
+/* ════════════════════════════════════════════════════════════════════════
+   The Upskilling Labs — design system foundation.
 
-  /* Brand colors */
+   Ported from the onboarding-proto repo (the design source of truth):
+     tokens.css  → the @theme block + the :root primitives below
+     system.css  → the component layer (type scale, buttons, cards, chips…)
+     app.css     → the onboarding/flow vocabulary (sheet, choice, seg…)
+
+   Three rules carried over verbatim (owner decisions):
+     · One radius — var(--r) 14px on every rectangular container. No pills;
+       genuine circles only (avatars, dots, pips).
+     · Warm off-white (--paper) is the only light page background. Dark
+       (--ink / gradients) is reserved for covers, nav bars, and footers.
+     · 4px baseline grid — type line-heights and spacing are multiples of 4.
+
+   Legacy dark theme: pages that predate the reskin (dashboard, admin,
+   moderator…) keep their look via the .theme-legacy wrapper + the LEGACY
+   color tokens. Both get deleted as each surface migrates to this system.
+   ════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Canonical brand palette (do not reintroduce midnight/aqua on new surfaces) ── */
+  --color-ink: #00141b;
+  --color-navy: #03232a;
+  --color-forest: #005f68;
   --color-teal: #0094a0;
+  --color-teal-deep: #007882;
+  --color-red: #e11d2a;
+  --color-paper: #f6f4ef;
+  --color-paper-edge: #e8e5df;
+  --color-tint: #ecf3f4;
+  --color-tint-edge: #d8e8ea;
+  --color-charcoal: #444444;
+  --color-slate: #4a5557;
+  --color-meta: #5f6b70;
+  --color-meta-soft: #8a979b;
+
+  /* ── LEGACY dark-theme tokens — consumed only by un-migrated pages inside
+        .theme-legacy. Delete each as its surface adopts the new system. ── */
+  --color-midnight: #2a3142;
   --color-aqua: #4dbbc2;
   --color-shadow-teal: #006b73;
-  --color-shadow: #006b73; /* legacy alias of shadow-teal */
-  --color-red: #ee1c25;
+  --color-shadow: #006b73;
   --color-crimson: #7a0f14;
-
-  /* Text */
   --color-cloud: #e6e6e6;
   --color-ghost: #ffffff;
-
-  /* Hairlines / muted */
   --color-whisper: rgba(255, 255, 255, 0.07);
   --color-muted: rgba(255, 255, 255, 0.3);
 
-  /* Typography */
-  --font-sans: 'Geologica', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
-    'Helvetica Neue', sans-serif;
+  /* ── Radius / elevation (utility-facing twins of --r / --shadow below) ── */
+  --radius-card: 14px;
+  --shadow-card: 0 1px 2px rgba(0, 20, 27, 0.05), 0 6px 20px rgba(0, 20, 27, 0.06);
+  --shadow-card-lg: 0 12px 40px rgba(0, 20, 27, 0.16);
 
-  /* Motion — iOS spring physics */
+  /* ── Typography — Geologica self-hosted via next/font (no CDN) ── */
+  --font-sans: var(--font-geologica), system-ui, -apple-system, sans-serif;
+
+  /* ── Motion ── */
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
+/* ── Brand primitives under their prototype names — the component layer below
+      is ported from system.css/app.css verbatim and reads these. ── */
+:root {
+  --ink: var(--color-ink);
+  --navy: var(--color-navy);
+  --forest: var(--color-forest);
+  --teal: var(--color-teal);
+  --teal-deep: var(--color-teal-deep);
+  --red: var(--color-red);
+  --paper: var(--color-paper);
+  --paper-edge: var(--color-paper-edge);
+  --tint: var(--color-tint);
+  --tint-edge: var(--color-tint-edge);
+  --white: #ffffff;
+  --charcoal: var(--color-charcoal);
+  --slate: var(--color-slate);
+  --meta: var(--color-meta);
+  --meta-soft: var(--color-meta-soft);
+  --od1: rgba(255, 255, 255, 0.95);
+  --od2: rgba(255, 255, 255, 0.64);
+  --od3: rgba(255, 255, 255, 0.4);
+  --rule-d: rgba(255, 255, 255, 0.16);
+  --rule: rgba(0, 20, 27, 0.1);
+  --rule-soft: rgba(0, 20, 27, 0.07);
+  --rule-ink: rgba(0, 20, 27, 0.85);
+  --r: 14px; /* the one radius — no pills except genuine circles */
+  --pad: 24px;
+  --maxw: 1440px;
+  --shadow: 0 1px 2px rgba(0, 20, 27, 0.05), 0 6px 20px rgba(0, 20, 27, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 20, 27, 0.16);
+  --grain: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMjAnIGhlaWdodD0nMjIwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC45JyBudW1PY3RhdmVzPScyJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PGZlQ29sb3JNYXRyaXggdmFsdWVzPScwIDAgMCAwIDEgIDAgMCAwIDAgMSAgMCAwIDAgMCAxICAwIDAgMCAwLjUgMCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNuKScgb3BhY2l0eT0nMC41NScvPjwvc3ZnPg==");
+}
+@media (min-width: 1024px) {
+  :root {
+    --pad: 40px;
+  }
+}
+
+/* ── Base ── */
 html {
-  background-color: var(--color-midnight);
-  color-scheme: dark;
+  background-color: var(--paper);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  min-height: 100svh;
+}
+
+/* Legacy dark surfaces — applied by un-migrated layouts (dashboard/admin/
+   moderator). Carries the pre-reskin body styling so those pages render
+   exactly as before while new surfaces go light. Delete with the last
+   legacy page. */
+.theme-legacy {
   background-color: var(--color-midnight);
   background-image: radial-gradient(
     ellipse 80% 60% at 50% 0%,
@@ -51,11 +132,8 @@ body {
   );
   background-attachment: fixed;
   color: var(--color-cloud);
-  font-family: var(--font-sans);
+  color-scheme: dark;
   line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 /* iOS-quality tap behavior */
@@ -75,16 +153,306 @@ label[for] {
   touch-action: manipulation;
 }
 
-/* Native modal backdrop per design system */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Native modal backdrop — legacy sheets keep the midnight scrim; new modals
+   use .gate-modal below. */
 dialog::backdrop {
   background: rgba(42, 49, 66, 0.8);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
 }
 
-/* Tabular numerals helper for utility classes that don't ship with Tailwind */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* ════ Component layer — ported from onboarding-proto system.css + app.css.
+   The prototype is the reference design: a shared component changes there
+   first, then here — never as a per-page copy. ════ */
+@layer components {
+  /* ── grain ── */
+  .grain {
+    position: relative;
+  }
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: var(--grain);
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .grain > * {
+    position: relative;
+  }
+
+  /* ── type scale ── */
+  .t-display { font-weight: 700; font-size: 44px; line-height: 48px; letter-spacing: -0.03em; }
+  .t-h1 { font-weight: 700; font-size: 32px; line-height: 36px; letter-spacing: -0.026em; }
+  .t-h2 { font-weight: 700; font-size: 26px; line-height: 32px; letter-spacing: -0.02em; }
+  .t-h3 { font-weight: 600; font-size: 20px; line-height: 28px; letter-spacing: -0.016em; }
+  .t-h4 { font-weight: 600; font-size: 17px; line-height: 24px; letter-spacing: -0.01em; }
+  .t-lede { font-weight: 400; font-size: 18px; line-height: 28px; letter-spacing: -0.01em; color: var(--slate); }
+  .t-body { font-weight: 400; font-size: 16px; line-height: 24px; color: var(--charcoal); }
+  .t-small { font-weight: 400; font-size: 13px; line-height: 20px; color: var(--meta); }
+  .lbl { font-weight: 500; font-size: 12px; line-height: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--meta); }
+  .lbl-teal { color: var(--teal-deep); }
+  .idx { font-weight: 700; font-size: 18px; line-height: 24px; letter-spacing: -0.01em; color: var(--teal-deep); }
+  .t-stat { font-weight: 700; font-size: 64px; line-height: 64px; letter-spacing: -0.04em; color: var(--teal-deep); }
+  .on-dark, .on-dark .t-display, .on-dark .t-h1, .on-dark .t-h2 { color: var(--od1); }
+  .on-dark .t-lede, .on-dark .t-body { color: var(--od2); }
+  .on-dark .t-small, .on-dark .lbl { color: var(--od3); }
+  .on-dark .lbl-teal, .on-dark .idx { color: var(--teal); }
+  .on-dark .t-stat { color: var(--teal); }
+  .rule { border: none; border-top: 1px solid var(--rule); width: 100%; }
+  .on-dark .rule { border-top: 1px solid var(--rule-d); }
+
+  /* ── buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: var(--r);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s, background 0.15s;
+    white-space: nowrap;
+    padding: 15px 24px;
+    text-decoration: none;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-block { width: 100%; }
+  .btn-red { background: var(--red); color: #fff; }
+  .btn-teal { background: var(--teal-deep); color: #fff; } /* teal-deep for AA contrast on button text; --teal stays the accent */
+  .btn-ink { background: var(--ink); color: #fff; }
+  .btn-white { background: #fff; color: var(--ink); }
+  .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule-ink); }
+  .btn-ghost-teal { background: transparent; color: var(--teal-deep); border: 1px solid rgba(0, 148, 160, 0.45); }
+  .btn-link { background: none; border: none; color: inherit; font-weight: 600; font-size: 14px; cursor: pointer; padding: 12px; }
+  .btn-sm { font-size: 13px; padding: 11px 16px; }
+  .btn:disabled { opacity: 0.34; cursor: not-allowed; pointer-events: none; }
+  .on-dark .btn-ghost { color: var(--od1); border-color: rgba(255, 255, 255, 0.42); }
+  @media (hover: hover) {
+    .btn:hover { opacity: 0.9; }
+    .btn-red:hover, .btn-teal:hover, .btn-ink:hover { box-shadow: var(--shadow); opacity: 1; }
+  }
+
+  /* ── layout: container, sections, section heads ── */
+  .container { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
+  .section { padding: 56px 0; }
+  .section + .section { padding-top: 0; }
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+  .section-head .see { font-size: 13px; font-weight: 600; color: var(--teal-deep); cursor: pointer; white-space: nowrap; }
+  .see { cursor: pointer; }
+
+  /* ── cards (teasers) ── */
+  .card { background: var(--white); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.1, 1), box-shadow 0.2s; }
+  a.card { display: block; color: inherit; text-decoration: none; }
+  @media (hover: hover) {
+    .card.tappable { cursor: pointer; }
+    .card.tappable:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: transparent; }
+  }
+  .lcard { background: var(--white); border: 1px solid var(--rule); border-radius: var(--r); }
+  .card-body { padding: 18px 20px; }
+  .card-row { display: flex; align-items: center; gap: 10px; }
+  .cards { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .tappable:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  /* ── chips ── */
+  .chip { flex-shrink: 0; padding: 9px 16px; border-radius: var(--r); border: 1px solid var(--rule); background: var(--white); font-size: 13px; font-weight: 600; color: var(--charcoal); cursor: pointer; white-space: nowrap; transition: all 0.14s; }
+  .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .chip:active { transform: scale(0.97); }
+
+  /* ── kv rows + status pills ── */
+  .kv { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .kv:last-of-type { border-bottom: none; }
+  .kv .k { width: 96px; flex-shrink: 0; }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--meta); }
+  .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--meta-soft); }
+  .status.active { color: var(--teal-deep); }
+  .status.active::before { background: var(--teal); box-shadow: 0 0 0 3px rgba(0, 148, 160, 0.18); }
+  .status.risk { color: var(--red); }
+  .status.risk::before { background: var(--red); box-shadow: 0 0 0 3px rgba(225, 29, 42, 0.14); }
+
+  /* ── modal shell ── */
+  .gate-modal { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0, 20, 27, 0.58); backdrop-filter: blur(4px); padding: var(--pad); align-items: flex-end; justify-content: center; }
+  .gate-modal.open { display: flex; animation: gateFade 0.2s ease; }
+  .gate-sheet { position: relative; width: 100%; max-width: 420px; padding: 32px 24px 24px; border-radius: var(--r) var(--r) 0 0; background: var(--paper); box-shadow: var(--shadow-lg); animation: gateUp 0.24s cubic-bezier(0.2, 0.8, 0.25, 1); }
+  .gate-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--meta); border-radius: 50%; }
+  .gate-close:hover { background: rgba(0, 20, 27, 0.06); color: var(--ink); }
+  @media (min-width: 1024px) {
+    .gate-modal { align-items: center; }
+    .gate-sheet { border-radius: var(--r); }
+  }
+
+  /* ── surfaces + screen shells (app.css) ── */
+  .s-paper { background: var(--paper); color: var(--ink); }
+  .s-white { background: var(--white); color: var(--ink); }
+  .s-cover {
+    color: var(--od1);
+    background:
+      radial-gradient(120% 80% at 0% 100%, rgba(0, 148, 160, 0.55) 0%, transparent 56%),
+      radial-gradient(110% 70% at 100% 0%, rgba(0, 148, 160, 0.4) 0%, transparent 50%),
+      linear-gradient(160deg, var(--ink) 0%, var(--navy) 55%, var(--forest) 120%);
+  }
+  .view { display: flex; min-height: 100svh; flex-direction: column; position: relative; animation: viewIn 0.18s cubic-bezier(0.2, 0.7, 0.1, 1); }
+  .vscroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .pad { padding-left: var(--pad); padding-right: var(--pad); }
+
+  /* ── onboarding shells: topbar / actionbar / sheet ── */
+  .topbar { flex-shrink: 0; padding: 10px var(--pad) 4px; display: flex; align-items: center; gap: 12px; min-height: 52px; }
+  .actionbar { flex-shrink: 0; padding: 14px var(--pad) max(18px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+  .light-bar { border-top: 1px solid var(--rule); background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(10px); }
+  .icon-btn { width: 42px; height: 42px; border-radius: var(--r); display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: inherit; flex-shrink: 0; }
+  .icon-btn:active { background: rgba(0, 0, 0, 0.06); }
+  .on-dark .icon-btn:active { background: rgba(255, 255, 255, 0.12); }
+  /* dvh (not svh) + the viewport meta's interactive-widget=resizes-content lets
+     the shell shrink when the mobile keyboard opens, keeping Continue visible. */
+  .onboard { height: 100dvh; overflow: hidden; }
+  .onboard .sheet { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--white); }
+
+  /* ── segmented progress ── */
+  .seg { display: flex; gap: 5px; flex: 1; align-items: center; }
+  .seg-bar { height: 3px; flex: 1; border-radius: 3px; background: rgba(255, 255, 255, 0.22); overflow: hidden; }
+  .seg-fill { display: block; height: 100%; width: 0; background: #fff; transition: width 0.35s ease; }
+  .seg-bar.done .seg-fill, .seg-bar.active .seg-fill { width: 100%; }
+  .light .seg-bar { background: var(--rule); }
+  .light .seg-fill { background: var(--teal); }
+
+  /* ── forms ── */
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .field label { font-size: 12px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--meta); line-height: 16px; }
+  .field input, .field select, .field textarea { background: var(--white); border: 1px solid var(--rule); border-radius: var(--r); color: var(--ink); font-size: 16px; line-height: 24px; padding: 14px 16px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0, 148, 160, 0.14); }
+  .field input::placeholder, .field textarea::placeholder { color: var(--meta-soft); }
+  .field textarea { resize: none; min-height: 104px; }
+  .field-grid { display: flex; flex-wrap: wrap; gap: 14px; }
+  .field-grid .field { flex: 1 1 100%; }
+  .field-grid .field.half { flex: 1 1 calc(50% - 7px); min-width: 150px; }
+  @media (max-width: 480px) {
+    .field-grid .field.half { flex-basis: 100%; }
+  }
+
+  /* ── flow (one question per screen) ── */
+  .flow-eyebrow { margin-bottom: 18px; }
+  .flow-q { margin-bottom: 14px; }
+  .flow-help { margin-bottom: 32px; max-width: 36ch; }
+  .flow-scroll { padding-bottom: 32px; }
+  .flow-emaillarge { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); padding: 18px 20px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--white); }
+  .flow-skip { text-align: center; }
+  .choice-list { display: flex; flex-direction: column; gap: 8px; }
+  .choice { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--white); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s; }
+  .choice:active { transform: scale(0.99); }
+  .choice.selected { border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+  .choice .c-main { flex: 1; }
+  .choice .c-label { font-size: 16px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em; line-height: 24px; }
+  .choice .c-sub { font-size: 13px; line-height: 18px; color: var(--meta); font-weight: 400; margin-top: 2px; }
+  .choice.gated { opacity: 0.5; cursor: not-allowed; }
+  .dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rule-ink); flex-shrink: 0; display: flex; align-items: center; justify-content: center; opacity: 0.4; transition: all 0.15s; }
+  .dot.square { border-radius: 7px; }
+  .dot svg { width: 13px; height: 13px; stroke: #fff; opacity: 0; transition: opacity 0.15s; }
+  .choice.selected .dot { background: var(--teal); border-color: var(--teal); opacity: 1; }
+  .choice.selected .dot svg { opacity: 1; }
+
+  /* ── role opt cards ── */
+  .opt-card { display: flex; gap: 14px; align-items: flex-start; padding: 20px; border-radius: var(--r); border: 1px solid var(--rule); background: var(--white); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+  .opt-card.selected { border-color: var(--teal); box-shadow: inset 0 0 0 1px var(--teal); }
+  .opt-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rule-ink); flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; opacity: 0.4; }
+  .opt-card.selected .opt-check { background: var(--teal); border-color: var(--teal); opacity: 1; }
+  .opt-check svg { width: 14px; height: 14px; stroke: #fff; opacity: 0; transition: opacity 0.15s; }
+  .opt-card.selected .opt-check svg { opacity: 1; }
+  .opt-card input { display: none; }
+
+  /* ── tags ── */
+  .tag-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tag-btn { padding: 10px 16px; border-radius: var(--r); border: 1px solid var(--rule); background: var(--white); color: var(--charcoal); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.14s; }
+  .tag-btn.active { border-color: var(--teal); background: rgba(0, 148, 160, 0.1); color: var(--teal-deep); }
+  .tag-btn:active { transform: scale(0.97); }
+
+  /* ── google ── */
+  .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; border-radius: var(--r); background: var(--ink); color: #fff; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; }
+  .google-btn:active { transform: scale(0.98); }
+
+  /* ── agreement scroll-gate — ANY agreement must be read to its end before
+        the agree/sign control activates (owner decision) ── */
+  .agree-scroll { max-height: 260px; overflow-y: auto; border: 1px solid var(--rule); border-radius: var(--r); background: var(--white); padding: 16px 18px; }
+  .agree-hint { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; line-height: 20px; color: var(--meta); }
+  .agree-hint.read { color: var(--teal-deep); font-weight: 600; }
+
+  /* ── "open by default" inline tag ── */
+  .open-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: var(--teal-deep); }
+  .open-tag svg { width: 14px; height: 14px; stroke: var(--teal-deep); fill: none; }
+}
+
+/* ── focus visibility — keyboard users get a visible position everywhere ── */
+.btn:focus-visible,
+.choice:focus-visible,
+.opt-card:focus-visible,
+.chip:focus-visible,
+.icon-btn:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* ── responsive type bumps (desktop) ── */
+@media (min-width: 1024px) {
+  .t-display { font-size: 76px; line-height: 80px; letter-spacing: -0.04em; }
+  .t-h1 { font-size: 48px; line-height: 52px; letter-spacing: -0.034em; }
+  .t-h2 { font-size: 34px; line-height: 40px; }
+  .t-h3 { font-size: 24px; line-height: 32px; }
+  .t-lede { font-size: 20px; line-height: 32px; }
+  .t-stat { font-size: 88px; line-height: 88px; }
+
+  /* onboarding light screens => centered sheet */
+  .onboard {
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    background: radial-gradient(120% 80% at 50% 0%, #fcfbf8 0%, var(--paper) 55%);
+  }
+  .onboard .sheet {
+    flex: none;
+    width: min(560px, 100%);
+    max-height: min(880px, 88vh);
+    background: var(--white);
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .onboard .light-bar { background: var(--white); }
+}
+
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes gateFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gateUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 /* Respect reduced motion */
