@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MessageSquarePlus, X, Send, ImagePlus, Loader2, Check } from "lucide-react";
+import { X, Send, ImagePlus, Loader2, Check } from "lucide-react";
 import { Button, Field, Textarea, Select } from "@/app/components/ui";
 
 const MAX_ATTACHMENTS = 3;
@@ -54,6 +54,14 @@ export default function FeedbackWidget() {
     setOpen(false);
     reset();
   }, [reset]);
+
+  // Opened from the app bar's avatar menu ("Send feedback") — the widget
+  // has no launcher of its own (prototype: feedback lives in the menu).
+  React.useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("olos:open-feedback", onOpen);
+    return () => window.removeEventListener("olos:open-feedback", onOpen);
+  }, []);
 
   // Close on Esc
   React.useEffect(() => {
@@ -144,18 +152,6 @@ export default function FeedbackWidget() {
 
   return (
     <>
-      {/* Floating launcher — subtle, parked bottom-right */}
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Send feedback"
-          className="fixed bottom-5 right-5 z-[55] inline-flex items-center gap-2 rounded-full border border-whisper bg-[rgba(42,49,66,0.92)] px-4 py-2.5 text-sm font-medium text-cloud/80 shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-all duration-150 ease-out hover:border-white/[0.16] hover:text-cloud hover:shadow-[0_6px_20px_rgba(0,0,0,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
-        >
-          <MessageSquarePlus className="h-4 w-4" aria-hidden />
-          <span className="hidden sm:inline">Feedback</span>
-        </button>
-      )}
-
       {open && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4"
@@ -165,29 +161,29 @@ export default function FeedbackWidget() {
         >
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-ink/60 backdrop-blur-sm"
             onClick={close}
             aria-hidden
           />
 
           {/* Dialog */}
-          <div className="relative w-full max-w-md rounded-xl border border-whisper bg-[rgba(42,49,66,0.98)] shadow-[0_16px_48px_rgba(0,0,0,0.55)]">
-            <div className="flex items-start justify-between gap-4 border-b border-whisper px-5 py-4">
+          <div className="relative w-full max-w-md rounded-card border border-ink/10 bg-white shadow-card-lg">
+            <div className="flex items-start justify-between gap-4 border-b border-ink/10 px-5 py-4">
               <div>
                 <h2
                   id="feedback-title"
-                  className="text-base font-semibold tracking-tight text-white"
+                  className="t-h4"
                 >
-                  Report a problem
+                  Send feedback
                 </h2>
-                <p className="mt-0.5 text-xs text-cloud/60">
+                <p className="mt-0.5 text-xs text-meta">
                   Tell us what went wrong. Screenshots help a lot.
                 </p>
               </div>
               <button
                 onClick={close}
                 aria-label="Close"
-                className="rounded-md p-1 text-cloud/60 transition-colors duration-150 hover:bg-white/[0.04] hover:text-cloud focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                className="rounded-card p-1 text-meta transition-colors duration-150 hover:bg-ink/[0.06] hover:text-ink"
               >
                 <X className="h-4 w-4" aria-hidden />
               </button>
@@ -195,11 +191,11 @@ export default function FeedbackWidget() {
 
             {done ? (
               <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal/20 text-aqua">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal/10 text-teal-deep">
                   <Check className="h-6 w-6" aria-hidden />
                 </span>
-                <p className="text-sm font-medium text-white">Thanks — we got it.</p>
-                <p className="text-xs text-cloud/60">Your feedback has been sent.</p>
+                <p className="text-sm font-medium text-ink">Thanks — we got it.</p>
+                <p className="text-xs text-meta">Your feedback has been sent.</p>
               </div>
             ) : (
               <div className="space-y-4 px-5 py-4">
@@ -247,7 +243,7 @@ export default function FeedbackWidget() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-white/[0.16] bg-white/[0.02] px-3 py-3 text-sm text-cloud/60 transition-colors duration-150 hover:border-teal/50 hover:text-cloud focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                      className="flex w-full items-center justify-center gap-2 rounded-card border border-dashed border-meta-soft px-3 py-3 text-sm text-meta transition-colors duration-150 hover:border-teal hover:text-ink"
                     >
                       <ImagePlus className="h-4 w-4" aria-hidden />
                       Click to attach images
@@ -258,7 +254,7 @@ export default function FeedbackWidget() {
                       {attachments.map((a, i) => (
                         <div
                           key={i}
-                          className="relative h-16 w-16 overflow-hidden rounded-md border border-whisper"
+                          className="relative h-16 w-16 overflow-hidden rounded-card border border-ink/10"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -270,7 +266,7 @@ export default function FeedbackWidget() {
                             type="button"
                             onClick={() => removeAttachment(i)}
                             aria-label={`Remove ${a.name}`}
-                            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-red"
+                            className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink/70 text-white transition-colors hover:bg-red"
                           >
                             <X className="h-3 w-3" aria-hidden />
                           </button>
@@ -281,7 +277,7 @@ export default function FeedbackWidget() {
                 </Field>
 
                 {error && (
-                  <p className="text-xs text-red-300" role="alert">
+                  <p className="text-xs text-red" role="alert">
                     {error}
                   </p>
                 )}

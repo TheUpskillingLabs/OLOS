@@ -8,18 +8,21 @@ type Variant =
   | "revoked"
   | "success";
 
-const styles: Record<Variant, { wrap: string; dot: string }> = {
-  active: { wrap: "bg-teal/20 text-aqua", dot: "bg-aqua" },
-  forming: { wrap: "bg-teal/10 text-teal", dot: "bg-teal" },
-  inactive: { wrap: "bg-white/10 text-cloud/60", dot: "bg-cloud/40" },
-  draft: { wrap: "bg-yellow-500/20 text-yellow-300", dot: "bg-yellow-300" },
-  revoked: { wrap: "bg-red/20 text-red-300", dot: "bg-red-300" },
-  success: { wrap: "bg-teal/20 text-aqua", dot: "bg-aqua" },
+// The prototype's .status grammar: a colored dot + an uppercase label — never
+// a pill (one-radius rule; genuine circles only). The dot is part of the
+// grammar, so withDot is accepted for API compatibility but always on.
+const variantClass: Record<Variant, string> = {
+  active: "status active",
+  success: "status active",
+  forming: "status forming",
+  inactive: "status",
+  draft: "status soon",
+  revoked: "status risk",
 };
 
 export function StatusBadge({
   variant,
-  withDot = false,
+  withDot: _withDot = false,
   children,
   className,
 }: {
@@ -28,14 +31,8 @@ export function StatusBadge({
   children: React.ReactNode;
   className?: string;
 }) {
-  const s = styles[variant];
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${s.wrap} ${className ?? ""}`}
-    >
-      {withDot && (
-        <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} aria-hidden />
-      )}
+    <span className={`${variantClass[variant]} ${className ?? ""}`}>
       {children}
     </span>
   );

@@ -13,17 +13,11 @@ export function StatCard({
 }) {
   return (
     <div
-      className={`rounded-md border border-whisper bg-white/[0.02] p-6 ${className ?? ""}`}
+      className={`rounded-card border border-ink/10 bg-white p-6 shadow-card ${className ?? ""}`}
     >
-      <div className="mb-2 text-xs font-medium uppercase tracking-widest text-cloud/40">
-        {label}
-      </div>
-      <div className="text-3xl font-bold tabular-nums tracking-tight text-white">
-        {value}
-      </div>
-      {sublabel && (
-        <div className="mt-2 text-xs text-cloud/60">{sublabel}</div>
-      )}
+      <div className="stat-lbl mb-2">{label}</div>
+      <div className="stat-num">{value}</div>
+      {sublabel && <div className="t-small mt-2">{sublabel}</div>}
     </div>
   );
 }
