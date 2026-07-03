@@ -7,6 +7,7 @@ import { StatusBadge } from "@/app/components/ui";
 // as the route; removing the feature = delete this block + the two folders.
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import CreateCycleForm from "./cycles/create-cycle-form";
+import SyncEventsButton from "./sync-events-button";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -77,6 +78,7 @@ export default async function AdminPage() {
               </span>
             </Link>
           )}
+          <SyncEventsButton />
           <CreateCycleForm />
         </div>
       </div>

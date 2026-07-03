@@ -22,6 +22,8 @@ export interface EventRow {
   body: string[] | null;
   gallery: string[] | null;
   anchor: boolean;
+  luma_url: string | null;
+  synced_at: string | null; // set = Luma-managed row (migration 00035)
 }
 
 export interface ResourceRow {
