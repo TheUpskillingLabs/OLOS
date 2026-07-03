@@ -18,7 +18,7 @@ export function Spinner({
     <span
       role="status"
       aria-label="Loading"
-      className={`inline-block animate-spin rounded-full border-2 border-white/10 border-t-teal ${sizeMap[size]} ${className ?? ""}`}
+      className={`inline-block animate-spin rounded-full border-2 border-ink/10 border-t-teal ${sizeMap[size]} ${className ?? ""}`}
     />
   );
 }

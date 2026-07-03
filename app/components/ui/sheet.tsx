@@ -64,35 +64,35 @@ export function Sheet({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-ink/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden
       />
 
       {/* Panel */}
       <div
-        className={`absolute right-0 top-0 flex h-full ${widthClass} flex-col border-l border-whisper bg-[rgba(42,49,66,0.98)] shadow-[-12px_0_32px_rgba(0,0,0,0.5)]`}
+        className={`absolute right-0 top-0 flex h-full ${widthClass} flex-col border-l border-ink/10 bg-paper shadow-[-12px_0_40px_rgba(0,20,27,0.2)]`}
       >
         {/* Header — only renders if a title is supplied */}
         {(title || description) && (
-          <div className="flex items-start justify-between gap-4 border-b border-whisper px-6 py-4">
+          <div className="flex items-start justify-between gap-4 border-b border-ink/10 bg-white px-6 py-4">
             <div className="min-w-0">
               {title && (
                 <h2
                   id="sheet-title"
-                  className="text-base font-semibold tracking-tight text-white"
+                  className="t-h4"
                 >
                   {title}
                 </h2>
               )}
               {description && (
-                <p className="mt-1 text-xs text-cloud/60">{description}</p>
+                <p className="mt-1 text-xs text-meta">{description}</p>
               )}
             </div>
             <button
               onClick={onClose}
               aria-label="Close"
-              className="rounded-md p-1 text-cloud/60 transition-colors duration-150 hover:bg-white/[0.04] hover:text-cloud focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              className="rounded-card p-1 text-meta transition-colors duration-150 hover:bg-ink/[0.06] hover:text-ink"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
@@ -104,7 +104,7 @@ export function Sheet({
 
         {/* Footer — sticky at bottom if provided */}
         {footer && (
-          <div className="border-t border-whisper bg-[rgba(42,49,66,0.98)] px-6 py-4">
+          <div className="border-t border-ink/10 bg-white px-6 py-4">
             {footer}
           </div>
         )}

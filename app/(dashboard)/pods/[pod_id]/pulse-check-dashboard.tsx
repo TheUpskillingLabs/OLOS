@@ -47,8 +47,8 @@ export default function PulseCheckDashboard({
 
   return (
     <div>
-      <hr className="mb-8 border-whisper" />
-      <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
+      <hr className="mb-8 border-ink/10" />
+      <h2 className="t-h3 mb-4 text-ink">
         Pulse checks
       </h2>
 
@@ -61,33 +61,33 @@ export default function PulseCheckDashboard({
         />
         <StatCard
           label="Avg energy"
-          value={<span className="text-aqua">{avgEnergy}</span>}
+          value={<span className="text-teal-deep">{avgEnergy}</span>}
           sublabel="out of 5"
         />
         <StatCard label="Members" value={members.length} />
       </div>
 
       {/* Per-member table */}
-      <div className="overflow-hidden rounded-md border border-whisper">
+      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-left text-sm">
-          <thead className="bg-white/[0.04]">
+          <thead className="bg-ink/[0.03]">
             <tr>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
+              <th className="lbl px-4 py-3">
                 Name
               </th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
+              <th className="lbl px-4 py-3">
                 Completed
               </th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
+              <th className="lbl px-4 py-3">
                 Last check
               </th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-cloud/60">
+              <th className="lbl px-4 py-3">
                 Avg energy
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60" />
+              <th className="lbl px-4 py-3 text-right" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-whisper">
+          <tbody className="divide-y divide-ink/10">
             {members.map((m) => {
               const completed = m.checks.filter((c) => c.completed_at).length;
               const lastCompleted = m.checks.find((c) => c.completed_at);
@@ -112,25 +112,25 @@ export default function PulseCheckDashboard({
                       onClick={() =>
                         setExpandedId(isExpanded ? null : m.participant_id)
                       }
-                      className="flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 hover:bg-white/[0.02] focus-visible:outline-none focus-visible:bg-white/[0.04]"
+                      className="flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:bg-ink/[0.04]"
                     >
-                      <span className="flex-1 font-medium text-cloud">
+                      <span className="flex-1 font-medium text-charcoal">
                         {m.name}
                       </span>
-                      <span className="w-24 text-cloud/60 tabular-nums">
+                      <span className="w-24 text-meta tabular-nums">
                         {completed} / {m.checks.length}
                       </span>
-                      <span className="w-32 text-cloud/60 tabular-nums">
+                      <span className="w-32 text-meta tabular-nums">
                         {lastCompleted
                           ? new Date(
                               lastCompleted.completed_at!
                             ).toLocaleDateString()
                           : "—"}
                       </span>
-                      <span className="w-24 text-cloud/60 tabular-nums">
+                      <span className="w-24 text-meta tabular-nums">
                         {memberAvgEnergy}
                       </span>
-                      <span className="w-8 text-right text-cloud/60">
+                      <span className="w-8 text-right text-meta">
                         <ChevronDown
                           className={`inline-block h-4 w-4 transition-transform duration-150 ease-spring ${isExpanded ? "rotate-180" : ""}`}
                           aria-hidden
@@ -138,9 +138,9 @@ export default function PulseCheckDashboard({
                       </span>
                     </button>
                     {isExpanded && (
-                      <div className="border-t border-whisper bg-white/[0.01] px-4 py-3">
+                      <div className="border-t border-ink/10 bg-ink/[0.02] px-4 py-3">
                         {m.checks.filter((c) => c.completed_at).length === 0 ? (
-                          <p className="text-sm text-cloud/60">
+                          <p className="text-sm text-meta">
                             No completed pulse checks yet.
                           </p>
                         ) : (
@@ -152,86 +152,86 @@ export default function PulseCheckDashboard({
                                 return (
                                   <div
                                     key={i}
-                                    className="rounded-md border border-whisper bg-white/[0.02] p-3"
+                                    className="rounded-card border border-ink/10 bg-white p-3"
                                   >
                                     <div className="mb-2 flex items-center justify-between">
-                                      <span className="text-xs font-medium tracking-tight text-aqua tabular-nums">
+                                      <span className="text-xs font-medium tracking-tight text-teal-deep tabular-nums">
                                         {new Date(
                                           c.scheduled_date
                                         ).toLocaleDateString()}
                                       </span>
                                       {r?.energy_level != null && (
-                                        <span className="rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua tabular-nums">
+                                        <span className="rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-deep tabular-nums">
                                           Energy: {String(r.energy_level)}/5
                                         </span>
                                       )}
                                     </div>
                                     {r?.accomplishment != null && (
                                       <div className="mb-1">
-                                        <span className="text-xs font-medium text-cloud/60">
+                                        <span className="text-xs font-medium text-meta">
                                           Accomplishment:{" "}
                                         </span>
-                                        <span className="text-sm text-white">
+                                        <span className="text-sm text-charcoal">
                                           {String(r.accomplishment)}
                                         </span>
                                       </div>
                                     )}
                                     {r?.highlight != null && (
                                       <div className="mb-1">
-                                        <span className="text-xs font-medium text-cloud/60">
+                                        <span className="text-xs font-medium text-meta">
                                           Highlight:{" "}
                                         </span>
-                                        <span className="text-sm text-white">
+                                        <span className="text-sm text-charcoal">
                                           {String(r.highlight)}
                                         </span>
                                       </div>
                                     )}
                                     {r?.challenge != null && (
                                       <div className="mb-1">
-                                        <span className="text-xs font-medium text-cloud/60">
+                                        <span className="text-xs font-medium text-meta">
                                           Challenge:{" "}
                                         </span>
-                                        <span className="text-sm text-white">
+                                        <span className="text-sm text-charcoal">
                                           {String(r.challenge)}
                                         </span>
                                       </div>
                                     )}
                                     {r?.blockers != null && (
                                       <div className="mb-1">
-                                        <span className="text-xs font-medium text-cloud/60">
+                                        <span className="text-xs font-medium text-meta">
                                           Blockers:{" "}
                                         </span>
-                                        <span className="text-sm text-white">
+                                        <span className="text-sm text-charcoal">
                                           {String(r.blockers)}
                                         </span>
                                       </div>
                                     )}
                                     {r?.tailwinds != null && (
                                       <div className="mb-1">
-                                        <span className="text-xs font-medium text-cloud/60">
+                                        <span className="text-xs font-medium text-meta">
                                           Tailwinds:{" "}
                                         </span>
-                                        <span className="text-sm text-white">
+                                        <span className="text-sm text-charcoal">
                                           {String(r.tailwinds)}
                                         </span>
                                       </div>
                                     )}
                                     {r?.mitigation_strategy != null && (
                                       <div className="mb-1">
-                                        <span className="text-xs font-medium text-cloud/60">
+                                        <span className="text-xs font-medium text-meta">
                                           Mitigation:{" "}
                                         </span>
-                                        <span className="text-sm text-white">
+                                        <span className="text-sm text-charcoal">
                                           {String(r.mitigation_strategy)}
                                         </span>
                                       </div>
                                     )}
                                     {c.nomination_count != null && c.nomination_count > 0 && (
                                       <div>
-                                        <span className="text-xs font-medium text-cloud/60">
+                                        <span className="text-xs font-medium text-meta">
                                           Nominations:{" "}
                                         </span>
-                                        <span className="text-sm text-aqua">
+                                        <span className="text-sm text-teal-deep">
                                           {c.nomination_count}
                                         </span>
                                       </div>

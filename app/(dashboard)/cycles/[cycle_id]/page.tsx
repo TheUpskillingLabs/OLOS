@@ -97,15 +97,15 @@ export default async function CycleDetailPage({
       <div className="mb-8">
         <Link
           href="/cycles"
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           All cycles
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           {cycle.name}
         </h1>
-        <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-cloud/60">
+        <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-meta">
           <span className="tabular-nums">
             {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
             {new Date(cycle.end_date).toLocaleDateString()}
@@ -121,18 +121,18 @@ export default async function CycleDetailPage({
             <Link
               key={w.route}
               href={`/cycles/${cycle.id}/${w.route}`}
-              className="group flex items-center justify-between gap-3 rounded-md border border-teal/20 bg-teal/[0.04] p-4 transition-colors duration-150 ease-out hover:border-teal/40 hover:bg-teal/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              className="group flex items-center justify-between gap-3 rounded-card border border-teal/30 bg-teal/10 p-4 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
             >
               <div className="flex items-center gap-3">
                 <span className="relative flex h-2 w-2" aria-hidden>
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-aqua opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-aqua" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
                 </span>
-                <span className="font-semibold tracking-tight text-white">
+                <span className="font-semibold tracking-tight text-ink">
                   {w.label}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-cloud/70">
+              <div className="flex items-center gap-2 text-sm text-slate">
                 <span className="tabular-nums">
                   closes{" "}
                   {new Date(w.closesAt).toLocaleDateString("en-US", {
@@ -141,7 +141,7 @@ export default async function CycleDetailPage({
                   })}
                 </span>
                 <ArrowRight
-                  className="h-4 w-4 text-aqua transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+                  className="h-4 w-4 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
                   aria-hidden
                 />
               </div>
@@ -155,25 +155,25 @@ export default async function CycleDetailPage({
         <div className="mb-8">
           <Link
             href="/pulse-check"
-            className="group flex items-center justify-between gap-3 rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors duration-150 ease-out hover:border-yellow-500/40 hover:bg-yellow-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-red bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
           >
             <div className="flex items-center gap-3">
               <Activity
-                className="h-5 w-5 flex-shrink-0 text-yellow-300"
+                className="h-5 w-5 flex-shrink-0 text-red"
                 aria-hidden
               />
               <div>
-                <span className="font-semibold tracking-tight text-white">
+                <span className="font-semibold tracking-tight text-ink">
                   Weekly pulse check
                 </span>
-                <p className="mt-0.5 text-sm text-cloud/60">
+                <p className="mt-0.5 text-sm text-meta">
                   Complete your weekly check-in to stay active and retain access
                   to GitHub, Google Docs, Slack, and Google Groups.
                 </p>
               </div>
             </div>
             <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-yellow-300 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              className="h-4 w-4 flex-shrink-0 text-red transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
               aria-hidden
             />
           </Link>
@@ -184,14 +184,14 @@ export default async function CycleDetailPage({
         <StatCard label="Total enrolled" value={enrollments?.length || 0} />
         <StatCard
           label="Active"
-          value={<span className="text-aqua">{activeCount}</span>}
+          value={<span className="text-teal-deep">{activeCount}</span>}
         />
         <StatCard label="Pods" value={pods?.length || 0} />
       </div>
 
       {pods && pods.length > 0 && (
         <div>
-          <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
+          <h2 className="t-h3 mb-4 text-ink">
             Pods
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -202,10 +202,10 @@ export default async function CycleDetailPage({
                 <Link
                   key={pod.id}
                   href={`/pods/${pod.id}`}
-                  className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                  className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold tracking-tight text-white">
+                    <span className="font-semibold tracking-tight text-ink">
                       {pod.name || `Pod ${pod.id}`}
                     </span>
                     <StatusBadge variant={variant}>{pod.status}</StatusBadge>

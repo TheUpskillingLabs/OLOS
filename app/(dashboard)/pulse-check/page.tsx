@@ -32,7 +32,7 @@ export default async function PulseCheckPage() {
 
   if (!participantId) {
     return (
-      <div className="mx-auto max-w-2xl py-10 text-center text-sm text-cloud/70">
+      <div className="mx-auto max-w-2xl py-10 text-center text-sm text-slate">
         {copy.page.notRegistered}
       </div>
     );
@@ -112,10 +112,10 @@ export default async function PulseCheckPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-2 text-2xl font-bold tracking-tight text-white">
+      <h1 className="t-h1 mb-2 text-ink">
         {copy.page.title}
       </h1>
-      <p className="mb-6 text-sm text-cloud/80">{copy.page.subtitle}</p>
+      <p className="mb-6 text-sm text-charcoal">{copy.page.subtitle}</p>
 
       <PulseCheckForm
         enforcement={enforcement}
@@ -128,7 +128,7 @@ export default async function PulseCheckPage() {
 
       {history && history.length > 0 && (
         <div className="mt-12">
-          <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
+          <h2 className="t-h3 mb-4 text-ink">
             {copy.history.title}
           </h2>
           <div className="space-y-3">
@@ -162,16 +162,16 @@ function HistoryCard({
   const mitigation = typeof r.mitigation_strategy === "string" ? r.mitigation_strategy : "";
 
   return (
-    <details className="group rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 hover:border-white/[0.12] hover:bg-white/[0.04] [&[open]>summary>span.chevron]:rotate-90">
+    <details className="group rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 hover:border-ink/20 hover:bg-ink/[0.02] [&[open]>summary>span.chevron]:rotate-90">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span
-            className="chevron inline-block text-cloud/60 transition-transform duration-150 ease-spring"
+            className="chevron inline-block text-meta transition-transform duration-150 ease-spring"
             aria-hidden
           >
             ›
           </span>
-          <span className="text-sm font-medium text-cloud">
+          <span className="text-sm font-medium text-charcoal">
             {new Date(entry.scheduled_date).toLocaleDateString("en-US", {
               weekday: "short",
               month: "short",
@@ -179,7 +179,7 @@ function HistoryCard({
             })}
           </span>
           {energy && (
-            <span className="rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua tabular-nums">
+            <span className="rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-deep tabular-nums">
               {copy.history.energyChip(
                 energy,
                 copy.reflection.energy.levels[energy - 1]
@@ -188,7 +188,7 @@ function HistoryCard({
           )}
         </div>
         {entry.completed_at && (
-          <span className="text-xs text-cloud/60 tabular-nums">
+          <span className="text-xs text-meta tabular-nums">
             {new Date(entry.completed_at).toLocaleTimeString("en-US", {
               hour: "numeric",
               minute: "2-digit",
@@ -196,34 +196,34 @@ function HistoryCard({
           </span>
         )}
       </summary>
-      <div className="mt-3 space-y-2 text-sm text-cloud/80">
+      <div className="mt-3 space-y-2 text-sm text-charcoal">
         {accomplishment && <p>{accomplishment}</p>}
         {highlight && (
-          <p className="text-cloud/60">
+          <p className="text-meta">
             <span className="font-medium">{copy.history.fields.highlight}:</span>{" "}
             {highlight}
           </p>
         )}
         {challenge && (
-          <p className="text-cloud/60">
+          <p className="text-meta">
             <span className="font-medium">{copy.history.fields.challenge}:</span>{" "}
             {challenge}
           </p>
         )}
         {blockers && (
-          <p className="text-cloud/60">
+          <p className="text-meta">
             <span className="font-medium">{copy.history.fields.blockers}:</span>{" "}
             {blockers}
           </p>
         )}
         {tailwinds && (
-          <p className="text-cloud/60">
+          <p className="text-meta">
             <span className="font-medium">{copy.history.fields.tailwinds}:</span>{" "}
             {tailwinds}
           </p>
         )}
         {mitigation && (
-          <p className="text-cloud/60">
+          <p className="text-meta">
             <span className="font-medium">
               {copy.history.fields.mitigation}:
             </span>{" "}

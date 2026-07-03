@@ -9,28 +9,32 @@ import {
 
 type Variant = "warning" | "success" | "error" | "info";
 
+// The prototype's .gate-banner grammar: a white card with a 4px colored left
+// edge. Brand palette carries two semantic hues — teal (good/informational)
+// and red (risk/required) — so warning/error take the red edge and
+// success/info the teal one; the icon keeps the finer distinction.
 const styles: Record<
   Variant,
-  { wrap: string; title: string; icon: LucideIcon }
+  { edge: string; title: string; icon: LucideIcon }
 > = {
   warning: {
-    wrap: "border-yellow-500/30 bg-yellow-500/[0.06]",
-    title: "text-yellow-300",
+    edge: "border-l-red",
+    title: "text-ink",
     icon: AlertTriangle,
   },
   success: {
-    wrap: "border-teal/20 bg-teal/10",
-    title: "text-aqua",
+    edge: "border-l-teal",
+    title: "text-teal-deep",
     icon: CheckCircle2,
   },
   error: {
-    wrap: "border-red/20 bg-red/10",
-    title: "text-red-300",
+    edge: "border-l-red",
+    title: "text-red",
     icon: XCircle,
   },
   info: {
-    wrap: "border-teal/20 bg-teal/[0.04]",
-    title: "text-aqua",
+    edge: "border-l-teal",
+    title: "text-teal-deep",
     icon: Info,
   },
 };
@@ -54,7 +58,7 @@ export function AlertBanner({
   const Icon = IconOverride ?? s.icon;
   return (
     <div
-      className={`flex items-start gap-3 rounded-md border p-4 ${s.wrap} ${className ?? ""}`}
+      className={`flex items-start gap-3 rounded-card border border-ink/10 border-l-4 bg-white p-4 shadow-card ${s.edge} ${className ?? ""}`}
       role={variant === "error" ? "alert" : "status"}
     >
       <Icon className={`h-5 w-5 flex-shrink-0 ${s.title}`} aria-hidden />
@@ -63,7 +67,7 @@ export function AlertBanner({
           <div className={`text-sm font-semibold ${s.title}`}>{title}</div>
         )}
         {children && (
-          <div className={`text-sm text-cloud/80 ${title ? "mt-1" : ""}`}>
+          <div className={`text-sm text-charcoal ${title ? "mt-1" : ""}`}>
             {children}
           </div>
         )}

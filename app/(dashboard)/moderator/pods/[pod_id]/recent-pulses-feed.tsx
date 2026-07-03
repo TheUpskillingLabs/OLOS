@@ -82,11 +82,11 @@ export function RecentPulsesFeed({ podId }: { podId: number }) {
   };
 
   if (state.kind === "loading") {
-    return <div className="text-sm text-cloud/60">Loading pulses…</div>;
+    return <div className="text-sm text-meta">Loading pulses…</div>;
   }
   if (state.kind === "error") {
     return (
-      <div className="rounded-md border border-red-500/30 bg-red-500/[0.06] p-4 text-sm text-red-300">
+      <div className="rounded-card border border-red/25 bg-red/[0.04] p-4 text-sm text-red">
         Couldn&apos;t load recent pulses: {state.message}
       </div>
     );
@@ -99,7 +99,7 @@ export function RecentPulsesFeed({ podId }: { podId: number }) {
 
   if (payload.pulses.length === 0) {
     return (
-      <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center text-sm text-cloud/60">
+      <div className="rounded-card border border-ink/10 bg-white p-6 text-center text-sm text-meta">
         No submitted pulses in this pod yet.
       </div>
     );
@@ -115,7 +115,7 @@ export function RecentPulsesFeed({ podId }: { podId: number }) {
         <button
           onClick={loadMore}
           disabled={isLoadingMore}
-          className="w-full rounded-md border border-whisper bg-white/[0.02] py-2 text-xs text-aqua transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-card border border-ink/10 bg-white py-2 text-xs text-teal-deep transition-colors hover:bg-ink/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoadingMore ? "Loading…" : "Load older"}
         </button>
@@ -134,10 +134,10 @@ function FeedCard({ pulse }: { pulse: RecentPulse }) {
       }}
       header={
         <div className="flex items-center gap-3">
-          <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-white/[0.08] text-xs font-semibold text-cloud">
+          <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-teal text-xs font-semibold text-white">
             {pulse.initials}
           </div>
-          <div className="text-sm font-medium text-white">
+          <div className="text-sm font-medium text-ink">
             {pulse.display_name}
           </div>
         </div>

@@ -130,67 +130,67 @@ export function CycleScheduleForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="mb-6 rounded-md border border-whisper bg-white/[0.02] p-4">
-        <h3 className="mb-3 text-sm font-semibold tracking-tight text-cloud">
+      <div className="mb-6 rounded-card border border-ink/10 bg-white p-4 shadow-card">
+        <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">
           Cycle Phases
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="phase_2_start" className="mb-1 block text-sm text-cloud/60">
+            <label htmlFor="phase_2_start" className="mb-1 block text-sm text-meta">
               Meet The Pods (Phase 1 &rarr; 2)
             </label>
             <input
               id="phase_2_start"
               type="datetime-local"
               {...register("phase_2_start")}
-              className="block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              className="block w-full rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </div>
           <div>
-            <label htmlFor="phase_3_start" className="mb-1 block text-sm text-cloud/60">
+            <label htmlFor="phase_3_start" className="mb-1 block text-sm text-meta">
               Meet The Projects (Phase 2 &rarr; 3)
             </label>
             <input
               id="phase_3_start"
               type="datetime-local"
               {...register("phase_3_start")}
-              className="block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              className="block w-full rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </div>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border border-whisper">
+      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-sm">
-          <thead className="bg-white/[0.04]">
+          <thead className="bg-ink/[0.02]">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+              <th className="lbl px-4 py-3 text-left">
                 Phase
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+              <th className="lbl px-4 py-3 text-left">
                 Opens (UTC)
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+              <th className="lbl px-4 py-3 text-left">
                 Closes (UTC)
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-whisper">
+          <tbody className="divide-y divide-ink/10">
             {PHASES.map((phase) => (
-              <tr key={phase.label} className="transition-colors duration-150 hover:bg-white/[0.02]">
-                <td className="px-4 py-3 font-medium text-cloud">{phase.label}</td>
+              <tr key={phase.label} className="transition-colors duration-150 hover:bg-ink/[0.02]">
+                <td className="px-4 py-3 font-medium text-ink">{phase.label}</td>
                 <td className="px-4 py-3">
                   <input
                     type="datetime-local"
                     {...register(phase.open as ScheduleKey)}
-                    className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                    className="rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </td>
                 <td className="px-4 py-3">
                   <input
                     type="datetime-local"
                     {...register(phase.close as ScheduleKey)}
-                    className="rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                    className="rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </td>
               </tr>
@@ -202,13 +202,13 @@ export function CycleScheduleForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Saving…" : "Save Schedule"}
         </button>
-        {saved && <span className="text-sm font-medium text-aqua">Saved.</span>}
+        {saved && <span className="text-sm font-medium text-teal-deep">Saved.</span>}
         {serverError && (
-          <span role="alert" className="text-sm text-red-300">{serverError}</span>
+          <span role="alert" className="text-sm text-red">{serverError}</span>
         )}
       </div>
     </form>
@@ -293,13 +293,13 @@ export function CycleParamsForm({
       <div className="grid gap-8 sm:grid-cols-2">
         {PARAM_GROUPS.map((group) => (
           <div key={group.heading}>
-            <h3 className="mb-3 text-sm font-semibold tracking-tight text-cloud">
+            <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">
               {group.heading}
             </h3>
             <div className="space-y-3">
               {group.fields.map((field) => (
                 <div key={field.name} className="flex items-center justify-between gap-4">
-                  <label htmlFor={field.name} className="text-sm text-cloud/60">
+                  <label htmlFor={field.name} className="text-sm text-meta">
                     {field.label}
                   </label>
                   <input
@@ -307,7 +307,7 @@ export function CycleParamsForm({
                     type="number"
                     min={0}
                     {...register(field.name as ParamKey)}
-                    className="w-20 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-right text-sm tabular-nums text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                    className="w-20 rounded-card border border-ink/10 bg-white px-2 py-1 text-right text-base tabular-nums text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />
                 </div>
               ))}
@@ -319,13 +319,13 @@ export function CycleParamsForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Saving…" : "Save Parameters"}
         </button>
-        {saved && <span className="text-sm font-medium text-aqua">Saved.</span>}
+        {saved && <span className="text-sm font-medium text-teal-deep">Saved.</span>}
         {serverError && (
-          <span role="alert" className="text-sm text-red-300">{serverError}</span>
+          <span role="alert" className="text-sm text-red">{serverError}</span>
         )}
       </div>
     </form>

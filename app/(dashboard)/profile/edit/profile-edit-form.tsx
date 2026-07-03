@@ -162,13 +162,13 @@ export default function ProfileEditForm({
         </FormField>
 
         {serverError && (
-          <p className="rounded-md border border-red/30 bg-red/10 px-3 py-2 text-sm text-red-300">
+          <p className="rounded-card border border-red/30 bg-red/10 px-3 py-2 text-sm text-red">
             {serverError}
           </p>
         )}
 
         {saved && !required && (
-          <p className="rounded-md border border-aqua/30 bg-aqua/10 px-3 py-2 text-sm text-aqua">
+          <p className="rounded-card border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal-deep">
             Saved.{" "}
             <Link href="/profile" className="underline">
               Back to profile
@@ -180,7 +180,7 @@ export default function ProfileEditForm({
           {!required && (
             <Link
               href="/profile"
-              className="text-sm text-cloud/70 underline-offset-2 hover:text-white hover:underline"
+              className="text-sm text-slate underline-offset-2 hover:text-ink hover:underline"
             >
               Cancel
             </Link>
@@ -188,7 +188,7 @@ export default function ProfileEditForm({
           <button
             type="submit"
             disabled={isSubmitting || (!isDirty && !required)}
-            className="ml-auto inline-flex items-center justify-center rounded-md bg-teal px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-teal/80 focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 focus:ring-offset-shadow-teal disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn btn-teal ml-auto px-4 py-2 text-sm"
           >
             {isSubmitting
               ? "Saving…"

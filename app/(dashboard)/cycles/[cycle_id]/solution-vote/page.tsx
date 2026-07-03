@@ -80,25 +80,25 @@ export default async function SolutionVotePage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           Vote on projects
         </h1>
-        <p className="mt-1 text-sm text-cloud/80">
+        <p className="mt-1 text-sm text-charcoal">
           Allocate your votes to the projects you want your pod to build. Submit
           your full ballot at once.
         </p>
       </div>
 
       {!isOpen ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">Project voting is not currently open.</p>
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">Project voting is not currently open.</p>
           {openAt && now < openAt && (
-            <p className="mt-2 text-sm text-cloud/60 tabular-nums">
+            <p className="mt-2 text-sm text-meta tabular-nums">
               Opens{" "}
               {openAt.toLocaleDateString("en-US", {
                 month: "short",
@@ -110,23 +110,23 @@ export default async function SolutionVotePage({
           )}
         </div>
       ) : myPods.length === 0 ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             You are not a member of any pods in this cycle.
           </p>
           <Link
             href={`/cycles/${cycle.id}`}
-            className="mt-2 inline-block text-sm font-semibold tracking-tight text-aqua transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:text-white"
+            className="mt-2 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
           >
             View cycle &rarr;
           </Link>
         </div>
       ) : !hasSubmitted ? (
-        <div className="rounded-md border border-whisper bg-white/[0.03] p-6">
-          <p className="font-semibold tracking-tight text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
+          <p className="font-semibold tracking-tight text-charcoal">
             Voting is underway.
           </p>
-          <p className="mt-2 text-sm text-cloud/60">
+          <p className="mt-2 text-sm text-meta">
             You didn&apos;t submit a project, so you&apos;re not eligible to
             vote in this phase. You can still register for one of the
             shortlisted projects when registration opens.

@@ -53,27 +53,27 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="rounded-lg border border-whisper bg-white/[0.02] p-6 sm:p-8">
-        <header className="border-b border-whisper pb-4">
-          <h1 className="text-xl font-semibold text-white">
+      <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card sm:p-8">
+        <header className="border-b border-ink/10 pb-4">
+          <h1 className="t-h2 text-ink">
             {required
               ? "Complete your profile to continue"
               : "Edit profile"}
           </h1>
           {required && placeholder && (
-            <p className="mt-2 text-sm text-cloud/80">
+            <p className="mt-2 text-sm text-charcoal">
               We don&apos;t have your name on file yet. Please enter your
               first and last name below — you&apos;ll be returned to where
               you were headed once we save it.
             </p>
           )}
           {required && !placeholder && (
-            <p className="mt-2 text-sm text-cloud/80">
+            <p className="mt-2 text-sm text-charcoal">
               Please review and confirm your profile to continue.
             </p>
           )}
           {!required && (
-            <p className="mt-2 text-sm text-cloud/70">
+            <p className="mt-2 text-sm text-slate">
               Update your name and how you&apos;d like to be addressed.
             </p>
           )}

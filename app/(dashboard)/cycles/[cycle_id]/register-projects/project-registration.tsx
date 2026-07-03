@@ -99,8 +99,8 @@ export default function ProjectRegistration({
 
   if (projects.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-whisper bg-white/[0.01] p-12 text-center">
-        <p className="text-sm text-cloud/60">
+      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+        <p className="text-sm text-meta">
           No projects available for registration yet.
         </p>
       </div>
@@ -117,15 +117,15 @@ export default function ProjectRegistration({
   return (
     <div className="space-y-6">
       {currentProjectId && (
-        <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-4">
-          <p className="text-xs font-medium uppercase tracking-widest text-cloud/60">
+        <div className="rounded-card border border-teal bg-white p-4 shadow-[inset_0_0_0_1px_var(--teal)]">
+          <p className="lbl">
             Currently registered for
           </p>
-          <p className="mt-1 font-semibold tracking-tight text-white">
+          <p className="mt-1 font-semibold tracking-tight text-ink">
             {projects.find((p) => p.id === currentProjectId)?.name ||
               `Project ${currentProjectId}`}
           </p>
-          <p className="mt-1 text-xs text-cloud/60">
+          <p className="mt-1 text-xs text-meta">
             You can only be in one project per cycle. Withdraw to switch.
           </p>
         </div>
@@ -134,13 +134,13 @@ export default function ProjectRegistration({
       {error && (
         <p
           role="alert"
-          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-card border border-red/20 bg-red/10 px-3 py-2 text-sm text-red"
         >
           {error}
         </p>
       )}
       {successMsg && (
-        <p className="rounded-md border border-teal/20 bg-teal/10 px-3 py-2 text-sm text-aqua">
+        <p className="rounded-card border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal-deep">
           {successMsg}
         </p>
       )}
@@ -149,7 +149,7 @@ export default function ProjectRegistration({
         const podId = parseInt(podIdStr, 10);
         return (
           <div key={podId}>
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
+            <h2 className="lbl mb-3">
               {getPodName(podId)}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -160,18 +160,18 @@ export default function ProjectRegistration({
                 return (
                   <div
                     key={project.id}
-                    className={`rounded-md border p-4 transition-colors duration-150 ${
+                    className={`rounded-card border bg-white p-4 transition-colors duration-150 ${
                       isRegistered
-                        ? "border-teal/30 bg-teal/[0.04]"
-                        : "border-whisper bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]"
+                        ? "border-teal shadow-[inset_0_0_0_1px_var(--teal)]"
+                        : "border-ink/10 shadow-card hover:border-ink/20"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold tracking-tight text-white">
+                        <p className="font-semibold tracking-tight text-ink">
                           {project.name || `Project ${project.id}`}
                         </p>
-                        <p className="mt-0.5 text-xs text-cloud/60 tabular-nums">
+                        <p className="mt-0.5 text-xs text-meta tabular-nums">
                           {memberCount} / {projectMax} member
                           {projectMax !== 1 ? "s" : ""} &middot; {project.status}
                         </p>
@@ -180,12 +180,12 @@ export default function ProjectRegistration({
                         <button
                           onClick={() => withdrawFromProject(project.id)}
                           disabled={actionId !== null}
-                          className="rounded ring-1 ring-whisper px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                          className="rounded-card ring-1 ring-ink/10 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                         >
                           {actionId === project.id ? "..." : "Withdraw"}
                         </button>
                       ) : isFull ? (
-                        <span className="rounded bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-tight text-cloud/50">
+                        <span className="rounded-card bg-ink/[0.04] px-3 py-2 text-xs font-medium tracking-tight text-meta">
                           Project full
                         </span>
                       ) : (
@@ -194,7 +194,7 @@ export default function ProjectRegistration({
                           disabled={
                             actionId !== null || currentProjectId !== null
                           }
-                          className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                          className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                         >
                           {actionId === project.id ? "..." : "Join"}
                         </button>

@@ -55,15 +55,15 @@ export default function CycleStatusForm({
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <span className="text-sm text-cloud/80">
+      <span className="text-sm text-charcoal">
         Current status:{" "}
         <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          className={`status ${
             currentStatus === "active"
-              ? "bg-teal/20 text-aqua"
+              ? "active"
               : currentStatus === "closed"
-                ? "bg-white/10 text-cloud/60"
-                : "bg-yellow-500/20 text-yellow-300"
+                ? ""
+                : "soon"
           }`}
         >
           {currentStatus}
@@ -74,22 +74,22 @@ export default function CycleStatusForm({
         <button
           onClick={advance}
           disabled={loading}
-          className={`rounded-md px-4 py-2 text-sm font-semibold tracking-tight transition-all duration-150 ease-spring active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
+          className={`btn px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
             nextStatus === "closed"
-              ? "bg-red text-white shadow-[0_2px_8px_rgba(238,28,37,0.18)] hover:bg-crimson focus-visible:ring-red"
-              : "bg-teal text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] hover:bg-teal/80 focus-visible:ring-teal"
+              ? "btn-red"
+              : "btn-teal"
           }`}
         >
           {loading ? "Updating…" : BUTTON_LABELS[nextStatus]}
         </button>
       ) : (
-        <span className="text-sm text-cloud/60">
+        <span className="text-sm text-meta">
           Cycle is closed — no further transitions.
         </span>
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-red-300">
+        <p role="alert" className="text-sm text-red">
           {error}
         </p>
       )}

@@ -9,7 +9,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-cloud/75"
+      className="mb-4 flex flex-wrap items-center gap-1.5 text-sm text-slate"
     >
       {items.map((item, i) => {
         const isLast = i === items.length - 1;
@@ -18,15 +18,15 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
             {item.href && !isLast ? (
               <Link
                 href={item.href}
-                className="text-aqua/90 transition-colors duration-150 hover:text-aqua hover:brightness-110 focus-visible:text-aqua focus-visible:outline-none"
+                className="text-teal-deep transition-colors duration-150 hover:text-teal-deep hover:brightness-110 focus-visible:text-teal-deep focus-visible:outline-none"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className={isLast ? "font-medium text-white" : undefined}>{item.label}</span>
+              <span className={isLast ? "font-medium text-ink" : undefined}>{item.label}</span>
             )}
             {!isLast && (
-              <span aria-hidden className="text-cloud/30">
+              <span aria-hidden className="text-meta-soft">
                 ›
               </span>
             )}

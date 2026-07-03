@@ -16,16 +16,12 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-md border border-dashed border-whisper bg-white/[0.01] p-12 text-center ${className ?? ""}`}
+      className={`flex flex-col items-center justify-center rounded-card border border-dashed border-meta-soft p-12 text-center ${className ?? ""}`}
     >
-      {Icon && (
-        <Icon className="mb-4 h-12 w-12 text-cloud/30" aria-hidden />
-      )}
-      <h3 className="mb-2 text-lg font-semibold tracking-tight text-cloud">
-        {title}
-      </h3>
+      {Icon && <Icon className="mb-4 h-12 w-12 text-meta-soft" aria-hidden />}
+      <h3 className="t-h4 mb-2">{title}</h3>
       {description && (
-        <p className="mb-6 max-w-md text-sm text-cloud/60">{description}</p>
+        <p className="t-small mb-6 max-w-md">{description}</p>
       )}
       {action}
     </div>

@@ -63,19 +63,19 @@ export function Switcher({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex items-center gap-2 rounded-md border border-whisper bg-white/[0.02] px-3 py-1.5 text-sm text-cloud transition-colors hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+        className="inline-flex items-center gap-2 rounded-card border border-ink/10 bg-white px-3 py-1.5 text-sm text-charcoal shadow-card transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
       >
-        <span className="text-xs uppercase tracking-widest text-cloud/60">
+        <span className="text-xs uppercase tracking-widest text-meta">
           View
         </span>
-        <span className="font-medium text-white">{currentLabel}</span>
-        <ChevronDown className="h-3.5 w-3.5 text-cloud/60" />
+        <span className="font-medium text-ink">{currentLabel}</span>
+        <ChevronDown className="h-3.5 w-3.5 text-meta" />
       </button>
 
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 top-full z-40 mt-1 min-w-[240px] overflow-hidden rounded-md border border-whisper bg-[rgba(42,49,66,0.98)] py-1 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-1 min-w-[240px] overflow-hidden rounded-card border border-ink/10 bg-white py-1 shadow-card-lg"
         >
           {showAllPods && (
             <SwitcherItem
@@ -117,8 +117,8 @@ function SwitcherItem({
       onClick={onClick}
       role="option"
       aria-selected={selected}
-      className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-sm transition-colors hover:bg-white/[0.04] ${
-        selected ? "text-aqua" : "text-cloud/85"
+      className={`flex w-full items-center justify-between px-3 py-1.5 text-left text-sm transition-colors hover:bg-ink/[0.04] ${
+        selected ? "text-teal-deep" : "text-charcoal"
       }`}
     >
       <span className="truncate">{label}</span>

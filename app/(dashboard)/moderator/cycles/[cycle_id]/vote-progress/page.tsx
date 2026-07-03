@@ -129,22 +129,22 @@ export default async function ModeratorVoteProgressPage({
       <div className="mb-8">
         <Link
           href="/moderator"
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Moderator
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           Vote progress
         </h1>
-        <p className="mt-1 text-sm text-cloud/80">
+        <p className="mt-1 text-sm text-charcoal">
           {cycle.name} — per-project vote tallies. Aggregate only; individual
           ballots are not shown.
         </p>
         {openAt && closeAt && (
           <p
             className={`mt-2 text-xs tabular-nums ${
-              isOpen ? "text-aqua" : "text-cloud/60"
+              isOpen ? "text-teal-deep" : "text-meta"
             }`}
           >
             {isOpen
@@ -167,8 +167,8 @@ export default async function ModeratorVoteProgressPage({
       </div>
 
       {podData.length === 0 ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             No pods to display for this cycle.
             {!isAdmin(userRoles) && " You are not assigned to any pods here."}
           </p>
@@ -183,57 +183,57 @@ export default async function ModeratorVoteProgressPage({
             return (
               <section key={pod.pod_id}>
                 <header className="mb-3 flex items-baseline justify-between gap-3">
-                  <h2 className="text-lg font-semibold tracking-tight text-white">
+                  <h2 className="t-h3 text-ink">
                     {pod.pod_name}
                   </h2>
-                  <p className="text-xs text-cloud/60 tabular-nums">
+                  <p className="text-xs text-meta tabular-nums">
                     {pod.ballot_count} ballot
                     {pod.ballot_count === 1 ? "" : "s"} submitted
                   </p>
                 </header>
 
                 {pod.proposals.length === 0 ? (
-                  <p className="rounded-md border border-dashed border-whisper bg-white/[0.01] p-6 text-center text-sm text-cloud/60">
+                  <p className="rounded-card border border-dashed border-meta-soft p-6 text-center text-sm text-meta">
                     No projects submitted in this pod.
                   </p>
                 ) : (
-                  <div className="overflow-hidden rounded-md border border-whisper">
+                  <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
                     <table className="w-full text-sm">
-                      <thead className="bg-white/[0.04]">
+                      <thead className="bg-ink/[0.02]">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                          <th className="lbl px-4 py-3 text-left">
                             Project
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                          <th className="lbl px-4 py-3 text-left">
                             Summary
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60">
+                          <th className="lbl px-4 py-3 text-right">
                             Votes
                           </th>
                           <th className="w-32 px-4 py-3" aria-hidden />
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-whisper">
+                      <tbody className="divide-y divide-ink/10">
                         {pod.proposals.map((p) => {
                           const widthPct =
                             maxVotes > 0 ? (p.total_votes / maxVotes) * 100 : 0;
                           return (
                             <tr
                               key={p.id}
-                              className="transition-colors duration-150 hover:bg-white/[0.02]"
+                              className="transition-colors duration-150 hover:bg-ink/[0.02]"
                             >
-                              <td className="px-4 py-3 font-medium text-white">
+                              <td className="px-4 py-3 font-medium text-ink">
                                 {p.name || "Untitled"}
                               </td>
-                              <td className="max-w-md truncate px-4 py-3 text-cloud/70">
+                              <td className="max-w-md truncate px-4 py-3 text-slate">
                                 {p.summary || ""}
                               </td>
-                              <td className="px-4 py-3 text-right font-semibold tabular-nums text-aqua">
+                              <td className="px-4 py-3 text-right font-semibold tabular-nums text-teal-deep">
                                 {p.total_votes}
                               </td>
                               <td className="w-32 px-4 py-3">
                                 <div
-                                  className="h-2 overflow-hidden rounded-full bg-white/[0.05]"
+                                  className="h-2 overflow-hidden rounded-full bg-ink/[0.06]"
                                   aria-hidden
                                 >
                                   <div

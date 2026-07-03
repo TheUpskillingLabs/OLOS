@@ -120,28 +120,28 @@ export default async function RegisterProjectsPage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           Register for a project
         </h1>
-        <p className="mt-1 text-sm text-cloud/80">
+        <p className="mt-1 text-sm text-charcoal">
           Join any project in this cycle. You can register for one project per
           cycle.
         </p>
       </div>
 
       {!isOpen ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             Project registration is not currently open.
           </p>
           {config?.project_registration_open &&
             now < new Date(config.project_registration_open) && (
-              <p className="mt-2 text-sm text-cloud/60 tabular-nums">
+              <p className="mt-2 text-sm text-meta tabular-nums">
                 Opens{" "}
                 {new Date(config.project_registration_open).toLocaleDateString(
                   "en-US",
@@ -151,13 +151,13 @@ export default async function RegisterProjectsPage({
             )}
         </div>
       ) : !enrollmentActive ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             You are not an active participant in this cycle.
           </p>
           <Link
             href={`/cycles/${cycle.id}`}
-            className="mt-2 inline-block text-sm font-semibold tracking-tight text-aqua transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:text-white"
+            className="mt-2 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
           >
             View cycle &rarr;
           </Link>

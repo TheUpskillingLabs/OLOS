@@ -21,17 +21,17 @@ export function EntityDetail({ result }: { result: FetchDetailResult }) {
   return (
     <div>
       {/* Base row header */}
-      <div className="mb-4 rounded-lg border border-teal/40 bg-gradient-to-br from-teal/20 to-teal/5 p-5">
+      <div className="mb-4 rounded-card border border-teal/40 bg-gradient-to-br from-teal/10 to-white p-5 shadow-card">
         <div className="flex flex-wrap items-baseline gap-3">
-          <span className="text-lg font-bold text-white">{title}</span>
-          <span className="rounded-full bg-teal/25 px-2 py-0.5 text-xs font-medium text-aqua">
+          <span className="text-lg font-bold text-ink">{title}</span>
+          <span className="rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-deep">
             {config.label} #{id}
           </span>
         </div>
         <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
           {config.columns.map((c) => (
             <div key={c} className="flex flex-col">
-              <dt className="text-[11px] font-semibold uppercase tracking-wider text-aqua/70">
+              <dt className="text-[11px] font-semibold uppercase tracking-wider text-teal-deep">
                 {c}
               </dt>
               <dd className="text-sm">{renderCell(c, baseRow, config, foreignKeyLabels)}</dd>
@@ -40,13 +40,13 @@ export function EntityDetail({ result }: { result: FetchDetailResult }) {
         </dl>
       </div>
 
-      <p className="mb-4 text-sm text-cloud/70">
+      <p className="mb-4 text-sm text-slate">
         Base row up top; every table that references this record is rendered below as
         its own section, assembled from the registry&rsquo;s reverse relations.
       </p>
 
       {relations.length === 0 ? (
-        <p className="text-sm text-cloud/50">
+        <p className="text-sm text-meta">
           This entity declares no reverse relations.
         </p>
       ) : (
@@ -65,14 +65,14 @@ function RelationCard({ rel }: { rel: RelationResult }) {
   const empty = total === 0;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
-      <div className="flex items-center gap-2 border-b border-teal/20 bg-teal/15 px-4 py-2.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-aqua">
+    <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+      <div className="flex items-center gap-2 border-b border-teal/20 bg-teal/10 px-4 py-2.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-teal-deep">
           {relation.label}
         </span>
         <span
-          className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold ${
-            empty ? "bg-white/10 text-cloud/50" : "bg-teal/30 text-aqua"
+          className={`ml-auto rounded-sm px-2 py-0.5 text-[10px] font-bold ${
+            empty ? "bg-ink/[0.06] text-meta" : "bg-teal/15 text-teal-deep"
           }`}
         >
           {total}
@@ -80,25 +80,25 @@ function RelationCard({ rel }: { rel: RelationResult }) {
       </div>
 
       {empty ? (
-        <p className="px-4 py-4 text-xs italic text-cloud/45">No related rows.</p>
+        <p className="px-4 py-4 text-xs italic text-meta">No related rows.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-white/[0.03]">
+            <thead className="bg-ink/[0.02]">
               <tr>
                 {config.columns.map((c) => (
                   <th
                     key={c}
-                    className="whitespace-nowrap px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-aqua/70"
+                    className="whitespace-nowrap px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-teal-deep"
                   >
                     {c}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-ink/10">
               {rows.map((row, i) => (
-                <tr key={String(row.id ?? i)} className="transition-colors hover:bg-teal/[0.07]">
+                <tr key={String(row.id ?? i)} className="transition-colors hover:bg-ink/[0.02]">
                   {config.columns.map((c) => (
                     <td key={c} className="px-3 py-2 align-top">
                       {renderCell(c, row, config, foreignKeyLabels)}
@@ -109,7 +109,7 @@ function RelationCard({ rel }: { rel: RelationResult }) {
             </tbody>
           </table>
           {truncated && (
-            <p className="px-3 py-2 text-[11px] text-cloud/50">
+            <p className="px-3 py-2 text-[11px] text-meta">
               Showing first {rows.length} of {total}.
             </p>
           )}

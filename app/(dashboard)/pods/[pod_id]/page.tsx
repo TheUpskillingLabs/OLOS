@@ -137,12 +137,12 @@ export default async function PodDetailPage({
       <div className="mb-8">
         <Link
           href={`/cycles/${pod.cycle_id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Back to cycle
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           {pod.name || `Pod ${pod.id}`}
         </h1>
         <span className="mt-2 inline-block">
@@ -151,42 +151,42 @@ export default async function PodDetailPage({
       </div>
 
       {ps?.statement_text && (
-        <div className="mb-6 rounded-md border border-whisper border-l-2 border-l-teal bg-white/[0.02] p-4">
-          <h3 className="mb-1 text-xs font-medium uppercase tracking-widest text-cloud/60">
+        <div className="mb-6 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card">
+          <h3 className="lbl mb-1">
             Problem statement
           </h3>
-          <p className="text-cloud">{ps.statement_text}</p>
+          <p className="text-charcoal">{ps.statement_text}</p>
         </div>
       )}
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold tracking-tight text-white">
+        <h2 className="t-h3 mb-3 text-ink">
           Members ({members?.length || 0})
         </h2>
-        <div className="overflow-hidden rounded-md border border-whisper">
+        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
               <tr>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
+                <th className="lbl lbl-teal px-4 py-3">
                   Name
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
+                <th className="lbl lbl-teal px-4 py-3">
                   Status
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
+                <th className="lbl lbl-teal px-4 py-3">
                   Joined
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-whisper">
+            <tbody className="divide-y divide-ink/10">
               {(members || []).map((m) => {
                 const p = (m.participants as unknown) as Record<string, string> | null;
                 return (
                   <tr
                     key={m.participant_id}
-                    className="transition-colors duration-150 hover:bg-white/[0.02]"
+                    className="transition-colors duration-150 hover:bg-ink/[0.02]"
                   >
-                    <td className="px-4 py-3 text-cloud">
+                    <td className="px-4 py-3 text-charcoal">
                       {p?.preferred_name || p?.first_name} {p?.last_name}
                     </td>
                     <td className="px-4 py-3">
@@ -196,7 +196,7 @@ export default async function PodDetailPage({
                         {m.inactive_at ? "inactive" : "active"}
                       </StatusBadge>
                     </td>
-                    <td className="px-4 py-3 text-cloud/60 tabular-nums">
+                    <td className="px-4 py-3 text-meta tabular-nums">
                       {new Date(m.joined_at).toLocaleDateString()}
                     </td>
                   </tr>
@@ -209,7 +209,7 @@ export default async function PodDetailPage({
 
       {projects && projects.length > 0 && (
         <div className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold tracking-tight text-white">
+          <h2 className="t-h3 mb-3 text-ink">
             Projects
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -220,10 +220,10 @@ export default async function PodDetailPage({
                 <Link
                   key={project.id}
                   href={`/projects/${project.id}`}
-                  className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                  className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold tracking-tight text-white">
+                    <span className="font-semibold tracking-tight text-ink">
                       {project.name || `Project ${project.id}`}
                     </span>
                     <StatusBadge variant={variant}>

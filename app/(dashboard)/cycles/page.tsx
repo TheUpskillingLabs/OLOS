@@ -48,25 +48,25 @@ export default async function CyclesPage() {
       {activeCycle && (
         <Link
           href="/pulse-check"
-          className="group mb-4 flex items-center justify-between rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors duration-150 ease-out hover:border-yellow-500/40 hover:bg-yellow-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="group mb-4 flex items-center justify-between rounded-card border border-ink/10 border-l-4 border-l-red bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
           <div className="flex items-center gap-3">
             <Activity
-              className="h-5 w-5 flex-shrink-0 text-yellow-300"
+              className="h-5 w-5 flex-shrink-0 text-red"
               aria-hidden
             />
             <div>
-              <span className="font-semibold tracking-tight text-white">
+              <span className="font-semibold tracking-tight text-ink">
                 Weekly pulse check
               </span>
-              <p className="text-sm text-cloud/60">
+              <p className="text-sm text-meta">
                 Stay active &mdash; complete your check-in to keep access to
                 cycle tools.
               </p>
             </div>
           </div>
           <ArrowRight
-            className="h-4 w-4 flex-shrink-0 text-yellow-300 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+            className="h-4 w-4 flex-shrink-0 text-red transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
             aria-hidden
           />
         </Link>
@@ -76,18 +76,18 @@ export default async function CyclesPage() {
       {activeCycle && (
         <Link
           href={`/cycles/${activeCycle.id}`}
-          className="group mb-8 flex items-center justify-between rounded-md border border-teal/20 bg-teal/[0.04] p-5 transition-colors duration-150 ease-out hover:border-teal/40 hover:bg-teal/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="group mb-8 flex items-center justify-between rounded-card border border-teal/30 bg-teal/10 p-5 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               {activeCycle.name}
             </h2>
-            <p className="mt-0.5 text-sm text-cloud/60">
+            <p className="mt-0.5 text-sm text-meta">
               {new Date(activeCycle.start_date).toLocaleDateString()} &ndash;{" "}
               {new Date(activeCycle.end_date).toLocaleDateString()}
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-aqua">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
             View cycle
             <ArrowRight
               className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
@@ -100,7 +100,7 @@ export default async function CyclesPage() {
       {/* Past / other cycles */}
       {otherCycles.length > 0 && (
         <>
-          <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-cloud/60">
+          <h2 className="lbl mb-4">
             {activeCycle ? "Past cycles" : "Build cycles"}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -111,15 +111,15 @@ export default async function CyclesPage() {
                 <Link
                   key={cycle.id}
                   href={`/cycles/${cycle.id}`}
-                  className="rounded-md border border-whisper bg-white/[0.02] p-6 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                  className="rounded-card border border-ink/10 bg-white p-6 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-semibold tracking-tight text-white">
+                    <h3 className="t-h4 text-ink">
                       {cycle.name}
                     </h3>
                     <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
                   </div>
-                  <p className="mt-2 text-sm text-cloud/60">
+                  <p className="mt-2 text-sm text-meta">
                     {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
                     {new Date(cycle.end_date).toLocaleDateString()}
                   </p>
@@ -131,7 +131,7 @@ export default async function CyclesPage() {
       )}
 
       {(!cycles || cycles.length === 0) && (
-        <p className="text-cloud/60">No cycles yet.</p>
+        <p className="text-meta">No cycles yet.</p>
       )}
     </div>
   );

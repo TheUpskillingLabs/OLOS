@@ -24,11 +24,14 @@ const PULSE_STATUS_LABEL: Record<RosterRow["pulse_status"], string> = {
   at_risk: "at risk",
 };
 
+// The design system's .status grammar: colored dot + uppercase label,
+// never a pill. Two-signal palette — teal=healthy, meta=quiet, red=risk
+// (late and at-risk both read red; the label disambiguates).
 const PULSE_STATUS_COLOR: Record<RosterRow["pulse_status"], string> = {
-  current: "bg-teal/20 text-aqua",
-  pending: "bg-white/[0.06] text-cloud/70",
-  late: "bg-yellow-500/20 text-yellow-300",
-  at_risk: "bg-red-500/20 text-red-300",
+  current: "status active",
+  pending: "status soon",
+  late: "status risk",
+  at_risk: "status risk",
 };
 
 const AI_LEVEL_LABEL: Record<string, string> = {
@@ -163,8 +166,8 @@ export function RosterTable({
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-lg font-semibold text-white">Members</h2>
-        <div className="flex items-center gap-3 text-xs text-cloud/60">
+        <h2 className="t-h3 text-ink">Members</h2>
+        <div className="flex items-center gap-3 text-xs text-meta">
           <span>
             {activeCount} active
             {inactiveCount > 0 && ` · ${inactiveCount} inactive`}
@@ -174,7 +177,7 @@ export function RosterTable({
               onClick={() =>
                 setFilters((f) => ({ ...f, show_inactive: !showInactive }))
               }
-              className="text-aqua transition-colors hover:text-white focus-visible:outline-none focus-visible:underline"
+              className="text-teal-deep transition-colors hover:text-ink focus-visible:outline-none focus-visible:underline"
             >
               {showInactive ? "Hide inactive" : "Show inactive"}
             </button>
@@ -192,22 +195,22 @@ export function RosterTable({
       />
 
       {trendingCount > 0 && (
-        <div className="mb-3 rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] px-3 py-2 text-xs text-yellow-200/90">
+        <div className="mb-3 rounded-card border border-red/20 bg-red/[0.04] px-3 py-2 text-xs text-red">
           {trendingCount === 1
             ? "1 member trending — one miss from at-risk."
             : `${trendingCount} members trending — one miss from at-risk.`}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-md border border-whisper">
+      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-left text-sm">
-          <thead className="bg-white/[0.02]">
-            <tr className="text-xs uppercase tracking-widest text-cloud/40">
-              <th className="px-4 py-3 font-medium">Member</th>
-              <th className="px-4 py-3 font-medium">AI level</th>
-              <th className="px-4 py-3 font-medium">Availability</th>
-              <th className="px-4 py-3 font-medium">Pulse</th>
-              <th className="px-4 py-3 font-medium">Last activity</th>
+          <thead className="bg-ink/[0.02]">
+            <tr>
+              <th className="lbl px-4 py-3">Member</th>
+              <th className="lbl px-4 py-3">AI level</th>
+              <th className="lbl px-4 py-3">Availability</th>
+              <th className="lbl px-4 py-3">Pulse</th>
+              <th className="lbl px-4 py-3">Last activity</th>
             </tr>
           </thead>
           <tbody>
@@ -215,29 +218,29 @@ export function RosterTable({
               <tr
                 key={m.participant_id}
                 onClick={() => setSelected(m)}
-                className={`cursor-pointer border-t border-whisper transition-colors hover:bg-white/[0.03] ${
+                className={`cursor-pointer border-t border-ink/10 transition-colors hover:bg-ink/[0.02] ${
                   m.is_inactive ? "opacity-60" : ""
                 }`}
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.08] text-xs font-semibold text-cloud">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-teal text-xs font-semibold text-white">
                       {m.initials}
                     </div>
-                    <div className="font-medium text-white">{m.display_name}</div>
+                    <div className="font-medium text-ink">{m.display_name}</div>
                     {m.is_inactive && (
-                      <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-cloud/60">
+                      <span className="rounded-sm bg-ink/[0.04] px-2 py-0.5 text-xs text-meta">
                         inactive
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-cloud/70">
+                <td className="px-4 py-3 text-slate">
                   {AI_LEVEL_LABEL[m.ai_experience_level] ?? m.ai_experience_level}
                 </td>
-                <td className="px-4 py-3 text-cloud/70">
+                <td className="px-4 py-3 text-slate">
                   {m.availability_snippet ?? (
-                    <span className="text-cloud/40">—</span>
+                    <span className="text-meta-soft">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -246,9 +249,7 @@ export function RosterTable({
                       tooltipKey={`pulse_status_${m.pulse_status}`}
                       content={pulseStatusTooltip(m.pulse_status)}
                     >
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${PULSE_STATUS_COLOR[m.pulse_status]}`}
-                      >
+                      <span className={PULSE_STATUS_COLOR[m.pulse_status]}>
                         {PULSE_STATUS_LABEL[m.pulse_status]}
                       </span>
                     </ManagedTooltip>
@@ -257,19 +258,19 @@ export function RosterTable({
                         tooltipKey="trending_at_risk"
                         content="Trending toward at-risk: one more missed pulse and this member crosses the at-risk threshold."
                       >
-                        <span className="inline-flex rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-300">
+                        <span className="inline-flex rounded-sm bg-red/10 px-2 py-0.5 text-xs font-medium text-red">
                           trending
                         </span>
                       </ManagedTooltip>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 tabular-nums text-cloud/70">
+                <td className="px-4 py-3 tabular-nums text-slate">
                   <div className="flex items-center gap-2">
                     {m.last_activity_at ? (
                       <span>{daysAgo(m.last_activity_at)} days ago</span>
                     ) : (
-                      <span className="text-cloud/40">no pulse yet</span>
+                      <span className="text-meta-soft">no pulse yet</span>
                     )}
                     {m.streak >= 2 && (
                       <ManagedTooltip
@@ -277,7 +278,7 @@ export function RosterTable({
                         content="Consecutive submitted pulses (looking back from the most recent scheduled date)."
                       >
                         <span
-                          className="inline-flex items-center gap-0.5 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-medium text-orange-300"
+                          className="inline-flex items-center gap-0.5 rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-medium text-teal-deep"
                           title={`${m.streak}-pulse streak`}
                         >
                           🔥 {m.streak}
@@ -289,9 +290,9 @@ export function RosterTable({
               </tr>
             ))}
             {visible.length === 0 && (
-              <tr className="border-t border-whisper">
+              <tr className="border-t border-ink/10">
                 <td
-                  className="px-4 py-6 text-center text-cloud/60"
+                  className="px-4 py-6 text-center text-meta"
                   colSpan={5}
                 >
                   No members match the current filter.
@@ -335,7 +336,7 @@ function RosterControls({
         placeholder="Search by name, email, availability…"
         value={filters.search ?? ""}
         onChange={(e) => onSearch(e.target.value)}
-        className="min-w-[220px] flex-1 rounded-md border border-whisper bg-white/[0.02] px-3 py-1.5 text-sm text-cloud placeholder:text-cloud/40 focus-visible:border-teal focus-visible:outline-none"
+        className="min-w-[220px] flex-1 rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink placeholder:text-meta-soft focus-visible:border-teal focus-visible:outline-none"
       />
       <FilterGroup
         label="Pulse"
@@ -349,15 +350,15 @@ function RosterControls({
         selected={filters.ai_level ?? []}
         onToggle={onToggleAi}
       />
-      <label className="inline-flex items-center gap-2 text-xs text-cloud/60">
+      <label className="inline-flex items-center gap-2 text-xs text-meta">
         <span>Sort</span>
         <select
           value={sort}
           onChange={(e) => onSort(e.target.value as RosterSort)}
-          className="rounded-md border border-whisper bg-white/[0.02] px-2 py-1 text-cloud focus-visible:border-teal focus-visible:outline-none"
+          className="rounded-card border border-ink/10 bg-white px-2 py-1 text-ink focus-visible:border-teal focus-visible:outline-none"
         >
           {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value} className="bg-midnight">
+            <option key={o.value} value={o.value} className="bg-white">
               {o.label}
             </option>
           ))}
@@ -380,17 +381,17 @@ function FilterGroup({
 }) {
   return (
     <div className="inline-flex items-center gap-1.5 text-xs">
-      <span className="text-cloud/60">{label}:</span>
+      <span className="text-meta">{label}:</span>
       {options.map((o) => {
         const on = selected.includes(o.value);
         return (
           <button
             key={o.value}
             onClick={() => onToggle(o.value)}
-            className={`rounded-full px-2 py-0.5 transition-colors ${
+            className={`rounded-sm px-2 py-0.5 transition-colors ${
               on
-                ? "bg-teal/25 text-aqua"
-                : "bg-white/[0.04] text-cloud/60 hover:text-cloud"
+                ? "bg-teal/10 text-teal-deep"
+                : "bg-ink/[0.04] text-meta hover:text-ink"
             }`}
           >
             {o.label}

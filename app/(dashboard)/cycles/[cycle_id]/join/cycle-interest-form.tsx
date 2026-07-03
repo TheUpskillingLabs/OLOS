@@ -80,21 +80,20 @@ export default function CycleInterestForm({
   }
 
   const checkboxClass =
-    "h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight";
+    "h-4 w-4 rounded border-ink/20 bg-white accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2";
 
-  const sectionHeadingClass =
-    "text-sm font-medium uppercase tracking-widest text-cloud/50";
+  const sectionHeadingClass = "lbl";
 
   return (
     <>
       {serverError && (
-        <div className="mb-6 rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300">
+        <div className="mb-6 rounded-card border border-red/20 bg-red/10 p-3 text-sm text-red">
           {serverError}
         </div>
       )}
 
       {success && (
-        <div className="mb-6 rounded-md border border-teal/20 bg-teal/10 p-3 text-sm text-aqua">
+        <div className="mb-6 rounded-card border border-teal/30 bg-teal/10 p-3 text-sm text-teal-deep">
           Interest submitted! Redirecting to your dashboard...
         </div>
       )}
@@ -114,7 +113,7 @@ export default function CycleInterestForm({
             </FormField>
           </div>
 
-          <div className="border-t border-white/[0.06]" />
+          <div className="border-t border-ink/10" />
 
           <div className="space-y-4 py-6">
             <FormField name="work_situation" label="Work Situation" required>
@@ -157,12 +156,12 @@ export default function CycleInterestForm({
             </FormField>
           </div>
 
-          <div className="border-t border-white/[0.06]" />
+          <div className="border-t border-ink/10" />
 
           <div className="space-y-4 pt-6">
             <h3 className={sectionHeadingClass}>Commitment</h3>
-            <div className="rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4">
-              <p className="text-sm leading-relaxed text-cloud/80">
+            <div className="rounded-card border border-ink/10 bg-ink/[0.04] p-4">
+              <p className="text-sm leading-relaxed text-charcoal">
                 Participation in a cycle requires attending a weekly group
                 meeting, engaging regularly with your teammates on Slack, and
                 dedicating 1 to 2 hours per week to independent work. Please join
@@ -170,20 +169,20 @@ export default function CycleInterestForm({
               </p>
             </div>
             <div className="space-y-1.5">
-              <label className="flex items-start gap-3 cursor-pointer rounded-md border border-white/[0.06] bg-white/[0.02] p-4 transition-colors duration-150 hover:border-white/[0.10] hover:bg-white/[0.03]">
+              <label className="flex items-start gap-3 cursor-pointer rounded-card border border-ink/10 bg-white p-4 transition-colors duration-150 hover:border-ink/20 hover:bg-ink/[0.02]">
                 <input
                   type="checkbox"
                   {...register("commitment_confirmed")}
                   className={checkboxClass + " mt-0.5"}
                 />
-                <span className="text-sm leading-relaxed text-cloud">
+                <span className="text-sm leading-relaxed text-charcoal">
                   I understand the time commitment and am ready to actively
                   participate in group meetings, Slack collaboration, and
                   independent work each week.
                 </span>
               </label>
               {errors.commitment_confirmed && (
-                <p className="text-xs text-red-300">
+                <p className="text-xs text-red">
                   {errors.commitment_confirmed.message as string}
                 </p>
               )}
@@ -194,7 +193,7 @@ export default function CycleInterestForm({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn btn-teal btn-block"
             >
               {isSubmitting ? "Submitting..." : "Submit"}
             </button>

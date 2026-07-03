@@ -59,21 +59,21 @@ export default async function ProposePage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           Open cycle problem proposal
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-cloud/80">
+        <p className="mt-2 text-sm leading-relaxed text-charcoal">
           The Open Cycle accepts problem proposals year-round. At the start of
           each cycle, active participants vote to shortlist the strongest
           proposals. Shortlisted proposals open for registration. If a research
           pod reaches the minimum number of registrants, it officially forms.
         </p>
-        <p className="mt-2 text-sm font-medium text-cloud">
+        <p className="mt-2 text-sm font-medium text-charcoal">
           Take your time with Part 2 — it&rsquo;s the most important section.
           Everything else supports it.
         </p>
@@ -82,13 +82,13 @@ export default async function ProposePage({
       {isOpen ? (
         <ProposeForm cycleId={cycleId} participantName={participantName} />
       ) : (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             Problem statement submission is not currently open.
           </p>
           {config?.problem_statement_open &&
             now < new Date(config.problem_statement_open) && (
-              <p className="mt-2 text-sm text-cloud/60 tabular-nums">
+              <p className="mt-2 text-sm text-meta tabular-nums">
                 Opens{" "}
                 {new Date(config.problem_statement_open).toLocaleDateString(
                   "en-US",

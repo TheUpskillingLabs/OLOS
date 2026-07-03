@@ -123,10 +123,10 @@ export default async function ModeratorPage({
           />
         </div>
       )}
-      <h1 className="mb-2 text-2xl font-bold tracking-tight text-white">
+      <h1 className="t-h1 mb-2 text-ink">
         {admin ? "All pods" : "My pods"}
       </h1>
-      <p className="mb-8 text-sm text-cloud/80">
+      <p className="mb-8 text-sm text-charcoal">
         {admin
           ? "Pod health across cycles. Click a card to open the per-pod dashboard."
           : cards.length === 1
@@ -185,15 +185,15 @@ const TREND_COLOR: Record<Trend, string> = {
   // PRD: ↓ in completion is good (warmer); ↑ in completion is good (cooler).
   // For pulse-health "missing", trend reads from the completion rate so
   // we want ↑ to indicate "more completion → cooler", ↓ to be a warning.
-  up: "text-aqua",
-  down: "text-yellow-300",
-  flat: "text-cloud/50",
+  up: "text-teal-deep",
+  down: "text-red",
+  flat: "text-meta",
 };
 
 const BAND_TEXT: Record<Band, string> = {
-  healthy: "text-white",
-  warning: "text-yellow-300",
-  critical: "text-red-300",
+  healthy: "text-ink",
+  warning: "text-red",
+  critical: "text-red",
 };
 
 function PodCardGrid({ cards }: { cards: PodCard[] }) {
@@ -215,14 +215,14 @@ function PodSummaryCard({ card }: { card: PodCard }) {
   return (
     <Link
       href={`/moderator/pods/${card.id}`}
-      className="block rounded-md border border-whisper bg-white/[0.02] p-5 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+      className="block rounded-card border border-ink/10 bg-white p-5 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="mb-1.5 text-xs uppercase tracking-widest text-cloud/40">
+          <div className="lbl mb-1.5">
             Pod
           </div>
-          <div className="truncate text-base font-semibold text-white">
+          <div className="truncate text-base font-semibold text-ink">
             {card.name ?? `Pod ${card.id}`}
           </div>
         </div>
@@ -233,34 +233,34 @@ function PodSummaryCard({ card }: { card: PodCard }) {
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div>
-          <div className="mb-1 text-xs text-cloud/60">Pulse this week</div>
+          <div className="mb-1 text-xs text-meta">Pulse this week</div>
           <div className="flex items-baseline gap-1.5">
             <span
               className={`text-2xl font-bold tabular-nums ${BAND_TEXT[card.band]}`}
             >
               {card.missing_this_week}
             </span>
-            <span className="text-xs text-cloud/50">missing</span>
+            <span className="text-xs text-meta">missing</span>
             <span className={`ml-auto text-xs ${TREND_COLOR[card.trend]}`}>
               {TREND_ARROW[card.trend]}
             </span>
           </div>
         </div>
         <div>
-          <div className="mb-1 text-xs text-cloud/60">Members</div>
+          <div className="mb-1 text-xs text-meta">Members</div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold tabular-nums text-white">
+            <span className="text-2xl font-bold tabular-nums text-ink">
               {card.active_member_count}
             </span>
-            <span className="text-xs text-cloud/50">active</span>
+            <span className="text-xs text-meta">active</span>
           </div>
         </div>
       </div>
 
       {(card.phase_display_name || phaseSuffix) && (
-        <div className="mt-5 border-t border-whisper pt-4 text-xs text-cloud/60">
+        <div className="mt-5 border-t border-ink/10 pt-4 text-xs text-meta">
           {card.phase_num && (
-            <span className="text-cloud/40">Phase {card.phase_num}</span>
+            <span className="text-meta-soft">Phase {card.phase_num}</span>
           )}
           {card.phase_num && card.phase_display_name && (
             <span>
@@ -311,18 +311,18 @@ function RollupBlock({
   return (
     <section>
       <div className="mb-3">
-        <div className="mb-1.5 text-xs uppercase tracking-widest text-teal">
+        <div className="lbl lbl-teal mb-1.5">
           Across your pods
         </div>
-        <h2 className="text-lg font-semibold text-white">Members needing attention</h2>
+        <h2 className="t-h3 text-ink">Members needing attention</h2>
       </div>
 
-      <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-5">
+      <div className="rounded-card border border-teal/20 bg-teal/[0.04] p-5">
         <div className="mb-4 flex items-center justify-between">
-          <div className="text-xs uppercase tracking-widest text-aqua/80">
+          <div className="lbl lbl-teal">
             All your pods combined
           </div>
-          <span className="text-xs tabular-nums text-cloud/50">
+          <span className="text-xs tabular-nums text-meta">
             {rollup.totalActiveMembers} member
             {rollup.totalActiveMembers === 1 ? "" : "s"} across {podCount} pod
             {podCount === 1 ? "" : "s"}
@@ -333,7 +333,7 @@ function RollupBlock({
           <KPI
             label="Pulsing this week"
             value={rollup.pulsingThisWeek.submitted}
-            valueClass="text-white"
+            valueClass="text-ink"
             inline={`of ${rollup.pulsingThisWeek.total}`}
             sub={`${rollup.pulsingThisWeek.percent}%`}
           />
@@ -341,7 +341,7 @@ function RollupBlock({
             label="At risk"
             value={rollup.atRisk.members}
             valueClass={
-              rollup.atRisk.members > 0 ? "text-yellow-300" : "text-white"
+              rollup.atRisk.members > 0 ? "text-red" : "text-ink"
             }
             inline="members"
             sub={
@@ -353,14 +353,14 @@ function RollupBlock({
           <KPI
             label={`Pulses this period`}
             value={rollup.pulsesThisPeriod.submitted}
-            valueClass="text-white"
+            valueClass="text-ink"
             inline="submitted"
             sub={`of ${rollup.pulsesThisPeriod.possible} possible · ${rollup.pulsesThisPeriod.periodWeeks}w`}
           />
           <KPI
             label="Engagement trend"
             value={`${rollup.engagementTrend.currentPercent}%`}
-            valueClass="text-white"
+            valueClass="text-ink"
             inlineNode={
               <span className={`text-base ${TREND_COLOR[rollup.engagementTrend.trend]}`}>
                 {TREND_ARROW[rollup.engagementTrend.trend]}
@@ -395,15 +395,15 @@ function KPI({
 }) {
   return (
     <div>
-      <div className="mb-1.5 text-xs text-cloud/60">{label}</div>
+      <div className="mb-1.5 text-xs text-meta">{label}</div>
       <div className="flex items-baseline gap-2">
         <span className={`text-2xl font-bold tabular-nums ${valueClass}`}>
           {value}
         </span>
-        {inline && <span className="text-xs text-cloud/60">{inline}</span>}
+        {inline && <span className="text-xs text-meta">{inline}</span>}
         {inlineNode}
       </div>
-      <div className="mt-1 text-xs tabular-nums text-cloud/50">{sub}</div>
+      <div className="mt-1 text-xs tabular-nums text-meta">{sub}</div>
     </div>
   );
 }
