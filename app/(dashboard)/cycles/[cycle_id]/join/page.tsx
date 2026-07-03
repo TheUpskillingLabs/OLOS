@@ -65,24 +65,24 @@ export default async function JoinCyclePage({
     <div className="flex justify-center px-4 py-12 sm:px-6">
       <div className="w-full max-w-lg">
         <div className="mb-6">
-          <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
+          <p className="lbl">
             Join cycle
           </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">
+          <h1 className="t-h1 mt-1 text-ink">
             {cycle.name}
           </h1>
-          <p className="mt-2 text-sm text-cloud/60">
+          <p className="mt-2 text-sm text-meta">
             Tell us about yourself so we can match you with the right pods and
             collaborators.
           </p>
         </div>
         {enrollment && (
-          <div className="mb-6 rounded-md border border-teal/20 bg-teal/[0.04] p-3 text-sm text-aqua">
+          <div className="mb-6 rounded-card border border-teal/30 bg-teal/10 p-3 text-sm text-teal-deep">
             You&apos;ve already submitted interest for this cycle. You can
             update your responses below.
           </div>
         )}
-        <div className="rounded-lg border border-whisper bg-white/[0.02] p-8">
+        <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
           <CycleInterestForm
             cycleId={cycleId}
             defaults={participant}

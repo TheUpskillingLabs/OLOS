@@ -90,27 +90,27 @@ export default async function SolutionsPage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           Submit a project
         </h1>
-        <p className="mt-1 text-sm text-cloud/80">
+        <p className="mt-1 text-sm text-charcoal">
           Propose a project for your pod to vote on. One submission per cycle —
           you can edit until the window closes.
         </p>
       </div>
 
       {!tabVisible ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             Project submission is not currently open.
           </p>
           {openAt && now < openAt && (
-            <p className="mt-2 text-sm text-cloud/60 tabular-nums">
+            <p className="mt-2 text-sm text-meta tabular-nums">
               Opens{" "}
               {openAt.toLocaleDateString("en-US", {
                 month: "short",
@@ -122,13 +122,13 @@ export default async function SolutionsPage({
           )}
         </div>
       ) : myPods.length === 0 ? (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             You are not a member of any pods in this cycle.
           </p>
           <Link
             href={`/cycles/${cycle.id}`}
-            className="mt-2 inline-block text-sm font-semibold tracking-tight text-aqua transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:text-white"
+            className="mt-2 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
           >
             View cycle &rarr;
           </Link>
@@ -138,7 +138,7 @@ export default async function SolutionsPage({
           {inWarningWindow && !initialProposal && closeAt && (
             <div
               role="alert"
-              className="mb-6 rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] px-4 py-3 text-sm text-yellow-200"
+              className="mb-6 rounded-card border border-red/20 bg-red/10 px-4 py-3 text-sm text-red"
             >
               <strong className="font-semibold">Heads up:</strong>{" "}if you don&apos;t
               submit a project by{" "}

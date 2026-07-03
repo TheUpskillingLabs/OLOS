@@ -123,11 +123,11 @@ export default function VoteBallot({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 text-cloud/60" aria-busy="true">
+      <div className="flex items-center gap-3 text-meta" aria-busy="true">
         <span
           role="status"
           aria-label="Loading"
-          className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-teal"
+          className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-ink/10 border-t-teal"
         />
         Loading proposals...
       </div>
@@ -136,8 +136,8 @@ export default function VoteBallot({
 
   if (statements.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-whisper bg-white/[0.01] p-12 text-center">
-        <p className="text-sm text-cloud/60">
+      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+        <p className="text-sm text-meta">
           No problem statements have been submitted yet.
         </p>
       </div>
@@ -147,17 +147,17 @@ export default function VoteBallot({
   return (
     <div className="space-y-6">
       {/* Budget indicator */}
-      <div className="sticky top-[60px] z-30 flex items-center justify-between gap-4 rounded-md border border-teal/20 bg-teal/[0.04] p-4 backdrop-blur-sm backdrop-saturate-150">
+      <div className="sticky top-[60px] z-30 flex items-center justify-between gap-4 rounded-card border border-ink/10 bg-white/95 p-4 shadow-card backdrop-blur-sm backdrop-saturate-150">
         <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-cloud/60">
+          <p className="lbl">
             Vote budget
           </p>
-          <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-aqua">
+          <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-teal-deep">
             {remaining}
           </p>
-          <p className="text-xs text-cloud/60 tabular-nums">votes remaining</p>
+          <p className="text-xs text-meta tabular-nums">votes remaining</p>
         </div>
-        <div className="text-right text-xs text-cloud/60 tabular-nums">
+        <div className="text-right text-xs text-meta tabular-nums">
           <p>Submitters get {submitterBudget} votes</p>
           <p>Non-submitters get {nonSubmitterBudget} votes</p>
         </div>
@@ -166,7 +166,7 @@ export default function VoteBallot({
       {error && (
         <p
           role="alert"
-          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-card border border-red/20 bg-red/10 px-3 py-2 text-sm text-red"
         >
           {error}
         </p>
@@ -182,24 +182,24 @@ export default function VoteBallot({
           return (
             <div
               key={stmt.id}
-              className="rounded-md border border-whisper bg-white/[0.02] transition-colors duration-150 hover:border-white/[0.12]"
+              className="rounded-card border border-ink/10 bg-white shadow-card transition-colors duration-150 hover:border-ink/20"
             >
               <div className="p-4">
                 {/* Problem statement */}
-                <p className="font-semibold tracking-tight text-white">
+                <p className="font-semibold tracking-tight text-ink">
                   {stmt.statement_text}
                 </p>
 
                 {/* HMW question */}
                 {pd?.statement?.question && (
-                  <p className="mt-2 text-sm italic text-cloud/70">
+                  <p className="mt-2 text-sm italic text-slate">
                     {pd.statement.question}
                   </p>
                 )}
 
                 {/* Submitter background */}
                 {pd?.about?.background && (
-                  <p className="mt-2 text-xs text-cloud/60">
+                  <p className="mt-2 text-xs text-meta">
                     Submitted by: {pd.about.background}
                   </p>
                 )}
@@ -211,7 +211,7 @@ export default function VoteBallot({
                     onClick={() =>
                       setExpandedId(isExpanded ? null : stmt.id)
                     }
-                    className="mt-2 inline-flex items-center text-xs font-semibold tracking-tight text-aqua transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:text-white"
+                    className="mt-2 inline-flex items-center text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
                   >
                     {isExpanded ? "Show less" : "Read full proposal"}
                   </button>
@@ -219,7 +219,7 @@ export default function VoteBallot({
 
                 {/* Expanded details */}
                 {isExpanded && pd && (
-                  <div className="mt-4 space-y-3 border-t border-whisper pt-4">
+                  <div className="mt-4 space-y-3 border-t border-ink/10 pt-4">
                     {pd.problem?.who && (
                       <DetailBlock
                         label="Who is struggling"
@@ -272,8 +272,8 @@ export default function VoteBallot({
                 )}
 
                 {/* Vote controls */}
-                <div className="mt-4 flex items-center justify-between gap-3 border-t border-whisper pt-3">
-                  <span className="text-xs font-medium text-cloud/60 tabular-nums">
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-ink/10 pt-3">
+                  <span className="text-xs font-medium text-meta tabular-nums">
                     {getTallyFor(stmt.id)} vote
                     {getTallyFor(stmt.id) !== 1 ? "s" : ""}
                   </span>
@@ -291,7 +291,7 @@ export default function VoteBallot({
                       }
                       placeholder="0"
                       aria-label="Vote count"
-                      className="w-16 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-center text-sm tabular-nums text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                      className="w-16 rounded-card border border-ink/10 bg-white px-2 py-1 text-center text-base tabular-nums text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                     />
                     <button
                       onClick={() => castVote(stmt.id)}
@@ -300,12 +300,12 @@ export default function VoteBallot({
                         !pendingVotes[stmt.id] ||
                         pendingVotes[stmt.id] < 1
                       }
-                      className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                      className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                     >
                       {submitting === stmt.id ? "..." : "Vote"}
                     </button>
                     {successId === stmt.id && (
-                      <span className="text-xs font-medium text-aqua">
+                      <span className="text-xs font-medium text-teal-deep">
                         Voted
                       </span>
                     )}
@@ -323,10 +323,10 @@ export default function VoteBallot({
 function DetailBlock({ label, text }: { label: string; text: string }) {
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-widest text-cloud/60">
+      <p className="lbl">
         {label}
       </p>
-      <p className="mt-0.5 text-sm text-cloud/80">{text}</p>
+      <p className="mt-0.5 text-sm text-charcoal">{text}</p>
     </div>
   );
 }
