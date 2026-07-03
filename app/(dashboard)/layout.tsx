@@ -137,7 +137,9 @@ export default async function DashboardLayout({
     "focus-visible:ring-offset-2 focus-visible:ring-offset-midnight rounded-sm";
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // theme-legacy: pre-reskin dark surface — drops when this shell migrates
+    // to the prototype's app chrome (see docs/PROTO_TRANSLATION_PLAN.md).
+    <div className="theme-legacy flex min-h-screen flex-col">
       <header className="sticky top-0 z-50 border-b border-whisper bg-[rgba(42,49,66,0.97)] backdrop-blur-sm backdrop-saturate-150">
         <div className="mx-auto flex h-[60px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link

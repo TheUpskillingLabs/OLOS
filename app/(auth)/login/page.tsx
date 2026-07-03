@@ -1,38 +1,52 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+
+// The Google-auth explainer — ported from onboarding-proto's view-google-auth.
+// One door for everyone: new members continue into the registration funnel
+// (/register), returning members land on their dashboard — the auth callback
+// decides. Copy is owner-approved; change it in the prototype first.
 
 function GoogleLogo() {
   return (
-    <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+    <svg
+      style={{ width: 20, height: 20, flexShrink: 0 }}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
         fill="#4285F4"
+        d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"
       />
       <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
         fill="#34A853"
+        d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 21.3 7.565 24 12.255 24z"
       />
       <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
         fill="#FBBC05"
+        d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 0 0 0 10.76l3.98-3.09z"
       />
       <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
         fill="#EA4335"
+        d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.69 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"
       />
     </svg>
   );
 }
 
+const BENEFITS = [
+  "Free for everyone — no paid account needed",
+  "Your profile is visible to Labs members — you control what you show",
+  "Easy access to shared tools — Docs, Calendar, Slack",
+];
 
 function LoginContent() {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
   const invited = !!inviteToken;
+  const authFailed = searchParams.get("error") === "auth_failed";
 
   useEffect(() => {
     if (inviteToken) {
@@ -40,7 +54,7 @@ function LoginContent() {
     }
   }, [inviteToken]);
 
-  const handleLogin = async () => {
+  const continueWithGoogle = async () => {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -51,66 +65,84 @@ function LoginContent() {
   };
 
   return (
-    <>
-      {/* ── Hero ── */}
-      <section className="flex min-h-svh flex-col justify-between px-6 pb-10 pt-12 lg:px-16 lg:pb-14 lg:pt-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-teal">
-          The Upskilling Labs
-        </p>
-
-        <div className="my-auto max-w-3xl py-16">
-          <h1 className="text-[clamp(2.25rem,5vw,4.5rem)] font-bold leading-[1.08] tracking-tight text-white">
-            Build real skills.
-            <br />
-            Through real work.
-            <br />
-            <span className="text-aqua">With real people.</span>
-          </h1>
-
-          <p className="mt-6 max-w-md text-base leading-relaxed text-cloud/50 lg:mt-8 lg:text-lg">
-            A place to learn by doing, alongside people who take the work
-            seriously.
-          </p>
-
+    <div className="view light onboard s-paper">
+      <div className="sheet">
+        <div className="topbar" />
+        <div className="vscroll pad">
+          <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
+            Create account
+          </div>
           {invited && (
-            <div className="mt-8 inline-flex items-center gap-2.5 rounded-full border border-aqua/20 bg-aqua/[0.06] px-4 py-2">
-              <span
-                className="h-2 w-2 rounded-full bg-aqua"
-                aria-hidden="true"
-              />
-              <span className="text-sm font-medium text-aqua">
-                You&apos;ve been invited to join
-              </span>
+            <div className="open-tag" style={{ marginBottom: 14 }}>
+              <svg viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              You&rsquo;ve been invited to join
             </div>
           )}
-
-          <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center lg:mt-12">
-            <button
-              onClick={handleLogin}
-              className="inline-flex items-center justify-center gap-3 rounded-full border border-white/[0.12] bg-white/[0.04] px-8 py-4 text-base font-medium text-white shadow-[0_0_0_0_rgba(77,187,194,0)] transition-all duration-300 ease-spring hover:border-aqua/40 hover:bg-white/[0.07] hover:shadow-[0_0_24px_rgba(77,187,194,0.18)] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          {authFailed && (
+            <div
+              className="t-small"
+              style={{
+                color: "var(--red)",
+                border: "1px solid rgba(225,29,42,.35)",
+                borderRadius: "var(--r)",
+                padding: "12px 14px",
+                marginBottom: 14,
+              }}
+              role="alert"
             >
-              <GoogleLogo />
-              {invited
-                ? "Sign in to accept invitation"
-                : "Join The Upskilling Labs"}
-            </button>
-
-            {!invited && (
-              <button
-                onClick={handleLogin}
-                className="text-sm text-cloud/60 transition-colors duration-150 ease-out hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+              That sign-in didn&rsquo;t go through. Give it another try.
+            </div>
+          )}
+          <h2 className="t-h1" style={{ marginBottom: 16 }}>
+            Sign in with Google
+          </h2>
+          <p className="t-lede" style={{ marginBottom: 32 }}>
+            One account you already have. Free, familiar, nothing new to
+            remember.
+          </p>
+          <div style={{ marginBottom: 8 }}>
+            {BENEFITS.map((b, i) => (
+              <div
+                key={b}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 14,
+                  padding: "14px 0",
+                  borderBottom:
+                    i < BENEFITS.length - 1 ? "1px solid var(--rule)" : "none",
+                }}
               >
-                Already a member? Log in
-              </button>
-            )}
+                <div
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "var(--teal)",
+                    flexShrink: 0,
+                    marginTop: 7,
+                  }}
+                />
+                <span className="t-body">{b}</span>
+              </div>
+            ))}
           </div>
         </div>
-
-        <p className="text-xs tracking-wide text-cloud/20">
-          Real problems&ensp;·&ensp;Real collaboration&ensp;·&ensp;Real output
-        </p>
-      </section>
-    </>
+        <div className="actionbar light-bar">
+          <button className="google-btn" onClick={continueWithGoogle}>
+            <GoogleLogo />
+            {invited ? "Sign in to accept invitation" : "Continue with Google"}
+          </button>
+          <p className="t-small" style={{ textAlign: "center" }}>
+            We only access your name and email. Already a member? Same door —
+            Google signs you in either way.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 

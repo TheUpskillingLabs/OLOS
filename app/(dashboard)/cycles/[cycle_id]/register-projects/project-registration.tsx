@@ -186,7 +186,7 @@ export default function ProjectRegistration({
                         </button>
                       ) : isFull ? (
                         <span className="rounded bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-tight text-cloud/50">
-                          Pod full
+                          Project full
                         </span>
                       ) : (
                         <button
