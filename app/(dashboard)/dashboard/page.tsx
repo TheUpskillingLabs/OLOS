@@ -107,26 +107,26 @@ export default async function DashboardPage() {
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
-        <h1 className="mb-8 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mb-8 text-ink">
           Welcome, {displayName}.
         </h1>
         <Link
           href={`/cycles/${activeCycle.id}/join`}
-          className="group flex items-center justify-between rounded-lg border border-teal/20 bg-teal/[0.04] p-8 transition-colors duration-150 ease-out hover:border-teal/40 hover:bg-teal/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="group flex items-center justify-between rounded-card border border-teal/30 bg-white p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
           <div>
-            <h2 className="text-xl font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               {activeCycle.name}
             </h2>
-            <p className="mt-1 text-sm text-cloud/60">
+            <p className="mt-1 text-sm text-meta">
               {new Date(activeCycle.start_date).toLocaleDateString()} &ndash;{" "}
               {new Date(activeCycle.end_date).toLocaleDateString()}
             </p>
-            <p className="mt-3 text-sm text-cloud/60">
+            <p className="mt-3 text-sm text-meta">
               Complete this form to join the cycle.
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-aqua">
+          <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
             Join {activeCycle.name}
             <ArrowRight
               className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
   if (state === "no_cycle") {
     return (
       <div>
-        <h1 className="mb-8 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mb-8 text-ink">
           Welcome, {displayName}.
         </h1>
         <EmptyState
@@ -158,10 +158,10 @@ export default async function DashboardPage() {
   return (
     <div>
       {/* Greeting */}
-      <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
+      <p className="lbl">
         Your Dashboard
       </p>
-      <h1 className="mb-6 text-2xl font-bold tracking-tight text-white">
+      <h1 className="t-h1 mb-6 text-ink">
         Welcome back, {displayName}
       </h1>
 
@@ -174,25 +174,25 @@ export default async function DashboardPage() {
       {state === "active" && (
         <Link
           href="/pulse-check"
-          className="group mb-6 flex items-center justify-between rounded-md border border-yellow-500/20 bg-yellow-500/[0.04] p-4 transition-colors duration-150 ease-out hover:border-yellow-500/40 hover:bg-yellow-500/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="gate-banner group mb-6 flex items-center justify-between transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
           <div className="flex items-center gap-3">
             <Activity
-              className="h-5 w-5 flex-shrink-0 text-yellow-300"
+              className="h-5 w-5 flex-shrink-0 text-red"
               aria-hidden
             />
             <div>
-              <span className="font-semibold tracking-tight text-white">
+              <span className="font-semibold tracking-tight text-ink">
                 Weekly pulse check
               </span>
-              <p className="text-sm text-cloud/60">
+              <p className="text-sm text-meta">
                 Stay active &mdash; complete your check-in to keep access to
                 cycle tools.
               </p>
             </div>
           </div>
           <ArrowRight
-            className="h-4 w-4 flex-shrink-0 text-yellow-300 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+            className="h-4 w-4 flex-shrink-0 text-red transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
             aria-hidden
           />
         </Link>
@@ -200,11 +200,11 @@ export default async function DashboardPage() {
 
       {/* Status block */}
       {state === "interest_submitted_window_closed" && activeCycleConfig && (
-        <div className="mb-8 rounded-md border border-whisper bg-white/[0.02] p-5">
-          <h2 className="text-lg font-semibold tracking-tight text-white">
+        <div className="mb-8 rounded-card border border-ink/10 bg-white p-5 shadow-card">
+          <h2 className="t-h3 text-ink">
             Interest submitted
           </h2>
-          <p className="mt-1 text-sm text-cloud/60">
+          <p className="mt-1 text-sm text-meta">
             Pod registration opens{" "}
             {activeCycleConfig.pod_registration_open
               ? new Date(
@@ -233,7 +233,7 @@ export default async function DashboardPage() {
       {/* My Pods */}
       {myPods.length > 0 && (
         <div className="mb-8">
-          <h2 className="mb-4 text-sm font-medium uppercase tracking-widest text-cloud/60">
+          <h2 className="lbl mb-4">
             My Pods
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -249,10 +249,10 @@ export default async function DashboardPage() {
                 <Link
                   key={membership.id}
                   href={`/pods/${pod.id}`}
-                  className="rounded-md border border-whisper bg-white/[0.02] p-4 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                  className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-semibold tracking-tight text-white">
+                    <h3 className="t-h4 text-ink">
                       {pod.name}
                     </h3>
                     <StatusBadge variant={variant}>{pod.status}</StatusBadge>
@@ -267,7 +267,7 @@ export default async function DashboardPage() {
       {/* Past cycles */}
       {otherCycles.length > 0 && (
         <details className="mb-8">
-          <summary className="mb-4 cursor-pointer text-sm font-medium uppercase tracking-widest text-cloud/60 hover:text-cloud/80">
+          <summary className="lbl mb-4 cursor-pointer hover:text-charcoal">
             Past cycles
           </summary>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -278,15 +278,15 @@ export default async function DashboardPage() {
                 <Link
                   key={cycle.id}
                   href={`/cycles/${cycle.id}`}
-                  className="rounded-md border border-whisper bg-white/[0.02] p-6 transition-colors duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                  className="rounded-card border border-ink/10 bg-white p-6 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-semibold tracking-tight text-white">
+                    <h3 className="t-h4 text-ink">
                       {cycle.name}
                     </h3>
                     <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
                   </div>
-                  <p className="mt-2 text-sm text-cloud/60">
+                  <p className="mt-2 text-sm text-meta">
                     {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
                     {new Date(cycle.end_date).toLocaleDateString()}
                   </p>

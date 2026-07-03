@@ -52,15 +52,15 @@ export default async function AdminInvitationsPage() {
       <div className="mb-8">
         <Link
           href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Admin
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="mt-2 t-h1 text-ink">
           Invitations
         </h1>
-        <p className="mt-1 text-sm text-cloud/60 tabular-nums">
+        <p className="mt-1 text-sm text-meta tabular-nums">
           {pendingCount} pending invitation{pendingCount !== 1 ? "s" : ""} &middot;{" "}
           {(invitations ?? []).length} total
         </p>

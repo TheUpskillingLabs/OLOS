@@ -3,15 +3,17 @@
 import * as React from "react";
 import { useFormContext, get } from "react-hook-form";
 
+// The prototype's .field input grammar: white on rule border, one radius,
+// 16px text (below 16px iOS zooms on focus), soft teal focus halo.
 const inputBase =
-  "block w-full rounded-md border border-white/[0.10] bg-white/[0.04] " +
-  "px-3 py-2 text-sm text-white placeholder:text-cloud/40 " +
-  "focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal " +
+  "block w-full rounded-card border border-ink/10 bg-white " +
+  "px-3.5 py-2.5 text-base text-ink placeholder:text-meta-soft " +
+  "focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 " +
   "disabled:cursor-not-allowed disabled:opacity-50 " +
-  "transition-colors duration-150";
+  "transition-[border-color,box-shadow] duration-150";
 
 const errorRing =
-  "border-red/50 focus:border-red focus:ring-red";
+  "border-red/50 focus:border-red focus:ring-red/15";
 
 export type FieldProps = {
   label: React.ReactNode;
@@ -38,7 +40,7 @@ export function Field({
     <div className={`space-y-1.5 ${className ?? ""}`}>
       <label
         htmlFor={htmlFor}
-        className="block text-sm font-medium text-cloud"
+        className="lbl block"
       >
         {label}
         {required && (
@@ -47,12 +49,12 @@ export function Field({
           </span>
         )}
       </label>
-      {helper && <p className="text-xs text-cloud/60">{helper}</p>}
+      {helper && <p className="text-xs text-meta">{helper}</p>}
       {children}
       {(error || charCount) && (
         <div className="flex items-center justify-between gap-2">
-          {error ? <p className="text-xs text-red-300">{error}</p> : <span />}
-          {charCount && <p className="text-xs text-cloud/50 tabular-nums">{charCount}</p>}
+          {error ? <p className="text-xs text-red">{error}</p> : <span />}
+          {charCount && <p className="text-xs text-meta tabular-nums">{charCount}</p>}
         </div>
       )}
     </div>
@@ -116,7 +118,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           {children}
         </select>
         <svg
-          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cloud/60"
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-meta"
           viewBox="0 0 20 20"
           fill="none"
           aria-hidden

@@ -121,25 +121,25 @@ export default async function ProjectDetailPage({
       <div className="mb-8">
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-sm text-cloud/60"
+          className="flex items-center gap-2 text-sm text-meta"
         >
           <Link
             href={`/cycles/${project.cycle_id}`}
-            className="transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
           >
             Cycle
           </Link>
-          <span className="text-cloud/30" aria-hidden>
+          <span className="text-meta-soft" aria-hidden>
             /
           </span>
           <Link
             href={`/pods/${project.pod_id}`}
-            className="transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
           >
             {pod?.name || `Pod ${project.pod_id}`}
           </Link>
         </nav>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           {project.name || `Project ${project.id}`}
         </h1>
         <span className="mt-2 inline-block">
@@ -148,25 +148,25 @@ export default async function ProjectDetailPage({
       </div>
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold tracking-tight text-white">
+        <h2 className="t-h3 mb-3 text-ink">
           Members ({activeMembers.length})
         </h2>
-        <div className="overflow-hidden rounded-md border border-whisper">
+        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
               <tr>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
+                <th className="lbl lbl-teal px-4 py-3">
                   Name
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
+                <th className="lbl lbl-teal px-4 py-3">
                   Status
                 </th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-aqua">
+                <th className="lbl lbl-teal px-4 py-3">
                   Registered
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-whisper">
+            <tbody className="divide-y divide-ink/10">
               {(memberships ?? []).map((m) => {
                 const p = (m.participants as unknown) as Record<
                   string,
@@ -175,9 +175,9 @@ export default async function ProjectDetailPage({
                 return (
                   <tr
                     key={m.participant_id}
-                    className="transition-colors duration-150 hover:bg-white/[0.02]"
+                    className="transition-colors duration-150 hover:bg-ink/[0.02]"
                   >
-                    <td className="px-4 py-3 text-cloud">
+                    <td className="px-4 py-3 text-charcoal">
                       {p?.preferred_name || p?.first_name} {p?.last_name}
                     </td>
                     <td className="px-4 py-3">
@@ -187,7 +187,7 @@ export default async function ProjectDetailPage({
                         {m.left_at ? "left" : "active"}
                       </StatusBadge>
                     </td>
-                    <td className="px-4 py-3 text-cloud/60 tabular-nums">
+                    <td className="px-4 py-3 text-meta tabular-nums">
                       {new Date(m.registered_at).toLocaleDateString()}
                     </td>
                   </tr>

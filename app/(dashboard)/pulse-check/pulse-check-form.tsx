@@ -88,10 +88,10 @@ const emptyNomination = () => ({
 });
 
 const inputClass =
-  "mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
+  "mt-1 block w-full rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
 
 const textareaClass =
-  "mt-1 block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
+  "mt-1 block w-full resize-none rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function PulseCheckForm({
   enforcement,
@@ -256,31 +256,31 @@ export default function PulseCheckForm({
 
   const bannerTone =
     enforcement.status === "overdue"
-      ? "border-red/30 bg-red/10 text-red-200"
+      ? "border-red/30 bg-red/10 text-red"
       : enforcement.status === "warning_1day"
-        ? "border-red/20 bg-red/[0.06] text-red-200"
+        ? "border-red/30 bg-red/[0.08] text-red"
         : enforcement.status === "warning_3day"
-          ? "border-yellow-500/30 bg-yellow-500/[0.08] text-yellow-200"
-          : "border-yellow-500/30 bg-yellow-500/[0.06] text-yellow-200";
+          ? "border-red/20 bg-red/[0.06] text-red"
+          : "border-teal/20 bg-teal/[0.06] text-teal-deep";
 
   return (
     <>
-      <div className={`mb-4 rounded-md border p-4 text-sm ${bannerTone}`}>
+      <div className={`mb-4 rounded-card border p-4 text-sm ${bannerTone}`}>
         <p className="font-semibold">{copy.status.deadline(deadlineLabel)}</p>
         {cycle && (
           <p className="mt-1 text-xs opacity-80">{copy.status.cycleLabel(cycle.name)}</p>
         )}
       </div>
 
-      <div className="mb-6 rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
-        <p className="text-sm font-semibold text-yellow-300">{copy.status.consequenceTitle}</p>
-        <p className="mt-1 text-sm text-cloud/70">{copy.status.consequenceBody}</p>
+      <div className="gate-banner mb-6">
+        <p className="text-sm font-semibold text-red">{copy.status.consequenceTitle}</p>
+        <p className="mt-1 text-sm text-slate">{copy.status.consequenceBody}</p>
       </div>
 
       {serverError && (
         <div
           role="alert"
-          className="mb-4 rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300"
+          className="mb-4 rounded-card border border-red/20 bg-red/10 p-3 text-sm text-red"
         >
           {serverError}
         </div>
@@ -288,22 +288,22 @@ export default function PulseCheckForm({
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-8 rounded-md border border-whisper bg-white/[0.02] p-6"
+        className="space-y-8 rounded-card border border-ink/10 bg-white p-6 shadow-card"
       >
         {pods.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               {copy.context.sectionTitle}
             </h2>
             <label className="block">
-              <span className="text-sm font-medium text-cloud">{copy.context.podLabel}</span>
+              <span className="text-sm font-medium text-charcoal">{copy.context.podLabel}</span>
               <select
                 value={selectedPodId ?? ""}
                 onChange={(e) => {
                   setSelectedPodId(e.target.value ? Number(e.target.value) : null);
                   setSelectedProjectId(null);
                 }}
-                className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-1 block w-full rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">{copy.context.podPlaceholder}</option>
                 {pods.map((p) => (
@@ -315,7 +315,7 @@ export default function PulseCheckForm({
             </label>
             {projectsForSelectedPod.length > 0 && (
               <label className="block">
-                <span className="text-sm font-medium text-cloud">
+                <span className="text-sm font-medium text-charcoal">
                   {copy.context.projectLabel}
                 </span>
                 <select
@@ -323,7 +323,7 @@ export default function PulseCheckForm({
                   onChange={(e) =>
                     setSelectedProjectId(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-1 block w-full rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <option value="">{copy.context.projectPlaceholder}</option>
                   {projectsForSelectedPod.map((p) => (
@@ -338,12 +338,12 @@ export default function PulseCheckForm({
         )}
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold tracking-tight text-white">
+          <h2 className="t-h3 text-ink">
             {copy.reflection.sectionTitle}
           </h2>
 
           <div>
-            <span className="text-sm font-medium text-cloud">
+            <span className="text-sm font-medium text-charcoal">
               {copy.reflection.energy.label}
             </span>
             <div className="mt-2 flex gap-2">
@@ -356,10 +356,10 @@ export default function PulseCheckForm({
                     type="button"
                     aria-pressed={selected}
                     onClick={() => setEnergyLevel(selected ? null : level)}
-                    className={`flex flex-1 flex-col items-center rounded-md border px-2 py-2 text-xs transition-all duration-150 ease-spring active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
+                    className={`flex flex-1 flex-col items-center rounded-card border px-2 py-2 text-xs transition-all duration-150 ease-spring active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 ${
                       selected
-                        ? "border-aqua bg-aqua text-midnight"
-                        : "border-white/[0.10] text-cloud/80 hover:border-white/[0.18] hover:text-cloud"
+                        ? "border-teal-deep bg-teal-deep text-white"
+                        : "border-ink/10 text-charcoal hover:border-ink/20 hover:text-ink"
                     }`}
                   >
                     <span className="text-base font-semibold tabular-nums">{level}</span>
@@ -373,11 +373,11 @@ export default function PulseCheckForm({
           <div>
             <label
               htmlFor="accomplishment"
-              className="block text-sm font-medium text-cloud"
+              className="block text-sm font-medium text-charcoal"
             >
               {copy.reflection.accomplishment.label} *
             </label>
-            <span className="block text-xs text-cloud/60">
+            <span className="block text-xs text-meta">
               {copy.reflection.accomplishment.helper}
             </span>
             <textarea
@@ -389,25 +389,25 @@ export default function PulseCheckForm({
               placeholder={copy.reflection.accomplishment.placeholder}
             />
             {errors.accomplishment && (
-              <p className="mt-1 text-xs text-red-300">{errors.accomplishment.message}</p>
+              <p className="mt-1 text-xs text-red">{errors.accomplishment.message}</p>
             )}
           </div>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">
+            <span className="text-sm font-medium text-charcoal">
               {copy.reflection.highlight.label}
             </span>
-            <span className="block text-xs text-cloud/60">
+            <span className="block text-xs text-meta">
               {copy.reflection.highlight.helper}
             </span>
             <textarea {...register("highlight")} maxLength={2000} rows={2} className={textareaClass} />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">
+            <span className="text-sm font-medium text-charcoal">
               {copy.reflection.challenge.label}
             </span>
-            <span className="block text-xs text-cloud/60">
+            <span className="block text-xs text-meta">
               {copy.reflection.challenge.helper}
             </span>
             <textarea {...register("challenge")} maxLength={2000} rows={2} className={textareaClass} />
@@ -415,25 +415,25 @@ export default function PulseCheckForm({
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold tracking-tight text-white">
+          <h2 className="t-h3 text-ink">
             {copy.forces.sectionTitle}
           </h2>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">{copy.forces.blockers.label}</span>
-            <span className="block text-xs text-cloud/60">{copy.forces.blockers.helper}</span>
+            <span className="text-sm font-medium text-charcoal">{copy.forces.blockers.label}</span>
+            <span className="block text-xs text-meta">{copy.forces.blockers.helper}</span>
             <textarea {...register("blockers")} maxLength={2000} rows={3} className={textareaClass} />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">{copy.forces.tailwinds.label}</span>
-            <span className="block text-xs text-cloud/60">{copy.forces.tailwinds.helper}</span>
+            <span className="text-sm font-medium text-charcoal">{copy.forces.tailwinds.label}</span>
+            <span className="block text-xs text-meta">{copy.forces.tailwinds.helper}</span>
             <textarea {...register("tailwinds")} maxLength={2000} rows={3} className={textareaClass} />
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-cloud">{copy.forces.mitigation.label}</span>
-            <span className="block text-xs text-cloud/60">{copy.forces.mitigation.helper}</span>
+            <span className="text-sm font-medium text-charcoal">{copy.forces.mitigation.label}</span>
+            <span className="block text-xs text-meta">{copy.forces.mitigation.helper}</span>
             <textarea
               {...register("mitigation_strategy")}
               maxLength={2000}
@@ -444,7 +444,7 @@ export default function PulseCheckForm({
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold tracking-tight text-white">
+          <h2 className="t-h3 text-ink">
             {copy.engagement.sectionTitle}
           </h2>
 
@@ -456,13 +456,13 @@ export default function PulseCheckForm({
 
           {pulseBenefits.length > 0 && (
             <div>
-              <span className="text-sm font-medium text-cloud">
+              <span className="text-sm font-medium text-charcoal">
                 {copy.engagement.benefits.label}
-                <span className="ml-1 text-xs font-normal text-cloud/50">
+                <span className="ml-1 text-xs font-normal text-meta">
                   ({copy.engagement.benefits.maxNote})
                 </span>
               </span>
-              <span className="block text-xs text-cloud/60">
+              <span className="block text-xs text-meta">
                 {copy.engagement.benefits.helper}
               </span>
               <div className="mt-2 space-y-2">
@@ -472,12 +472,12 @@ export default function PulseCheckForm({
                   return (
                     <label
                       key={b.id}
-                      className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-midnight active:scale-[0.99] ${
+                      className={`flex cursor-pointer items-center gap-2 rounded-card border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 active:scale-[0.99] ${
                         checked
-                          ? "border-teal/40 bg-teal/[0.08] text-white"
+                          ? "border-teal/40 bg-teal/[0.08] text-teal-deep"
                           : disabled
-                            ? "border-whisper opacity-40"
-                            : "border-white/[0.10] text-cloud/80 hover:border-white/[0.18] hover:text-cloud"
+                            ? "border-ink/10 opacity-40"
+                            : "border-ink/10 text-charcoal hover:border-ink/20 hover:text-ink"
                       }`}
                     >
                       <input
@@ -496,7 +496,7 @@ export default function PulseCheckForm({
           )}
 
           <div>
-            <span className="text-sm font-medium text-cloud">
+            <span className="text-sm font-medium text-charcoal">
               {copy.engagement.newConnections.label}
             </span>
             <div className="mt-2 grid grid-cols-6 gap-2">
@@ -508,10 +508,10 @@ export default function PulseCheckForm({
                     type="button"
                     aria-pressed={selected}
                     onClick={() => setNewConnections(selected ? null : choice)}
-                    className={`rounded-md border px-2 py-2 text-sm font-semibold tabular-nums transition-all duration-150 ease-spring active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
+                    className={`rounded-card border px-2 py-2 text-sm font-semibold tabular-nums transition-all duration-150 ease-spring active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 ${
                       selected
-                        ? "border-aqua bg-aqua text-midnight"
-                        : "border-white/[0.10] text-cloud/80 hover:border-white/[0.18] hover:text-cloud"
+                        ? "border-teal-deep bg-teal-deep text-white"
+                        : "border-ink/10 text-charcoal hover:border-ink/20 hover:text-ink"
                     }`}
                   >
                     {choice}
@@ -522,24 +522,24 @@ export default function PulseCheckForm({
           </div>
         </section>
 
-        <section className="rounded-md border border-whisper bg-white/[0.01] p-4">
+        <section className="rounded-card border border-ink/10 bg-ink/[0.02] p-4">
           {!showNominations ? (
             <button
               type="button"
               onClick={() => setShowNominations(true)}
-              className="flex w-full items-center justify-between gap-3 text-left text-sm text-cloud/80 transition-colors duration-150 ease-out hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+              className="flex w-full items-center justify-between gap-3 text-left text-sm text-charcoal transition-colors duration-150 ease-out hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
             >
               <span>
-                <span className="font-semibold tracking-tight text-white">
+                <span className="font-semibold tracking-tight text-ink">
                   {copy.nominations.collapsedTitle}
                 </span>
-                <span className="ml-2 text-xs text-cloud/60">
+                <span className="ml-2 text-xs text-meta">
                   {copy.nominations.collapsedHint}
                 </span>
               </span>
               <span
                 aria-hidden
-                className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-whisper text-base leading-none"
+                className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-ink/10 text-base leading-none"
               >
                 +
               </span>
@@ -547,13 +547,13 @@ export default function PulseCheckForm({
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold tracking-tight text-white">
+                <h2 className="t-h3 text-ink">
                   {copy.nominations.sectionTitle}
                 </h2>
                 <button
                   type="button"
                   onClick={() => setShowNominations(false)}
-                  className="text-xs text-cloud/60 hover:text-aqua"
+                  className="text-xs text-meta hover:text-teal-deep"
                 >
                   {copy.nominations.hideLabel}
                 </button>
@@ -564,17 +564,17 @@ export default function PulseCheckForm({
                 return (
                   <div
                     key={field.id}
-                    className="space-y-3 rounded-md border border-whisper bg-white/[0.02] p-4"
+                    className="space-y-3 rounded-card border border-ink/10 bg-white p-4"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium uppercase tracking-wide text-cloud/50">
+                      <span className="lbl">
                         {copy.nominations.cardLabel(index + 1)}
                       </span>
                       {nominationFields.length > 1 && (
                         <button
                           type="button"
                           onClick={() => remove(index)}
-                          className="text-xs text-cloud/60 hover:text-red-300"
+                          className="text-xs text-meta hover:text-red"
                         >
                           {copy.nominations.removeLabel}
                         </button>
@@ -584,7 +584,7 @@ export default function PulseCheckForm({
                     <div>
                       <label
                         htmlFor={`nominations.${index}.nominee_name`}
-                        className="block text-sm font-medium text-cloud"
+                        className="block text-sm font-medium text-charcoal"
                       >
                         {copy.nominations.name.label} *
                       </label>
@@ -596,13 +596,13 @@ export default function PulseCheckForm({
                         className={inputClass}
                       />
                       {nameError && (
-                        <p className="mt-1 text-xs text-red-300">{nameError}</p>
+                        <p className="mt-1 text-xs text-red">{nameError}</p>
                       )}
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="block">
-                        <span className="text-sm font-medium text-cloud">
+                        <span className="text-sm font-medium text-charcoal">
                           {copy.nominations.email.label}
                         </span>
                         <input
@@ -612,7 +612,7 @@ export default function PulseCheckForm({
                         />
                       </label>
                       <label className="block">
-                        <span className="text-sm font-medium text-cloud">
+                        <span className="text-sm font-medium text-charcoal">
                           {copy.nominations.linkedin.label}
                         </span>
                         <input
@@ -626,17 +626,17 @@ export default function PulseCheckForm({
                     </div>
 
                     <div>
-                      <span className="text-sm font-medium text-cloud">
+                      <span className="text-sm font-medium text-charcoal">
                         {copy.nominations.type.label}
                       </span>
                       <div className="mt-1 flex gap-2">
                         {copy.nominations.type.options.map((t) => (
                           <label
                             key={t.value}
-                            className={`flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-midnight active:scale-[0.99] ${
+                            className={`flex flex-1 cursor-pointer items-center justify-center rounded-card border px-3 py-2 text-sm transition-all duration-150 ease-out has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal has-[:focus-visible]:ring-offset-2 active:scale-[0.99] ${
                               watchedNominations[index]?.nomination_type === t.value
-                                ? "border-teal/40 bg-teal/[0.08] text-white"
-                                : "border-white/[0.10] text-cloud/70 hover:border-white/[0.18] hover:text-cloud"
+                                ? "border-teal/40 bg-teal/[0.08] text-teal-deep"
+                                : "border-ink/10 text-slate hover:border-ink/20 hover:text-ink"
                             }`}
                           >
                             <input
@@ -654,11 +654,11 @@ export default function PulseCheckForm({
                     <div>
                       <label
                         htmlFor={`nominations.${index}.reason`}
-                        className="block text-sm font-medium text-cloud"
+                        className="block text-sm font-medium text-charcoal"
                       >
                         {copy.nominations.reason.label} *
                       </label>
-                      <span className="block text-xs text-cloud/60">
+                      <span className="block text-xs text-meta">
                         {copy.nominations.reason.helper}
                       </span>
                       <textarea
@@ -666,10 +666,10 @@ export default function PulseCheckForm({
                         {...register(`nominations.${index}.reason`)}
                         maxLength={2000}
                         rows={3}
-                        className="mt-1 block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-1 block w-full rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50"
                       />
                       {reasonError && (
-                        <p className="mt-1 text-xs text-red-300">{reasonError}</p>
+                        <p className="mt-1 text-xs text-red">{reasonError}</p>
                       )}
                     </div>
                   </div>
@@ -679,7 +679,7 @@ export default function PulseCheckForm({
               <button
                 type="button"
                 onClick={() => append(emptyNomination())}
-                className="rounded-md ring-1 ring-whisper px-3 py-1.5 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                className="rounded-card ring-1 ring-ink/15 px-3 py-1.5 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/25 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
               >
                 {copy.nominations.addLabel}
               </button>
@@ -689,8 +689,8 @@ export default function PulseCheckForm({
 
         <section>
           <label className="block">
-            <span className="text-sm font-medium text-cloud">{copy.closing.label}</span>
-            <span className="block text-xs text-cloud/60">{copy.closing.helper}</span>
+            <span className="text-sm font-medium text-charcoal">{copy.closing.label}</span>
+            <span className="block text-xs text-meta">{copy.closing.helper}</span>
             <textarea
               {...register("anything_else")}
               maxLength={2000}
@@ -703,7 +703,7 @@ export default function PulseCheckForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn btn-teal btn-block"
         >
           {isSubmitting ? copy.submit.submitting : copy.submit.idle}
         </button>
@@ -779,8 +779,8 @@ function ToolsAutocomplete({
 
   return (
     <div>
-      <span className="text-sm font-medium text-cloud">{copy.engagement.aiTools.label}</span>
-      <span className="block text-xs text-cloud/60">{copy.engagement.aiTools.helper}</span>
+      <span className="text-sm font-medium text-charcoal">{copy.engagement.aiTools.label}</span>
+      <span className="block text-xs text-meta">{copy.engagement.aiTools.helper}</span>
       <div
         ref={containerRef}
         onBlur={(e) => {
@@ -790,17 +790,17 @@ function ToolsAutocomplete({
         }}
         className="relative mt-2"
       >
-        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-whisper bg-white/[0.04] px-2 py-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-card border border-ink/10 bg-white px-2 py-1.5">
           {selected.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-teal/15 px-2 py-0.5 text-xs font-medium text-aqua"
+              className="inline-flex items-center gap-1 rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-deep"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="rounded-full text-aqua/70 transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:text-white"
+                className="rounded-full text-teal-deep/70 transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
                 aria-label={`Remove ${tag}`}
               >
                 ×
@@ -818,13 +818,13 @@ function ToolsAutocomplete({
             onFocus={() => setOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder={selected.length === 0 ? copy.engagement.aiTools.placeholderEmpty : ""}
-            className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-sm text-white placeholder:text-cloud/40 focus:outline-none"
+            className="min-w-[8rem] flex-1 bg-transparent px-1 py-1 text-base text-ink placeholder:text-meta-soft focus:outline-none"
           />
         </div>
         {open && (matches.length > 0 || (query.trim() && !exactMatchExists)) && (
           <ul
             role="listbox"
-            className="absolute left-0 right-0 z-10 mt-1 max-h-64 overflow-y-auto rounded-md border border-whisper bg-ink shadow-2xl"
+            className="absolute left-0 right-0 z-10 mt-1 max-h-64 overflow-y-auto rounded-card border border-ink/10 bg-white shadow-card-lg"
           >
             {matches.map((m, i) => (
               <li key={m}>
@@ -833,7 +833,7 @@ function ToolsAutocomplete({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => addTag(m)}
                   className={`block w-full px-3 py-2 text-left text-sm ${
-                    i === highlight ? "bg-aqua/10 text-white" : "text-cloud/80 hover:bg-white/[0.04]"
+                    i === highlight ? "bg-teal/10 text-ink" : "text-charcoal hover:bg-ink/[0.04]"
                   }`}
                 >
                   {m}
@@ -846,7 +846,7 @@ function ToolsAutocomplete({
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => addTag(query)}
-                  className="block w-full px-3 py-2 text-left text-sm text-aqua hover:bg-white/[0.04]"
+                  className="block w-full px-3 py-2 text-left text-sm text-teal-deep hover:bg-ink/[0.04]"
                 >
                   + Add &ldquo;{query.trim()}&rdquo;
                 </button>
@@ -867,8 +867,8 @@ function ConfirmationView({
   onSubmitAnother: () => void;
 }) {
   return (
-    <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-8 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal/15 text-aqua">
+    <div className="rounded-card border border-teal/30 bg-white p-8 text-center shadow-card">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal/10 text-teal-deep">
         <svg
           className="h-6 w-6"
           fill="none"
@@ -884,24 +884,24 @@ function ConfirmationView({
           />
         </svg>
       </div>
-      <h2 className="text-xl font-semibold tracking-tight text-white">
+      <h2 className="t-h3 text-ink">
         {copy.confirmation.title}
       </h2>
-      <p className="mt-2 text-sm text-cloud/80">
+      <p className="mt-2 text-sm text-charcoal">
         {copy.confirmation.body}
         {nominationCount > 0 && copy.confirmation.nominationThanks(nominationCount)}
       </p>
       <div className="mt-6 flex flex-col items-center gap-3">
         <Link
           href="/cycles"
-          className="inline-flex w-full max-w-xs items-center justify-center rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight sm:w-auto"
+          className="btn btn-teal w-full max-w-xs sm:w-auto"
         >
           {copy.confirmation.primaryCta}
         </Link>
         <button
           type="button"
           onClick={onSubmitAnother}
-          className="text-xs text-cloud/60 underline-offset-4 transition-colors duration-150 hover:text-aqua hover:underline focus-visible:outline-none focus-visible:text-aqua"
+          className="text-xs text-meta underline-offset-4 transition-colors duration-150 hover:text-teal-deep hover:underline focus-visible:outline-none focus-visible:text-teal-deep"
         >
           {copy.confirmation.secondaryCta}
         </button>

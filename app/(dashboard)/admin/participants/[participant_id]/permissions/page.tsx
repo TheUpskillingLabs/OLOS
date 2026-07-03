@@ -59,28 +59,28 @@ export default async function ParticipantPermissionsPage({
       <div className="mb-8">
         <Link
           href="/admin/participants"
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           All participants
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="mt-2 t-h1 text-ink">
           {displayName}
         </h1>
-        <p className="mt-1 text-sm text-cloud/80">{participant.email}</p>
+        <p className="mt-1 text-sm text-charcoal">{participant.email}</p>
         {currentRoles.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
             {currentRoles.map((role) => (
               <span
                 key={role}
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                className={`inline-flex items-center rounded-sm px-2.5 py-0.5 text-xs font-medium ${
                   role === "owner"
-                    ? "bg-yellow-500/15 text-yellow-300"
+                    ? "bg-ink/10 text-ink"
                     : role === "admin"
-                      ? "bg-teal/15 text-aqua"
+                      ? "bg-teal/10 text-teal-deep"
                       : role === "developer"
-                        ? "bg-purple-500/15 text-purple-300"
-                        : "bg-white/10 text-cloud/60"
+                        ? "bg-forest/10 text-forest"
+                        : "bg-ink/[0.04] text-meta"
                 }`}
               >
                 {role}

@@ -41,15 +41,15 @@ export default async function VotePage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-2 text-ink">
           Vote on problem statements
         </h1>
-        <p className="mt-1 text-sm text-cloud/80">
+        <p className="mt-1 text-sm text-charcoal">
           Allocate your votes to the problems you want the community to tackle.
         </p>
       </div>
@@ -61,10 +61,10 @@ export default async function VotePage({
           nonSubmitterBudget={config?.non_submitter_votes ?? 0}
         />
       ) : (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">Voting is not currently open.</p>
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">Voting is not currently open.</p>
           {config?.voting_open && now < new Date(config.voting_open) && (
-            <p className="mt-2 text-sm text-cloud/60 tabular-nums">
+            <p className="mt-2 text-sm text-meta tabular-nums">
               Opens{" "}
               {new Date(config.voting_open).toLocaleDateString("en-US", {
                 month: "short",

@@ -45,7 +45,7 @@ export default function CreateCycleForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+        className="btn btn-teal inline-flex items-center gap-1.5 px-4 py-2 text-sm"
       >
         + New cycle
       </button>
@@ -56,59 +56,59 @@ export default function CreateCycleForm() {
     <FormProvider {...form}>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="rounded-md border border-whisper bg-white/[0.02] p-4"
+        className="rounded-card border border-ink/10 bg-white p-4 shadow-card"
       >
-        <h2 className="mb-3 text-sm font-semibold tracking-tight text-white">
+        <h2 className="mb-3 text-sm font-semibold tracking-tight text-ink">
           New cycle
         </h2>
         <div className="flex flex-wrap items-start gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-cloud/80" htmlFor="cycle-name">
+            <label className="text-xs font-medium text-charcoal" htmlFor="cycle-name">
               Name
             </label>
             <input
               id="cycle-name"
               {...register("name")}
               placeholder="e.g. Spring 2026"
-              className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink placeholder:text-meta transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
             {errors.name && (
-              <p className="text-xs text-red-300">{errors.name.message}</p>
+              <p className="text-xs text-red">{errors.name.message}</p>
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-cloud/80" htmlFor="cycle-start">
+            <label className="text-xs font-medium text-charcoal" htmlFor="cycle-start">
               Start date
             </label>
             <input
               id="cycle-start"
               {...register("start_date")}
               type="date"
-              className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
             {errors.start_date && (
-              <p className="text-xs text-red-300">{errors.start_date.message}</p>
+              <p className="text-xs text-red">{errors.start_date.message}</p>
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-cloud/80" htmlFor="cycle-end">
+            <label className="text-xs font-medium text-charcoal" htmlFor="cycle-end">
               End date
             </label>
             <input
               id="cycle-end"
               {...register("end_date")}
               type="date"
-              className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-1.5 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
             {errors.end_date && (
-              <p className="text-xs text-red-300">{errors.end_date.message}</p>
+              <p className="text-xs text-red">{errors.end_date.message}</p>
             )}
           </div>
           <div className="flex items-center gap-2 pt-5">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-md bg-teal px-4 py-1.5 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              className="btn btn-teal px-4 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? "Creating…" : "Create"}
             </button>
@@ -119,14 +119,14 @@ export default function CreateCycleForm() {
                 setServerError(null);
                 reset();
               }}
-              className="text-sm text-cloud/60 transition-colors duration-150 hover:text-cloud focus-visible:outline-none focus-visible:text-cloud"
+              className="text-sm text-meta transition-colors duration-150 hover:text-charcoal focus-visible:outline-none focus-visible:text-charcoal"
             >
               Cancel
             </button>
           </div>
         </div>
         {serverError && (
-          <p role="alert" className="mt-2 text-xs text-red-300">
+          <p role="alert" className="mt-2 text-xs text-red">
             {serverError}
           </p>
         )}

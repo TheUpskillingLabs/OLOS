@@ -191,13 +191,13 @@ export default async function AdminCycleDetailPage({
       <div className="mb-8">
         <Link
           href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm text-cloud/60 transition-colors duration-150 hover:text-aqua focus-visible:outline-none focus-visible:text-aqua"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Admin
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="t-h1 text-ink">
             {cycle.name}
           </h1>
           <StatusBadge
@@ -208,7 +208,7 @@ export default async function AdminCycleDetailPage({
             {cycle.status}
           </StatusBadge>
         </div>
-        <p className="mt-1 text-sm text-cloud/60 tabular-nums">
+        <p className="mt-1 text-sm text-meta tabular-nums">
           {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
           {new Date(cycle.end_date).toLocaleDateString()}
         </p>
@@ -219,7 +219,7 @@ export default async function AdminCycleDetailPage({
         <StatCard label="Enrolled" value={participants.length} />
         <StatCard
           label="Active"
-          value={<span className="text-aqua">{activeCount}</span>}
+          value={<span className="text-teal-deep">{activeCount}</span>}
         />
         <StatCard label="Pods" value={pods?.length ?? 0} />
       </div>
@@ -227,54 +227,54 @@ export default async function AdminCycleDetailPage({
       <div className="space-y-10">
         {/* Status */}
         <section>
-          <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
+          <h2 className="mb-4 t-h3 text-ink">
             Cycle Status
           </h2>
           <CycleStatusForm cycleId={cycle.id} currentStatus={cycle.status} />
         </section>
 
-        <hr className="border-whisper" />
+        <hr className="border-ink/10" />
 
         {/* Schedule */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold tracking-tight text-white">Schedule</h2>
-          <p className="mb-4 text-sm text-cloud/60">
+          <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
+          <p className="mb-4 text-sm text-meta">
             Open and close times for each phase.
           </p>
           {config && <CycleScheduleForm cycleId={cycle.id} config={config} />}
         </section>
 
-        <hr className="border-whisper" />
+        <hr className="border-ink/10" />
 
         {/* Parameters */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold tracking-tight text-white">Parameters</h2>
-          <p className="mb-4 text-sm text-cloud/60">
+          <h2 className="mb-1 t-h3 text-ink">Parameters</h2>
+          <p className="mb-4 text-sm text-meta">
             Voting thresholds and pod / project limits.
           </p>
           {config && <CycleParamsForm cycleId={cycle.id} config={config} />}
         </section>
 
-        <hr className="border-whisper" />
+        <hr className="border-ink/10" />
 
         {/* Pod Voting */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold tracking-tight text-white">Pod Voting</h2>
-          <p className="mb-4 text-sm text-cloud/60">
+          <h2 className="mb-1 t-h3 text-ink">Pod Voting</h2>
+          <p className="mb-4 text-sm text-meta">
             Finalize problem-statement voting to create pods. Uses AI to
             generate pod names.
           </p>
           <FinalizeVotingButton cycleId={cycle.id} />
         </section>
 
-        <hr className="border-whisper" />
+        <hr className="border-ink/10" />
 
         {/* Testing Controls */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold tracking-tight text-white">
+          <h2 className="mb-1 t-h3 text-ink">
             Testing Mode
           </h2>
-          <p className="mb-4 text-sm text-cloud/60">
+          <p className="mb-4 text-sm text-meta">
             Advance through cycle phases one step at a time for testing.
           </p>
           {config && (
@@ -287,31 +287,31 @@ export default async function AdminCycleDetailPage({
 
         {pods && pods.length > 0 && (
           <>
-            <hr className="border-whisper" />
+            <hr className="border-ink/10" />
             <section>
-              <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
+              <h2 className="mb-4 t-h3 text-ink">
                 Pods ({pods.length})
               </h2>
-              <div className="overflow-hidden rounded-md border border-whisper">
+              <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
                 <table className="w-full text-sm">
-                  <thead className="bg-white/[0.04]">
+                  <thead className="bg-ink/[0.02]">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                      <th className="lbl px-4 py-3 text-left">
                         Pod
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                      <th className="lbl px-4 py-3 text-left">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                      <th className="lbl px-4 py-3 text-left">
                         Members
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                      <th className="lbl px-4 py-3 text-left">
                         Moderators
                       </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60" />
+                      <th className="lbl px-4 py-3 text-right" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-whisper">
+                  <tbody className="divide-y divide-ink/10">
                     {pods.map((pod) => {
                       const memberCount = (podMemberships ?? []).filter(
                         (m) => m.pod_id === pod.id
@@ -319,9 +319,9 @@ export default async function AdminCycleDetailPage({
                       return (
                         <tr
                           key={pod.id}
-                          className="transition-colors duration-150 hover:bg-white/[0.02]"
+                          className="transition-colors duration-150 hover:bg-ink/[0.02]"
                         >
-                          <td className="px-4 py-3 font-medium text-cloud">
+                          <td className="px-4 py-3 font-medium text-ink">
                             {pod.name ?? `Pod ${pod.id}`}
                           </td>
                           <td className="px-4 py-3">
@@ -334,7 +334,7 @@ export default async function AdminCycleDetailPage({
                               {pod.status}
                             </StatusBadge>
                           </td>
-                          <td className="px-4 py-3 text-cloud/60 tabular-nums">
+                          <td className="px-4 py-3 text-meta tabular-nums">
                             {memberCount}
                           </td>
                           <td className="px-4 py-3">
@@ -348,7 +348,7 @@ export default async function AdminCycleDetailPage({
                           <td className="px-4 py-3 text-right">
                             <Link
                               href={`/pods/${pod.id}`}
-                              className="text-sm font-semibold tracking-tight text-aqua transition-colors duration-150 hover:text-white focus-visible:outline-none focus-visible:text-white"
+                              className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
                             >
                               View &rarr;
                             </Link>
@@ -363,24 +363,24 @@ export default async function AdminCycleDetailPage({
           </>
         )}
 
-        <hr className="border-whisper" />
+        <hr className="border-ink/10" />
 
         {/* Participants */}
         <section>
-          <h2 className="mb-4 text-lg font-semibold tracking-tight text-white">
+          <h2 className="mb-4 t-h3 text-ink">
             Participants ({participants.length})
           </h2>
           <ParticipantsTable participants={participants} cycleId={cycleId} />
         </section>
 
-        <hr className="border-whisper" />
+        <hr className="border-ink/10" />
 
         {/* Revocations */}
         <section>
-          <h2 className="mb-1 text-lg font-semibold tracking-tight text-white">
+          <h2 className="mb-1 t-h3 text-ink">
             Access Revocations
           </h2>
-          <p className="mb-4 text-sm text-cloud/60">
+          <p className="mb-4 text-sm text-meta">
             Check for inactive participants and manage revocations.
           </p>
           <RevocationsSection

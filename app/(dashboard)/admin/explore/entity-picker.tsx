@@ -45,12 +45,11 @@ export function EntityPicker({
   };
 
   const selectClass =
-    "rounded-md border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-white transition-colors duration-150 hover:border-teal/60 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
-  const labelClass =
-    "text-[11px] font-semibold uppercase tracking-wider text-aqua/80";
+    "rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink transition-colors duration-150 hover:border-teal/60 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
+  const labelClass = "lbl lbl-teal";
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-4">
+    <div className="mb-4 flex flex-wrap items-end gap-4 rounded-card border border-ink/10 bg-white p-4 shadow-card">
       {/* Entity */}
       <div className="flex flex-col gap-1">
         <label htmlFor="ee-entity" className={labelClass}>Entity</label>
@@ -87,12 +86,12 @@ export function EntityPicker({
       </div>
 
       {/* Show deleted */}
-      <label className="flex items-center gap-2 pb-2 text-sm text-cloud/85">
+      <label className="flex items-center gap-2 pb-2 text-sm text-charcoal">
         <input
           type="checkbox"
           checked={includeDeleted}
           onChange={(e) => update({ deleted: e.target.checked ? "1" : null })}
-          className="h-4 w-4 rounded border-white/20 bg-white/[0.04] accent-teal"
+          className="h-4 w-4 rounded border-ink/20 bg-white accent-teal"
         />
         Show deleted
       </label>
@@ -100,14 +99,14 @@ export function EntityPicker({
       {/* Search — v2, disabled, marks placement only (DESIGN.md §11). */}
       <div className="ml-auto flex flex-col gap-1 opacity-50">
         <label htmlFor="ee-search" className={labelClass}>
-          Search rows <span className="text-yellow-300/80">· v2</span>
+          Search rows <span className="text-meta">· v2</span>
         </label>
         <input
           id="ee-search"
           type="text"
           placeholder="filter any column…"
           disabled
-          className="rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40"
+          className="rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink placeholder:text-meta"
         />
       </div>
     </div>

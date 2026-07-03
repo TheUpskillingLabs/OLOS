@@ -171,11 +171,11 @@ export default function ProposeForm({
 
   if (submitted) {
     return (
-      <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-8 text-center">
-        <h2 className="text-xl font-bold tracking-tight text-white">
+      <div className="rounded-card border border-teal/30 bg-teal/10 p-8 text-center">
+        <h2 className="t-h3 text-ink">
           Proposal submitted
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-cloud/80">
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-charcoal">
           Your proposal enters the Open Cycle queue. At the start of each cycle,
           active participants vote during Phase 1 to build a shortlist. If your
           proposal makes the shortlist, it opens for registration. Research pods
@@ -208,7 +208,7 @@ export default function ProposeForm({
             setCheckSpecific(false);
             setCheckSamePicture(false);
           }}
-          className="mt-6 rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="mt-6 rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
           Submit another proposal
         </button>
@@ -220,13 +220,13 @@ export default function ProposeForm({
     <div className="space-y-8">
       {/* Step indicator — design-system wizard pattern */}
       <div>
-        <div className="mb-2 flex items-center justify-between text-xs text-cloud/60">
+        <div className="mb-2 flex items-center justify-between text-xs text-meta">
           <span className="tabular-nums">Step {step} of 6</span>
-          <span className="font-medium text-cloud">
+          <span className="font-medium text-charcoal">
             {STEP_NAMES[step - 1]}
           </span>
         </div>
-        <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]">
+        <div className="h-1 overflow-hidden rounded-full bg-ink/10">
           <div
             className="h-full rounded-full bg-teal transition-all duration-500 ease-spring"
             style={{ width: `${(step / 6) * 100}%` }}
@@ -238,7 +238,7 @@ export default function ProposeForm({
       {step === 1 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               Part 1 — About You
             </h2>
           </div>
@@ -273,7 +273,7 @@ export default function ProposeForm({
               ).map(([val, label]) => (
                 <label
                   key={val}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud"
+                  className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink"
                 >
                   <input
                     type="radio"
@@ -281,7 +281,7 @@ export default function ProposeForm({
                     value={val}
                     checked={experience === val}
                     onChange={() => setExperience(val)}
-                    className="h-4 w-4 accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                    className="h-4 w-4 accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                   />
                   {label}
                 </label>
@@ -295,10 +295,10 @@ export default function ProposeForm({
       {step === 2 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               Part 2 — The Problem
             </h2>
-            <p className="mt-1 text-sm text-cloud/60">
+            <p className="mt-1 text-sm text-meta">
               This is the core of your proposal. Answer all four prompts
               carefully.
             </p>
@@ -374,16 +374,16 @@ export default function ProposeForm({
       {step === 3 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               Part 3 — Your Problem Statement
             </h2>
-            <p className="mt-1 text-sm text-cloud/60">
+            <p className="mt-1 text-sm text-meta">
               Using your answers above, assemble your statement in one sentence.
             </p>
           </div>
 
-          <div className="rounded-md border border-whisper bg-white/[0.02] p-4 text-sm text-cloud/70">
-            <p className="font-semibold text-cloud">Template:</p>
+          <div className="rounded-card border border-ink/10 bg-white p-4 text-sm text-slate">
+            <p className="font-semibold text-charcoal">Template:</p>
             <p className="mt-1 italic">
               [Who is struggling] needs to [what they need to do] because [why
               they can&rsquo;t right now].
@@ -402,8 +402,8 @@ export default function ProposeForm({
             <CharCount value={statementText} max={2000} />
           </Field>
 
-          <div className="rounded-md border border-whisper bg-white/[0.02] p-4 text-sm text-cloud/70">
-            <p className="font-semibold text-cloud">
+          <div className="rounded-card border border-ink/10 bg-white p-4 text-sm text-slate">
+            <p className="font-semibold text-charcoal">
               Now reframe it as a question your Research Pod would work to
               answer:
             </p>
@@ -430,10 +430,10 @@ export default function ProposeForm({
       {step === 4 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               Part 4 — Where This Problem Lives
             </h2>
-            <p className="mt-1 text-sm text-cloud/60">
+            <p className="mt-1 text-sm text-meta">
               These fields help us connect your Pod to the right mentors and
               advisors. Skip this section if your problem doesn&rsquo;t fit
               neatly — it won&rsquo;t affect your proposal.
@@ -445,7 +445,7 @@ export default function ProposeForm({
               {IMPACT_TRACKS.map((track) => (
                 <label
                   key={track}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud"
+                  className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink"
                 >
                   <input
                     type="radio"
@@ -453,12 +453,12 @@ export default function ProposeForm({
                     value={track}
                     checked={impactTrack === track}
                     onChange={() => setImpactTrack(track)}
-                    className="h-4 w-4 accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                    className="h-4 w-4 accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                   />
                   {track}
                 </label>
               ))}
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink">
                 <input
                   type="radio"
                   name="impact_track"
@@ -483,7 +483,7 @@ export default function ProposeForm({
 
           <Field label="Cycle Theme Alignment" hint="Each Cycle recruits mentors and advisors around a specific industry theme. If your problem connects to the current theme, note it here.">
             <div className="space-y-2">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink">
                 <input
                   type="radio"
                   name="theme"
@@ -493,7 +493,7 @@ export default function ProposeForm({
                 />
                 No particular connection
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink">
                 <input
                   type="radio"
                   name="theme"
@@ -503,7 +503,7 @@ export default function ProposeForm({
                 />
                 My problem sits directly inside this theme
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink">
                 <input
                   type="radio"
                   name="theme"
@@ -532,10 +532,10 @@ export default function ProposeForm({
       {step === 5 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               Part 5 — Context for Voters
             </h2>
-            <p className="mt-1 text-sm text-cloud/60">
+            <p className="mt-1 text-sm text-meta">
               This section is read by active Cycle participants during the
               voting window. Give them enough to make a real decision — about
               whether the problem matters and whether they want to work on it.
@@ -600,17 +600,17 @@ export default function ProposeForm({
       {step === 6 && (
         <section className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">
+            <h2 className="t-h3 text-ink">
               Part 6 — Before You Submit
             </h2>
-            <p className="mt-1 text-sm text-cloud/60">
+            <p className="mt-1 text-sm text-meta">
               Read your problem statement one more time. Check each box
               honestly.
             </p>
           </div>
 
-          <div className="rounded-md border border-whisper bg-white/[0.02] p-4">
-            <p className="text-sm italic text-cloud/80">
+          <div className="rounded-card border border-ink/10 bg-white p-4">
+            <p className="text-sm italic text-charcoal">
               &ldquo;{statementText}&rdquo;
             </p>
           </div>
@@ -644,7 +644,7 @@ export default function ProposeForm({
           </div>
 
           {!allChecked && (
-            <p className="text-sm text-cloud/60">
+            <p className="text-sm text-meta">
               If any box is unchecked, revise before submitting. A sharper
               proposal earns more votes.
             </p>
@@ -656,19 +656,19 @@ export default function ProposeForm({
       {error && (
         <p
           role="alert"
-          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-card border border-red/20 bg-red/10 px-3 py-2 text-sm text-red"
         >
           {error}
         </p>
       )}
 
       {/* Navigation */}
-      <div className="mt-8 flex items-center justify-between border-t border-whisper pt-6">
+      <div className="mt-8 flex items-center justify-between border-t border-ink/10 pt-6">
         <div>
           {step > 1 && (
             <button
               onClick={() => setStep((step - 1) as Step)}
-              className="rounded-md ring-1 ring-whisper px-4 py-2 text-sm font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              className="btn btn-ghost btn-sm"
             >
               Back
             </button>
@@ -679,7 +679,7 @@ export default function ProposeForm({
             <button
               onClick={() => setStep((step + 1) as Step)}
               disabled={!canAdvance()}
-              className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              className="btn btn-teal btn-sm"
             >
               Continue
             </button>
@@ -687,7 +687,7 @@ export default function ProposeForm({
             <button
               onClick={handleSubmit}
               disabled={submitting || !allChecked}
-              className="rounded-md bg-teal px-5 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              className="btn btn-teal btn-sm"
             >
               {submitting ? "Submitting..." : "Submit proposal"}
             </button>
@@ -701,10 +701,10 @@ export default function ProposeForm({
 /* ── Shared helpers ──────────────────────────────────────────────── */
 
 const inputClass =
-  "block w-full rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
+  "block w-full rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
 
 const textareaClass =
-  "block w-full resize-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-cloud/40 transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
+  "block w-full resize-none rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:opacity-50";
 
 function Field({
   label,
@@ -721,7 +721,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-cloud">
+      <label className="block text-sm font-medium text-charcoal">
         {label}
         {required && (
           <span className="ml-0.5 text-red" aria-hidden>
@@ -730,10 +730,10 @@ function Field({
         )}
       </label>
       {hint && (
-        <p className="text-xs leading-relaxed text-cloud/60">{hint}</p>
+        <p className="text-xs leading-relaxed text-meta">{hint}</p>
       )}
       {example && (
-        <p className="rounded border border-whisper bg-white/[0.02] px-3 py-2 text-xs italic leading-relaxed text-cloud/60">
+        <p className="rounded-card border border-ink/10 bg-ink/[0.02] px-3 py-2 text-xs italic leading-relaxed text-meta">
           {example}
         </p>
       )}
@@ -744,7 +744,7 @@ function Field({
 
 function CharCount({ value, max }: { value: string; max: number }) {
   return (
-    <p className="mt-1 text-right text-xs text-cloud/50 tabular-nums">
+    <p className="mt-1 text-right text-xs text-meta tabular-nums">
       {value.length}/{max}
     </p>
   );
@@ -760,12 +760,12 @@ function CheckItem({
   label: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 text-sm text-cloud/80 transition-colors duration-150 hover:text-cloud">
+    <label className="flex cursor-pointer items-start gap-3 text-sm text-charcoal transition-colors duration-150 hover:text-ink">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 rounded border-white/[0.20] bg-white/[0.04] accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+        className="mt-0.5 h-4 w-4 rounded border-ink/20 bg-white accent-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
       />
       <span>{label}</span>
     </label>

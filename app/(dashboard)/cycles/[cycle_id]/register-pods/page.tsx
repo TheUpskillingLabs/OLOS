@@ -51,13 +51,13 @@ export default async function RegisterPodsPage({
   return (
     <div>
       <div className="mb-8">
-        <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
+        <p className="lbl">
           {cycle.name}
         </p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 mt-1 text-ink">
           Choose your pods
         </h1>
-        <p className="mt-2 text-sm text-cloud/60">
+        <p className="mt-2 text-sm text-meta">
           Join up to 2 pods to explore problems that interest you.
         </p>
       </div>
@@ -68,7 +68,7 @@ export default async function RegisterPodsPage({
           <div className="mt-8">
             <Link
               href="/dashboard"
-              className="group inline-flex items-center gap-2 rounded-md bg-teal px-6 py-3 text-base font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+              className="btn btn-teal group gap-2"
             >
               Continue to Dashboard
               <ArrowRight
@@ -79,13 +79,13 @@ export default async function RegisterPodsPage({
           </div>
         </>
       ) : (
-        <div className="rounded-md border border-whisper bg-white/[0.02] p-6 text-center">
-          <p className="text-cloud/80">
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
             Pod registration is not currently open.
           </p>
           {config?.pod_registration_open &&
             now < new Date(config.pod_registration_open) && (
-              <p className="mt-2 text-sm text-cloud/60 tabular-nums">
+              <p className="mt-2 text-sm text-meta tabular-nums">
                 Opens{" "}
                 {new Date(config.pod_registration_open).toLocaleDateString(
                   "en-US",
@@ -96,7 +96,7 @@ export default async function RegisterPodsPage({
           <div className="mt-4">
             <Link
               href="/dashboard"
-              className="text-sm font-medium text-aqua transition-colors duration-150 hover:text-teal"
+              className="text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-teal"
             >
               Go to Dashboard
             </Link>

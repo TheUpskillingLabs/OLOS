@@ -153,13 +153,13 @@ export default function CyclePhaseIndicator({
       {/* ── Countdown headline ────────────────────────────────────── */}
       <div className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-widest text-cloud/40">
+          <p className="lbl">
             The Build Cycle
           </p>
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             {cycleActive ? (
               <>
-                <span className="text-aqua tabular-nums">{daysLeft}</span>{" "}
+                <span className="text-teal-deep tabular-nums">{daysLeft}</span>{" "}
                 day{daysLeft !== 1 ? "s" : ""} to Showcase
               </>
             ) : cycleComplete ? (
@@ -174,15 +174,15 @@ export default function CyclePhaseIndicator({
         </div>
         {cycleActive && (
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-teal/20 px-4 py-1.5 text-sm font-semibold text-aqua">
+            <span className="inline-flex items-center gap-2 rounded-card bg-teal/10 px-4 py-1.5 text-sm font-semibold text-teal-deep">
               <span className="relative flex h-2 w-2" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-aqua opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-aqua" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
               </span>
               <span className="tabular-nums">Week {currentWeek}</span>
             </span>
             {currentPhaseNum > 0 && (
-              <span className="text-sm text-cloud/60">
+              <span className="text-sm text-meta">
                 Month {currentPhaseNum}
               </span>
             )}
@@ -191,26 +191,26 @@ export default function CyclePhaseIndicator({
       </div>
 
       {/* ── Timeline card ─────────────────────────────────────────── */}
-      <div className="overflow-x-auto rounded-lg border border-whisper bg-white/[0.02] px-4 pb-4 pt-5 sm:px-6">
+      <div className="overflow-x-auto rounded-card border border-ink/10 bg-white px-4 pb-4 pt-5 shadow-card sm:px-6">
         {/* Month / phase headers */}
         <div className="mb-6 flex min-w-[700px]">
           {PHASES.map((p) => (
             <div
               key={p.num}
               className={`${p.num === 3 ? "flex-[5]" : "flex-[4]"} ${
-                p.num > 1 ? "border-l border-white/10 pl-4" : ""
+                p.num > 1 ? "border-l border-ink/10 pl-4" : ""
               }`}
             >
               <p
                 className={`text-[11px] font-medium uppercase tracking-wider ${
-                  currentPhaseNum === p.num ? "text-aqua" : "text-cloud/30"
+                  currentPhaseNum === p.num ? "text-teal-deep" : "text-meta-soft"
                 }`}
               >
                 Month {p.num}
               </p>
               <p
                 className={`text-sm font-semibold leading-tight ${
-                  currentPhaseNum === p.num ? "text-white" : "text-cloud/50"
+                  currentPhaseNum === p.num ? "text-ink" : "text-meta"
                 }`}
               >
                 {p.title}
@@ -235,10 +235,10 @@ export default function CyclePhaseIndicator({
                         w.milestone ? "uppercase" : ""
                       } ${
                         w.num === currentWeek
-                          ? "text-aqua"
+                          ? "text-teal-deep"
                           : w.num < currentWeek
-                            ? "text-cloud/40"
-                            : "text-cloud/30"
+                            ? "text-meta"
+                            : "text-meta-soft"
                       }`}
                     >
                       Week {w.num}
@@ -249,11 +249,11 @@ export default function CyclePhaseIndicator({
                       } ${
                         w.num === currentWeek
                           ? w.milestone
-                            ? "text-white"
-                            : "text-aqua"
+                            ? "text-ink"
+                            : "text-teal-deep"
                           : w.num < currentWeek
-                            ? "text-cloud/35"
-                            : "text-cloud/45"
+                            ? "text-meta-soft"
+                            : "text-meta"
                       }`}
                     >
                       {w.label}
@@ -275,7 +275,7 @@ export default function CyclePhaseIndicator({
             {/* Progress fill */}
             {cycleActive && (
               <div
-                className="absolute top-1/2 left-0 h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-teal to-aqua"
+                className="absolute top-1/2 left-0 h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-teal-deep to-teal"
                 style={{
                   width: `${((currentWeek - 0.5) / 13) * 100}%`,
                 }}
@@ -290,17 +290,17 @@ export default function CyclePhaseIndicator({
               let boxClasses: string;
               if (isCurrent) {
                 boxClasses =
-                  "border-aqua bg-aqua text-midnight shadow-[0_0_24px_rgba(77,187,194,0.4)] animate-pulse";
+                  "border-teal bg-teal-deep text-white shadow-[0_0_24px_rgba(0,148,160,0.35)] animate-pulse";
               } else if (isPast) {
-                boxClasses = "border-teal/40 bg-teal/40 text-white";
+                boxClasses = "border-teal/30 bg-teal/10 text-teal-deep";
               } else {
-                boxClasses = "border-white/[0.06] bg-white/[0.06] text-cloud/40";
+                boxClasses = "border-ink/10 bg-ink/[0.04] text-meta";
               }
 
               return (
                 <div key={w.num} className="relative z-10 flex flex-1 justify-center">
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-md border-2 text-xs font-bold tabular-nums ${boxClasses}`}
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold tabular-nums ${boxClasses}`}
                   >
                     {w.num}
                   </div>
@@ -321,10 +321,10 @@ export default function CyclePhaseIndicator({
                     <p
                       className={`mt-1 text-center text-[10px] font-semibold leading-tight ${
                         w.num === currentWeek
-                          ? "text-aqua"
+                          ? "text-teal-deep"
                           : w.num < currentWeek
-                            ? "text-cloud/40"
-                            : "text-cloud/30"
+                            ? "text-meta"
+                            : "text-meta-soft"
                       }`}
                     >
                       Week {w.num}
@@ -335,11 +335,11 @@ export default function CyclePhaseIndicator({
                       } ${
                         w.num === currentWeek
                           ? w.milestone
-                            ? "text-white"
-                            : "text-aqua"
+                            ? "text-ink"
+                            : "text-teal-deep"
                           : w.num < currentWeek
-                            ? "text-cloud/35"
-                            : "text-cloud/45"
+                            ? "text-meta-soft"
+                            : "text-meta"
                       }`}
                     >
                       {w.label}
@@ -362,15 +362,15 @@ export default function CyclePhaseIndicator({
             <Link
               key={w.label}
               href={`/cycles/${cycle.id}/${w.route}`}
-              className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-3 py-1 text-xs font-medium text-aqua transition-colors hover:bg-teal/20"
+              className="inline-flex items-center gap-1.5 rounded-card bg-teal/10 px-3 py-1 text-xs font-medium text-teal-deep transition-colors hover:bg-teal/20"
             >
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-aqua" />
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-teal" />
               {w.label} &middot; closes {formatDate(w.closesAt)}
               <span className="ml-0.5">&rarr;</span>
             </Link>
           ))}
           {upcomingWindow && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1 text-xs text-cloud/50">
+            <span className="inline-flex items-center gap-1.5 rounded-card bg-ink/[0.04] px-3 py-1 text-xs text-meta">
               Up next: {upcomingWindow.label} &middot; opens{" "}
               {formatDate(upcomingWindow.opensAt)}
             </span>

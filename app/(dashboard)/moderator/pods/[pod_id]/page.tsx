@@ -139,7 +139,7 @@ function BackLink() {
   return (
     <Link
       href="/moderator?view=all"
-      className="inline-flex items-center gap-1.5 text-xs text-cloud/75 transition-colors hover:text-cloud"
+      className="inline-flex items-center gap-1.5 text-xs text-slate transition-colors hover:text-ink"
     >
       ← All pods
     </Link>
@@ -156,9 +156,9 @@ const POD_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
 };
 
 const BAND_TEXT: Record<Band, string> = {
-  healthy: "text-white",
-  warning: "text-yellow-300",
-  critical: "text-red-300",
+  healthy: "text-ink",
+  warning: "text-red",
+  critical: "text-red",
 };
 
 const TREND_ARROW: Record<Trend, string> = {
@@ -168,20 +168,20 @@ const TREND_ARROW: Record<Trend, string> = {
 };
 
 const TREND_COLOR: Record<Trend, string> = {
-  up: "text-aqua",
-  down: "text-yellow-300",
-  flat: "text-cloud/50",
+  up: "text-teal-deep",
+  down: "text-red",
+  flat: "text-meta",
 };
 
 function StatusHeader({ detail }: { detail: PodDetail }) {
   const statusVariant = POD_STATUS_VARIANT[detail.status] ?? "inactive";
   return (
     <header>
-      <div className="mb-1.5 text-xs uppercase tracking-widest text-cloud/40">
+      <div className="lbl mb-1.5">
         {detail.cycle_name ? `${detail.cycle_name} · Pod` : "Pod"}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight text-white">
+        <h1 className="t-h1 text-ink">
           {detail.name ?? `Pod ${detail.id}`}
         </h1>
         <StatusBadge variant={statusVariant} withDot>
@@ -189,16 +189,16 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
         </StatusBadge>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 rounded-md border border-whisper bg-white/[0.02] p-5 sm:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-4 rounded-card border border-ink/10 bg-white p-5 shadow-card sm:grid-cols-3">
         <div>
-          <div className="mb-1 text-xs text-cloud/60">Phase</div>
-          <div className="text-base font-semibold text-white">
+          <div className="mb-1 text-xs text-meta">Phase</div>
+          <div className="text-base font-semibold text-ink">
             {detail.phase_display_name ?? "—"}
           </div>
           {detail.phase_close_at && (
-            <div className="mt-1 text-xs text-cloud/60">
+            <div className="mt-1 text-xs text-meta">
               {detail.phase_is_active ? "Closes" : "Opens"}:{" "}
-              <span className="tabular-nums text-cloud">
+              <span className="tabular-nums text-ink">
                 {formatDateTime(
                   detail.phase_is_active
                     ? detail.phase_close_at
@@ -213,7 +213,7 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
             tooltipKey="pod_health_indicator"
             content="Count of active pod members who haven't submitted this week's pulse. Banded into healthy / warning / critical by cycle-configurable thresholds."
           >
-            <div className="mb-1 text-xs text-cloud/60">Pulse this week</div>
+            <div className="mb-1 text-xs text-meta">Pulse this week</div>
           </ManagedTooltip>
           <div className="flex items-baseline gap-1.5">
             <span
@@ -221,7 +221,7 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
             >
               {detail.missing_this_week}
             </span>
-            <span className="text-xs text-cloud/50">missing</span>
+            <span className="text-xs text-meta">missing</span>
             <ManagedTooltip
               tooltipKey="trend_arrow"
               content="Trend vs. the prior 3 weeks. ↑ rising completion, ↓ falling, → flat (within 5pp tolerance)."
@@ -231,13 +231,13 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
               </span>
             </ManagedTooltip>
           </div>
-          <div className="mt-1 text-xs text-cloud/50">
+          <div className="mt-1 text-xs text-meta">
             band: {detail.band}
           </div>
         </div>
         <div>
-          <div className="mb-1 text-xs text-cloud/60">Active members</div>
-          <div className="text-2xl font-bold tabular-nums text-white">
+          <div className="mb-1 text-xs text-meta">Active members</div>
+          <div className="text-2xl font-bold tabular-nums text-ink">
             {detail.active_member_count}
           </div>
         </div>
@@ -262,10 +262,10 @@ function AtRiskSection({
   return (
     <section>
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="t-h3 text-ink">
           At-risk · needs attention
         </h2>
-        <span className="text-xs text-cloud/60">
+        <span className="text-xs text-meta">
           {threshold}-pulse miss threshold
         </span>
       </div>
@@ -296,26 +296,26 @@ function AtRiskCard({
     ? `last active ${daysAgo(member.last_activity_at)} days ago`
     : "no pulse activity yet";
   return (
-    <div className="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-4">
+    <div className="rounded-card border border-red/25 bg-red/[0.04] p-4">
       <div className="flex items-start gap-4">
-        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-white/[0.08] text-sm font-semibold text-cloud">
+        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-teal text-sm font-semibold text-white">
           {member.initials}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-sm font-semibold text-white">
+            <span className="text-sm font-semibold text-ink">
               {member.display_name}
             </span>
             {member.availability_snippet && (
               <>
-                <span className="text-xs text-cloud/50">·</span>
-                <span className="truncate text-xs text-cloud/60">
+                <span className="text-xs text-meta">·</span>
+                <span className="truncate text-xs text-meta">
                   {member.availability_snippet}
                 </span>
               </>
             )}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-yellow-300">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-red">
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             <ManagedTooltip
               tooltipKey="at_risk_nudge_type"
@@ -323,11 +323,11 @@ function AtRiskCard({
             >
               <span className="font-medium">Missed consecutive pulses</span>
             </ManagedTooltip>
-            <span className="text-cloud/40">·</span>
-            <span className="text-cloud/60">{lastActiveCopy}</span>
+            <span className="text-meta-soft">·</span>
+            <span className="text-meta">{lastActiveCopy}</span>
           </div>
           <div className="mt-3 flex items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2 py-0.5 text-cloud/70">
+            <span className="inline-flex items-center gap-1.5 rounded-sm bg-ink/[0.04] px-2 py-0.5 text-slate">
               <Users className="h-3 w-3" />
               {podName}
             </span>
@@ -337,7 +337,7 @@ function AtRiskCard({
           {member.email && (
             <a
               href={`mailto:${member.email}`}
-              className="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua transition-colors hover:bg-teal/30"
+              className="rounded-card bg-teal-deep px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal"
             >
               Email
             </a>

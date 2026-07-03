@@ -116,11 +116,11 @@ export default function SolutionBallot({
 
   if (submitted || alreadyVoted) {
     return (
-      <div className="rounded-md border border-aqua/30 bg-aqua/[0.06] p-5">
-        <p className="font-semibold tracking-tight text-white">
+      <div className="rounded-card border border-teal/30 bg-teal/10 p-5">
+        <p className="font-semibold tracking-tight text-ink">
           {alreadyVoted ? "Ballot already submitted" : "Ballot submitted ✓"}
         </p>
-        <p className="mt-1 text-sm text-cloud/70">
+        <p className="mt-1 text-sm text-slate">
           {alreadyVoted
             ? "Your ballot is on file. Votes are final once cast."
             : "Your votes are recorded. Results will be visible after voting closes."}
@@ -135,7 +135,7 @@ export default function SolutionBallot({
         <div className="space-y-1.5">
           <label
             htmlFor="select-pod"
-            className="block text-sm font-medium text-cloud"
+            className="block text-sm font-medium text-charcoal"
           >
             Pod
           </label>
@@ -144,7 +144,7 @@ export default function SolutionBallot({
               id="select-pod"
               value={selectedPodId}
               onChange={(e) => setSelectedPodId(parseInt(e.target.value, 10))}
-              className="block w-full appearance-none rounded-md border border-white/[0.10] bg-white/[0.04] px-3 py-2 pr-9 text-sm text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              className="block w-full appearance-none rounded-card border border-ink/10 bg-white px-3 py-2 pr-9 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             >
               {pods.map((pod) => (
                 <option key={pod.id} value={pod.id}>
@@ -153,7 +153,7 @@ export default function SolutionBallot({
               ))}
             </select>
             <svg
-              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cloud/60"
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-meta"
               viewBox="0 0 20 20"
               fill="none"
               aria-hidden
@@ -171,29 +171,29 @@ export default function SolutionBallot({
       )}
 
       {pods.length === 1 && (
-        <p className="text-sm text-cloud/80">
+        <p className="text-sm text-charcoal">
           Voting in{" "}
-          <span className="font-semibold text-white">
+          <span className="font-semibold text-ink">
             {pods[0].name || `Pod ${pods[0].id}`}
           </span>
         </p>
       )}
 
-      <div className="rounded-md border border-teal/20 bg-teal/[0.04] p-4">
+      <div className="rounded-card border border-ink/10 bg-white p-4 shadow-card">
         <div className="flex items-baseline gap-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-cloud/60">
+            <p className="lbl">
               Votes remaining
             </p>
             <p
               className={`mt-1 text-3xl font-bold tabular-nums tracking-tight ${
-                ready ? "text-aqua" : "text-white"
+                ready ? "text-teal-deep" : "text-ink"
               }`}
             >
               {remaining}
             </p>
           </div>
-          <p className="text-xs text-cloud/60 tabular-nums">
+          <p className="text-xs text-meta tabular-nums">
             of {voteBudget} total
           </p>
         </div>
@@ -202,24 +202,24 @@ export default function SolutionBallot({
       {error && (
         <p
           role="alert"
-          className="rounded-md border border-red/20 bg-red/10 px-3 py-2 text-sm text-red-300"
+          className="rounded-card border border-red/20 bg-red/10 px-3 py-2 text-sm text-red"
         >
           {error}
         </p>
       )}
 
       {loading ? (
-        <div className="flex items-center gap-3 text-cloud/60" aria-busy="true">
+        <div className="flex items-center gap-3 text-meta" aria-busy="true">
           <span
             role="status"
             aria-label="Loading"
-            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-teal"
+            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-ink/10 border-t-teal"
           />
           Loading projects...
         </div>
       ) : proposals.length === 0 ? (
-        <div className="rounded-md border border-dashed border-whisper bg-white/[0.01] p-12 text-center">
-          <p className="text-sm text-cloud/60">
+        <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+          <p className="text-sm text-meta">
             No projects have been submitted in this pod.
           </p>
         </div>
@@ -232,18 +232,18 @@ export default function SolutionBallot({
             return (
               <div
                 key={p.id}
-                className="rounded-md border border-whisper bg-white/[0.02] p-4"
+                className="rounded-card border border-ink/10 bg-white p-4 shadow-card"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold tracking-tight text-white">
+                    <h3 className="font-semibold tracking-tight text-ink">
                       {p.name || "Untitled project"}
                     </h3>
                     {p.summary && (
-                      <p className="mt-1 text-sm text-cloud/80">{p.summary}</p>
+                      <p className="mt-1 text-sm text-charcoal">{p.summary}</p>
                     )}
                     {description && (
-                      <p className="mt-2 whitespace-pre-line text-sm text-cloud/60">
+                      <p className="mt-2 whitespace-pre-line text-sm text-meta">
                         {description}
                       </p>
                     )}
@@ -254,12 +254,12 @@ export default function SolutionBallot({
                       onClick={() => bump(p.id, -1)}
                       disabled={count === 0}
                       aria-label={`Decrease votes for ${p.name || `proposal ${p.id}`}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.10] bg-white/[0.04] text-cloud transition-all duration-150 hover:bg-white/[0.08] active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                      className="flex h-8 w-8 items-center justify-center rounded-card border border-ink/10 bg-white text-charcoal transition-all duration-150 hover:bg-ink/[0.04] active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                     >
                       −
                     </button>
                     <span
-                      className="w-6 text-center font-semibold tabular-nums text-white"
+                      className="w-6 text-center font-semibold tabular-nums text-ink"
                       aria-live="polite"
                     >
                       {count}
@@ -269,7 +269,7 @@ export default function SolutionBallot({
                       onClick={() => bump(p.id, 1)}
                       disabled={remaining === 0}
                       aria-label={`Increase votes for ${p.name || `proposal ${p.id}`}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-teal/30 bg-teal/[0.10] text-aqua transition-all duration-150 hover:bg-teal/[0.20] active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                      className="flex h-8 w-8 items-center justify-center rounded-card border border-teal/30 bg-teal/10 text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                     >
                       +
                     </button>
@@ -281,16 +281,16 @@ export default function SolutionBallot({
         </div>
       )}
 
-      <div className="flex items-center gap-3 border-t border-whisper pt-4">
+      <div className="flex items-center gap-3 border-t border-ink/10 pt-4">
         <button
           type="button"
           onClick={submitBallot}
           disabled={!ready || submitting || proposals.length === 0}
-          className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white shadow-[0_1px_4px_rgba(0,148,160,0.2)] transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="btn btn-teal btn-sm"
         >
           {submitting ? "Submitting..." : "Submit votes"}
         </button>
-        <p className="text-xs text-cloud/60">
+        <p className="text-xs text-meta">
           {ready
             ? "Ready to submit. Votes are final."
             : `Allocate all ${voteBudget} vote${voteBudget === 1 ? "" : "s"} to submit.`}

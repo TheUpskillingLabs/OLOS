@@ -1,5 +1,14 @@
 # OLOS Design System
 
+> **⚠ Superseded (July 2026):** the design source of truth is now the
+> `onboarding-proto` repo (light-first, warm paper, Geologica, one 14px
+> radius). Its tokens and component layer live in `app/globals.css`, and
+> every surface has been reskinned to it — the dark theme described below
+> no longer exists in the app. The staged translation is tracked in
+> `docs/PROTO_TRANSLATION_PLAN.md`. This document is pending a full rewrite
+> from the shipped system; until then everything under this note is
+> historical reference only.
+
 **Product:** OLOS — operating system for The Upskilling Labs
 **Stack:** Next.js 16 (App Router) · Tailwind CSS v4 · Supabase · Vercel
 **Design language:** The Upskilling Labs brand × iOS Human Interface Guidelines
