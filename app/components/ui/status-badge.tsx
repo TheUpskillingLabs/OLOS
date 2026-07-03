@@ -22,7 +22,6 @@ const variantClass: Record<Variant, string> = {
 
 export function StatusBadge({
   variant,
-  withDot: _withDot = false,
   children,
   className,
 }: {

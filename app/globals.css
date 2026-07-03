@@ -15,9 +15,6 @@
        (--ink / gradients) is reserved for covers, nav bars, and footers.
      · 4px baseline grid — type line-heights and spacing are multiples of 4.
 
-   Legacy dark theme: pages that predate the reskin (dashboard, admin,
-   moderator…) keep their look via the .theme-legacy wrapper + the LEGACY
-   color tokens. Both get deleted as each surface migrates to this system.
    ════════════════════════════════════════════════════════════════════════ */
 
 @theme {
@@ -36,18 +33,6 @@
   --color-slate: #4a5557;
   --color-meta: #5f6b70;
   --color-meta-soft: #8a979b;
-
-  /* ── LEGACY dark-theme tokens — consumed only by un-migrated pages inside
-        .theme-legacy. Delete each as its surface adopts the new system. ── */
-  --color-midnight: #2a3142;
-  --color-aqua: #4dbbc2;
-  --color-shadow-teal: #006b73;
-  --color-shadow: #006b73;
-  --color-crimson: #7a0f14;
-  --color-cloud: #e6e6e6;
-  --color-ghost: #ffffff;
-  --color-whisper: rgba(255, 255, 255, 0.07);
-  --color-muted: rgba(255, 255, 255, 0.3);
 
   /* ── Radius / elevation (utility-facing twins of --r / --shadow below) ── */
   --radius-card: 14px;
@@ -121,23 +106,6 @@ body {
   min-height: 100svh;
 }
 
-/* Legacy dark surfaces — applied by un-migrated layouts (dashboard/admin/
-   moderator). Carries the pre-reskin body styling so those pages render
-   exactly as before while new surfaces go light. Delete with the last
-   legacy page. */
-.theme-legacy {
-  background-color: var(--color-midnight);
-  background-image: radial-gradient(
-    ellipse 80% 60% at 50% 0%,
-    rgba(0, 148, 160, 0.07) 0%,
-    transparent 70%
-  );
-  background-attachment: fixed;
-  color: var(--color-cloud);
-  color-scheme: dark;
-  line-height: 1.6;
-}
-
 /* iOS-quality tap behavior */
 *,
 *::before,
@@ -167,12 +135,11 @@ a {
   text-decoration: none;
 }
 
-/* Native modal backdrop — legacy sheets keep the midnight scrim; new modals
-   use .gate-modal below. */
+/* Native modal backdrop — the ink scrim, matching .gate-modal. */
 dialog::backdrop {
-  background: rgba(42, 49, 66, 0.8);
-  backdrop-filter: blur(8px) saturate(140%);
-  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  background: rgba(0, 20, 27, 0.58);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .tabular-nums {
