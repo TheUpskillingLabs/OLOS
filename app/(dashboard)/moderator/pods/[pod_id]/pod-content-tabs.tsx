@@ -45,7 +45,7 @@ export function PodContentTabs({
 
   return (
     <section>
-      <div className="mb-3 flex items-center gap-1 border-b border-whisper">
+      <div className="mb-3 flex items-center gap-1 border-b border-ink/10">
         {TABS.map((t) => {
           const active = t.value === tab;
           return (
@@ -54,8 +54,8 @@ export function PodContentTabs({
               onClick={() => onSelect(t.value)}
               className={`relative -mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
                 active
-                  ? "border-aqua text-white"
-                  : "border-transparent text-cloud/60 hover:text-cloud"
+                  ? "border-teal text-ink"
+                  : "border-transparent text-meta hover:text-ink"
               }`}
             >
               {t.label}

@@ -36,20 +36,20 @@ export function PulseResponseCard({
   const sr = (response.survey_responses ?? {}) as Record<string, unknown>;
   return (
     <div
-      className={`rounded-md border p-4 ${
+      className={`rounded-card border p-4 ${
         submitted
-          ? "border-whisper bg-white/[0.02]"
-          : "border-yellow-500/20 bg-yellow-500/[0.04]"
+          ? "border-ink/10 bg-white shadow-card"
+          : "border-red/20 bg-red/[0.03]"
       }`}
     >
       {header && <div className="mb-3">{header}</div>}
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <div className="text-sm font-medium text-white tabular-nums">
+        <div className="text-sm font-medium text-ink tabular-nums">
           {formatDate(response.scheduled_date)}
         </div>
         <div
           className={`text-xs ${
-            submitted ? "text-aqua" : "text-yellow-300"
+            submitted ? "text-teal-deep" : "text-red"
           }`}
         >
           {submitted
@@ -91,10 +91,10 @@ function TextField({
   if (typeof v !== "string" || !v.trim()) return null;
   return (
     <div>
-      <dt className="mb-0.5 text-cloud/45 uppercase tracking-widest text-[10px]">
+      <dt className="mb-0.5 text-meta uppercase tracking-widest text-[10px]">
         {label}
       </dt>
-      <dd className="whitespace-pre-wrap text-cloud/85">{v}</dd>
+      <dd className="whitespace-pre-wrap text-charcoal">{v}</dd>
     </div>
   );
 }
@@ -112,7 +112,7 @@ function ArrayField({
   if (!Array.isArray(v) || v.length === 0) return null;
   return (
     <div>
-      <dt className="mb-0.5 text-cloud/45 uppercase tracking-widest text-[10px]">
+      <dt className="mb-0.5 text-meta uppercase tracking-widest text-[10px]">
         {label}
       </dt>
       <dd className="flex flex-wrap gap-1.5">
@@ -121,7 +121,7 @@ function ArrayField({
           .map((tool) => (
             <span
               key={tool}
-              className="rounded-full bg-white/[0.06] px-2 py-0.5 text-cloud/80"
+              className="rounded-sm bg-ink/[0.04] px-2 py-0.5 text-slate"
             >
               {tool}
             </span>

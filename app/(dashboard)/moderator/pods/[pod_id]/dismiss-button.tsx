@@ -53,7 +53,7 @@ export function DismissButton({
   return (
     <div className="flex items-center gap-2">
       {error && (
-        <span className="text-xs text-red-300" title={error}>
+        <span className="text-xs text-red" title={error}>
           retry
         </span>
       )}
@@ -61,7 +61,7 @@ export function DismissButton({
         onClick={onClick}
         aria-label="Dismiss nudge"
         title="Dismiss this nudge — it will re-fire if the condition re-trips"
-        className="rounded p-1.5 text-cloud/40 transition-colors hover:bg-white/[0.04] hover:text-cloud/70"
+        className="rounded p-1.5 text-meta-soft transition-colors hover:bg-ink/[0.04] hover:text-slate"
       >
         <X className="h-4 w-4" />
       </button>

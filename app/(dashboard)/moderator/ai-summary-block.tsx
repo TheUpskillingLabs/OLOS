@@ -56,41 +56,41 @@ export function AISummaryBlock({
     scope === "pod" ? "this pod" : "all your pods combined";
 
   return (
-    <div className="rounded-md border border-teal/25 bg-teal/[0.04] p-5">
+    <div className="rounded-card border border-teal/25 bg-teal/[0.04] p-5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <div className="mb-1 text-xs uppercase tracking-widest text-aqua/80">
+          <div className="lbl lbl-teal mb-1">
             AI-assisted summary
           </div>
-          <div className="text-sm text-cloud/85">
+          <div className="text-sm text-charcoal">
             Bundle recent pulse comments with a ready-to-use prompt and
             paste into ChatGPT, Claude, or your AI tool of choice.
           </div>
         </div>
-        <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-aqua/70" />
+        <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-teal-deep" />
       </div>
 
-      <div className="mb-3 max-h-48 overflow-y-auto rounded-md border border-whisper bg-ink/40 p-4">
-        <div className="mb-2 text-[10px] uppercase tracking-widest text-cloud/40">
+      <div className="mb-3 max-h-48 overflow-y-auto rounded-card border border-ink/10 bg-white p-4">
+        <div className="mb-2 text-[10px] uppercase tracking-widest text-meta">
           Pulse comments · {rangeLabel} · {comments.length} response
           {comments.length === 1 ? "" : "s"} from {scopeLabel}
         </div>
         {comments.length === 0 ? (
-          <div className="text-xs text-cloud/50">
+          <div className="text-xs text-meta">
             No free-text comments in this range yet.
           </div>
         ) : (
-          <div className="space-y-2.5 text-xs text-cloud/80">
+          <div className="space-y-2.5 text-xs text-charcoal">
             {comments.slice(0, 4).map((c, idx) => (
               <div key={`${c.participant_id}:${c.scheduled_date}:${idx}`}>
-                <span className="text-cloud/45">
+                <span className="text-meta">
                   [{c.initials} · {formatWeek(c.scheduled_date)}]
                 </span>{" "}
                 {c.text}
               </div>
             ))}
             {comments.length > 4 && (
-              <div className="italic text-cloud/45">
+              <div className="italic text-meta">
                 …{comments.length - 4} more comments included in the copy
               </div>
             )}
@@ -102,14 +102,14 @@ export function AISummaryBlock({
         <button
           onClick={() => setPreviewOpen(true)}
           disabled={comments.length === 0}
-          className="rounded border border-whisper bg-white/[0.02] px-3 py-1.5 text-xs font-medium text-cloud transition-colors hover:border-white/[0.12] hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:bg-ink/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Preview
         </button>
         <button
           onClick={onCopy}
           disabled={comments.length === 0}
-          className="rounded bg-teal/25 px-3 py-1.5 text-xs font-medium text-aqua transition-colors hover:bg-teal/35 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-card bg-teal-deep px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal disabled:cursor-not-allowed disabled:opacity-40"
         >
           {copied ? "Copied!" : "Copy prompt + responses"}
         </button>
@@ -179,14 +179,14 @@ function PreviewDialog({
       ref={dialogRef}
       onClose={onClose}
       onCancel={onClose}
-      className="w-full max-w-3xl rounded-md border border-whisper bg-ink p-0 text-cloud shadow-2xl backdrop:bg-[rgba(28,34,48,0.7)]"
+      className="w-full max-w-3xl rounded-card border border-ink/10 bg-white p-0 text-charcoal shadow-card-lg backdrop:bg-[rgba(0,20,27,0.5)]"
     >
-      <div className="flex items-start justify-between gap-4 border-b border-whisper px-5 py-4">
+      <div className="flex items-start justify-between gap-4 border-b border-ink/10 px-5 py-4">
         <div>
-          <div className="mb-1 text-xs uppercase tracking-widest text-aqua/80">
+          <div className="lbl lbl-teal mb-1">
             AI summary bundle
           </div>
-          <div className="text-xs text-cloud/70">
+          <div className="text-xs text-slate">
             {rangeLabel} · {commentCount} response
             {commentCount === 1 ? "" : "s"} from {scopeLabel}
           </div>
@@ -194,7 +194,7 @@ function PreviewDialog({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="rounded p-1 text-cloud/60 transition-colors hover:bg-white/[0.04] hover:text-cloud"
+          className="rounded p-1 text-meta transition-colors hover:bg-ink/[0.04] hover:text-ink"
         >
           <X className="h-4 w-4" />
         </button>
@@ -203,22 +203,22 @@ function PreviewDialog({
         <textarea
           readOnly
           value={bundle}
-          className="h-96 w-full resize-none rounded-md border border-whisper bg-midnight px-3 py-2 font-mono text-xs leading-relaxed text-cloud/90 focus-visible:border-teal focus-visible:outline-none"
+          className="h-96 w-full resize-none rounded-card border border-ink/10 bg-paper px-3 py-2 font-mono text-xs leading-relaxed text-charcoal focus-visible:border-teal focus-visible:outline-none"
         />
-        <div className="mt-1 text-[10px] text-cloud/50">
+        <div className="mt-1 text-[10px] text-meta">
           This is exactly what gets copied. Select-all + ⌘C also works.
         </div>
       </div>
-      <div className="flex items-center justify-end gap-2 border-t border-whisper px-5 py-3">
+      <div className="flex items-center justify-end gap-2 border-t border-ink/10 px-5 py-3">
         <button
           onClick={onClose}
-          className="rounded border border-whisper bg-white/[0.02] px-3 py-1.5 text-xs font-medium text-cloud transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
+          className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:bg-ink/[0.04]"
         >
           Close
         </button>
         <button
           onClick={onDialogCopy}
-          className="rounded bg-teal/25 px-3 py-1.5 text-xs font-medium text-aqua transition-colors hover:bg-teal/35"
+          className="rounded-card bg-teal-deep px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal"
         >
           {dialogCopied ? "Copied!" : "Copy"}
         </button>

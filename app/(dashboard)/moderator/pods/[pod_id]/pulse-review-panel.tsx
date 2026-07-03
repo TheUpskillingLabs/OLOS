@@ -92,10 +92,10 @@ export function PulseReviewPanel({
       description={`${podName} · ${aiLevel}${member.availability_snippet ? ` · ${member.availability_snippet}` : ""}`}
       footer={
         member.email ? (
-          <div className="flex items-center justify-end text-xs text-cloud/60">
+          <div className="flex items-center justify-end text-xs text-meta">
             <a
               href={`mailto:${member.email}`}
-              className="rounded bg-teal/20 px-3 py-1.5 text-xs font-medium text-aqua transition-colors hover:bg-teal/30"
+              className="rounded-card bg-teal-deep px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal"
             >
               Email member
             </a>
@@ -105,10 +105,10 @@ export function PulseReviewPanel({
     >
       <div className="px-6 py-5">
         {state.kind === "loading" && (
-          <div className="text-sm text-cloud/60">Loading pulse history…</div>
+          <div className="text-sm text-meta">Loading pulse history…</div>
         )}
         {state.kind === "error" && (
-          <div className="rounded-md border border-red-500/30 bg-red-500/[0.06] p-4 text-sm text-red-300">
+          <div className="rounded-card border border-red/25 bg-red/[0.04] p-4 text-sm text-red">
             Couldn&apos;t load pulse history: {state.message}
           </div>
         )}
@@ -148,11 +148,11 @@ function PanelBody({
       <IndividualAggregateBlock data={data} />
 
       <section>
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/40">
+        <h3 className="lbl mb-3">
           Responses
         </h3>
         {responses.length === 0 ? (
-          <div className="rounded-md border border-whisper bg-white/[0.02] p-4 text-sm text-cloud/60">
+          <div className="rounded-card border border-ink/10 bg-white p-4 text-sm text-meta">
             No pulses in this range.
           </div>
         ) : (
@@ -166,7 +166,7 @@ function PanelBody({
         {!showFullCycle && hiddenCount > 0 && (
           <button
             onClick={onExpand}
-            className="mt-3 text-xs text-aqua transition-colors hover:text-white"
+            className="mt-3 text-xs text-teal-deep transition-colors hover:text-ink"
           >
             Show full cycle history ({hiddenCount} more)
           </button>
@@ -179,15 +179,15 @@ function PanelBody({
 function IndividualAggregateBlock({ data }: { data: PulseHistoryPayload }) {
   const { aggregate } = data;
   return (
-    <section className="rounded-md border border-teal/20 bg-teal/[0.04] p-4">
-      <div className="mb-3 text-xs uppercase tracking-widest text-aqua/80">
+    <section className="rounded-card border border-teal/20 bg-teal/[0.04] p-4">
+      <div className="lbl lbl-teal mb-3">
         Across this cycle
       </div>
 
       <div className="mb-4">
-        <div className="mb-1.5 text-xs text-cloud/60">Engagement trajectory</div>
+        <div className="mb-1.5 text-xs text-meta">Engagement trajectory</div>
         {aggregate.trajectory.length === 0 ? (
-          <div className="text-xs text-cloud/50">No pulses yet.</div>
+          <div className="text-xs text-meta">No pulses yet.</div>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5">
             {aggregate.trajectory.map((dot) => (
@@ -196,8 +196,8 @@ function IndividualAggregateBlock({ data }: { data: PulseHistoryPayload }) {
                 title={`${dot.scheduled_date}: ${dot.submitted ? "submitted" : "missed"}`}
                 className={`h-2.5 w-2.5 rounded-full ${
                   dot.submitted
-                    ? "bg-aqua"
-                    : "border border-cloud/40 bg-transparent"
+                    ? "bg-teal"
+                    : "border border-ink/25 bg-transparent"
                 }`}
               />
             ))}
@@ -206,15 +206,15 @@ function IndividualAggregateBlock({ data }: { data: PulseHistoryPayload }) {
       </div>
 
       <div>
-        <div className="mb-1.5 text-xs text-cloud/60">Top AI tools</div>
+        <div className="mb-1.5 text-xs text-meta">Top AI tools</div>
         {aggregate.topTools.length === 0 ? (
-          <div className="text-xs text-cloud/50">None reported.</div>
+          <div className="text-xs text-meta">None reported.</div>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {aggregate.topTools.map((t) => (
               <span
                 key={t.tool}
-                className="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-0.5 text-xs text-aqua"
+                className="inline-flex items-center gap-1.5 rounded-sm bg-teal/10 px-2.5 py-0.5 text-xs text-teal-deep"
               >
                 {t.tool}
                 <span className="tabular-nums opacity-80">{t.count}</span>
