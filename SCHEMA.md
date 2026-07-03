@@ -1,6 +1,6 @@
 # OLOS Database Schema
 
-Single PostgreSQL database. 18 tables organized around a **Cycle → Pod → Project** hierarchy.
+Single PostgreSQL database. 19 tables (see the migration timeline for post-18 additions) organized around a **Cycle → Pod → Project** hierarchy.
 
 ---
 
@@ -167,6 +167,16 @@ erDiagram
         timestamp inactive_date
     }
 
+    cycle_agreements {
+        int id PK
+        int participant_id FK
+        int cycle_id FK
+        varchar agreement_version
+        text signature_name
+        timestamptz signed_at
+        jsonb answers
+    }
+
     user_roles {
         int id PK
         int participant_id FK
@@ -198,6 +208,8 @@ erDiagram
 
     participants ||--o{ cycle_enrollments : "joins"
     cycles ||--o{ cycle_enrollments : "contains"
+    participants ||--o{ cycle_agreements : "signs"
+    cycles ||--o{ cycle_agreements : "binds"
     participants ||--o{ user_roles : "holds"
     participants ||--o{ access_revocations : "subject of"
     cycles ||--o{ access_revocations : "logs"
