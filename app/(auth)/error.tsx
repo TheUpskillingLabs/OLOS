@@ -15,17 +15,12 @@ export default function AuthError({
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-lg border border-whisper bg-ink p-8 text-center shadow-2xl">
-        <h2 className="mb-2 text-xl font-semibold tracking-tight text-white">
-          Authentication error
-        </h2>
-        <p className="mb-6 text-sm text-cloud/60">
-          Something went wrong during authentication.
+      <div className="card w-full max-w-md p-8 text-center shadow-card">
+        <h2 className="t-h3 mb-2">Something went wrong signing you in</h2>
+        <p className="t-small mb-6">
+          Give it another try. If it keeps happening, tell us.
         </p>
-        <button
-          onClick={reset}
-          className="rounded-md bg-teal px-4 py-2 text-sm font-semibold tracking-tight text-white transition-all duration-150 ease-spring hover:bg-teal/80 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
-        >
+        <button onClick={reset} className="btn btn-teal">
           Try again
         </button>
       </div>

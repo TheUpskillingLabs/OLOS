@@ -109,6 +109,12 @@ erDiagram
         boolean contact_consent "NOT NULL DEFAULT FALSE"
         boolean photo_video_consent
         varchar source
+        varchar referred_by
+        varchar zip
+        varchar metro_slug
+        text_array role_intents "NOT NULL DEFAULT {}"
+        varchar agreement_version
+        timestamptz agreement_accepted_at
         varchar slack_username
         varchar github_username
         varchar drive_email
