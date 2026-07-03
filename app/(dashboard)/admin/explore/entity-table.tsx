@@ -40,9 +40,9 @@ export function EntityTable({
   return (
     <div>
       {/* Meta line */}
-      <div className="mb-2 flex items-center justify-between px-1 text-xs text-cloud/70">
+      <div className="mb-2 flex items-center justify-between px-1 text-xs text-slate">
         <span>
-          Table <span className="font-mono text-aqua">{config.table}</span>
+          Table <span className="font-mono text-teal-deep">{config.table}</span>
           {config.cycleScoped && " · cycle-scoped"}
         </span>
         <span className="tabular-nums">
@@ -51,27 +51,27 @@ export function EntityTable({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-white/10">
+      <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-sm">
-          <thead className="bg-teal/15">
+          <thead className="bg-teal/10">
             <tr>
               {config.columns.map((c) => (
                 <th
                   key={c}
-                  className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-aqua"
+                  className="lbl lbl-teal whitespace-nowrap px-4 py-3 text-left"
                 >
                   {c}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/10">
+          <tbody className="divide-y divide-ink/10">
             {rows.map((row, i) => {
               const deleted = isRowDeleted(config, row);
               return (
                 <tr
                   key={String(row.id ?? i)}
-                  className={`transition-colors duration-150 hover:bg-teal/[0.07] ${deleted ? "text-cloud/40" : ""}`}
+                  className={`transition-colors duration-150 hover:bg-ink/[0.02] ${deleted ? "text-meta" : ""}`}
                 >
                   {config.columns.map((c, ci) => (
                     <td
@@ -88,7 +88,7 @@ export function EntityTable({
               <tr>
                 <td
                   colSpan={config.columns.length}
-                  className="px-4 py-8 text-center text-sm text-cloud/60"
+                  className="px-4 py-8 text-center text-sm text-meta"
                 >
                   No rows.
                 </td>
@@ -99,7 +99,7 @@ export function EntityTable({
       </div>
 
       {/* Pagination */}
-      <div className="mt-3 flex items-center justify-between px-1 text-xs text-cloud/70">
+      <div className="mt-3 flex items-center justify-between px-1 text-xs text-slate">
         <span>{pageSize} rows / page</span>
         <div className="flex gap-2">
           <PagerButton
@@ -129,12 +129,12 @@ function PagerButton({
   enabled: boolean;
   children: React.ReactNode;
 }) {
-  const base = "rounded-md border px-3 py-1.5 text-xs transition-colors";
+  const base = "rounded-card border px-3 py-1.5 text-xs transition-colors";
   if (!enabled) {
-    return <span className={`${base} cursor-default border-white/10 text-cloud/30`} aria-disabled>{children}</span>;
+    return <span className={`${base} cursor-default border-ink/10 text-meta-soft`} aria-disabled>{children}</span>;
   }
   return (
-    <Link href={href} className={`${base} border-teal/40 text-aqua hover:bg-teal/15 hover:text-aqua`}>
+    <Link href={href} className={`${base} border-teal/40 text-teal-deep hover:bg-teal/10 hover:text-teal-deep`}>
       {children}
     </Link>
   );

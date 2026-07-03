@@ -10,11 +10,11 @@ import {
 } from "@/lib/auth/permissions";
 
 const PRESET_COLORS: Record<string, string> = {
-  owner: "bg-yellow-500/15 text-yellow-300 ring-yellow-500/30",
-  admin: "bg-teal/15 text-aqua ring-teal/30",
-  developer: "bg-purple-500/15 text-purple-300 ring-purple-500/30",
-  moderator: "bg-blue-500/15 text-blue-300 ring-blue-500/30",
-  observer: "bg-white/10 text-cloud/60 ring-whisper",
+  owner: "bg-ink/10 text-ink ring-ink/30",
+  admin: "bg-teal/10 text-teal-deep ring-teal/30",
+  developer: "bg-forest/10 text-forest ring-forest/30",
+  moderator: "bg-navy/10 text-navy ring-navy/30",
+  observer: "bg-ink/[0.04] text-meta ring-ink/10",
 };
 
 export default function PermissionsEditor({
@@ -97,7 +97,7 @@ export default function PermissionsEditor({
     <div className="space-y-8">
       {/* Role Presets */}
       <section>
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
+        <h2 className="lbl mb-3">
           Quick Assign — Role Presets
         </h2>
         <div className="flex flex-wrap gap-2">
@@ -113,10 +113,10 @@ export default function PermissionsEditor({
                 disabled={
                   presetLoading !== null || isRestricted
                 }
-                className={`rounded-md px-4 py-2 text-sm font-semibold tracking-tight ring-1 transition-all duration-150 ease-spring active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
+                className={`rounded-card px-4 py-2 text-sm font-semibold tracking-tight ring-1 transition-all duration-150 ease-spring active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal ${
                   isActive
                     ? PRESET_COLORS[preset]
-                    : "text-cloud/80 ring-whisper hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12]"
+                    : "text-charcoal ring-ink/10 hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20"
                 }`}
               >
                 {presetLoading === preset
@@ -127,7 +127,7 @@ export default function PermissionsEditor({
           })}
         </div>
         {currentPresets.length > 0 && (
-          <p className="mt-2 text-xs text-cloud/60">
+          <p className="mt-2 text-xs text-meta">
             Active presets: {currentPresets.join(", ")}
           </p>
         )}
@@ -136,7 +136,7 @@ export default function PermissionsEditor({
       {error && (
         <div
           role="alert"
-          className="rounded-md border border-red/20 bg-red/10 p-3 text-sm text-red-300"
+          className="rounded-card border border-red/20 bg-red/10 p-3 text-sm text-red"
         >
           {error}
         </div>
@@ -144,13 +144,13 @@ export default function PermissionsEditor({
 
       {/* Individual Permissions */}
       <section>
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
+        <h2 className="lbl mb-3">
           Individual Permissions
         </h2>
         <div className="space-y-6">
           {PERMISSION_GROUPS.map((group) => (
             <div key={group.label}>
-              <h3 className="mb-2 text-sm font-semibold tracking-tight text-cloud">
+              <h3 className="mb-2 text-sm font-semibold tracking-tight text-ink">
                 {group.label}
               </h3>
               <div className="space-y-1">
@@ -162,13 +162,13 @@ export default function PermissionsEditor({
                   return (
                     <div
                       key={perm}
-                      className="flex items-center justify-between rounded-md px-3 py-2 transition-colors duration-150 hover:bg-white/[0.02]"
+                      className="flex items-center justify-between rounded-card px-3 py-2 transition-colors duration-150 hover:bg-ink/[0.02]"
                     >
                       <div>
-                        <span className="text-sm text-cloud">
+                        <span className="text-sm text-charcoal">
                           {permissionLabel(perm)}
                         </span>
-                        <span className="ml-2 font-mono text-xs text-cloud/50">
+                        <span className="ml-2 font-mono text-xs text-meta">
                           {perm}
                         </span>
                       </div>
@@ -178,8 +178,8 @@ export default function PermissionsEditor({
                         role="switch"
                         aria-checked={enabled}
                         aria-label={permissionLabel(perm)}
-                        className={`relative h-6 w-11 rounded-full transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight ${
-                          enabled ? "bg-teal" : "bg-white/[0.10]"
+                        className={`relative h-6 w-11 rounded-full transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal ${
+                          enabled ? "bg-teal" : "bg-ink/15"
                         }`}
                       >
                         <span
@@ -200,25 +200,25 @@ export default function PermissionsEditor({
       {/* Pod Assignments (informational) */}
       {podAssignments.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-cloud/60">
+          <h2 className="lbl mb-3">
             Moderator Pod Assignments
           </h2>
           <div className="flex flex-wrap gap-2">
             {podAssignments.map((pa) => (
               <span
                 key={pa.pod_id}
-                className="inline-flex items-center rounded-full bg-blue-500/15 px-3 py-1 text-xs font-medium text-blue-300"
+                className="inline-flex items-center rounded-sm bg-navy/10 px-3 py-1 text-xs font-medium text-navy"
               >
                 {pa.pod_name}
                 {pa.cycle_name && (
-                  <span className="ml-1 text-blue-300/60">
+                  <span className="ml-1 text-navy/60">
                     ({pa.cycle_name})
                   </span>
                 )}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-xs text-cloud/60">
+          <p className="mt-2 text-xs text-meta">
             Pod assignments are managed from the cycle admin page.
           </p>
         </section>

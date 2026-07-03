@@ -98,13 +98,13 @@ export default function AssignModeratorButton({
     return (
       <div className="flex items-center gap-2">
         {moderators.length > 0 && (
-          <span className="text-xs text-cloud/70">
+          <span className="text-xs text-slate">
             {moderators.map((m) => m.name).join(", ")}
           </span>
         )}
         <button
           onClick={() => setOpen(true)}
-          className="rounded ring-1 ring-whisper px-2.5 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="btn btn-ghost px-2.5 py-1 text-xs"
         >
           {moderators.length > 0 ? "Manage" : "Assign moderator"}
         </button>
@@ -113,7 +113,7 @@ export default function AssignModeratorButton({
   }
 
   return (
-    <div className="space-y-3 rounded-md border border-whisper bg-white/[0.02] p-3">
+    <div className="space-y-3 rounded-card border border-ink/10 bg-white p-3 shadow-card">
       {moderators.length > 0 && (
         <div className="space-y-1">
           {moderators.map((m) => (
@@ -121,11 +121,11 @@ export default function AssignModeratorButton({
               key={m.participant_id}
               className="flex items-center justify-between gap-3 text-sm"
             >
-              <span className="text-cloud">{m.name}</span>
+              <span className="text-charcoal">{m.name}</span>
               <button
                 onClick={() => remove(m.participant_id)}
                 disabled={loading}
-                className="text-xs font-medium text-red-300 transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-red"
+                className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-red"
               >
                 Remove
               </button>
@@ -140,7 +140,7 @@ export default function AssignModeratorButton({
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
             aria-label="Select participant"
-            className="flex-1 rounded-md border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-xs text-white transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            className="flex-1 rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
           >
             <option value="">Select participant...</option>
             {available.map((p) => (
@@ -152,7 +152,7 @@ export default function AssignModeratorButton({
           <button
             onClick={assign}
             disabled={!selectedId || loading}
-            className="rounded bg-teal/20 px-3 py-1 text-xs font-semibold tracking-tight text-aqua transition-all duration-150 hover:bg-teal/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+            className="rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
           >
             {loading ? "…" : "Assign"}
           </button>
@@ -160,14 +160,14 @@ export default function AssignModeratorButton({
       )}
 
       {error && (
-        <p role="alert" className="text-xs text-red-300">
+        <p role="alert" className="text-xs text-red">
           {error}
         </p>
       )}
 
       <button
         onClick={() => setOpen(false)}
-        className="text-xs text-cloud/60 transition-colors duration-150 hover:text-cloud focus-visible:outline-none focus-visible:text-cloud"
+        className="text-xs text-meta transition-colors duration-150 hover:text-charcoal focus-visible:outline-none focus-visible:text-charcoal"
       >
         Close
       </button>

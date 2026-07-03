@@ -120,44 +120,44 @@ export default function RevocationsSection({
         <button
           onClick={runCheck}
           disabled={checkLoading}
-          className="rounded-md ring-1 ring-whisper px-4 py-2 text-sm font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="btn btn-ghost px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {checkLoading ? "Checking…" : "Run inactivity check"}
         </button>
         {checkResult && (
-          <span className="text-sm text-cloud/80 tabular-nums">
+          <span className="text-sm text-charcoal tabular-nums">
             {checkResult.count === 0
               ? "No new revocations."
               : `${checkResult.count} participant${checkResult.count !== 1 ? "s" : ""} revoked.`}
           </span>
         )}
         {checkError && (
-          <span role="alert" className="text-sm text-red-300">
+          <span role="alert" className="text-sm text-red">
             {checkError}
           </span>
         )}
       </div>
 
       {revocations.length === 0 ? (
-        <p className="text-sm text-cloud/60">No revocations for this cycle.</p>
+        <p className="text-sm text-meta">No revocations for this cycle.</p>
       ) : (
-        <div className="overflow-hidden rounded-md border border-whisper">
+        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-sm">
-            <thead className="bg-white/[0.04]">
+            <thead className="bg-ink/[0.02]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                <th className="lbl px-4 py-3 text-left">
                   Participant
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                <th className="lbl px-4 py-3 text-left">
                   Reason
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-cloud/60">
+                <th className="lbl px-4 py-3 text-left">
                   Revoked
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-cloud/60" />
+                <th className="lbl px-4 py-3 text-right" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-whisper">
+            <tbody className="divide-y divide-ink/10">
               {revocations.map((rev, i) => {
                 const name =
                   nameMap.get(rev.participant_id) ??
@@ -166,35 +166,35 @@ export default function RevocationsSection({
                 return (
                   <tr
                     key={i}
-                    className="transition-colors duration-150 hover:bg-white/[0.02]"
+                    className="transition-colors duration-150 hover:bg-ink/[0.02]"
                   >
-                    <td className="px-4 py-3 font-medium text-cloud">
+                    <td className="px-4 py-3 font-medium text-ink">
                       {name}
                     </td>
-                    <td className="px-4 py-3 text-cloud/60">
+                    <td className="px-4 py-3 text-meta">
                       {REASON_LABELS[rev.reason] ?? rev.reason}
                     </td>
-                    <td className="px-4 py-3 text-cloud/60 tabular-nums">
+                    <td className="px-4 py-3 text-meta tabular-nums">
                       {new Date(rev.revoked_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {reactivateErrors[rev.participant_id] && (
                         <span
                           role="alert"
-                          className="mr-2 text-xs text-red-300"
+                          className="mr-2 text-xs text-red"
                         >
                           {reactivateErrors[rev.participant_id]}
                         </span>
                       )}
                       {isReactivated ? (
-                        <span className="text-xs font-medium text-aqua">
+                        <span className="text-xs font-medium text-teal-deep">
                           Reactivated
                         </span>
                       ) : (
                         <button
                           onClick={() => reactivate(rev.participant_id)}
                           disabled={reactivatingIds.has(rev.participant_id)}
-                          className="rounded ring-1 ring-whisper px-3 py-1 text-xs font-semibold tracking-tight text-cloud/80 transition-all duration-150 ease-spring hover:bg-white/[0.04] hover:text-cloud hover:ring-white/[0.12] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+                          className="btn btn-ghost px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {reactivatingIds.has(rev.participant_id)
                             ? "…"

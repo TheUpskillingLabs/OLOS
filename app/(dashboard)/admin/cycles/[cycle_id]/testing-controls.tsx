@@ -103,12 +103,12 @@ export default function TestingControls({
   }
 
   return (
-    <div className="rounded-md border border-yellow-500/30 bg-yellow-500/[0.06] p-5">
+    <div className="rounded-card border border-ink/10 border-l-4 border-l-red bg-white p-5 shadow-card">
       <div className="mb-4 flex items-center gap-2">
-        <span className="inline-flex items-center rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-xs font-medium text-yellow-300">
+        <span className="inline-flex items-center rounded-sm bg-red/10 px-2.5 py-0.5 text-xs font-medium text-red">
           Testing
         </span>
-        <h3 className="text-sm font-semibold tracking-tight text-white">
+        <h3 className="text-sm font-semibold tracking-tight text-ink">
           Phase advancement controls
         </h3>
       </div>
@@ -121,15 +121,15 @@ export default function TestingControls({
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold tabular-nums ${
                   statuses[phase] === "completed"
-                    ? "bg-teal/20 text-aqua"
+                    ? "bg-teal/10 text-teal-deep"
                     : statuses[phase] === "active"
-                      ? "bg-yellow-500/30 text-yellow-200 ring-2 ring-yellow-400"
-                      : "bg-white/[0.06] text-cloud/40"
+                      ? "bg-teal-deep text-white ring-2 ring-teal/40"
+                      : "bg-ink/[0.04] text-meta-soft"
                 }`}
               >
                 {statuses[phase] === "completed" ? "\u2713" : i + 1}
               </div>
-              <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md border border-whisper bg-ink px-2 py-1 text-xs text-cloud opacity-0 shadow-2xl transition-opacity duration-150 group-hover:opacity-100">
+              <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-card bg-ink px-2 py-1 text-xs text-white/95 opacity-0 shadow-card-lg transition-opacity duration-150 group-hover:opacity-100">
                 {PHASE_LABELS[phase]}
               </div>
             </div>
@@ -138,7 +138,7 @@ export default function TestingControls({
                 className={`h-0.5 w-4 ${
                   statuses[phase] === "completed"
                     ? "bg-teal/40"
-                    : "bg-white/[0.06]"
+                    : "bg-ink/10"
                 }`}
               />
             )}
@@ -148,7 +148,7 @@ export default function TestingControls({
 
       {/* Status + button */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex-1 text-sm text-cloud/80">
+        <div className="flex-1 text-sm text-charcoal">
           {allCompleted
             ? "All 6 phases completed."
             : activePhase
@@ -158,7 +158,7 @@ export default function TestingControls({
         <button
           onClick={advancePhase}
           disabled={loading || allCompleted}
-          className="rounded-md bg-yellow-500/20 px-4 py-2 text-sm font-semibold tracking-tight text-yellow-200 transition-all duration-150 ease-spring hover:bg-yellow-500/30 hover:text-white active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 focus-visible:ring-offset-midnight"
+          className="rounded-card bg-red/10 px-4 py-2 text-sm font-semibold tracking-tight text-red transition-all duration-150 ease-spring hover:bg-red/15 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red"
         >
           {loading
             ? "Advancing..."
@@ -173,7 +173,7 @@ export default function TestingControls({
       </div>
 
       {message && (
-        <p className="mt-3 text-sm text-yellow-200">{message}</p>
+        <p className="mt-3 text-sm text-charcoal">{message}</p>
       )}
     </div>
   );

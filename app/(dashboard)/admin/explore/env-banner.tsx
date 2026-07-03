@@ -23,7 +23,7 @@ export function EnvBanner() {
     return (
       <div
         role="status"
-        className="mb-6 flex items-center justify-center gap-2 rounded-md border border-red/60 bg-red/25 px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-200 shadow-[0_2px_10px_rgba(238,28,37,0.18)]"
+        className="mb-6 flex items-center justify-center gap-2 rounded-card border border-red/60 bg-red/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-red shadow-card"
       >
         <span aria-hidden>⚠</span>
         PROD — live participant data — {ref}
@@ -34,9 +34,9 @@ export function EnvBanner() {
   return (
     <div
       role="status"
-      className="mb-6 flex items-center justify-center gap-2 rounded-md border border-teal/40 bg-teal/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-aqua"
+      className="mb-6 flex items-center justify-center gap-2 rounded-card border border-teal/40 bg-teal/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-teal-deep"
     >
-      <span aria-hidden className="text-aqua">●</span>
+      <span aria-hidden className="text-teal">●</span>
       DEV — {ref}
     </div>
   );
