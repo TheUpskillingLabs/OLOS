@@ -21,7 +21,7 @@ export function MediaFrame({
       <div className="media">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/${img.replace(/^\//, "")}`}
+          src={/^https?:\/\//.test(img) ? img : `/${img.replace(/^\//, "")}`}
           alt=""
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
         />

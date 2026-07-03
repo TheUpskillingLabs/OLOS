@@ -444,6 +444,8 @@ erDiagram
         jsonb gallery
         boolean anchor
         varchar status
+        timestamptz synced_at
+        varchar luma_url
     }
 
     resources {
@@ -496,6 +498,8 @@ erDiagram
 ```
 
 **`events.start_at` / `end_at`:** plain `TIMESTAMP` holding local wall time, rendered as written — the prototype's Luma-shaped date strings. `anchor = TRUE` marks the cycle's six anchor events (✦ in the UI). `location_type`: `in_person` · `virtual`.
+
+**Luma sync (migration `00035`, `lib/integrations/luma.ts`):** Luma is the source of truth for ALL events. The scheduled sync (`/api/cron/sync-luma-events`, every 6h in production; manual trigger `POST /api/admin/events/sync` for admins) upserts by `api_id`, overwriting only Luma-owned fields (name, times, location, cover `img`, `luma_url`, initial `description`) — local annotations (`slug`, `kind`, `anchor`, `grad`, `cost`, `host`, `bring`, `body`, `gallery`) are never touched. `synced_at` set = Luma-managed row. Reconciliation archives published *future* rows missing from a successful fetch (cancelled/unlisted on Luma); past rows are kept as history. Site RSVPs on Luma-managed events are forwarded to Luma's guest list (best-effort) so confirmations and calendar invites come from Luma.
 
 **`resources.content_type`:** `guide` · `recording` · `template` · `course` · `playbook`. `from_line` carries commons provenance ("BenefitsBot · Spring 2026 Cycle") — rendered as the "From the commons" band.
 

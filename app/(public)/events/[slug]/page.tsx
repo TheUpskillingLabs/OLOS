@@ -138,6 +138,18 @@ export default async function EventPage({
                   ? "Online — we'll send the link."
                   : "Free & public — we'll send the room details."}
               </p>
+              {e.luma_url && (
+                <p className="t-small" style={{ marginTop: 8 }}>
+                  <a
+                    className="see"
+                    href={e.luma_url}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    View on Luma →
+                  </a>
+                </p>
+              )}
             </div>
           </aside>
         </div>
