@@ -43,11 +43,22 @@ export async function proxy(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     // Redirect unauthenticated users to login (except public routes and API routes)
-    // API routes handle their own auth via withAuth/withAdminAuth wrappers
-    const publicPaths = ["/login", "/api/", "/register"];
-    const isPublicPath = publicPaths.some((path) =>
-      request.nextUrl.pathname.startsWith(path)
-    );
+    // API routes handle their own auth via withAuth/withAdminAuth wrappers.
+    // The public web (landing + content pages) browses free — owner rule:
+    // no gated browse.
+    const publicPaths = [
+      "/login",
+      "/api/",
+      "/register",
+      "/events",
+      "/library",
+      "/labs",
+      "/about",
+      "/build-cycles",
+    ];
+    const isPublicPath =
+      request.nextUrl.pathname === "/" ||
+      publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
     if (!user && !isPublicPath && !request.nextUrl.pathname.startsWith("/_next")) {
       const url = request.nextUrl.clone();
