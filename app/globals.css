@@ -509,6 +509,11 @@ button:focus-visible {
   .cb-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--r); background: rgba(0, 148, 160, 0.22); border: 1px solid rgba(0, 148, 160, 0.55); color: #fff; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
   .cb-status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px rgba(0, 148, 160, 0.25); }
 
+  /* ── cycle threshold — commitment cards on the dark cover ── */
+  .th-card { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: var(--r); padding: 20px 22px; margin-bottom: 14px; text-align: left; }
+  .th-ev { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+  .th-ev:last-child { border-bottom: none; }
+
   /* ── checklist rows + trust badges + live dot ── */
   .check-row { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
   .check-row:last-child { border-bottom: none; }

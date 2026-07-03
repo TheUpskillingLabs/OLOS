@@ -170,7 +170,13 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json(
-    { participant_id: participant.id, created_at: participant.created_at },
+    {
+      participant_id: participant.id,
+      created_at: participant.created_at,
+      // The funnel's role branch: picking "Join a Cycle" routes into the
+      // cycle registration ceremony when a cycle is open.
+      active_cycle_id: activeCycle?.id ?? null,
+    },
     { status: 201 }
   );
 }

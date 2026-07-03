@@ -1,13 +1,20 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import CycleInterestForm from "./cycle-interest-form";
+import CycleCeremony from "./ceremony";
 
+// The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
+// FLOWS('cycle') → the Open Cycle Agreement signature → view-cycle-signed).
+// Every registration entry routes through here — account creation is light,
+// the cycle is the commitment (owner decision: registration has gravity).
 export default async function JoinCyclePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ cycle_id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { cycle_id } = await params;
+  const { from } = await searchParams;
   const cycleId = parseInt(cycle_id, 10);
   if (isNaN(cycleId)) redirect("/cycles");
 
@@ -20,16 +27,14 @@ export default async function JoinCyclePage({
 
   const serviceClient = createServiceClient();
 
-  // Check participant exists
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, state, work_situation, main_focus, sector, linkedin")
+    .select("id, first_name, last_name, preferred_name")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
   if (!participant) redirect("/register");
 
-  // Check cycle is active
   const { data: cycle } = await serviceClient
     .from("cycles")
     .select("id, name, status")
@@ -38,58 +43,39 @@ export default async function JoinCyclePage({
 
   if (!cycle || cycle.status !== "active") redirect("/cycles");
 
-  // Get existing options for pre-fill
-  const { data: existingOptions } = await serviceClient
-    .from("participant_options")
-    .select("option_id, option_lists!inner(list_name)")
-    .eq("participant_id", participant.id);
-
-  const selectedOptions: Record<string, number[]> = {};
-  if (existingOptions) {
-    for (const opt of existingOptions as unknown as { option_id: number; option_lists: { list_name: string } }[]) {
-      const listName = opt.option_lists.list_name;
-      if (!selectedOptions[listName]) selectedOptions[listName] = [];
-      selectedOptions[listName].push(opt.option_id);
-    }
-  }
-
-  // Check existing enrollment
-  const { data: enrollment } = await serviceClient
-    .from("cycle_enrollments")
-    .select("id, status")
+  // Already signed → the ceremony opens on the confirmation, not the pitch.
+  const { data: agreement } = await serviceClient
+    .from("cycle_agreements")
+    .select("id, signed_at")
     .eq("participant_id", participant.id)
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
+  // Pod-registration window drives the confirmation's primary CTA.
+  const { data: config } = await serviceClient
+    .from("cycle_config")
+    .select("pod_registration_open, pod_registration_close")
+    .eq("cycle_id", cycleId)
+    .maybeSingle();
+
+  const now = new Date();
+  const podRegistrationOpen =
+    !!config?.pod_registration_open &&
+    !!config?.pod_registration_close &&
+    now >= new Date(config.pod_registration_open) &&
+    now <= new Date(config.pod_registration_close);
+
+  const fullName = `${participant.first_name} ${participant.last_name}`.trim();
+
   return (
-    <div className="flex justify-center px-4 py-12 sm:px-6">
-      <div className="w-full max-w-lg">
-        <div className="mb-6">
-          <p className="lbl">
-            Join cycle
-          </p>
-          <h1 className="t-h1 mt-1 text-ink">
-            {cycle.name}
-          </h1>
-          <p className="mt-2 text-sm text-meta">
-            Tell us about yourself so we can match you with the right pods and
-            collaborators.
-          </p>
-        </div>
-        {enrollment && (
-          <div className="mb-6 rounded-card border border-teal/30 bg-teal/10 p-3 text-sm text-teal-deep">
-            You&apos;ve already submitted interest for this cycle. You can
-            update your responses below.
-          </div>
-        )}
-        <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
-          <CycleInterestForm
-            cycleId={cycleId}
-            defaults={participant}
-            selectedOptions={selectedOptions}
-          />
-        </div>
-      </div>
-    </div>
+    <CycleCeremony
+      cycleId={cycleId}
+      cycleName={cycle.name}
+      fullName={fullName}
+      fromSignup={from === "signup"}
+      alreadySigned={!!agreement}
+      signedAt={agreement?.signed_at ?? null}
+      podRegistrationOpen={podRegistrationOpen}
+    />
   );
 }
