@@ -206,15 +206,15 @@ function SignedScreen({
     <div className="fixed inset-0 z-[70] view light s-paper" style={{ animation: "none" }}>
       <div
         className="vscroll"
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        style={{ flex: 1, minHeight: 0, display: "flex" }}
       >
-        <div className="container" style={{ maxWidth: 520, textAlign: "center", padding: "48px 24px" }}>
+        {/* margin:auto (not flex centering) so a tall card on a short/landscape
+            viewport can still scroll to its top — auto margins collapse to 0
+            when space is tight, unlike align-items:center which clips upward. */}
+        <div
+          className="container"
+          style={{ maxWidth: 520, margin: "auto", padding: "48px 24px" }}
+        >
           <div className="lbl lbl-teal" style={{ marginBottom: 18 }}>
             Registration complete
           </div>
@@ -259,7 +259,6 @@ function SignedScreen({
                   color: "var(--meta)",
                   marginTop: 12,
                   display: "block",
-                  textAlign: "center",
                 }}
                 href={`/cycles/${cycleId}`}
               >
