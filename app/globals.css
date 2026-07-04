@@ -466,6 +466,9 @@ button:focus-visible {
   .cards.dense { grid-template-columns: 1fr; gap: 14px; align-items: start; }
   .cards.dense .card-body { padding: 12px 14px; }
   .cards.dense .media { aspect-ratio: 4/3; }
+  /* Square teaser covers (owner decision: match Luma's card format — its
+     event covers are 1:1 natively, so synced images render uncropped). */
+  .media.sq, .cards.dense .media.sq { aspect-ratio: 1 / 1; }
   .cards.dense .t-h4 { font-size: 15px; line-height: 20px; }
   @media (min-width: 700px) { .cards.dense { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 768px) {
