@@ -8,6 +8,7 @@ import {
   activePresets,
   type Permission,
 } from "@/lib/auth/permissions";
+import { ToggleSwitch } from "@/app/components/ui";
 
 const PRESET_COLORS: Record<string, string> = {
   owner: "bg-ink/10 text-ink ring-ink/30",
@@ -22,11 +23,13 @@ export default function PermissionsEditor({
   initialPermissions,
   canManageRoles,
   podAssignments,
+  initialIsTest,
 }: {
   participantId: number;
   initialPermissions: Permission[];
   canManageRoles: boolean;
   podAssignments: { pod_id: number; pod_name: string; cycle_name: string }[];
+  initialIsTest: boolean;
 }) {
   const [permissions, setPermissions] = useState<Set<Permission>>(
     new Set(initialPermissions)
@@ -34,6 +37,26 @@ export default function PermissionsEditor({
   const [loading, setLoading] = useState<Set<string>>(new Set());
   const [presetLoading, setPresetLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isTest, setIsTest] = useState(initialIsTest);
+  const [testerBusy, setTesterBusy] = useState(false);
+
+  async function toggleTester() {
+    setTesterBusy(true);
+    setError(null);
+    const res = await fetch("/api/admin/testers", {
+      method: isTest ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participant_id: participantId }),
+    });
+    setTesterBusy(false);
+    if (res.ok) {
+      const data = await res.json();
+      setIsTest(!!data.tester);
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "Failed to update tester status");
+    }
+  }
 
   const currentPresets = activePresets([...permissions]);
 
@@ -142,6 +165,31 @@ export default function PermissionsEditor({
         </div>
       )}
 
+      {/* Tester status — grants the self-reset pathway (migration 00042).
+          Email-keyed, so the flag survives a full account reset. */}
+      <section>
+        <h2 className="lbl mb-3">Tester Account</h2>
+        <div className="flex items-center justify-between rounded-card border border-dashed border-ink/20 bg-paper px-4 py-3">
+          <div className="pr-4">
+            <span className="text-sm font-semibold text-ink">
+              Testing pathway
+            </span>
+            <p className="mt-0.5 text-xs text-meta">
+              Lets this account reset its own journey and re-run the whole
+              onboarding. Hidden from Poderator rosters and excluded from pod
+              health. The grant is keyed to their email, so it survives a
+              reset.
+            </p>
+          </div>
+          <ToggleSwitch
+            checked={isTest}
+            onChange={toggleTester}
+            busy={testerBusy}
+            label="Tester account"
+          />
+        </div>
+      </section>
+
       {/* Individual Permissions */}
       <section>
         <h2 className="lbl mb-3">
@@ -172,22 +220,13 @@ export default function PermissionsEditor({
                           {perm}
                         </span>
                       </div>
-                      <button
-                        onClick={() => togglePermission(perm)}
-                        disabled={isLoading || isRestricted}
-                        role="switch"
-                        aria-checked={enabled}
-                        aria-label={permissionLabel(perm)}
-                        className={`relative h-6 w-11 rounded-full transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal ${
-                          enabled ? "bg-teal" : "bg-ink/15"
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-150 ease-spring ${
-                            enabled ? "translate-x-[1.375rem]" : "translate-x-0.5"
-                          }`}
-                        />
-                      </button>
+                      <ToggleSwitch
+                        checked={enabled}
+                        onChange={() => togglePermission(perm)}
+                        disabled={isRestricted}
+                        busy={isLoading}
+                        label={permissionLabel(perm)}
+                      />
                     </div>
                   );
                 })}
