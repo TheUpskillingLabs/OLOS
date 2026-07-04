@@ -24,13 +24,18 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
+  authmodal,
 }: Readonly<{
   children: React.ReactNode;
+  // The intercepted-/login slot (app/@authmodal): the Google-auth popup
+  // over whatever page launched it; renders null everywhere else.
+  authmodal: React.ReactNode;
 }>) {
   return (
     <html lang="en" className={`h-full ${geologica.variable}`}>
       <body className="flex min-h-full flex-col">
         {children}
+        {authmodal}
         {/* every.org's embed script: intercepts clicks on our donate links
             (lib/donate.ts DONATE_URL) and opens the donation popup in place
             instead of navigating to the hosted checkout. */}
