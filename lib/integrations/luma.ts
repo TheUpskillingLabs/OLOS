@@ -163,10 +163,15 @@ const GRAD_ROTATION = ["m-teal", "m-forest", "m-navy"];
 
 /* Forward a site RSVP to Luma so the guest list lives there. Callers treat
    this as best-effort: the local event_rsvps row is already saved, and a
-   Luma hiccup must never cost someone their spot. */
+   Luma hiccup must never cost someone their spot. Members register with
+   their real name; the registration parity rule (owner decision) is that
+   only signed-in members take this path — they signed the Participant
+   Agreement (photo clause included) at signup, so skipping Luma's
+   registration questions is legitimate for them and only them. */
 export async function addLumaGuest(
   eventApiId: string,
-  email: string
+  email: string,
+  name?: string
 ): Promise<void> {
   const res = await fetch(`${LUMA_API_BASE}/event/add-guests`, {
     method: "POST",
@@ -175,7 +180,10 @@ export async function addLumaGuest(
       "content-type": "application/json",
       "x-luma-api-key": process.env.LUMA_API_KEY as string,
     },
-    body: JSON.stringify({ event_api_id: eventApiId, guests: [{ email }] }),
+    body: JSON.stringify({
+      event_api_id: eventApiId,
+      guests: [name ? { email, name } : { email }],
+    }),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -186,11 +194,54 @@ export async function addLumaGuest(
   }
 }
 
+/* Pull an event's guest list (paginated, defensive shape like list-events). */
+export async function fetchLumaGuests(
+  eventApiId: string
+): Promise<{ email: string; approval_status: string | null }[]> {
+  const guests: { email: string; approval_status: string | null }[] = [];
+  let cursor: string | null = null;
+
+  for (let page = 0; page < 50; page++) {
+    const qs = new URLSearchParams({
+      event_api_id: eventApiId,
+      pagination_limit: "100",
+    });
+    if (cursor) qs.set("pagination_cursor", cursor);
+    const data = asRecord(await lumaGet(`/event/get-guests?${qs}`));
+    if (!data) break;
+
+    const entries = Array.isArray(data.entries) ? data.entries : [];
+    for (const entry of entries) {
+      const rec = asRecord(entry);
+      if (!rec) continue;
+      const g = asRecord(rec.guest) ?? rec;
+      const email =
+        typeof g.email === "string"
+          ? g.email
+          : typeof g.user_email === "string"
+            ? g.user_email
+            : null;
+      if (!email) continue;
+      guests.push({
+        email: email.toLowerCase(),
+        approval_status:
+          typeof g.approval_status === "string" ? g.approval_status : null,
+      });
+    }
+
+    cursor = typeof data.next_cursor === "string" ? data.next_cursor : null;
+    if (!data.has_more || !cursor) break;
+  }
+
+  return guests;
+}
+
 export interface LumaSyncSummary {
   fetched: number;
   created: number;
   updated: number;
   archived: number;
+  guests_mirrored: number;
   errors: string[];
 }
 
@@ -203,6 +254,7 @@ export async function syncLumaEvents(
     created: 0,
     updated: 0,
     archived: 0,
+    guests_mirrored: 0,
     errors: [],
   };
   // An empty fetch is left alone on purpose: reconciliation only runs on a
@@ -288,6 +340,50 @@ export async function syncLumaEvents(
       summary.errors.push(`archive ${row.slug}: ${error.message}`);
     } else {
       summary.archived++;
+    }
+  }
+
+  // Mirror Luma's guest lists into event_rsvps for upcoming events, so a
+  // registration made on Luma directly shows as "You're going" in-app —
+  // registration parity runs both ways. Additive only: rows are never
+  // deleted here (an in-app RSVP whose Luma forward failed must survive).
+  // 'approved'/'going' means registered; invited/declined/waitlisted don't
+  // count. A missing status field counts (defensive against shape drift).
+  const { data: lumaRows } = await supabase
+    .from("events")
+    .select("id, api_id, start_at")
+    .in(
+      "api_id",
+      lumaEvents.map((ev) => ev.api_id)
+    );
+  const idByApiId = new Map(
+    (lumaRows ?? []).map((r) => [r.api_id as string, r.id as number])
+  );
+  const upcoming = lumaEvents.filter(
+    (ev) => new Date(ev.start_at).getTime() > Date.now() && idByApiId.has(ev.api_id)
+  );
+  for (const ev of upcoming) {
+    try {
+      const guests = await fetchLumaGuests(ev.api_id);
+      const registered = guests.filter(
+        (g) =>
+          g.approval_status === null ||
+          ["approved", "going"].includes(g.approval_status)
+      );
+      if (registered.length === 0) continue;
+      const { error } = await supabase.from("event_rsvps").upsert(
+        registered.map((g) => ({
+          event_id: idByApiId.get(ev.api_id),
+          email: g.email,
+        })),
+        { onConflict: "event_id,email", ignoreDuplicates: true }
+      );
+      if (error) throw new Error(error.message);
+      summary.guests_mirrored += registered.length;
+    } catch (e) {
+      summary.errors.push(
+        `guests ${ev.api_id} (${ev.name}): ${e instanceof Error ? e.message : String(e)}`
+      );
     }
   }
 
