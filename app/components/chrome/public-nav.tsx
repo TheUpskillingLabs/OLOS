@@ -6,11 +6,16 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 /* The public bar — ported from onboarding-proto chrome.js publicNavHTML
-   (.sitenav): logo · destinations · quiet Log in · red Join. Auth-aware:
-   signed-in visitors get Home + their avatar instead of the CTAs. Collapses
-   to the hamburger below 1024px (the public bar needs the room — deliberate
+   (.sitenav): logo · destinations · quiet Log in · red Donate (owner
+   decision, July 2026: Join retired from the bar — the hero and the upsell
+   band carry the join ask; the bar's button raises money). Donate opens
+   every.org's hosted checkout (#/donate deep link — no API needed here).
+   Auth-aware: signed-in visitors get Home + their avatar. Collapses to the
+   hamburger below 1024px (the public bar needs the room — deliberate
    breakpoint, distinct from the app bar's 768px).
    The Work ▾ menu and the search field arrive with their stages. */
+
+const DONATE_URL = "https://www.every.org/theupskillinglabs#/donate";
 
 const DESTS = [
   { key: "events", label: "Events", href: "/events" },
@@ -66,9 +71,14 @@ export default function PublicNav({
             <Link className="nav-link pn-login" href="/login">
               Log in
             </Link>
-            <Link className="sitenav-cta" href="/login">
-              Join
-            </Link>
+            <a
+              className="sitenav-cta"
+              href={DONATE_URL}
+              target="_blank"
+              rel="noopener"
+            >
+              Donate
+            </a>
           </span>
         )}
         <button
@@ -108,12 +118,7 @@ export default function PublicNav({
         {!signedIn && (
           <Link className="nav-link" href="/login">Log in</Link>
         )}
-        <a
-          className="nav-link"
-          href="https://www.every.org/theupskillinglabs"
-          target="_blank"
-          rel="noopener"
-        >
+        <a className="nav-link" href={DONATE_URL} target="_blank" rel="noopener">
           Donate
         </a>
       </nav>
