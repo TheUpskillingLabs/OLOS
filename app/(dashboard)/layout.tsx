@@ -3,15 +3,11 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
-import AppNav, { type EnforcementStatus } from "@/app/components/chrome/app-nav";
+import AppNav from "@/app/components/chrome/app-nav";
 import TabBar from "@/app/components/chrome/tab-bar";
 import OrbDefs from "@/app/components/chrome/orb-defs";
 import FeedbackWidget from "@/app/components/feedback/feedback-widget";
-import { copy as pulseCopy } from "./pulse-check/copy";
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+import { learningLogGate } from "@/lib/learning-logs/gate";
 
 export default async function DashboardLayout({
   children,
@@ -31,7 +27,7 @@ export default async function DashboardLayout({
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("preferred_name, first_name, last_name, last_pulse_completed_at, created_at")
+    .select("id, preferred_name, first_name, last_name")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -70,37 +66,25 @@ export default async function DashboardLayout({
     redirect(`/profile/edit?required=true&next=${encodeURIComponent(next)}`);
   }
 
-  // Compute pulse-check enforcement status
-  let enforcementStatus: EnforcementStatus = "ok";
-  if (participant) {
-    const baseline = participant.last_pulse_completed_at ?? participant.created_at;
-    if (baseline) {
-      const deadlineMs = new Date(baseline).getTime() + SEVEN_DAYS_MS;
-      const ms = deadlineMs - new Date().getTime();
-      if (ms <= 0) enforcementStatus = "overdue";
-      else if (ms < ONE_DAY_MS) enforcementStatus = "warning_1day";
-      else if (ms <= THREE_DAYS_MS) enforcementStatus = "warning_3day";
-    }
-  }
+  // The weekly Learning Log gate (Phase 1 — replaces the rolling pulse
+  // timer). Fixed per-cycle window: the Friday cron arms it; saving a log
+  // clears it instantly. Locked members are routed Home, where the log
+  // lives — every other destination bounces. The ritual is cycle practice:
+  // only active enrollees of the active cycle are ever gated.
+  const participantId = participant?.id ?? null;
+  const logGate = participantId
+    ? await learningLogGate(participantId)
+    : { active: false, armed: false, dueAt: null, cycleId: null };
 
-  // Hard block: if overdue and not on the pulse-check page, redirect.
   if (
-    enforcementStatus === "overdue" &&
-    !pathname.startsWith("/pulse-check") &&
-    !pathname.startsWith("/api/")
+    logGate.active &&
+    !pathname.startsWith("/dashboard") &&
+    !pathname.startsWith("/profile/edit") &&
+    !pathname.startsWith("/api/") &&
+    pathname !== ""
   ) {
-    redirect("/pulse-check");
+    redirect("/dashboard");
   }
-
-  // Check if user has any cycle enrollment (controls nav visibility)
-  const participantId = participant
-    ? await serviceClient
-        .from("participants")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .maybeSingle()
-        .then((r) => r.data?.id)
-    : null;
 
   let hasEnrollment = false;
   if (participantId) {
@@ -129,15 +113,6 @@ export default async function DashboardLayout({
     ? `${participant.first_name[0]}${participant.last_name[0]}`
     : (user.email?.[0] ?? "?").toUpperCase();
 
-  const pulseNavLabel =
-    enforcementStatus === "overdue"
-      ? pulseCopy.nav.overdue
-      : enforcementStatus === "warning_1day"
-        ? pulseCopy.nav.oneDay
-        : enforcementStatus === "warning_3day"
-          ? pulseCopy.nav.threeDay
-          : pulseCopy.nav.ok;
-
   return (
     <div className="flex min-h-screen flex-col">
       <OrbDefs />
@@ -148,8 +123,7 @@ export default async function DashboardLayout({
         isModerator={moderatorUser}
         showPods={showPods}
         hasEnrollment={hasEnrollment}
-        enforcementStatus={enforcementStatus}
-        pulseNavLabel={pulseNavLabel}
+        logDue={logGate.active}
       />
       <main className="app-main container w-full flex-1 py-8">{children}</main>
       <TabBar initials={initials} hasEnrollment={hasEnrollment} />

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Activity, ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
+import LearningLogCard from "./learning-log-card";
+import { learningLogGate } from "@/lib/learning-logs/gate";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -90,6 +92,9 @@ export default async function DashboardPage() {
     | "interest_submitted_window_open"
     | "active";
 
+  // The weekly Learning Log gate (fixed window — lib/learning-logs/gate.ts).
+  const logGate = await learningLogGate(participant.id);
+
   let state: DashboardState = "no_cycle";
   if (activeCycle) {
     if (!enrollment) {
@@ -170,32 +175,27 @@ export default async function DashboardPage() {
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
-      {/* Pulse Check CTA — show when user is active (has pods or active enrollment) */}
+      {/* The weekly Learning Log — the ritual lives on Home (Phase 1;
+          replaces the pulse-check CTA). The gate banner explains the lock;
+          saving a log below clears it instantly. */}
       {state === "active" && (
-        <Link
-          href="/pulse-check"
-          className="gate-banner group mb-6 flex items-center justify-between transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-        >
-          <div className="flex items-center gap-3">
-            <Activity
-              className="h-5 w-5 flex-shrink-0 text-red"
-              aria-hidden
-            />
-            <div>
-              <span className="font-semibold tracking-tight text-ink">
-                Weekly pulse check
-              </span>
-              <p className="text-sm text-meta">
-                Stay active &mdash; complete your check-in to keep access to
-                cycle tools.
+        <>
+          {logGate.active && (
+            <div
+              className="mb-4 rounded-card border border-red bg-red/5 px-5 py-4"
+              role="alert"
+              id="log-gate-banner"
+            >
+              <p className="font-semibold tracking-tight text-ink">
+                Your weekly Learning Log is due
+              </p>
+              <p className="mt-0.5 text-sm text-charcoal">
+                Save one below and everything unlocks the moment you do.
               </p>
             </div>
-          </div>
-          <ArrowRight
-            className="h-4 w-4 flex-shrink-0 text-red transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-            aria-hidden
-          />
-        </Link>
+          )}
+          <LearningLogCard gateActive={logGate.active} />
+        </>
       )}
 
       {/* Status block */}

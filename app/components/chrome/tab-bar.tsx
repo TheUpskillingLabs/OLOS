@@ -21,11 +21,6 @@ const CYCLE_SVG = (
     <polyline points="21 3 21 9 15 9" />
   </svg>
 );
-const PULSE_SVG = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-  </svg>
-);
 
 export default function TabBar({
   initials,
@@ -51,12 +46,6 @@ export default function TabBar({
         <Link className={`tab${active("/cycles")}`} id="tab-cycle" href="/cycles">
           {CYCLE_SVG}
           <span>Cycle</span>
-        </Link>
-      )}
-      {hasEnrollment && (
-        <Link className={`tab${active("/pulse-check")}`} id="tab-pulse" href="/pulse-check">
-          {PULSE_SVG}
-          <span>Pulse</span>
         </Link>
       )}
       <Link className={`tab${active("/profile")}`} id="tab-me" href="/profile">
