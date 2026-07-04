@@ -6,6 +6,7 @@ import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import LearningLogCard from "./learning-log-card";
+import TesterResetCard from "./tester-reset-card";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 
 type CycleStatus = "active" | "closed" | "draft";
@@ -27,7 +28,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, is_test").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
   ]);
 
@@ -169,6 +170,8 @@ export default async function DashboardPage() {
       <h1 className="t-h1 mb-6 text-ink">
         Welcome back, {displayName}
       </h1>
+
+      {participant.is_test && <TesterResetCard />}
 
       {/* Phase timeline for active cycle */}
       {activeCycle && activeCycleConfig && (
