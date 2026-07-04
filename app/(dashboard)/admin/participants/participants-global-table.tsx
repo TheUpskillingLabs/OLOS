@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { GlobalParticipant } from "./page";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -19,6 +20,25 @@ export default function ParticipantsGlobalTable({
 }) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const router = useRouter();
+
+  // The testing pathway (00042): grant/revoke tester. Testers can reset
+  // their own account to replay the whole onboarding; the grant is
+  // email-keyed so it survives the reset.
+  async function toggleTester(p: GlobalParticipant) {
+    setTogglingId(p.id);
+    try {
+      await fetch("/api/admin/testers", {
+        method: p.is_test ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participant_id: p.id }),
+      });
+      router.refresh();
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   const filtered = participants.filter((p) => {
     const name = p.preferred_name
@@ -133,7 +153,12 @@ export default function ParticipantsGlobalTable({
                           {role}
                         </span>
                       ))}
-                      {displayRoles.length === 0 && (
+                      {p.is_test && (
+                        <span className="inline-flex items-center rounded-sm border border-dashed border-ink/30 px-2.5 py-0.5 text-xs font-medium text-meta">
+                          tester
+                        </span>
+                      )}
+                      {displayRoles.length === 0 && !p.is_test && (
                         <span className="text-xs text-meta">—</span>
                       )}
                     </div>
@@ -178,6 +203,18 @@ export default function ParticipantsGlobalTable({
                     {new Date(p.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => toggleTester(p)}
+                      disabled={togglingId === p.id}
+                      className="mr-2 rounded-card border border-ink/15 px-3 py-1 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 hover:border-teal hover:text-teal-deep active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal disabled:opacity-50"
+                    >
+                      {togglingId === p.id
+                        ? "…"
+                        : p.is_test
+                          ? "Remove tester"
+                          : "Make tester"}
+                    </button>
                     <Link
                       href={`/admin/participants/${p.id}/permissions`}
                       className="rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"

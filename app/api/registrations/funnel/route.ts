@@ -82,6 +82,14 @@ export async function POST(request: NextRequest) {
   // metros table (migration 00038) — no hardcoded map.
   const metro = await metroFromZip(body.zip);
 
+  // The testing pathway (00042): a tester's full reset deletes their row;
+  // the email-keyed grant survives, so re-registration re-flags them.
+  const { data: testerGrant } = await supabase
+    .from("testers")
+    .select("email")
+    .eq("email", body.email.toLowerCase())
+    .maybeSingle();
+
   const { data: participant, error: pError } = await supabase
     .from("participants")
     .insert({
@@ -100,6 +108,7 @@ export async function POST(request: NextRequest) {
       photo_video_consent: true,
       agreement_version: body.agreement_version,
       agreement_accepted_at: new Date().toISOString(),
+      is_test: !!testerGrant,
     })
     .select("id, created_at")
     .single();

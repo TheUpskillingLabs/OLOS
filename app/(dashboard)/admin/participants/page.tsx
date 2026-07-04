@@ -12,6 +12,7 @@ export type GlobalParticipant = {
   preferred_name: string | null;
   email: string;
   created_at: string;
+  is_test: boolean;
   roles: string[];
   cycles: { cycle_id: number; cycle_name: string; status: string }[];
   moderator_pods: { pod_id: number; pod_name: string }[];
@@ -28,7 +29,7 @@ export default async function AdminParticipantsPage() {
 
   const [userRoles, { data: participants }] = await Promise.all([
     resolveUserRoles(serviceClient, user.id),
-    serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, created_at").order("created_at", { ascending: false }),
+    serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, created_at, is_test").order("created_at", { ascending: false }),
   ]);
 
   if (!isAdmin(userRoles)) redirect("/cycles");
@@ -79,6 +80,7 @@ export default async function AdminParticipantsPage() {
     preferred_name: p.preferred_name,
     email: p.email,
     created_at: p.created_at,
+    is_test: !!p.is_test,
     roles: rolesByParticipant[p.id] ?? [],
     cycles: cyclesByParticipant[p.id] ?? [],
     moderator_pods: modPodsByParticipant[p.id] ?? [],
