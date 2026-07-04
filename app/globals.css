@@ -613,7 +613,7 @@ button:focus-visible {
 @layer components {
   /* ── public nav trimmings (the .sitenav base lives in layer II) ── */
   .sitenav-auth { align-items: center; gap: 10px; display: flex; }
-  .sitenav-cta { background: var(--red); color: #fff; padding: 11px 18px; border-radius: var(--r); font-size: 14px; font-weight: 600; text-decoration: none; flex-shrink: 0; }
+  .sitenav-cta { background: #fff; color: var(--ink); padding: 11px 18px; border-radius: var(--r); font-size: 14px; font-weight: 600; text-decoration: none; flex-shrink: 0; }
   .pg-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--teal-deep); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; text-decoration: none; flex-shrink: 0; }
   .sitenav .pn-login { display: none; }
   .sitenav .ham-btn { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; background: none; border: none; cursor: pointer; color: var(--od1); flex-shrink: 0; margin-left: auto; }
