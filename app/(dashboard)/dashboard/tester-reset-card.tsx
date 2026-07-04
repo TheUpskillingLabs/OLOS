@@ -53,7 +53,7 @@ export default function TesterResetCard() {
             className="btn btn-ghost btn-sm"
             onClick={() => setConfirming(true)}
           >
-            Reset my journey
+            Reset Test Account
           </button>
         ) : (
           <div className="flex items-center gap-2">
