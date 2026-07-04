@@ -18,8 +18,6 @@ import { createClient } from "@/lib/supabase/client";
    Prototype destinations (Home · My Cycle · Learning · Directory) map onto
    OLOS's live routes; Learning/Directory join when those stages land. */
 
-export type EnforcementStatus = "ok" | "warning_3day" | "warning_1day" | "overdue";
-
 export interface AppNavProps {
   initials: string;
   displayName: string;
@@ -27,8 +25,9 @@ export interface AppNavProps {
   isModerator: boolean;
   showPods: boolean;
   hasEnrollment: boolean;
-  enforcementStatus: EnforcementStatus;
-  pulseNavLabel: string;
+  /** The weekly Learning Log gate is armed and unmet — Home carries the
+      red pip (the ritual lives on the dashboard, not in the nav). */
+  logDue: boolean;
 }
 
 export default function AppNav({
@@ -38,8 +37,7 @@ export default function AppNav({
   isModerator,
   showPods,
   hasEnrollment,
-  enforcementStatus,
-  pulseNavLabel,
+  logDue,
 }: AppNavProps) {
   const pathname = usePathname() || "";
   const persona = pathname.startsWith("/admin")
@@ -77,7 +75,21 @@ export default function AppNav({
               id="nav-home"
               href="/dashboard"
             >
-              Home
+              {logDue && (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: "inline-block",
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    marginRight: 7,
+                    verticalAlign: 2,
+                    background: "var(--red)",
+                  }}
+                />
+              )}
+              Home{logDue ? " · Log due" : ""}
             </Link>
             {hasEnrollment && (
               <Link
@@ -86,35 +98,6 @@ export default function AppNav({
                 href="/cycles"
               >
                 My Cycle
-              </Link>
-            )}
-            {hasEnrollment && (
-              <Link
-                className={`nav-link${isActive(pathname, "/pulse-check") ? " active" : ""}`}
-                id="nav-pulse"
-                href="/pulse-check"
-                style={
-                  enforcementStatus === "overdue"
-                    ? { color: "#fff", background: "var(--red)" }
-                    : undefined
-                }
-              >
-                {enforcementStatus !== "ok" && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      display: "inline-block",
-                      width: 7,
-                      height: 7,
-                      borderRadius: "50%",
-                      marginRight: 7,
-                      verticalAlign: 2,
-                      background:
-                        enforcementStatus === "overdue" ? "#fff" : "var(--red)",
-                    }}
-                  />
-                )}
-                {pulseNavLabel}
               </Link>
             )}
           </nav>

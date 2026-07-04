@@ -55,7 +55,9 @@ export default async function PulseCheckPage() {
     last_completed_at: participant?.last_pulse_completed_at ?? null,
     deadline: new Date(deadlineMs).toISOString(),
     status,
-    locked: status === "overdue",
+    // Phase 1: the Learning Log gate on the dashboard replaced pulse
+    // enforcement — this page is history + legacy submission, never a lock.
+    locked: false,
   };
 
   const aiTools = (optionRows ?? [])

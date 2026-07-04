@@ -9,6 +9,7 @@ import { getRollup } from "@/lib/moderator/rollup";
 import { getCrossPodInsights } from "@/lib/moderator/cross-pod-insights";
 import { CrossPodInsightsSection } from "./cross-pod-insights-section";
 import { getUiState } from "@/lib/moderator/ui-state";
+import OrientationCard from "./orientation-card";
 import { Switcher } from "./switcher";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
 
@@ -133,6 +134,9 @@ export default async function ModeratorPage({
             ? "Your assigned pod. Click to open the per-pod dashboard."
             : "Pod health across your assignments. Click a card to open the per-pod dashboard."}
       </p>
+
+      <OrientationCard tooltipSeen={uiState.tooltip_seen ?? []} />
+
 
       {cards.length === 0 ? (
         <EmptyState

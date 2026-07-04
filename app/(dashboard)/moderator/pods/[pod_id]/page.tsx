@@ -15,6 +15,7 @@ import { ManagedTooltip } from "../../tooltip-state";
 import { getPodsForUser } from "@/lib/moderator/pods-list";
 import { getUiState } from "@/lib/moderator/ui-state";
 import { PodContentTabs } from "./pod-content-tabs";
+import PodSquadSections from "./pod-squad-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,11 @@ export default async function ModeratorPodPage({
           aiSummaryPrompt={aiSummaryPrompt}
         />
       )}
+
+      {/* Pod Squad sections: Learning-Log health (blocked first), workshop
+          sign-ups, feedback inbox — the memo batch + Phase 1 repoint. */}
+      <PodSquadSections cycleId={detail.cycle_id} members={detail.members} />
+
 
       <PodContentTabs
         members={detail.members}
