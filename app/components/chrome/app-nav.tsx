@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -136,7 +136,6 @@ function AvatarMenu({
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
-  const router = useRouter();
   const canViewAs = isAdmin || isModerator || showPods;
 
   // Esc / outside-click close + ArrowUp/Down cycling — the shared.js contract.
@@ -173,7 +172,10 @@ function AvatarMenu({
   const signOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    // Full navigation to the public home page (not router.push) so the
+    // server re-renders with the cleared session — the signed-out landing,
+    // not the login screen.
+    window.location.href = "/";
   };
 
   const openFeedback = () => {

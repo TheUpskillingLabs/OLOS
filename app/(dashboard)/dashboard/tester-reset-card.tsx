@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 /* The tester's reset card (testing pathway, 00042) — visible only on
-   is_test accounts. One press (plus a typed confirm — this deletes the
-   whole account journey) wipes everything and lands back on /register to
-   walk the onboarding again. The tester grant is email-keyed, so the flag
+   is_test accounts. One press (plus a confirm — this deletes the whole
+   account journey) wipes everything, signs out, and lands on the public
+   home page — the true start of the flow, so the next sign-in walks the
+   whole thing from scratch. The tester grant is email-keyed, so the flag
    comes back automatically on re-registration. */
 
 export default function TesterResetCard() {
@@ -23,8 +25,11 @@ export default function TesterResetCard() {
         setError(data?.error ?? "Reset failed — try again.");
         return;
       }
-      // Row is gone; the next navigation replays onboarding from the top.
-      window.location.href = "/register";
+      // Row is gone — sign out and go to the public home page. A full
+      // navigation (not router.push) so the server re-renders with the
+      // cleared session, and the whole flow starts from the front door.
+      await createClient().auth.signOut();
+      window.location.href = "/";
     } catch {
       setError("Reset failed — try again.");
     } finally {
