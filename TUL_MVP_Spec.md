@@ -1,5 +1,13 @@
 # The Upskilling Labs (TUL)
 
+> **⚠ HISTORICAL DOCUMENT (banner added July 2026).** This spec describes a
+> Python/FastAPI backend with hand-rolled JWTs that was never built — the
+> shipped system is Next.js full-stack on Supabase (see `lib/auth/CLAUDE.md`
+> for the translation). Treat this file as the original product intent, not
+> a blueprint. Current source of truth: `SCHEMA.md`, `docs/audit/` (design
+> intent, gap audit, data architecture, roadmap).
+
+
 ## Overview
 Build a system to manage **4 core touchpoints** across a Build Cycle and reduce manual effort to coordinate Upskillers in a cycle.
 1. Participant registration (custom form → DB)

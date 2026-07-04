@@ -1,5 +1,14 @@
 # onboarding-proto → OLOS: staged translation plan
 
+> **Status update (July 2026):** Stages A and B shipped as written. From
+> Stage C: **C1 (cycle ceremony) and C7 (public content + landing flip)
+> shipped**; the `.theme-legacy` quarantine described below no longer exists
+> — the reskin is done app-wide. The remaining Stage-C items (C2–C6) are
+> superseded by **`docs/audit/IMPROVEMENT_ROADMAP.md`**, which re-plans them
+> with the full gap audit, the Pod Squad memo, and the data-architecture
+> blueprint. This file stays as the record of Stages A/B and the decisions
+> ratified here.
+
 **Design source of truth:** the `onboarding-proto` repo (static HTML prototype).
 **Priority order (owner decision):** (1) the onboarding flow, (2) reskinning OLOS
 to match the prototype. Everything else comes in the stages below.
