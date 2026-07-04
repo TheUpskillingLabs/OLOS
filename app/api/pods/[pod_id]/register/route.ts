@@ -66,7 +66,16 @@ export const POST = withAuth(
 
     const isReactivation = existing !== null;
 
-    // Check 2-pod cap for this cycle (active memberships only)
+    // Pods-per-member is a per-cycle admin setting (cycle_config.pod_limit,
+    // default 1) — not a hardcoded constant (migration 00043). Read it, then
+    // enforce it against this participant's active memberships in the cycle.
+    const { data: podLimitConfig } = await createServiceClient()
+      .from("cycle_config")
+      .select("pod_limit")
+      .eq("cycle_id", pod.cycle_id)
+      .single();
+    const podLimit = podLimitConfig?.pod_limit ?? 1;
+
     const { data: cyclePods } = await auth.supabase
       .from("pod_memberships")
       .select("id, pods!inner(cycle_id)")
@@ -74,9 +83,14 @@ export const POST = withAuth(
       .eq("pods.cycle_id", pod.cycle_id)
       .is("inactive_at", null);
 
-    if ((cyclePods || []).length >= 2) {
+    if ((cyclePods || []).length >= podLimit) {
       return NextResponse.json(
-        { error: "You are already registered in 2 pods for this cycle." },
+        {
+          error:
+            podLimit === 1
+              ? "You're already in a pod for this cycle. Leave it first to switch pods."
+              : `You're already in ${podLimit} pods for this cycle.`,
+        },
         { status: 400 }
       );
     }

@@ -6,6 +6,11 @@ import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import LearningLogCard from "./learning-log-card";
+import SetupChecklist, { type ChecklistItem } from "./setup-checklist";
+import CycleCommitments from "./cycle-commitments";
+import UpNext, { type TodoCard } from "./up-next";
+import DashboardHero, { type HeroStat } from "./dashboard-hero";
+import QuickLinks from "./quick-links";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 
 type CycleStatus = "active" | "closed" | "draft";
@@ -27,7 +32,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
   ]);
 
@@ -40,31 +45,46 @@ export default async function DashboardPage() {
   let enrollment = null;
   let myPods: PodMembership[] = [];
 
+  let hasAgreement = false;
+  let logCount = 0;
+
   if (activeCycle) {
-    const [configResult, enrollmentResult, membershipResult] = await Promise.all([
-      serviceClient
-        .from("cycle_config")
-        .select(
-          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
-        )
-        .eq("cycle_id", activeCycle.id)
-        .single(),
-      serviceClient
-        .from("cycle_enrollments")
-        .select("id, status")
-        .eq("participant_id", participant.id)
-        .eq("cycle_id", activeCycle.id)
-        .maybeSingle(),
-      serviceClient
-        .from("pod_memberships")
-        .select("id, pod_id, pods!inner(id, name, status)")
-        .eq("participant_id", participant.id)
-        .eq("pods.cycle_id", activeCycle.id)
-        .is("inactive_at", null),
-    ]);
+    const [configResult, enrollmentResult, membershipResult, agreementResult, logResult] =
+      await Promise.all([
+        serviceClient
+          .from("cycle_config")
+          .select(
+            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit"
+          )
+          .eq("cycle_id", activeCycle.id)
+          .single(),
+        serviceClient
+          .from("cycle_enrollments")
+          .select("id, status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", activeCycle.id)
+          .maybeSingle(),
+        serviceClient
+          .from("pod_memberships")
+          .select("id, pod_id, pods!inner(id, name, status)")
+          .eq("participant_id", participant.id)
+          .eq("pods.cycle_id", activeCycle.id)
+          .is("inactive_at", null),
+        serviceClient
+          .from("cycle_agreements")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", activeCycle.id),
+        serviceClient
+          .from("learning_logs")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id),
+      ]);
     activeCycleConfig = configResult.data;
     enrollment = enrollmentResult.data;
     myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
+    hasAgreement = (agreementResult.count ?? 0) > 0;
+    logCount = logResult.count ?? 0;
   }
 
   // Determine pod registration window status
@@ -83,6 +103,10 @@ export default async function DashboardPage() {
 
   const displayName =
     participant.preferred_name || participant.first_name;
+
+  const initials = (
+    (participant.first_name?.[0] ?? "") + (participant.last_name?.[0] ?? "")
+  ).toUpperCase() || "?";
 
   // Determine enrollment state for active cycle
   type DashboardState =
@@ -108,13 +132,16 @@ export default async function DashboardPage() {
     }
   }
 
-  // Empty state: no enrollment — minimal page with just welcome + hero card
+  // Empty state: no enrollment — the hero + a single join CTA card.
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
-        <h1 className="t-h1 mb-8 text-ink">
-          Welcome, {displayName}.
-        </h1>
+        <DashboardHero
+          initials={initials}
+          eyebrow="Member portal"
+          greeting={`Welcome, ${displayName}`}
+          lede="You're almost in. Join the current Build Cycle to get started."
+        />
         <Link
           href={`/cycles/${activeCycle.id}/join`}
           className="group flex items-center justify-between rounded-card border border-teal/30 bg-white p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
@@ -147,155 +174,288 @@ export default async function DashboardPage() {
   if (state === "no_cycle") {
     return (
       <div>
-        <h1 className="t-h1 mb-8 text-ink">
-          Welcome, {displayName}.
-        </h1>
+        <DashboardHero
+          initials={initials}
+          eyebrow="Member portal"
+          greeting={`Welcome, ${displayName}`}
+          lede="Here's your home base at The Labs. The next Build Cycle will show up right here."
+        />
         <EmptyState
           icon={Calendar}
           title="No cycle running right now"
-          description="Check back soon for the next build cycle."
+          description="Check back soon for the next Build Cycle."
         />
       </div>
     );
   }
 
-  // Engaged state: user has a cycle_enrollments row — full dashboard chrome
+  // Engaged state: user has a cycle_enrollments row — full dashboard chrome.
+
+  // Setup checklist — actionable rows, collapses to a strip once done
+  // (prototype panel-dashboard: checklist first).
+  const checklistItems: ChecklistItem[] = activeCycle
+    ? [
+        {
+          key: "profile",
+          label: "Complete your profile",
+          done: true,
+          href: "/profile/edit",
+          cta: "Edit",
+        },
+        {
+          key: "register",
+          label: `Register for ${activeCycle.name}`,
+          done: hasAgreement || enrollment?.status === "active",
+          href: `/cycles/${activeCycle.id}/join`,
+          cta: "Register",
+        },
+        {
+          key: "pod",
+          label: "Join a pod",
+          done: myPods.length > 0,
+          href: `/cycles/${activeCycle.id}/register-pods`,
+          cta: "Choose",
+        },
+        {
+          key: "log",
+          label: "Save your first Learning Log",
+          done: logCount > 0,
+          href: "#learning-log",
+          cta: "Log",
+        },
+      ]
+    : [];
+
+  // "Up next" — the cycle actions whose window is open right now, as
+  // dismissible cards (the rail shows timing; this gives the button).
+  const cfg = (activeCycleConfig ?? {}) as Record<string, string | null>;
+  const nowMs = new Date().getTime();
+  const windowClose = (k: string): Date | null => {
+    const o = cfg[`${k}_open`];
+    const c = cfg[`${k}_close`];
+    if (!o || !c) return null;
+    return nowMs >= new Date(o).getTime() && nowMs <= new Date(c).getTime()
+      ? new Date(c)
+      : null;
+  };
+  const WINDOW_TODOS = [
+    { k: "problem_statement", title: "Submit a problem statement", cta: "Propose", sub: "propose" },
+    { k: "voting", title: "Vote on problem statements", cta: "Vote", sub: "vote" },
+    { k: "pod_registration", title: "Register for a pod", cta: "Choose pod", sub: "register-pods" },
+    { k: "solution_proposal", title: "Submit your solution proposal", cta: "Propose", sub: "solutions" },
+    { k: "solution_voting", title: "Cast your solution ballot", cta: "Vote", sub: "solution-vote" },
+    { k: "project_registration", title: "Register for a project", cta: "Register", sub: "register-projects" },
+  ];
+  const upNextTodos: TodoCard[] = activeCycle
+    ? WINDOW_TODOS.flatMap((w) => {
+        const close = windowClose(w.k);
+        if (!close) return [];
+        return [
+          {
+            id: w.k,
+            title: w.title,
+            detail: `Open now — closes ${close.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
+            href: `/cycles/${activeCycle.id}/${w.sub}`,
+            cta: w.cta,
+          },
+        ];
+      })
+    : [];
+
+  // Hero copy + at-a-glance stats — the identity band adapts to the state.
+  const heroLede = logGate.active
+    ? "Your weekly Learning Log is due — save it below and everything unlocks."
+    : state === "interest_submitted_window_open"
+      ? "You're on the list. Choose your pod below to lock in your spot."
+      : state === "interest_submitted_window_closed"
+        ? "You're in. We'll open the next step soon — here's where things stand."
+        : "Here's what's happening in your cycle right now.";
+
+  const heroStats: HeroStat[] =
+    state === "active"
+      ? [
+          { value: logCount, label: logCount === 1 ? "Log" : "Logs" },
+          { value: myPods.length, label: myPods.length === 1 ? "Pod" : "Pods" },
+        ]
+      : [];
+
+  // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
+  // default 1). The dashboard is optimized for the one-pod case but honors a
+  // higher limit if an admin raises it.
+  const podLimit =
+    (activeCycleConfig as { pod_limit?: number } | null)?.pod_limit ?? 1;
+
+  const podRegOpen =
+    (state === "interest_submitted_window_open" || state === "active") &&
+    activeCycle &&
+    podWindowOpen &&
+    myPods.length < podLimit;
+
   return (
     <div>
-      {/* Greeting */}
-      <p className="lbl">
-        Your Dashboard
-      </p>
-      <h1 className="t-h1 mb-6 text-ink">
-        Welcome back, {displayName}
-      </h1>
+      <DashboardHero
+        initials={initials}
+        eyebrow={activeCycle?.name ?? "Member portal"}
+        greeting={`Welcome back, ${displayName}`}
+        lede={heroLede}
+        stats={heroStats.length > 0 ? heroStats : undefined}
+      />
 
-      {/* Phase timeline for active cycle */}
+      {/* Phase timeline — the whole journey at a glance, full width */}
       {activeCycle && activeCycleConfig && (
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
-      {/* The weekly Learning Log — the ritual lives on Home (Phase 1;
-          replaces the pulse-check CTA). The gate banner explains the lock;
-          saving a log below clears it instantly. */}
-      {state === "active" && (
-        <>
-          {logGate.active && (
-            <div
-              className="mb-4 rounded-card border border-red bg-red/5 px-5 py-4"
-              role="alert"
-              id="log-gate-banner"
-            >
-              <p className="font-semibold tracking-tight text-ink">
-                Your weekly Learning Log is due
-              </p>
-              <p className="mt-0.5 text-sm text-charcoal">
-                Save one below and everything unlocks the moment you do.
+      {/* Two-column working layout: the main column carries what to do now;
+          the right rail carries the durable utilities (LinkedIn's rail in
+          the light system). Collapses to a single column below 768px. */}
+      <div className="dash">
+        <div>
+          {/* Setup leads for a new member; collapses to a strip once done. */}
+          {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
+
+          {/* The weekly Learning Log — the ritual lives on Home (Phase 1;
+              replaces the pulse-check CTA). The gate banner explains the lock;
+              saving a log below clears it instantly. */}
+          {state === "active" && (
+            <section className="mb-8" id="learning-log">
+              <div className="mb-4">
+                <div className="lbl lbl-teal mb-1.5">Weekly practice</div>
+                <h2 className="t-h3 text-ink">Your Learning Log</h2>
+              </div>
+              {logGate.active && (
+                <div
+                  className="mb-4 rounded-card border border-red bg-red/5 px-5 py-4"
+                  role="alert"
+                  id="log-gate-banner"
+                >
+                  <p className="font-semibold tracking-tight text-ink">
+                    Your weekly Learning Log is due
+                  </p>
+                  <p className="mt-0.5 text-sm text-charcoal">
+                    Save one below and everything unlocks the moment you do.
+                  </p>
+                </div>
+              )}
+              <LearningLogCard gateActive={logGate.active} />
+            </section>
+          )}
+
+          {/* Interest submitted, pod window not yet open */}
+          {state === "interest_submitted_window_closed" && activeCycleConfig && (
+            <div className="mb-8 rounded-card border border-ink/10 bg-white p-5 shadow-card">
+              <h2 className="t-h3 text-ink">Interest submitted</h2>
+              <p className="mt-1 text-sm text-meta">
+                Pod registration opens{" "}
+                {activeCycleConfig.pod_registration_open
+                  ? new Date(
+                      activeCycleConfig.pod_registration_open
+                    ).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                    })
+                  : "soon"}
+                . We&apos;ll let you know when it&apos;s time to choose your
+                pods.
               </p>
             </div>
           )}
-          <LearningLogCard gateActive={logGate.active} />
-        </>
-      )}
 
-      {/* Status block */}
-      {state === "interest_submitted_window_closed" && activeCycleConfig && (
-        <div className="mb-8 rounded-card border border-ink/10 bg-white p-5 shadow-card">
-          <h2 className="t-h3 text-ink">
-            Interest submitted
-          </h2>
-          <p className="mt-1 text-sm text-meta">
-            Pod registration opens{" "}
-            {activeCycleConfig.pod_registration_open
-              ? new Date(
-                  activeCycleConfig.pod_registration_open
-                ).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                })
-              : "soon"}
-            . We'll let you know when it's time to choose your pods.
-          </p>
+          {podRegOpen && activeCycle && (
+            <PodJoinSection
+              cycleId={activeCycle.id}
+              participantId={participant.id}
+              myPodIds={myPods.map((m) => m.pod_id)}
+              podLimit={podLimit}
+            />
+          )}
+
+          {/* Up next — dismissible action cards for the currently-open windows */}
+          {upNextTodos.length > 0 && <UpNext todos={upNextTodos} />}
+
+          {/* My Pod — the dashboard is optimized for one pod; a single pod
+              gets a full-width card, more than one falls back to a grid. */}
+          {myPods.length > 0 && (
+            <section className="mb-8">
+              <div className="mb-4">
+                <div className="lbl lbl-teal mb-1.5">Your people</div>
+                <h2 className="t-h3 text-ink">
+                  {myPods.length === 1 ? "My Pod" : "My Pods"}
+                </h2>
+              </div>
+              <div
+                className={
+                  myPods.length === 1
+                    ? "grid gap-4"
+                    : "grid gap-4 sm:grid-cols-2"
+                }
+              >
+                {myPods.map((membership) => {
+                  const pod = membership.pods;
+                  const variant =
+                    pod.status === "active"
+                      ? "active"
+                      : pod.status === "forming"
+                        ? "forming"
+                        : "inactive";
+                  return (
+                    <Link
+                      key={membership.id}
+                      href={`/pods/${pod.id}`}
+                      className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="t-h4 text-ink">{pod.name}</h3>
+                        <StatusBadge variant={variant}>{pod.status}</StatusBadge>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
-      )}
 
-      {(state === "interest_submitted_window_open" || state === "active") &&
-        activeCycle &&
-        podWindowOpen &&
-        myPods.length < 2 && (
-          <PodJoinSection
-            cycleId={activeCycle.id}
-            participantId={participant.id}
-            myPodIds={myPods.map((m) => m.pod_id)}
-          />
-        )}
+        {/* Right rail — durable utilities */}
+        <aside className="flex flex-col gap-6">
+          {/* Your commitments — the dated anchor events + .ics, always findable */}
+          <CycleCommitments />
+          <QuickLinks cycleId={activeCycle?.id} />
 
-      {/* My Pods */}
-      {myPods.length > 0 && (
-        <div className="mb-8">
-          <h2 className="lbl mb-4">
-            My Pods
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {myPods.map((membership) => {
-              const pod = membership.pods;
-              const variant =
-                pod.status === "active"
-                  ? "active"
-                  : pod.status === "forming"
-                    ? "forming"
-                    : "inactive";
-              return (
-                <Link
-                  key={membership.id}
-                  href={`/pods/${pod.id}`}
-                  className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="t-h4 text-ink">
-                      {pod.name}
-                    </h3>
-                    <StatusBadge variant={variant}>{pod.status}</StatusBadge>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Past cycles */}
-      {otherCycles.length > 0 && (
-        <details className="mb-8">
-          <summary className="lbl mb-4 cursor-pointer hover:text-charcoal">
-            Past cycles
-          </summary>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {otherCycles.map((cycle) => {
-              const variant =
-                STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
-              return (
-                <Link
-                  key={cycle.id}
-                  href={`/cycles/${cycle.id}`}
-                  className="rounded-card border border-ink/10 bg-white p-6 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="t-h4 text-ink">
-                      {cycle.name}
-                    </h3>
-                    <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
-                  </div>
-                  <p className="mt-2 text-sm text-meta">
-                    {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                    {new Date(cycle.end_date).toLocaleDateString()}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        </details>
-      )}
+          {/* Past cycles — a compact archive, tucked away */}
+          {otherCycles.length > 0 && (
+            <details className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
+              <summary className="lbl cursor-pointer hover:text-charcoal">
+                Past cycles
+              </summary>
+              <div className="mt-4 flex flex-col gap-2">
+                {otherCycles.map((cycle) => {
+                  const variant =
+                    STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
+                  return (
+                    <Link
+                      key={cycle.id}
+                      href={`/cycles/${cycle.id}`}
+                      className="flex items-center justify-between gap-3 rounded-card border border-ink/10 bg-white px-4 py-3 transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-ink">
+                          {cycle.name}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-meta">
+                          {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
+                          {new Date(cycle.end_date).toLocaleDateString()}
+                        </span>
+                      </span>
+                      <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
+                    </Link>
+                  );
+                })}
+              </div>
+            </details>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }

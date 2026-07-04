@@ -50,7 +50,9 @@ export function Tooltip({
 
   React.useEffect(() => {
     if (!autoShow) return;
-    setAutoVisible(true);
+    // Deferred so the auto-show isn't a synchronous setState in the effect
+    // body (react-hooks/set-state-in-effect); the flash still starts this tick.
+    queueMicrotask(() => setAutoVisible(true));
     const t = setTimeout(() => {
       setAutoVisible(false);
       if (!autoNotified.current) {

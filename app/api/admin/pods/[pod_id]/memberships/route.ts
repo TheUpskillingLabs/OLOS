@@ -22,7 +22,7 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  *   - pod must exist + be forming/active
  *   - reactivates a soft-deleted membership if one exists (preserves
  *     joined_at and audit trail — architecture brief §5 invariant)
- *   - honors the 2-pod-per-cycle cap (architecture brief §3 invariant)
+ *   - honors the per-cycle pod_limit cap (cycle_config.pod_limit, default 1)
  *   - calls the Phase A reconciler so the participant's cycle_enrollments
  *     status reflects the new pod-membership reality
  *
@@ -111,21 +111,31 @@ export const POST = withAdminAuth(
       );
     }
 
-    // 2-pod-per-cycle cap. NOTE: hardcoded as `>= 2` to match the
-    // participant register route's existing behavior; roadmap §2.1
-    // ('Move the hardcoded 2-pod cap to cycle_config.pod_limit')
-    // tracks the cleanup that should update both call sites together.
-    // Until §2.1 lands, the cap here MUST stay in sync with
-    // app/api/pods/[pod_id]/register/route.ts.
+    // Pods-per-member cap — reads cycle_config.pod_limit (default 1), the
+    // same per-cycle admin setting the participant register route uses
+    // (migration 00043 resolved roadmap §2.1's hardcoded-cap cleanup, so
+    // both call sites now share one source of truth).
+    const { data: podLimitConfig } = await client
+      .from("cycle_config")
+      .select("pod_limit")
+      .eq("cycle_id", pod.cycle_id)
+      .single();
+    const podLimit = podLimitConfig?.pod_limit ?? 1;
+
     const { data: cyclePods } = await client
       .from("pod_memberships")
       .select("id, pods!inner(cycle_id)")
       .eq("participant_id", participant_id)
       .eq("pods.cycle_id", pod.cycle_id)
       .is("inactive_at", null);
-    if ((cyclePods ?? []).length >= 2) {
+    if ((cyclePods ?? []).length >= podLimit) {
       return NextResponse.json(
-        { error: "Participant is already in 2 pods for this cycle" },
+        {
+          error:
+            podLimit === 1
+              ? "Participant is already in a pod for this cycle"
+              : `Participant is already in ${podLimit} pods for this cycle`,
+        },
         { status: 400 }
       );
     }

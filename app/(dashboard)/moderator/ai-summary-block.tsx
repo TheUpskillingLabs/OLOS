@@ -159,9 +159,10 @@ function PreviewDialog({
     if (!open && d.open) d.close();
   }, [open]);
 
-  // Reset copy feedback whenever the dialog reopens.
+  // Reset copy feedback whenever the dialog reopens. Deferred so it isn't a
+  // synchronous setState in the effect body (react-hooks/set-state-in-effect).
   React.useEffect(() => {
-    if (open) setDialogCopied(false);
+    if (open) queueMicrotask(() => setDialogCopied(false));
   }, [open]);
 
   const onDialogCopy = async () => {

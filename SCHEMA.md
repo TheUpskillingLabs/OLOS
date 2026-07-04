@@ -38,6 +38,8 @@ flowchart TD
 
 `cycles` is the root of everything. `cycle_config` holds all tunable thresholds and window timestamps for a given cycle. `participants` is the system-wide identity table.
 
+> `cycle_config.pod_limit` (migration `00043`, default 1) is the admin-editable ceiling on active pod memberships per participant per cycle — one pod by default. It replaces the old hardcoded 2-pod cap and is enforced in the pod register routes (participant + admin); projects stay at one-per-cycle, guaranteed by the `one_active_project_per_cycle` partial unique index.
+
 ```mermaid
 erDiagram
     cycles {
@@ -57,6 +59,7 @@ erDiagram
         smallint vote_threshold
         smallint max_pods
         smallint pod_min
+        int pod_limit
         smallint project_submitter_votes
         smallint project_vote_threshold
         smallint max_projects
