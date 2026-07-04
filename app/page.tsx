@@ -163,15 +163,23 @@ export default async function LandingPage() {
               </div>
               <h2 className="t-h2">Learn at your own pace</h2>
             </div>
-            <Link className="see" href="/library">
-              Full library →
-            </Link>
+            {landingResources.length > 0 && (
+              <Link className="see" href="/library">
+                Full library →
+              </Link>
+            )}
           </div>
-          <div className="cards dense">
-            {landingResources.map((r) => (
-              <ResourceTeaser key={r.slug} resource={r} />
-            ))}
-          </div>
+          {landingResources.length ? (
+            <div className="cards dense">
+              {landingResources.map((r) => (
+                <ResourceTeaser key={r.slug} resource={r} />
+              ))}
+            </div>
+          ) : (
+            <div className="lcard" style={{ padding: 48, textAlign: "center" }}>
+              <div className="t-h3">Coming Soon</div>
+            </div>
+          )}
         </div>
       </section>
 

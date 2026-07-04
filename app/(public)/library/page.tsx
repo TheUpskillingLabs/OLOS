@@ -28,7 +28,9 @@ export default async function LibraryPage() {
           <div className="section-head">
             <div>
               <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Learning Library · {resources.length}
+                {resources.length
+                  ? `Learning Library · ${resources.length}`
+                  : "Learning Library"}
               </div>
               <h1 className="t-h2">Learn by doing</h1>
             </div>
@@ -37,11 +39,17 @@ export default async function LibraryPage() {
             Everything here is free and open — including what cycle teams
             returned to the commons.
           </p>
-          <div className="cards dense all">
-            {resources.map((r) => (
-              <ResourceTeaser key={r.slug} resource={r} />
-            ))}
-          </div>
+          {resources.length ? (
+            <div className="cards dense all">
+              {resources.map((r) => (
+                <ResourceTeaser key={r.slug} resource={r} />
+              ))}
+            </div>
+          ) : (
+            <div className="lcard" style={{ padding: 48, textAlign: "center" }}>
+              <div className="t-h3">Coming Soon</div>
+            </div>
+          )}
         </div>
       </section>
     </>
