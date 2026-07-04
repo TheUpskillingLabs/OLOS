@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DONATE_URL } from "@/lib/donate";
 
 /* The two public footers, ported from onboarding-proto:
    - PgFoot: the compact content-page footer (chrome.js footerHTML)
@@ -18,7 +19,7 @@ export function PgFoot() {
           <Link href="/events">Events</Link> ·{" "}
           <Link href="/library">Library</Link> ·{" "}
           <Link href="/labs">Cities</Link> ·{" "}
-          <a href="https://www.every.org/theupskillinglabs" target="_blank" rel="noopener">
+          <a href={DONATE_URL} target="_blank" rel="noopener">
             Donate
           </a>
         </span>
@@ -59,7 +60,7 @@ export function OsFooter() {
             </p>
             <a
               className="btn btn-ghost-teal btn-sm"
-              href="https://www.every.org/theupskillinglabs"
+              href={DONATE_URL}
               target="_blank"
               rel="noopener"
             >
