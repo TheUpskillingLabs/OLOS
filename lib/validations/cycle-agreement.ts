@@ -16,9 +16,9 @@ export const cycleAgreementSchema = z.object({
   agreement_version: z.literal(OPEN_CYCLE_AGREEMENT_VERSION),
   answers: z
     .object({
-      problem: z.string().max(2000).optional(),
-      level: z.string().max(100).optional(),
-      goals: z.string().max(2000).optional(),
+      theme_interest: z.string().max(2000).optional(),
+      learning_goals: z.string().max(2000).optional(),
+      professional_goals: z.string().max(2000).optional(),
       hours: z.string().max(50).optional(),
     })
     .optional(),

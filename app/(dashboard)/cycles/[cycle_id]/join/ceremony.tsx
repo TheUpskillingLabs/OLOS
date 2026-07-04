@@ -28,34 +28,31 @@ import { OPEN_CYCLE_AGREEMENT_VERSION } from "@/lib/validations/cycle-agreement"
    plain language) — change it in the prototype first.
    ════════════════════════════════════════════════════════════════════════ */
 
-const LEVELS: [string, string][] = [
-  ["Beginner", "New to this area"],
-  ["Developing", "Some hands-on experience"],
-  ["Proficient", "Comfortable working solo"],
-  ["Advanced", "Deep experience, can guide others"],
-];
 const HOURS = ["2–4 hrs / week", "5–8 hrs / week", "8+ hrs / week"];
 
 function cycleSteps(cycleName: string, fullName: string): FlowStep[] {
   return [
     {
-      id: "problem",
+      id: "theme_interest",
       type: "textarea",
-      q: "What problem area excites you most?",
-      help: "A sentence or two is plenty.",
-      ph: "e.g. how AI can help DC residents navigate benefits eligibility...",
+      required: false,
+      q: "What draws you to this cycle’s theme?",
+      help: "No wrong answer — “the timing’s finally right for me” counts. Skip it if you’d rather.",
+      ph: "e.g. local elections have been on my mind for a while…",
     },
     {
-      id: "level",
-      type: "choice",
-      q: "Where are you at in your primary area?",
-      options: LEVELS.map((l) => ({ v: l[0], label: l[0], sub: l[1] })),
+      id: "learning_goals",
+      type: "textarea",
+      q: "What do you want to learn or get sharper at?",
+      help: "A line is plenty.",
+      ph: "e.g. get comfortable shipping a real data pipeline",
     },
     {
-      id: "goals",
+      id: "professional_goals",
       type: "textarea",
-      q: "What do you most want from this cycle?",
-      ph: "What would make this time well spent?",
+      q: "Where are you hoping this takes you?",
+      help: "A line is plenty — a job, a portfolio piece, a new direction.",
+      ph: "e.g. a project I can point employers to",
     },
     {
       id: "hours",
@@ -128,9 +125,9 @@ export default function CycleCeremony({
         signature_name: String(answers.signature ?? "").trim(),
         agreement_version: OPEN_CYCLE_AGREEMENT_VERSION,
         answers: {
-          problem: String(answers.problem ?? ""),
-          level: String(answers.level ?? ""),
-          goals: String(answers.goals ?? ""),
+          theme_interest: String(answers.theme_interest ?? ""),
+          learning_goals: String(answers.learning_goals ?? ""),
+          professional_goals: String(answers.professional_goals ?? ""),
           hours: String(answers.hours ?? ""),
         },
       }),
@@ -173,8 +170,8 @@ export default function CycleCeremony({
 
   return (
     <div className="fixed inset-0 z-[70] view s-cover grain on-dark" style={{ animation: "none" }}>
-      <div className="vscroll" style={{ height: "100%" }}>
-        <div className="container" style={{ maxWidth: 560, padding: "48px 24px 56px" }}>
+      <div className="vscroll" style={{ flex: 1, minHeight: 0 }}>
+        <div className="container" style={{ maxWidth: 560, padding: "48px 24px 24px" }}>
           <div className="lbl lbl-teal" style={{ marginBottom: 18 }}>
             {eyebrow}
           </div>
@@ -203,13 +200,6 @@ export default function CycleCeremony({
                 Six in-person events, a five-minute check-in each week, and the
                 rest on your own time with your team.
               </ThCard>
-              <button
-                className="btn btn-red btn-lg btn-block"
-                style={{ marginTop: 8 }}
-                onClick={() => setStage("ts2")}
-              >
-                See the commitment →
-              </button>
             </div>
           )}
 
@@ -275,21 +265,32 @@ export default function CycleCeremony({
                   BY 4.0 for the rest, with everyone who worked on it credited.
                 </p>
               </div>
-              <button
-                className="btn btn-red btn-lg btn-block"
-                style={{ marginTop: 8 }}
-                onClick={() => setStage("flow")}
-              >
-                Begin registration →
-              </button>
             </div>
           )}
 
+        </div>
+      </div>
+      {/* Pinned action bar — the primary CTA stays in the thumb zone on
+          mobile (mirrors the account-creation flow's sticky .actionbar). */}
+      <div
+        className="actionbar"
+        style={{
+          background: "var(--ink)",
+          borderTop: "1px solid rgba(255,255,255,0.12)",
+        }}
+      >
+        <div style={{ maxWidth: 560, width: "100%", margin: "0 auto" }}>
+          <button
+            className="btn btn-red btn-lg btn-block"
+            onClick={() => setStage(stage === "ts1" ? "ts2" : "flow")}
+          >
+            {stage === "ts1" ? "See the commitment →" : "Begin registration →"}
+          </button>
           <button
             className="btn-link"
             style={{
               color: "var(--od2)",
-              marginTop: 16,
+              marginTop: 12,
               display: "block",
               marginLeft: "auto",
               marginRight: "auto",
@@ -347,10 +348,11 @@ function SignedScreen({
       <div
         className="vscroll"
         style={{
+          flex: 1,
+          minHeight: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          minHeight: "100dvh",
         }}
       >
         <div className="container" style={{ maxWidth: 520, textAlign: "center", padding: "48px 24px" }}>
@@ -375,10 +377,15 @@ function SignedScreen({
           >
             Add the cycle&rsquo;s events to your calendar
           </a>
-          <p className="t-small" style={{ color: "var(--meta)", marginBottom: 12 }}>
+          <p className="t-small" style={{ color: "var(--meta)" }}>
             Your committed dates live on your cycle page and dashboard — find
             them there anytime.
           </p>
+        </div>
+      </div>
+      {/* Pinned action bar — primary CTA in the thumb zone on mobile. */}
+      <div className="actionbar light-bar">
+        <div style={{ maxWidth: 520, width: "100%", margin: "0 auto" }}>
           {podRegistrationOpen ? (
             <>
               <Link
@@ -389,7 +396,12 @@ function SignedScreen({
               </Link>
               <Link
                 className="btn-link"
-                style={{ color: "var(--meta)", marginTop: 16, display: "inline-block" }}
+                style={{
+                  color: "var(--meta)",
+                  marginTop: 12,
+                  display: "block",
+                  textAlign: "center",
+                }}
                 href={`/cycles/${cycleId}`}
               >
                 Go to your cycle →
