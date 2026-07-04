@@ -48,7 +48,8 @@ export const POST = withAdminAuth(
 );
 
 export const DELETE = withAdminAuth(
-  async (request: NextRequest, auth: AuthenticatedRequest) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async (request: NextRequest, _auth: AuthenticatedRequest) => {
     const body = await parseBody(request, testerSchema);
     if (isErrorResponse(body)) return body;
 
