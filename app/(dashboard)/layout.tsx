@@ -8,6 +8,7 @@ import TabBar from "@/app/components/chrome/tab-bar";
 import OrbDefs from "@/app/components/chrome/orb-defs";
 import FeedbackWidget from "@/app/components/feedback/feedback-widget";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import TesterResetCard from "@/app/(dashboard)/dashboard/tester-reset-card";
 
 export default async function DashboardLayout({
   children,
@@ -27,7 +28,7 @@ export default async function DashboardLayout({
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, preferred_name, first_name, last_name")
+    .select("id, preferred_name, first_name, last_name, is_test")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -125,7 +126,14 @@ export default async function DashboardLayout({
         hasEnrollment={hasEnrollment}
         logDue={logGate.active}
       />
-      <main className="app-main container w-full flex-1 py-8">{children}</main>
+      <main className="app-main container w-full flex-1 py-8">
+        {/* Tester reset — always present for tester accounts, on every
+            dashboard route, so it's reachable in the no-cycle / no-enrollment
+            states a tester lands in right after re-onboarding (where the
+            dashboard page's own render never fired). */}
+        {participant?.is_test && <TesterResetCard />}
+        {children}
+      </main>
       <TabBar initials={initials} hasEnrollment={hasEnrollment} />
       <FeedbackWidget />
     </div>
