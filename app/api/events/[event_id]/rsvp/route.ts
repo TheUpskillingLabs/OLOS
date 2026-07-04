@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { eventRsvpSchema } from "@/lib/validations/event-rsvp";
 import { lumaEnabled, addLumaGuest } from "@/lib/integrations/luma";
 
-// The public event RSVP — deliberately unauthenticated (owner rule: public
-// event RSVPs are email-only, never account-gated). The production twin of
-// the prototype's #rsvp-modal submit. Repeat RSVPs for the same event+email
-// are absorbed silently (UNIQUE(event_id, email), migration 00033) so the
-// caller always sees the same "Spot saved" outcome.
+// The event RSVP. Registration parity with Luma (owner decision):
+// - Signed-in members register one-tap with their account identity — no
+//   body needed, and their email is taken from the session, never trusted
+//   from the client. They signed the Participant Agreement (photo clause
+//   included) at signup, so API-adding them to Luma's guest list without
+//   Luma's registration questions is legitimate.
+// - Anonymous visitors on Luma-managed events register on Luma's own page
+//   (the UI links them there — Luma asks its questions, photo release
+//   included). This endpoint's anonymous email path remains for editorial
+//   (non-Luma) events, where it stays public and never account-gated.
+// Repeat RSVPs for the same event+email are absorbed silently
+// (UNIQUE(event_id, email), migration 00033).
 //
-// Luma is the source of truth for events, so a saved RSVP is forwarded to
-// Luma's guest list — confirmations, reminders, and calendar invites come
-// from Luma. Forwarding is best-effort: the local row is the fallback
-// record and a Luma hiccup never costs anyone their spot.
+// A saved RSVP on a Luma-managed event is forwarded to Luma's guest list —
+// confirmations, reminders, and calendar invites come from Luma.
+// Forwarding is best-effort: the local row is the fallback record and a
+// Luma hiccup never costs anyone their spot (the 6-hourly guest mirror
+// also self-heals the other direction).
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ event_id: string }> }
@@ -36,11 +44,37 @@ export async function POST(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  const body = await parseBody(request, eventRsvpSchema);
-  if (isErrorResponse(body)) return body;
+  // Member path: session identity wins over anything in the body.
+  let email: string | null = null;
+  let guestName: string | undefined;
+  try {
+    const authClient = await createClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (user?.email) {
+      email = user.email.toLowerCase();
+      const { data: participant } = await supabase
+        .from("participants")
+        .select("first_name, last_name")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      if (participant) {
+        guestName =
+          `${participant.first_name} ${participant.last_name}`.trim() ||
+          undefined;
+      }
+    }
+  } catch {
+    // Signed-out or auth unavailable — fall through to the email body path.
+  }
 
-  // Lowercase so the unique constraint dedupes case variants of one inbox.
-  const email = body.email.toLowerCase();
+  if (!email) {
+    const body = await parseBody(request, eventRsvpSchema);
+    if (isErrorResponse(body)) return body;
+    // Lowercase so the unique constraint dedupes case variants of one inbox.
+    email = body.email.toLowerCase();
+  }
   const { error } = await supabase.from("event_rsvps").upsert(
     { event_id: eventId, email },
     { onConflict: "event_id,email", ignoreDuplicates: true }
@@ -52,7 +86,7 @@ export async function POST(
   let forwardedToLuma = false;
   if (lumaEnabled() && event.synced_at && event.api_id) {
     try {
-      await addLumaGuest(event.api_id, email);
+      await addLumaGuest(event.api_id, email, guestName);
       forwardedToLuma = true;
     } catch (e) {
       console.error(

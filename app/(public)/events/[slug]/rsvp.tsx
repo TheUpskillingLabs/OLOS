@@ -1,15 +1,77 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 /* The email-only public RSVP — the generator's RSVP_MODAL + openRsvp()/
-   submitRsvp()/closeRsvp(), ported verbatim (owner rule: public event RSVPs
-   are never account-gated). Renders a trigger button plus its modal; the
-   detail page mounts one in .detail-bottom and one in the aside lcard.
-   Submit POSTs to /api/events/[event_id]/rsvp; a rejected email gets the
-   red-border treatment (the generator's em.style.borderColor='var(--red)'). */
+   submitRsvp()/closeRsvp(), ported verbatim. Since Luma became the source
+   of truth this modal serves editorial (non-Luma) events only: anonymous
+   visitors on Luma-managed events register on Luma's page instead (photo
+   release and all), and members use MemberRegister below. Still public,
+   never account-gated. Submit POSTs to /api/events/[event_id]/rsvp; a
+   rejected email gets the red-border treatment. */
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/* One-tap registration for signed-in members: no email typing — the route
+   reads their identity from the session and forwards name + email to
+   Luma's guest list (registration parity, owner decision: the Participant
+   Agreement they signed covers what Luma's questions would have asked).
+   router.refresh() re-renders the page so the sibling CTA flips too. */
+export function MemberRegister({
+  eventId,
+  going: initialGoing,
+  className,
+}: {
+  eventId: number;
+  going: boolean;
+  className: string;
+}) {
+  const router = useRouter();
+  const [going, setGoing] = useState(initialGoing);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function register() {
+    setBusy(true);
+    setFailed(false);
+    try {
+      const res = await fetch(`/api/events/${eventId}/rsvp`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        setFailed(true);
+        return;
+      }
+      setGoing(true);
+      router.refresh();
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (going) {
+    return (
+      <button className={className} disabled style={{ opacity: 1 }}>
+        {"You're going ✓"}
+      </button>
+    );
+  }
+  return (
+    <>
+      <button className={className} onClick={register} disabled={busy}>
+        {busy ? "Saving…" : "Register — save a spot"}
+      </button>
+      {failed && (
+        <p className="t-small" role="alert" style={{ marginTop: 8, color: "var(--red)" }}>
+          {"That didn't go through — try again."}
+        </p>
+      )}
+    </>
+  );
+}
 
 export default function RsvpButton({
   eventId,
