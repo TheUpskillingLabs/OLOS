@@ -6,8 +6,8 @@
  * `userXname@x.com`. Escape both characters first to neutralize the
  * pattern semantics.
  *
- * Auth callback (app/api/auth/callback/route.ts) and short-form registration
- * (app/api/registrations/short/route.ts) both look up participants by email
+ * Auth callback (app/api/auth/callback/route.ts) and the funnel registration
+ * (app/api/registrations/funnel/route.ts) both look up participants by email
  * and use this helper. The case-insensitive unique index from migration
  * 00016 on lower(email) still benefits the underlying query.
  */

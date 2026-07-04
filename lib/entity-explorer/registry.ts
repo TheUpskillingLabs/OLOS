@@ -279,6 +279,66 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     defaultSort: { column: "created_at", direction: "desc" },
     relations: [],
   },
+
+  // Public-content + agreement tables (audit roadmap Phase 0: the explorer is
+  // the read-only transparency stopgap for content and signature records —
+  // Pod Squad memo "direct database access if dashboard features lag").
+  events: {
+    key: "events",
+    label: "Events",
+    table: "events",
+    columns: ["id", "slug", "name", "kind", "anchor", "start_at", "status", "synced_at"],
+    labelField: "name",
+    cycleScoped: false,
+    softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
+    foreignKeys: [],
+    defaultSort: { column: "start_at", direction: "desc" },
+    relations: [],
+  },
+
+  resources: {
+    key: "resources",
+    label: "Library resources",
+    table: "resources",
+    columns: ["id", "slug", "title", "content_type", "author", "from_line", "status", "created_at"],
+    labelField: "title",
+    cycleScoped: false,
+    softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
+    foreignKeys: [],
+    defaultSort: { column: "created_at", direction: "desc" },
+    relations: [],
+  },
+
+  metros: {
+    key: "metros",
+    label: "Metros (local labs)",
+    table: "metros",
+    columns: ["id", "slug", "name", "st", "status", "partner", "members", "waiting_baseline"],
+    labelField: "name",
+    cycleScoped: false,
+    softDelete: null,
+    foreignKeys: [],
+    defaultSort: { column: "id", direction: "asc" },
+    relations: [],
+  },
+
+  cycle_agreements: {
+    key: "cycle_agreements",
+    label: "Cycle agreements",
+    table: "cycle_agreements",
+    // Insert-only signature records (migration 00032). The answers JSONB is
+    // deliberately NOT listed — registration intake stays out of the grid.
+    columns: ["id", "participant_id", "cycle_id", "agreement_version", "signature_name", "signed_at"],
+    labelField: "id",
+    cycleScoped: true,
+    softDelete: null,
+    foreignKeys: [
+      { column: "participant_id", target: "participants" },
+      { column: "cycle_id", target: "cycles" },
+    ],
+    defaultSort: { column: "signed_at", direction: "desc" },
+    relations: [],
+  },
 };
 
 /** Ordered list of entity keys, for building the entity picker. */

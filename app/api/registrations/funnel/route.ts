@@ -17,7 +17,7 @@ import {
 } from "@/lib/email/already-registered-template";
 
 // The onboarding funnel's registration endpoint — the production twin of the
-// prototype's FLOWS('signup').onComplete write. Supersedes /api/registrations/short
+// prototype’s FLOWS('signup').onComplete write. Superseded /api/registrations/short (deleted)
 // (kept for back-compat) with the funnel's extra fields: zip → metro assignment,
 // role intents, hear-about source + referral, and the Participant Agreement
 // acceptance record.
@@ -78,8 +78,9 @@ export async function POST(request: NextRequest) {
   }
 
   // The lab is assigned silently from the zip (owner decision — the zip is
-  // used for nothing else, and the funnel says so).
-  const metro = metroFromZip(body.zip);
+  // used for nothing else, and the funnel says so). Resolves from the
+  // metros table (migration 00038) — no hardcoded map.
+  const metro = await metroFromZip(body.zip);
 
   const { data: participant, error: pError } = await supabase
     .from("participants")
