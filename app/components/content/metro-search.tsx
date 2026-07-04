@@ -7,8 +7,17 @@ import type { MetroRow } from "@/lib/content/queries";
 
 /* The public metro search — city first, account second (owner decision):
    browse and pick your city free; the account ask comes only when a name
-   goes on a list. Results render only once typing starts (prototype rule). */
-export default function MetroSearch({ metros }: { metros: MetroRow[] }) {
+   goes on a list. The search bar leads the section (owner ask, July 2026):
+   the `initial` cards show until typing starts, then live matches take
+   their place — or the start-a-list card when no city matches. Used by the
+   landing's Local labs section (top 4 cities) and /local-labs (all). */
+export default function MetroSearch({
+  metros,
+  initial = [],
+}: {
+  metros: MetroRow[];
+  initial?: MetroRow[];
+}) {
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
   const matches = query
@@ -20,13 +29,7 @@ export default function MetroSearch({ metros }: { metros: MetroRow[] }) {
     : [];
 
   return (
-    <div style={{ marginTop: 32 }}>
-      <div className="t-h4" style={{ marginBottom: 4 }}>
-        Not one of these?
-      </div>
-      <p className="t-small" style={{ marginBottom: 14 }}>
-        Search your city — or be the first name on its list.
-      </p>
+    <div>
       <div className="metro-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
@@ -41,12 +44,19 @@ export default function MetroSearch({ metros }: { metros: MetroRow[] }) {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
-      {query && (
-        <p className="t-small" aria-live="polite" style={{ color: "var(--meta)", margin: "12px 0 16px" }}>
-          {matches.length
+      <p className="t-small" aria-live="polite" style={{ margin: "-8px 0 20px" }}>
+        {query
+          ? matches.length
             ? `${matches.length} ${matches.length === 1 ? "city matches" : "cities match"}`
-            : "No list for that city yet."}
-        </p>
+            : "No list for that city yet."
+          : "Search your city — or be the first name on its list."}
+      </p>
+      {!query && initial.length > 0 && (
+        <div className="cards">
+          {initial.map((m) => (
+            <LabTeaser key={m.slug} metro={m} />
+          ))}
+        </div>
       )}
       {query && matches.length > 0 && (
         <div className="cards">

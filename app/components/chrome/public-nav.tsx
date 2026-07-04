@@ -20,7 +20,7 @@ import { DONATE_URL } from "@/lib/donate";
 const DESTS = [
   { key: "events", label: "Events", href: "/events" },
   { key: "library", label: "Library", href: "/library" },
-  { key: "labs", label: "Cities", href: "/labs" },
+  { key: "labs", label: "Cities", href: "/local-labs" },
 ];
 
 export default function PublicNav({

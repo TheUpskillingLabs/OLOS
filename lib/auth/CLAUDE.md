@@ -109,7 +109,8 @@ User                  Frontend              Supabase Auth        Next.js callbac
 Files:
 
 - [`app/(auth)/login/page.tsx`](../../app/(auth)/login/page.tsx) — landing page;
-  sets the `invite_token` cookie if the URL carries `?invite=…`, then calls
+  a thin shell around [`login-card.tsx`](../../app/(auth)/login/login-card.tsx),
+  which sets the `invite_token` cookie if the URL carries `?invite=…`, then calls
   `supabase.auth.signInWithOAuth({ provider: "google", options.redirectTo })`.
   Invite-flavored UI (the "You've been invited" badge and alternate CTA copy)
   is **derived directly from the `?invite` query param**, not stored in React
@@ -118,6 +119,15 @@ Files:
   and also self-corrects if client-side navigation drops the param. The
   cookie write — the load-bearing side effect that persists the token across
   the OAuth round-trip — remains in `useEffect`.
+
+  The same card has a **popup twin**: soft in-app navigations to `/login`
+  (any `<Link href="/login">` CTA) are intercepted by
+  [`app/@authmodal/(.)login`](../../app/@authmodal/(.)login/page.tsx) and
+  render `LoginCard` inside a modal over the launching page (owner ask,
+  July 2026). Hard navigations — invite emails, the callback's
+  `?error=auth_failed` redirect, refreshes, and the middleware's
+  unauthenticated redirect — skip interception and get the full page.
+  Auth semantics are identical in both hosts; only the shell differs.
 - [`supabase/config.toml`](../../supabase/config.toml) `[auth.external.google]`
   — Google provider enabled, `client_id` / `secret` from `GOOGLE_CLIENT_ID` /
   `GOOGLE_CLIENT_SECRET`. Production credentials are configured in the

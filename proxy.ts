@@ -52,7 +52,8 @@ export async function proxy(request: NextRequest) {
       "/register",
       "/events",
       "/library",
-      "/labs",
+      "/local-labs",
+      "/labs", // old path — next.config redirects it to /local-labs
       "/about",
       "/build-cycles",
     ];

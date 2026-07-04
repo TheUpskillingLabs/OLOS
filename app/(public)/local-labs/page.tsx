@@ -1,10 +1,11 @@
-import Link from "next/link";
-import { Crumbs, LabTeaser } from "@/app/components/content/teasers";
+import { Crumbs } from "@/app/components/content/teasers";
+import MetroSearch from "@/app/components/content/metro-search";
 import { getMetros } from "@/lib/content/queries";
 
 /* The Local labs (cities) directory — the prototype generator's
-   directoryPage('labs'): active lab first, waitlists by list size, then the
-   "Don't see your city?" strip pointing at the landing's metro search. */
+   directoryPage('labs'): the search bar leads (owner ask, July 2026),
+   with every city — active lab first, waitlists by list size — shown
+   until typing starts. */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -39,35 +40,7 @@ export default async function LabsPage() {
             One lab is live. Every other city starts as a list of names. Find
             yours — or start it.
           </p>
-          <div className="cards dense all">
-            {metros.map((m) => (
-              <LabTeaser key={m.slug} metro={m} />
-            ))}
-          </div>
-          <div
-            className="lcard"
-            style={{
-              padding: 24,
-              marginTop: 32,
-              display: "flex",
-              gap: 16,
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <div className="t-h4" style={{ marginBottom: 4 }}>
-                Don’t see your city?
-              </div>
-              <p className="t-small">
-                Search any city — or be the first name on its list.
-              </p>
-            </div>
-            <Link className="btn btn-ghost-teal btn-sm" href="/#sec-labs">
-              Search your city
-            </Link>
-          </div>
+          <MetroSearch metros={metros} initial={metros} />
         </div>
       </section>
     </>
