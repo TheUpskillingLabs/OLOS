@@ -126,7 +126,7 @@ export const POST = withAuth(
     if (config && newCount >= config.project_min && project.status === "forming") {
       await auth.supabase
         .from("projects")
-        .update({ status: "active", updated_at: new Date().toISOString() })
+        .update({ status: "active" })
         .eq("id", projectId);
     }
 

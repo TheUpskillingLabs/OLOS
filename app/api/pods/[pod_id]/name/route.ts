@@ -22,7 +22,7 @@ export const PATCH = withAuth(
 
     const { data, error } = await auth.supabase
       .from("pods")
-      .update({ name, updated_at: new Date().toISOString() })
+      .update({ name })
       .eq("id", podId)
       .select("id, name, updated_at")
       .single();

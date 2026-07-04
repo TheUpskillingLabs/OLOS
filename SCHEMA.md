@@ -476,6 +476,7 @@ erDiagram
         int members
         int waiting_baseline
         text blurb
+        text_array zip_prefixes
     }
 
     metro_waitlist_signups {
@@ -488,7 +489,9 @@ erDiagram
     event_rsvps {
         int id PK
         int event_id FK
+        int participant_id FK "NULL for anonymous"
         varchar email
+        text ip_hash
         timestamptz created_at
     }
 
@@ -506,6 +509,12 @@ erDiagram
 **`resources.content_type`:** `guide` · `recording` · `template` · `course` · `playbook`. `from_line` carries commons provenance ("BenefitsBot · Spring 2026 Cycle") — rendered as the "From the commons" band.
 
 **`metros.status`:** two states only (owner decision) — `active` (DC) or `waitlist`. The rendered waiting count is `waiting_baseline + COUNT(metro_waitlist_signups)`.
+
+**Metro assignment (migration `00038`):** `metros.zip_prefixes` (3-digit zip prefixes) is the zip→lab mapping as data; `lib/metros.ts metroFromZip()` resolves against it (unmatched zips fall back to the active lab), and `participants.metro_slug` carries a real FK to `metros(slug)` (`NOT VALID` — legacy rows validated as a follow-up). The old hardcoded TS map is retired.
+
+**RSVP hardening (migration `00039`):** `event_rsvps.ip_hash` (sha256, never the raw IP) backs the anonymous path's per-IP window cap in `POST /api/events/[event_id]/rsvp` (`lib/api/rate-limit.ts` — the backend doc §8 pre-launch blocker); `participant_id` records member identity on the one-tap path (NULL for anonymous), feeding the Poderator workshop-signups view.
+
+**Hardening batch (migration `00037`):** CHECK constraints (`NOT VALID`) on the four core lifecycle status columns — `cycles` (`draft/active/closed`), `pods` + `projects` (`forming/active/inactive`), `cycle_enrollments` (`inactive/active/revoked/stepped_back` — the last reserved for the leaving-well flow); a `set_updated_at()` trigger owns every `updated_at` column (routes no longer hand-set it); `search_path` pinned on the SECURITY DEFINER helpers + `can_write_cycles()` as the honest alias for `is_admin_or_owner()`; missing indexes on `votes(voter_id)`, `project_votes(voter_id / solution_proposal_id)`, `moderator_assignments(cycle_id)`, `events(status / start_at)`, `pulse_checks(participant_id, scheduled_date)`.
 
 **RLS:** `events`/`resources` allow anon SELECT of `status = 'published'` rows; `metros` allows anon SELECT unconditionally (the public city search). `metro_waitlist_signups` is self-read only; `event_rsvps` has no public read. All writes go through service-role API routes — `POST /api/metros/[metro_id]/waitlist` (authed) and `POST /api/events/[event_id]/rsvp` (public, email-only by owner rule).
 

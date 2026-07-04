@@ -3,6 +3,12 @@ import { nominationSchema } from "./nominations";
 
 const surveyResponsesSchema = z
   .object({
+    // Written by the server on every accepted pulse (DATA_ARCHITECTURE §2
+    // principle 3: versioned payloads). 'v2' = the 00010 pulse_check_v2
+    // shape below; pre-versioning rows simply lack the field. Optional on
+    // input so old clients can't be rejected mid-deploy — the route stamps
+    // it regardless.
+    schema_version: z.literal("v2").optional(),
     accomplishment: z
       .string({ message: "survey_responses.accomplishment is required" })
       .min(1, "survey_responses.accomplishment is required")
@@ -59,7 +65,11 @@ const surveyResponsesSchema = z
       .optional()
       .nullable(),
   })
-  .passthrough();
+  // .strict() rather than the old .passthrough(): unknown keys are rejected,
+  // so the JSONB shape can no longer drift silently (DATA_ARCHITECTURE §1
+  // weakness 1 / §2 principle 3). Historical rows are unaffected — only
+  // writes are validated.
+  .strict();
 
 export const pulseCheckSchema = z.object({
   cycle_id: z.number().int().optional().nullable(),

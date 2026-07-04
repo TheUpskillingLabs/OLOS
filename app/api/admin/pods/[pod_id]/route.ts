@@ -135,7 +135,7 @@ export const PATCH = withAdminAuth(
     // forming → active path
     const { error } = await client
       .from("pods")
-      .update({ status: "active", updated_at: new Date().toISOString() })
+      .update({ status: "active" })
       .eq("id", podId);
     if (error) return dbError(error);
 

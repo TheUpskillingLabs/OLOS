@@ -47,7 +47,7 @@ export const PATCH = withAdminAuth(
 
     const { data, error } = await auth.supabase
       .from("cycles")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ status })
       .eq("id", cycleId)
       .select("id, name, status, updated_at")
       .single();
