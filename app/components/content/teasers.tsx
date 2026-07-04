@@ -11,14 +11,17 @@ export function MediaFrame({
   img,
   grad,
   tag,
+  square,
 }: {
   img?: string | null;
   grad?: string | null;
   tag?: string | null;
+  square?: boolean;
 }) {
+  const sq = square ? " sq" : "";
   if (img) {
     return (
-      <div className="media">
+      <div className={`media${sq}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={/^https?:\/\//.test(img) ? img : `/${img.replace(/^\//, "")}`}
@@ -30,7 +33,7 @@ export function MediaFrame({
     );
   }
   return (
-    <div className={`media ${grad || "m-teal"}`}>
+    <div className={`media${sq} ${grad || "m-teal"}`}>
       <Orb />
       {tag && <div className="m-tag">{tag}</div>}
     </div>
@@ -44,6 +47,7 @@ export function EventTeaser({ event: e }: { event: EventRow }) {
         img={e.img}
         grad={e.grad}
         tag={e.kind || (e.location_type === "virtual" ? "Virtual" : "In person")}
+        square
       />
       <div className="card-body">
         <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
@@ -61,7 +65,7 @@ export function ResourceTeaser({ resource: r }: { resource: ResourceRow }) {
   const typeLabel = CONTENT_TYPE_LABEL[r.content_type] || "Guide";
   return (
     <Link className="card tappable" href={`/library/${r.slug}`}>
-      <MediaFrame img={r.img} grad={r.grad} tag={typeLabel} />
+      <MediaFrame img={r.img} grad={r.grad} tag={typeLabel} square />
       <div className="card-body">
         <div className="lbl lbl-teal">{r.meta || ""}</div>
         <div className="t-h4" style={{ margin: "6px 0 4px" }}>
