@@ -25,7 +25,11 @@ export type EntityKey =
   | "projects"
   | "project_memberships"
   | "user_roles"
-  | "pulse_checks";
+  | "pulse_checks"
+  | "events"
+  | "resources"
+  | "metros"
+  | "cycle_agreements";
 
 export type SortDirection = "asc" | "desc";
 

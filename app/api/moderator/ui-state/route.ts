@@ -77,7 +77,6 @@ export const PUT = withAuth(
     // This lets a switcher change avoid clobbering tooltip_seen, etc.
     const patch: Record<string, unknown> = {
       participant_id: participantId,
-      updated_at: new Date().toISOString(),
     };
     if (parsed.last_view !== undefined) patch.last_view = parsed.last_view;
     if (parsed.roster_filters !== undefined)

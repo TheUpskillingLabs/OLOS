@@ -313,6 +313,11 @@ These block specific issues. Resolve before the affected work starts.
 
 # §6 — Wave 1 status tracker
 
+> **Staleness note (July 2026):** several rows below lag reality (e.g. §1.6/§1.7
+> shipped long ago — `lib/auth/CLAUDE.md` is authoritative for auth). For
+> current state and forward planning use **`docs/audit/`** (GAP_AUDIT +
+> IMPROVEMENT_ROADMAP); this tracker remains as the Wave-1 historical record.
+
 *Update this table as issues progress. Mark waves complete when all issues are merged + deployed.*
 
 | Anchor | Issue | Status | Owner | PR | Notes |

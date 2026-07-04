@@ -132,7 +132,7 @@ export default async function ModeratorVoteProgressPage({
           className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
-          Moderator
+          Poderator
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
           Vote progress

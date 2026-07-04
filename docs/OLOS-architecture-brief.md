@@ -1,4 +1,10 @@
 # OLOS — Architecture Brief
+
+> **⚠ PARTLY HISTORICAL (banner added July 2026).** The Stack table below
+> still says "Backend: Python/FastAPI" and "magic links via Resend SMTP" —
+> both predate the shipped Next.js + Supabase + Resend-HTTP reality. For the
+> current architecture read `SCHEMA.md` and `docs/audit/DATA_ARCHITECTURE.md`.
+
 *The 5-minute orientation for every new contributor*
 
 ---

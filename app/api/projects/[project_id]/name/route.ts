@@ -33,7 +33,7 @@ export const PATCH = withAuth(
 
     const { data, error } = await auth.supabase
       .from("projects")
-      .update({ name, updated_at: new Date().toISOString() })
+      .update({ name })
       .eq("id", projectId)
       .select("id, name, updated_at")
       .single();

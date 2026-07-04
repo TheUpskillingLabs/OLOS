@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
+import { hashIp, requestIp, windowStart } from "@/lib/api/rate-limit";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { eventRsvpSchema } from "@/lib/validations/event-rsvp";
 import { lumaEnabled, addLumaGuest } from "@/lib/integrations/luma";
+
+// Anonymous-path abuse guard (backend doc §8's pre-launch blocker): at most
+// this many RSVPs per IP per window. Members are exempt — they're identity-
+// bound and deduped by the unique constraint.
+const ANON_RSVP_LIMIT = 5;
+const ANON_RSVP_WINDOW_MS = 60 * 60 * 1000;
 
 // The event RSVP. Registration parity with Luma (owner decision):
 // - Signed-in members register one-tap with their account identity — no
@@ -47,6 +54,7 @@ export async function POST(
   // Member path: session identity wins over anything in the body.
   let email: string | null = null;
   let guestName: string | undefined;
+  let participantId: number | null = null;
   try {
     const authClient = await createClient();
     const {
@@ -56,10 +64,11 @@ export async function POST(
       email = user.email.toLowerCase();
       const { data: participant } = await supabase
         .from("participants")
-        .select("first_name, last_name")
+        .select("id, first_name, last_name")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       if (participant) {
+        participantId = participant.id;
         guestName =
           `${participant.first_name} ${participant.last_name}`.trim() ||
           undefined;
@@ -69,14 +78,29 @@ export async function POST(
     // Signed-out or auth unavailable — fall through to the email body path.
   }
 
+  const ipHash = hashIp(requestIp(request));
+
   if (!email) {
+    // Anonymous path: per-IP window cap before accepting the write.
+    const { count } = await supabase
+      .from("event_rsvps")
+      .select("id", { count: "exact", head: true })
+      .eq("ip_hash", ipHash)
+      .gte("created_at", windowStart(ANON_RSVP_WINDOW_MS));
+    if ((count ?? 0) >= ANON_RSVP_LIMIT) {
+      return NextResponse.json(
+        { error: "Too many RSVPs from this address — try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await parseBody(request, eventRsvpSchema);
     if (isErrorResponse(body)) return body;
     // Lowercase so the unique constraint dedupes case variants of one inbox.
     email = body.email.toLowerCase();
   }
   const { error } = await supabase.from("event_rsvps").upsert(
-    { event_id: eventId, email },
+    { event_id: eventId, email, ip_hash: ipHash, participant_id: participantId },
     { onConflict: "event_id,email", ignoreDuplicates: true }
   );
   if (error) return dbError(error, "event-rsvp");

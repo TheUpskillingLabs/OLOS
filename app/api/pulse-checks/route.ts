@@ -59,6 +59,9 @@ export const POST = withAuth(
         completed_at,
         survey_responses: {
           ...survey_responses,
+          // Server-stamped shape tag (DATA_ARCHITECTURE §2 principle 3);
+          // readers branch on it instead of sniffing keys.
+          schema_version: "v2",
           ...(pod_id ? { pod_id } : {}),
           ...(project_id ? { project_id } : {}),
         },

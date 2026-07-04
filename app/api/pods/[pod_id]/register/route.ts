@@ -135,7 +135,7 @@ export const POST = withAuth(
       // ("resources provision at activation" — architecture brief §4).
       await serviceClient
         .from("pods")
-        .update({ status: "active", updated_at: new Date().toISOString() })
+        .update({ status: "active" })
         .eq("id", podId);
 
       await reconcilePodMembers(podId);
