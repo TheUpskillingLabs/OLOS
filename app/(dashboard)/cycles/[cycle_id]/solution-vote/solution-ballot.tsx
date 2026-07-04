@@ -29,13 +29,15 @@ export default function SolutionBallot({
 
   useEffect(() => {
     if (!selectedPodId) return;
-    setLoading(true);
-    setAllocations({});
-    setError("");
-    setSubmitted(false);
-    setAlreadyVoted(false);
 
     (async () => {
+      // Reset inside the async body (not the effect body) so these aren't
+      // synchronous setStates in the effect (react-hooks/set-state-in-effect).
+      setLoading(true);
+      setAllocations({});
+      setError("");
+      setSubmitted(false);
+      setAlreadyVoted(false);
       try {
         const [proposalsRes, votesRes] = await Promise.all([
           fetch(`/api/pods/${selectedPodId}/solution-proposals`),
