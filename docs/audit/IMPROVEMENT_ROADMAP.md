@@ -8,9 +8,13 @@ crosswalk, Appendix A) + `docs/audit/DATA_ARCHITECTURE.md` (the DB blueprint ser
 Data Sensemaker and Project Ortelius canvases). Phases are ordered by dependency and member
 impact; each is shippable alone.
 
+> **Live status (2026-07-05):** Phase 0 done (revocation cron held), Phase 0.5 done, Pod
+> Squad batch done, Phase 1 ~70%, Phases 2–7 not started. Per-phase progress detail lives
+> in **`docs/audit/PROGRESS.md`** — update it as phases land; keep this file as the plan.
+
 ---
 
-## Phase 0 — Hygiene + safety (no product change; do first, it's all small)
+## Phase 0 — Hygiene + safety ✅ (revocation cron held) (no product change; all small)
 
 1. **Fix the two §3.7 reconciler bypasses** — route `revocations/check` (demote) and
    `revocations/reactivate` (promote) through `reconcileEnrollmentActivation`
@@ -34,7 +38,7 @@ impact; each is shippable alone.
    (`events`/`resources`/`metros`, later the research tables) in its registry — the memo's
    "direct database access if dashboards lag" ask, answered safely (read-only, already coded).
 
-## Phase 0.5 — Schema hardening batch (mechanical; before feature phases)
+## Phase 0.5 — Schema hardening batch ✅ (mechanical; before feature phases)
 
 The full spec is `DATA_ARCHITECTURE.md` §3. One idempotent migration series + the matching
 app-side cleanups: CHECKs on the four core status columns (incl. adding `stepped_back` to
@@ -45,7 +49,7 @@ truth for metro assignment (FK + `lib/metros.ts` retirement — absorbs old Phas
 TIMESTAMPTZ standard + documented soft-delete convention · `schema_version` into
 `pulse_checks.survey_responses` and its Zod schema off `.passthrough()`.
 
-## The Pod Squad batch (small, independent, memo-driven — parallel to Phases 0–1)
+## The Pod Squad batch ✅ (small, independent, memo-driven — parallel to Phases 0–1)
 
 1. `participants.is_staff`/`is_test` columns + hidden-by-default roster toggle.
 2. Pod-scoped feedback inbox for Poderators (`feedback` table already live).
@@ -54,7 +58,7 @@ TIMESTAMPTZ standard + documented soft-delete convention · `schema_version` int
 5. Restore the A-vs-B orientation card on the Poderator page (the memo re-asked the exact
    question the card answers; reverse the PRD's cut).
 
-## Phase 1 — The Learning Log pivot (the deepest conceptual change)
+## Phase 1 — The Learning Log pivot 🟡 ~70% (the deepest conceptual change)
 
 Replaces pulse-check as the weekly practice ritual (proto CLAUDE.md: "replaces the Practice
 Journal, and the Pulse before it"). Migration path in GAP_AUDIT A3: pulse history stays
@@ -84,7 +88,7 @@ milestones" (the roster gains milestone-status columns in the Poderator repoint)
    Luma-synced anchor events (also closes the C1 signed-screen `.ics` tail).
 6. Owner calls needed before build: see Decision queue #1–#3.
 
-## Phase 2 — Directory + Me (the Connect layer, minimal credible launch)
+## Phase 2 — Directory + Me ⬜ (the Connect layer, minimal credible launch)
 
 1. **The RLS decision (load-bearing):** keep `00020` tight; serve `GET /api/directory` +
    `GET /api/profiles/[handle]` via service client with an explicit display-column allowlist.
@@ -101,7 +105,7 @@ milestones" (the roster gains milestone-status columns in the Poderator repoint)
 5. **Near-free win:** standalone `POST /api/nominations` decoupled from pulse-checks (table +
    RLS already live) → the directory card's Nominate button.
 
-## Phase 3 — Learning destination + editorial
+## Phase 3 — Learning destination + editorial ⬜
 
 1. Authed `/learning` (events + library + saved) — mostly a route-shell over existing teasers.
 2. `saved_items` table + hearts (the `.heart` CSS is already ported; add the affordance to
@@ -118,7 +122,7 @@ milestones" (the roster gains milestone-status columns in the Poderator repoint)
    framing). Change `resources.from_line` → `project_id` FK while the table is empty
    (`00036`) — cheap now, expensive later; it powers the commons flywheel.
 
-## Phase 4 — Formation experience layer (the pipeline works; give it its ceremonies)
+## Phase 4 — Formation experience layer ⬜ (the pipeline works; give it its ceremonies)
 
 1. **Ignition:** register response returns `{activated:true}` at `project_min` → full-screen
    interstitial + "Your project" pinned card.
@@ -138,7 +142,7 @@ milestones" (the roster gains milestone-status columns in the Poderator repoint)
 7. `problem_situations` + Triangulator provenance only when Phase 6 gives situations a source.
 8. Owner call needed: Decision queue #4–#6 (voter eligibility, formation arena, caps).
 
-## Phase 5 — Trust + mentors
+## Phase 5 — Trust + mentors ⬜
 
 `mentor_profiles` (+ `verified_by_labs` — resolves roadmap D3 toward a separate table),
 mentor intake flow (publishes immediately, no queue), `mentor_requests` (evidence-first,
@@ -147,7 +151,7 @@ Following filter, `citations` (domain allowlist), badge derivations (QA-verified
 endorsed / commons contributor — each lands with its earning system; locked states already
 render from Phase 2).
 
-## Phase 6 — Data Sensemaker (the Contribute + Sensemake stages, elevated)
+## Phase 6 — Data Sensemaker ⬜ (the Contribute + Sensemake stages, elevated)
 
 The AI Use Case Canvas formalizes what the prototype sketched: field research producing
 **evidence-based problem statements** with AI assistance and human checkpoints. This phase
@@ -177,7 +181,7 @@ builds its data layer and core flows:
    connection rate, rubric scores, retention) become queryable from the tables above —
    no separate analytics store.
 
-## Phase 7 — Living Atlas foundations (Project Ortelius)
+## Phase 7 — Living Atlas foundations ⬜ (Project Ortelius)
 
 Foundations only — the distributed-network vision stays out of scope until the Sensemaker
 pilot proves the spine. With Phases 1–6 shipped, the corpus exists; this phase makes it
@@ -195,7 +199,7 @@ compound:
 - Ontology governance as a documented vocabulary (`link_kind` values + the entity-type
   registry shared with the Entity Explorer), evolved by migration — no ontology engine.
 
-## Poderator throughline (lands piecewise)
+## Poderator throughline 🟡 (lands piecewise)
 
 Phase 1 → health-band + blocked-tier repoint. Phase 4 → journey spine + teams drill-down
 (formation context), milestone-logs card. Phase 5 → member-drawer mentor flag. Plus, any
@@ -255,9 +259,14 @@ with their Phase-5 badge systems).
     the `vector(n)` column), given "participant data will not be used for model training"
     (Phase 6/7).
 
-## Already done (for the record)
+## Already done (for the record — see PROGRESS.md for the live scorecard)
 
 Design system app-wide · onboarding funnel (Stage B) · cycle ceremony C1 (`00031/00032`) ·
-public content C7 (`00033–00036`, landing flip, Luma sync + crons) · moderator pulse
-dashboard · admin (config/invitations/participants/permissions) · login popup · cities
-search + `/local-labs` · every.org donate popup · §3.7 reconciler + Phase A/B.
+public content C7 (`00033–00036`, landing flip, Luma sync + crons) · admin
+(config/invitations/participants/permissions) · login popup · cities search + `/local-labs`
+· every.org donate popup · §3.7 reconciler + Phase A/B · **Phase 0** (safety + hygiene +
+tests/CI) · **Phase 0.5** (`00037–00039` hardening) · **Pod Squad batch** (staff/test
+hiding, feedback inbox, workshop sign-ups, scoped PATCH, orientation card) · **Phase 1 core**
+(`learning_logs`/`profile_updates` `00040`, the dashboard card, the fixed weekly gate + two
+crons, the Poderator log-health repoint) · **testing pathway** (`00042` — tester accounts +
+self-reset, an extra beyond the roadmap).
