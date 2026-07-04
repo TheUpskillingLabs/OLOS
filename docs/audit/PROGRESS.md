@@ -17,7 +17,7 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · ⏳ deferred (deliberate)
 | **Phase 0** — hygiene + safety | ✅ (1 item ⏳) | Shipped; only the revocation-cron re-registration is deliberately held |
 | **Phase 0.5** — schema hardening | ✅ | Migrations 00037–00039 applied + verified on dev |
 | **Pod Squad batch** | ✅ | All 5 memo items shipped |
-| **Phase 1** — Learning Log pivot | 🟡 ~70% | Log + gate + Poderator repoint done; milestones, dashboard completion, feed-reader open |
+| **Phase 1** — Learning Log pivot | 🟡 ~85% | Log + gate + Poderator repoint + dashboard completion done; milestones + feed-reader open |
 | **Testing pathway** (extra) | ✅ | 00042 — not in the roadmap; admin-granted tester accounts + self-reset |
 | **Phase 2** — Directory + Me | ⬜ | Not started |
 | **Phase 3** — Learning dest + editorial | ⬜ | Not started (nav still lacks Learning/Directory) |
@@ -63,15 +63,19 @@ built on request to make the onboarding loop testable pre-kickoff.
 
 ## Open within partially-done work
 
-**Phase 1 remainder (the ~30%):**
+**Phase 1 remainder (the ~15%):**
 - **Milestone logs (wk-7/13):** the `kind` enum exists in `learning_logs`, but there's
   **no prefill UI** and no Poderator milestone card. (Roadmap Phase 1; memo "evaluations in OLOS".)
-- **Dashboard completion:** **no** setup checklist, **no** dismissible "Up next" todos,
-  **no** "Your commitments" dated rows + `.ics`. The dashboard renders greeting →
-  phase rail → Learning Log → pod-join only. (Roadmap Phase 1 item 5; memo "weeks labeled with dates".)
 - **The share has no reader:** `learning_logs.share_publicly` **writes** a `profile_updates`
   row, but nothing displays it — no updates feed exists yet. Until the Phase 2 "Me"/Discover
-  feed lands, sharing is a no-op to the member. (Not a bug; the reader is scoped to Phase 2.)
+  feed lands, sharing is a no-op to the member. (Not a bug; the reader is scoped to Phase 2 —
+  deliberately deferred.)
+
+**Dashboard completion — ✅ done** (Phase 1 item 5): setup checklist (actionable rows +
+"Start →", collapse-to-strip when done), "Your commitments" (the six dated anchor events +
+`.ics` download), and dismissible "Up next" cards for the currently-open cycle windows. The
+engaged dashboard now renders greeting → checklist → phase rail → Learning Log →
+commitments → Up next → pods → past cycles.
 
 **Poderator throughline remainder:** `process_signals` (table + composer — the owner's core
 "shepherd, not manager" R&D mechanic) is **absent**; the frame-journey spine, teams drill-down,

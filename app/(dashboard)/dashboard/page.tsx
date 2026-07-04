@@ -6,6 +6,9 @@ import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import LearningLogCard from "./learning-log-card";
+import SetupChecklist, { type ChecklistItem } from "./setup-checklist";
+import CycleCommitments from "./cycle-commitments";
+import UpNext, { type TodoCard } from "./up-next";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 
 type CycleStatus = "active" | "closed" | "draft";
@@ -40,31 +43,46 @@ export default async function DashboardPage() {
   let enrollment = null;
   let myPods: PodMembership[] = [];
 
+  let hasAgreement = false;
+  let logCount = 0;
+
   if (activeCycle) {
-    const [configResult, enrollmentResult, membershipResult] = await Promise.all([
-      serviceClient
-        .from("cycle_config")
-        .select(
-          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
-        )
-        .eq("cycle_id", activeCycle.id)
-        .single(),
-      serviceClient
-        .from("cycle_enrollments")
-        .select("id, status")
-        .eq("participant_id", participant.id)
-        .eq("cycle_id", activeCycle.id)
-        .maybeSingle(),
-      serviceClient
-        .from("pod_memberships")
-        .select("id, pod_id, pods!inner(id, name, status)")
-        .eq("participant_id", participant.id)
-        .eq("pods.cycle_id", activeCycle.id)
-        .is("inactive_at", null),
-    ]);
+    const [configResult, enrollmentResult, membershipResult, agreementResult, logResult] =
+      await Promise.all([
+        serviceClient
+          .from("cycle_config")
+          .select(
+            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+          )
+          .eq("cycle_id", activeCycle.id)
+          .single(),
+        serviceClient
+          .from("cycle_enrollments")
+          .select("id, status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", activeCycle.id)
+          .maybeSingle(),
+        serviceClient
+          .from("pod_memberships")
+          .select("id, pod_id, pods!inner(id, name, status)")
+          .eq("participant_id", participant.id)
+          .eq("pods.cycle_id", activeCycle.id)
+          .is("inactive_at", null),
+        serviceClient
+          .from("cycle_agreements")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", activeCycle.id),
+        serviceClient
+          .from("learning_logs")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id),
+      ]);
     activeCycleConfig = configResult.data;
     enrollment = enrollmentResult.data;
     myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
+    hasAgreement = (agreementResult.count ?? 0) > 0;
+    logCount = logResult.count ?? 0;
   }
 
   // Determine pod registration window status
@@ -159,7 +177,79 @@ export default async function DashboardPage() {
     );
   }
 
-  // Engaged state: user has a cycle_enrollments row — full dashboard chrome
+  // Engaged state: user has a cycle_enrollments row — full dashboard chrome.
+
+  // Setup checklist — actionable rows, collapses to a strip once done
+  // (prototype panel-dashboard: checklist first).
+  const checklistItems: ChecklistItem[] = activeCycle
+    ? [
+        {
+          key: "profile",
+          label: "Complete your profile",
+          done: true,
+          href: "/profile/edit",
+          cta: "Edit",
+        },
+        {
+          key: "register",
+          label: `Register for ${activeCycle.name}`,
+          done: hasAgreement || enrollment?.status === "active",
+          href: `/cycles/${activeCycle.id}/join`,
+          cta: "Register",
+        },
+        {
+          key: "pod",
+          label: "Join a pod",
+          done: myPods.length > 0,
+          href: `/cycles/${activeCycle.id}/register-pods`,
+          cta: "Choose",
+        },
+        {
+          key: "log",
+          label: "Save your first Learning Log",
+          done: logCount > 0,
+          href: "#learning-log",
+          cta: "Log",
+        },
+      ]
+    : [];
+
+  // "Up next" — the cycle actions whose window is open right now, as
+  // dismissible cards (the rail shows timing; this gives the button).
+  const cfg = (activeCycleConfig ?? {}) as Record<string, string | null>;
+  const nowMs = new Date().getTime();
+  const windowClose = (k: string): Date | null => {
+    const o = cfg[`${k}_open`];
+    const c = cfg[`${k}_close`];
+    if (!o || !c) return null;
+    return nowMs >= new Date(o).getTime() && nowMs <= new Date(c).getTime()
+      ? new Date(c)
+      : null;
+  };
+  const WINDOW_TODOS = [
+    { k: "problem_statement", title: "Submit a problem statement", cta: "Propose", sub: "propose" },
+    { k: "voting", title: "Vote on problem statements", cta: "Vote", sub: "vote" },
+    { k: "pod_registration", title: "Register for a pod", cta: "Choose pods", sub: "register-pods" },
+    { k: "solution_proposal", title: "Submit your solution proposal", cta: "Propose", sub: "solutions" },
+    { k: "solution_voting", title: "Cast your solution ballot", cta: "Vote", sub: "solution-vote" },
+    { k: "project_registration", title: "Register for a project", cta: "Register", sub: "register-projects" },
+  ];
+  const upNextTodos: TodoCard[] = activeCycle
+    ? WINDOW_TODOS.flatMap((w) => {
+        const close = windowClose(w.k);
+        if (!close) return [];
+        return [
+          {
+            id: w.k,
+            title: w.title,
+            detail: `Open now — closes ${close.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
+            href: `/cycles/${activeCycle.id}/${w.sub}`,
+            cta: w.cta,
+          },
+        ];
+      })
+    : [];
+
   return (
     <div>
       {/* Greeting */}
@@ -169,6 +259,9 @@ export default async function DashboardPage() {
       <h1 className="t-h1 mb-6 text-ink">
         Welcome back, {displayName}
       </h1>
+
+      {/* Setup checklist first (prototype order) */}
+      {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
 
       {/* Phase timeline for active cycle */}
       {activeCycle && activeCycleConfig && (
@@ -197,6 +290,12 @@ export default async function DashboardPage() {
           <LearningLogCard gateActive={logGate.active} />
         </>
       )}
+
+      {/* Your commitments — the dated anchor events + .ics, always findable */}
+      <CycleCommitments />
+
+      {/* Up next — dismissible action cards for the currently-open windows */}
+      {upNextTodos.length > 0 && <UpNext todos={upNextTodos} />}
 
       {/* Status block */}
       {state === "interest_submitted_window_closed" && activeCycleConfig && (
