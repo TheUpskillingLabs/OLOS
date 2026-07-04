@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +28,8 @@ export interface AppNavProps {
   /** The weekly Learning Log gate is armed and unmet — Home carries the
       red pip (the ritual lives on the dashboard, not in the nav). */
   logDue: boolean;
+  /** Tester account — the avatar menu carries a "Reset Test Account" item. */
+  isTest: boolean;
 }
 
 export default function AppNav({
@@ -38,6 +40,7 @@ export default function AppNav({
   showPods,
   hasEnrollment,
   logDue,
+  isTest,
 }: AppNavProps) {
   const pathname = usePathname() || "";
   const persona = pathname.startsWith("/admin")
@@ -109,6 +112,7 @@ export default function AppNav({
           isModerator={isModerator}
           showPods={showPods}
           persona={persona}
+          isTest={isTest}
         />
       </div>
     </header>
@@ -126,6 +130,7 @@ function AvatarMenu({
   isModerator,
   showPods,
   persona,
+  isTest,
 }: {
   initials: string;
   displayName: string;
@@ -133,10 +138,12 @@ function AvatarMenu({
   isModerator: boolean;
   showPods: boolean;
   persona: "admin" | "poderator" | null;
+  isTest: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
-  const router = useRouter();
   const canViewAs = isAdmin || isModerator || showPods;
 
   // Esc / outside-click close + ArrowUp/Down cycling — the shared.js contract.
@@ -173,7 +180,35 @@ function AvatarMenu({
   const signOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    // Full navigation to the public home page (not router.push) so the
+    // server re-renders with the cleared session — the signed-out landing,
+    // not the login screen.
+    window.location.href = "/";
+  };
+
+  // Tester-only self-reset (testing pathway, migration 00042). Two taps to
+  // confirm — the item stays in the open menu — then wipe, sign out, and
+  // land on the public home page so the whole flow restarts from the front
+  // door. The email-keyed grant survives, so the flag returns on re-signup.
+  const resetTestAccount = async () => {
+    if (!resetConfirm) {
+      setResetConfirm(true);
+      return;
+    }
+    setResetBusy(true);
+    try {
+      const res = await fetch("/api/testing/reset", { method: "POST" });
+      if (!res.ok) {
+        setResetBusy(false);
+        setResetConfirm(false);
+        return;
+      }
+      await createClient().auth.signOut();
+      window.location.href = "/";
+    } catch {
+      setResetBusy(false);
+      setResetConfirm(false);
+    }
   };
 
   const openFeedback = () => {
@@ -250,6 +285,21 @@ function AvatarMenu({
           <button className="menu-item" role="menuitem" onClick={openFeedback}>
             Send feedback
           </button>
+          {isTest && (
+            <button
+              className="menu-item"
+              role="menuitem"
+              onClick={resetTestAccount}
+              disabled={resetBusy}
+              style={{ color: "var(--red)" }}
+            >
+              {resetBusy
+                ? "Resetting…"
+                : resetConfirm
+                  ? "Tap again to wipe & restart"
+                  : "Reset Test Account"}
+            </button>
+          )}
           <button className="menu-item" role="menuitem" onClick={signOut}>
             Sign out
           </button>
