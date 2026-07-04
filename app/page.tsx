@@ -7,7 +7,6 @@ import MetroSearch from "@/app/components/content/metro-search";
 import {
   EventTeaser,
   ResourceTeaser,
-  LabTeaser,
 } from "@/app/components/content/teasers";
 import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
@@ -193,16 +192,11 @@ export default async function LandingPage() {
               </div>
               <h2 className="t-h2">Find your city</h2>
             </div>
-            <Link className="see" href="/labs">
+            <Link className="see" href="/local-labs">
               All cities →
             </Link>
           </div>
-          <div className="cards">
-            {landingLabs.map((m) => (
-              <LabTeaser key={m.slug} metro={m} />
-            ))}
-          </div>
-          <MetroSearch metros={metros} />
+          <MetroSearch metros={metros} initial={landingLabs} />
         </div>
       </section>
 

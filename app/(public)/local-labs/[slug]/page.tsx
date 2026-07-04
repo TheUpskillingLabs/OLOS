@@ -80,7 +80,7 @@ export default async function LabPage({
   const crumbs = (
     <div className="container">
       <Crumbs
-        trail={[["Home", "/"], ["Local labs", "/labs"], [labTitle(m), null]]}
+        trail={[["Home", "/"], ["Local labs", "/local-labs"], [labTitle(m), null]]}
       />
     </div>
   );

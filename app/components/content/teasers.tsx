@@ -83,7 +83,7 @@ export function LabTeaser({ metro: m }: { metro: MetroRow }) {
       ? `${m.partner ?? ""} · ${m.members ?? 0} members`
       : `${m.waiting} ${m.waiting === 1 ? "person" : "people"} waiting`;
   return (
-    <Link className="card tappable" href={`/labs/${m.slug}`}>
+    <Link className="card tappable" href={`/local-labs/${m.slug}`}>
       <MediaFrame grad={m.slug === "dc" ? "m-navy" : "m-forest"} tag={m.slug === "dc" ? "Flagship" : ""} />
       <div className="card-body">
         <div className="card-row" style={{ marginBottom: 6 }}>

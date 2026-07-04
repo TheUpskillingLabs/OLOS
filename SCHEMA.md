@@ -420,7 +420,7 @@ erDiagram
 
 ## ERD — Public Content (the CMS)
 
-The public web's content tables (migration `00033_public_content.sql`), ported 1:1 from the onboarding-proto content directories (`events/ library/ labs/` data.js files — HANDOFF.md §4). These serve the public landing and the `/events/[slug]`, `/library/[slug]`, `/labs/[slug]` pages. Rows are seeded and refreshed idempotently by `00034_seed_public_content.sql` (slug-keyed upserts); edit content in the prototype's data.js first, then re-generate the seed.
+The public web's content tables (migration `00033_public_content.sql`), ported 1:1 from the onboarding-proto content directories (`events/ library/ labs/` data.js files — HANDOFF.md §4). These serve the public landing and the `/events/[slug]`, `/library/[slug]`, `/local-labs/[slug]` pages. Rows are seeded and refreshed idempotently by `00034_seed_public_content.sql` (slug-keyed upserts); edit content in the prototype's data.js first, then re-generate the seed.
 
 ```mermaid
 erDiagram
