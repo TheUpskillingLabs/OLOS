@@ -8,7 +8,8 @@ import { ANCHOR_EVENTS, fmtEvt, icsHref } from "@/lib/cycles/anchor-events";
 
 export default function CycleCommitments() {
   return (
-    <section className="mb-8 rounded-card border border-ink/10 bg-white p-5 shadow-card">
+    <section className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
+      <div className="lbl lbl-teal mb-2">Locked in</div>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="t-h3 text-ink">Your commitments</h2>
         <a

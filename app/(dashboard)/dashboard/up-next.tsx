@@ -56,7 +56,10 @@ export default function UpNext({ todos }: { todos: TodoCard[] }) {
 
   return (
     <section className="mb-8">
-      <h2 className="lbl mb-3">Up next</h2>
+      <div className="mb-4">
+        <div className="lbl lbl-teal mb-1.5">On your plate</div>
+        <h2 className="t-h3 text-ink">Up next for you</h2>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {visible.map((t) => (
           <div
