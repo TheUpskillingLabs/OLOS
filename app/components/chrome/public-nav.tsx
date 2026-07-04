@@ -4,18 +4,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { DONATE_URL } from "@/lib/donate";
 
 /* The public bar — ported from onboarding-proto chrome.js publicNavHTML
    (.sitenav): logo · destinations · quiet Log in · red Donate (owner
    decision, July 2026: Join retired from the bar — the hero and the upsell
    band carry the join ask; the bar's button raises money). Donate opens
-   every.org's hosted checkout (#/donate deep link — no API needed here).
+   every.org's donation popup (button.js in the root layout intercepts the
+   coded link; plain hosted checkout is the no-script fallback).
    Auth-aware: signed-in visitors get Home + their avatar. Collapses to the
    hamburger below 1024px (the public bar needs the room — deliberate
    breakpoint, distinct from the app bar's 768px).
    The Work ▾ menu and the search field arrive with their stages. */
-
-const DONATE_URL = "https://www.every.org/theupskillinglabs#/donate";
 
 const DESTS = [
   { key: "events", label: "Events", href: "/events" },
