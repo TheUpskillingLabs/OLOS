@@ -213,3 +213,11 @@ The mock shapes are contracts — production swaps the data source, not the mark
 | `docs/UX_EVALUATION.md` | The constitution, 8 personas, ~45 user stories with AC, the evaluation method |
 | `docs/UX_FINDINGS.md` | Round-1 findings F1–F14 + per-surface design-language fidelity grades |
 | `app.js` / `chrome.js` / `system.css` | The behavioral truth: flows, gates, renderers, chrome |
+
+Intent sources beyond the prototype (later, complementary):
+
+| Source | What it adds |
+|---|---|
+| Pod Squad memo (June 22, 2026) | The moderators' lived needs — crosswalked in `GAP_AUDIT.md` Appendix A; partly upstream of the prototype's Poderator design |
+| AI Use Case Canvas: Data Sensemaker (June 2026) | The field-research methodology + AI-assist checkpoints + governance preconditions behind the survey→Triangulator→situations pipeline |
+| AI Use Case Canvas: Project Ortelius | The long-horizon provenance/knowledge-corpus objective — drives `DATA_ARCHITECTURE.md`'s principles |

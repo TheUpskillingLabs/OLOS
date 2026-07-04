@@ -215,3 +215,49 @@ request/cancel/hide · saved/heart.
 | `lib/metros.ts` | Still wired into the funnel despite the real `metros` table (`00033`) — plan said retire at C7 |
 | Placeholder-name debt | `Unknown` rows from the abandoned spreadsheet migration still gated by `lib/participants/placeholder.ts` |
 | Stale docs | `TUL_MVP_Spec.md` + `OLOS-architecture-brief.md` describe a FastAPI/pyjwt backend that never existed; `PROTO_TRANSLATION_PLAN.md` marks shipped stages (C1/C7) deferred and references the deleted `.theme-legacy`; `OLOS-roadmap.md` §6 tracker self-admittedly wrong |
+
+---
+
+## Appendix A — Pod Squad memo crosswalk (June 22, 2026)
+
+The moderators' wish-list memo, mapped to this audit. Notable: the prototype was partly
+designed in response to this memo (its CLAUDE.md tags staff/test hiding "memo ask"; the
+Poderator orientation card is called "the A-vs-B answer"). The memo's **General question**
+(is OLOS a moderator CRM (A) or a participant experience system (B)?) is answered by the
+design intent: **B** — member-first, Poderator-as-shepherd; the fact the question had to be
+asked confirms the audit's "shepherd framing missing" finding, and argues for restoring the
+in-product orientation card the PRD cut.
+
+### Direct hits (memo ask ↔ audit finding ↔ roadmap home)
+
+| Memo ask | Audit finding | Roadmap |
+|---|---|---|
+| Rename pulse check to convey required | The Learning Log pivot — the gate *enforces* required | Phase 1 |
+| Mid/end-cycle evaluations in OLOS, non-redundant, beside pulse data | Milestone log kinds, **prefilled from the member's own logs** | Phase 1 |
+| Quick pulse-compliance visibility | Compliance strip (avatar roll-call) — partial/missing | Phase 1 |
+| Pod → project drill-down during build | Teams drill-down + journey spine — missing | Phase 4 |
+| Problem/project statements visible in real time | Journey spine carries real artifacts — missing | Phase 4 |
+| Hide staff/volunteers/test users | `visibleMembers()` intent; `is_staff`/`is_test` absent | Pod Squad batch |
+| Access participant-experience feedback | Pod-scoped feedback inbox (table exists, no view) | Pod Squad batch |
+| Upskiller basic-info overview | Member drawer intake context — partial | Poderator throughline |
+| Non-devs making small data edits | Poderator-scoped PATCH (contact/pod only) — missing | Pod Squad batch |
+| Weeks labeled with dates | "Committed dates stay findable" — dated rows + rail labels | Phase 1 |
+| Skills/availability to balance teams; spot future mentors | `ai_experience_level`/`availability_snippet` exist; mentor-flag missing | Phases 1/5 |
+| "Pulse Insights confusing, not actionable" | Health bands measure compliance, never sentiment/blocked | Phase 1 |
+
+### New items the memo adds
+
+| Ask | Disposition |
+|---|---|
+| Workshop sign-ups visible to moderators | New view over `event_rsvps` (Luma sync already lands the data) — Pod Squad batch |
+| Project-level *engagement* (not just rosters) during build | Sharpens Phase 4: Learning-Log/milestone status pivots by project membership in the build phase |
+| Cross-cycle tracking for funding requests | Rollup views — `DATA_ARCHITECTURE.md` §5 |
+| Direct DB access if dashboards lag | The dormant Entity Explorer is the safe answer — flag-on in Phase 0 |
+
+### Tension requiring an owner call
+
+**"Surface data on frequency of platform interaction (OLOS and ideally Slack)"** conflicts
+with the constitution (shepherd not manager; faltering is process data, never a member
+record). The design's position: the gate enforces, the Poderator gets sanctioned signals
+(compliance, blocked-with-own-words, milestone status) — not activity telemetry. Escalated
+to the roadmap's owner-decision queue rather than silently built or silently dropped.

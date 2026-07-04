@@ -1,10 +1,12 @@
-# Improvement Roadmap — the reconciled sequence
+# Improvement Roadmap — the reconciled sequence (v2)
 
 **What this replaces:** `docs/PROTO_TRANSLATION_PLAN.md`'s Stage-C list (C1/C7 shipped; C2–C6
 re-planned here with current knowledge) and the live remnants of `docs/OLOS-roadmap.md`
 (§3.7 Phase C, the AC-gap items, decisions D1–D4 — absorbed below). Grounded in
-`docs/audit/DESIGN_INTENT.md` + `docs/audit/GAP_AUDIT.md`. Phases are ordered by
-dependency and member impact; each is shippable alone.
+`docs/audit/DESIGN_INTENT.md` + `docs/audit/GAP_AUDIT.md` (incl. the Pod Squad memo
+crosswalk, Appendix A) + `docs/audit/DATA_ARCHITECTURE.md` (the DB blueprint serving the
+Data Sensemaker and Project Ortelius canvases). Phases are ordered by dependency and member
+impact; each is shippable alone.
 
 ---
 
@@ -20,7 +22,7 @@ dependency and member impact; each is shippable alone.
    (FastAPI never existed); update `PROTO_TRANSLATION_PLAN.md` stage statuses (C1/C7 shipped,
    `.theme-legacy` gone) and point its Stage-C section here; sync `OLOS-roadmap.md` §6;
    errata the backend doc's column names to the as-built ones (GAP_AUDIT B1 drift note).
-4. **Retire `lib/metros.ts`** — funnel zip→metro assignment reads the real `metros` table.
+4. **Retire `lib/metros.ts`** — folded into Phase 0.5 (the `metros` FK + source-of-truth swap).
 5. **Delete `/api/registrations/short`** (dead endpoint) and fix the rendered "Moderator" leak
    (`moderator/cycles/[cycle_id]/vote-progress/page.tsx:135` → "Poderator").
 6. **Bootstrap tests + CI:** Vitest + a GitHub Actions workflow running
@@ -28,12 +30,40 @@ dependency and member impact; each is shippable alone.
    `fulfillInvitation`, `reconcileEnrollmentActivation`, and the finalize tally math.
 7. **Re-register the revocation cron** in `vercel.json` once the staging soak passes
    (roadmap §3.7 Phase C's last step) — after item 1 lands.
+8. **Flip `ENTITY_EXPLORER_ENABLED` for admins** and register the content tables
+   (`events`/`resources`/`metros`, later the research tables) in its registry — the memo's
+   "direct database access if dashboards lag" ask, answered safely (read-only, already coded).
+
+## Phase 0.5 — Schema hardening batch (mechanical; before feature phases)
+
+The full spec is `DATA_ARCHITECTURE.md` §3. One idempotent migration series + the matching
+app-side cleanups: CHECKs on the four core status columns (incl. adding `stepped_back` to
+enrollments ahead of Phase 4) · one `set_updated_at()` trigger everywhere `updated_at`
+exists · `search_path` pinned on the three SECURITY DEFINER helpers + the honestly-named
+`can_write_cycles()` alias · the seven missing indexes · `metros` becomes the source of
+truth for metro assignment (FK + `lib/metros.ts` retirement — absorbs old Phase 0 item 4) ·
+TIMESTAMPTZ standard + documented soft-delete convention · `schema_version` into
+`pulse_checks.survey_responses` and its Zod schema off `.passthrough()`.
+
+## The Pod Squad batch (small, independent, memo-driven — parallel to Phases 0–1)
+
+1. `participants.is_staff`/`is_test` columns + hidden-by-default roster toggle.
+2. Pod-scoped feedback inbox for Poderators (`feedback` table already live).
+3. Workshop sign-ups view per pod (over the Luma-synced `event_rsvps`).
+4. Poderator-scoped `PATCH /api/pods/[pod_id]/members/[id]` — contact/pod edits only.
+5. Restore the A-vs-B orientation card on the Poderator page (the memo re-asked the exact
+   question the card answers; reverse the PRD's cut).
 
 ## Phase 1 — The Learning Log pivot (the deepest conceptual change)
 
 Replaces pulse-check as the weekly practice ritual (proto CLAUDE.md: "replaces the Practice
 Journal, and the Pulse before it"). Migration path in GAP_AUDIT A3: pulse history stays
-private and untouched; new cycles write `learning_logs`.
+private and untouched; new cycles write `learning_logs`. **The Pod Squad memo independently
+validates this as top priority:** "rename the pulse check so it relays that it's required"
+(the gate is the real answer), "use OLOS for mid/end-cycle evaluations… avoiding redundant
+questions" (milestone kinds with prefill-from-own-logs), "weeks labeled with dates"
+(commitments rows + rail date labels), and "Members-module columns aligned to key
+milestones" (the roster gains milestone-status columns in the Poderator repoint).
 
 1. **Schema:** `learning_logs` (clarity/alignment 1–5, `is_blocked` + `blocker_context`,
    accomplished/exploring/next_focus, `share_publicly`, `kind` weekly|milestone_7|milestone_13)
@@ -117,13 +147,53 @@ Following filter, `citations` (domain allowlist), badge derivations (QA-verified
 endorsed / commons contributor — each lands with its earning system; locked states already
 render from Phase 2).
 
-## Phase 6 — Survey → Triangulator (the Contribute + Sensemake stages)
+## Phase 6 — Data Sensemaker (the Contribute + Sensemake stages, elevated)
 
-`field_surveys` + `survey_responses` (anon-capable, `/s/[share_slug]` public submit — reuse
-the Phase-0 rate-limit pattern), the public survey flow + share screen, `sensemaking_sessions`
-(JSONB) replacing Triangulator localStorage, pool ingest keyed to the cycle's field survey,
-`problem_situations` provenance completing Phase 4.5. This stage carries the most §10 open
-questions — settle moderation/retention/mapping before build (Decision queue #8).
+The AI Use Case Canvas formalizes what the prototype sketched: field research producing
+**evidence-based problem statements** with AI assistance and human checkpoints. This phase
+builds its data layer and core flows:
+
+1. **The research stack:** `field_surveys` + `survey_responses` (anon-capable,
+   `consent_version`, `subject_informed_ai`, moderation status, `/s/[share_slug]` public
+   submit on the Phase-0 rate-limit pattern), the public survey flow + share screen,
+   `sensemaking_sessions` replacing Triangulator localStorage, pool ingest keyed to the
+   cycle's field survey.
+2. **The provenance spine** (`DATA_ARCHITECTURE.md` §4): `problem_situations`, the
+   `asset_links` edge table, the `solution_proposals.problem_situation_id` FK, and the
+   `content_embeddings` sidecar (+ pgvector) — observation → situation → statement lineage
+   becomes structural, not prose.
+3. **The expert layer:** extends Phase 5's `mentor_profiles` with external
+   experts/contact-pathways (the canvas's "expert data — partially available, to be
+   expanded"); expert suggestions are AI-assisted but verified-before-contact (a
+   `verified_at` state, mirroring vouching).
+4. **Facilitator rubric:** problem-statement scoring (evidence-based / specific /
+   actionable) — a small assessments table; feeds the canvas's quality metric.
+5. **AI-assist features** (questionnaire generation, synthesis, articulation help) are
+   app-layer calls to approved platforms, each output carrying the `ai_assisted`/
+   `reviewed_by` provenance columns. **Gated on the canvas's own governance preconditions**
+   (Decision queue #11) — agreements, data-governance framework, approved-tools policy,
+   facilitator training.
+6. **Instrumentation:** the canvas's success metrics (time-to-finalized-statement, expert
+   connection rate, rubric scores, retention) become queryable from the tables above —
+   no separate analytics store.
+
+## Phase 7 — Living Atlas foundations (Project Ortelius)
+
+Foundations only — the distributed-network vision stays out of scope until the Sensemaker
+pilot proves the spine. With Phases 1–6 shipped, the corpus exists; this phase makes it
+compound:
+
+- Embedding backfill + semantic retrieval over the corpus (`content_embeddings` reads:
+  search, thematic clustering, "adjacent research" and evidence-gap suggestions —
+  AI-assisted, human-reviewed).
+- Cross-cycle Atlas reads: the rollup views (`DATA_ARCHITECTURE.md` §5) + a browse surface
+  for past situations/statements/projects/outcomes as next-cycle inputs ("historical data —
+  to be systematically documented" per the Sensemaker canvas; "cross-cycle reuse" per
+  Ortelius).
+- Frame-Innovation stage tagging on knowledge assets (the Triangulator already implements
+  Frame Creation — Archaeology→Themes map onto its existing method steps).
+- Ontology governance as a documented vocabulary (`link_kind` values + the entity-type
+  registry shared with the Entity Explorer), evolved by migration — no ontology engine.
 
 ## Poderator throughline (lands piecewise)
 
@@ -172,6 +242,18 @@ with their Phase-5 badge systems).
    encoded in code/copy; legal sign-off still open (pre-launch for real members).
 10. **Resources editor** (§10-Q7) — entity-explorer stopgap vs real CRUD editor day one
     (Phase 3).
+11. **Data Sensemaker governance gate** (from the canvas's own next steps) — user
+    agreements + data-governance framework + approved-AI-tools policy + facilitator
+    training + attorney review must exist before Phase 6's AI-assist features ship to
+    participants. The data layer can build ahead; the AI features cannot.
+12. **Interaction-frequency telemetry** (Pod Squad memo vs constitution rule 7) — surface
+    OLOS/Slack activity data to Poderators, or hold the shepherd line (sanctioned signals
+    only)? (Pod Squad batch scope.)
+13. **Ortelius pilot scope** — theme, cohort, and which Build Cycle pilots the structured
+    research workflow (Phase 6 timing).
+14. **Embeddings model/provider** — which embedding model (and its dimension, which fixes
+    the `vector(n)` column), given "participant data will not be used for model training"
+    (Phase 6/7).
 
 ## Already done (for the record)
 
