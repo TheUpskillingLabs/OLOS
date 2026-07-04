@@ -9,3 +9,4 @@ export { Field, Input, Textarea, Select } from "./form";
 export type { FieldProps, InputProps, TextareaProps, SelectProps } from "./form";
 export { Sheet } from "./sheet";
 export { Tooltip, TooltipIcon } from "./tooltip";
+export { ToggleSwitch } from "./toggle-switch";
