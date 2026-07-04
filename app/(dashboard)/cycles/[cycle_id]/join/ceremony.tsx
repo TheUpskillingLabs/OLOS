@@ -184,7 +184,7 @@ export default function CycleCeremony({
                open with where THEY end up, then the path, then what it takes. */
             <div>
               <h1 className="t-display" style={{ marginBottom: 14 }}>
-                Thirteen weeks from now, you’ll have built something real.
+                Twelve weeks from now, you’ll have built something real.
               </h1>
               <p className="t-lede" style={{ color: "var(--od2)", marginBottom: 28 }}>
                 You’ll pick a problem that matters to you, team up, and see it

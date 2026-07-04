@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Build Cycles · The Upskilling Labs",
   description:
-    "Thirteen weeks from now, you’ll have built something real. Pick a problem, team up, and see it through — in the open.",
+    "Twelve weeks from now, you’ll have built something real. Pick a problem, team up, and see it through — in the open.",
 };
 
 const TRAIL: [string, string | null][] = [
@@ -106,7 +106,7 @@ export default async function BuildCyclesPage() {
             Build Cycles · 4 a year
           </div>
           <h1 className="t-h1" style={{ maxWidth: "22ch" }}>
-            Thirteen weeks from now, you’ll have built something real.
+            Twelve weeks from now, you’ll have built something real.
           </h1>
           <p className="t-lede" style={{ marginTop: 18, maxWidth: "52ch", color: "var(--od2)" }}>
             You’ll pick a problem that matters to you, team up, and see it through —

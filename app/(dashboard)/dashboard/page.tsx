@@ -54,7 +54,7 @@ export default async function DashboardPage() {
         serviceClient
           .from("cycle_config")
           .select(
-            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit"
           )
           .eq("cycle_id", activeCycle.id)
           .single(),
@@ -241,7 +241,7 @@ export default async function DashboardPage() {
   const WINDOW_TODOS = [
     { k: "problem_statement", title: "Submit a problem statement", cta: "Propose", sub: "propose" },
     { k: "voting", title: "Vote on problem statements", cta: "Vote", sub: "vote" },
-    { k: "pod_registration", title: "Register for a pod", cta: "Choose pods", sub: "register-pods" },
+    { k: "pod_registration", title: "Register for a pod", cta: "Choose pod", sub: "register-pods" },
     { k: "solution_proposal", title: "Submit your solution proposal", cta: "Propose", sub: "solutions" },
     { k: "solution_voting", title: "Cast your solution ballot", cta: "Vote", sub: "solution-vote" },
     { k: "project_registration", title: "Register for a project", cta: "Register", sub: "register-projects" },
@@ -266,7 +266,7 @@ export default async function DashboardPage() {
   const heroLede = logGate.active
     ? "Your weekly Learning Log is due — save it below and everything unlocks."
     : state === "interest_submitted_window_open"
-      ? "You're on the list. Choose your pods below to lock in your spot."
+      ? "You're on the list. Choose your pod below to lock in your spot."
       : state === "interest_submitted_window_closed"
         ? "You're in. We'll open the next step soon — here's where things stand."
         : "Here's what's happening in your cycle right now.";
@@ -279,11 +279,17 @@ export default async function DashboardPage() {
         ]
       : [];
 
+  // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
+  // default 1). The dashboard is optimized for the one-pod case but honors a
+  // higher limit if an admin raises it.
+  const podLimit =
+    (activeCycleConfig as { pod_limit?: number } | null)?.pod_limit ?? 1;
+
   const podRegOpen =
     (state === "interest_submitted_window_open" || state === "active") &&
     activeCycle &&
     podWindowOpen &&
-    myPods.length < 2;
+    myPods.length < podLimit;
 
   return (
     <div>
@@ -349,7 +355,8 @@ export default async function DashboardPage() {
                       day: "numeric",
                     })
                   : "soon"}
-                . We'll let you know when it's time to choose your pods.
+                . We&apos;ll let you know when it&apos;s time to choose your
+                pods.
               </p>
             </div>
           )}
@@ -359,20 +366,30 @@ export default async function DashboardPage() {
               cycleId={activeCycle.id}
               participantId={participant.id}
               myPodIds={myPods.map((m) => m.pod_id)}
+              podLimit={podLimit}
             />
           )}
 
           {/* Up next — dismissible action cards for the currently-open windows */}
           {upNextTodos.length > 0 && <UpNext todos={upNextTodos} />}
 
-          {/* My Pods */}
+          {/* My Pod — the dashboard is optimized for one pod; a single pod
+              gets a full-width card, more than one falls back to a grid. */}
           {myPods.length > 0 && (
             <section className="mb-8">
               <div className="mb-4">
                 <div className="lbl lbl-teal mb-1.5">Your people</div>
-                <h2 className="t-h3 text-ink">My Pods</h2>
+                <h2 className="t-h3 text-ink">
+                  {myPods.length === 1 ? "My Pod" : "My Pods"}
+                </h2>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div
+                className={
+                  myPods.length === 1
+                    ? "grid gap-4"
+                    : "grid gap-4 sm:grid-cols-2"
+                }
+              >
                 {myPods.map((membership) => {
                   const pod = membership.pods;
                   const variant =

@@ -13,6 +13,7 @@ export const updateCycleConfigSchema = z.object({
   vote_threshold: z.number().int().min(0).optional(),
   max_pods: z.number().int().min(1).optional(),
   pod_min: z.number().int().min(1).optional(),
+  pod_limit: z.number().int().min(1).optional(),
   project_submitter_votes: z.number().int().min(0).optional(),
   project_vote_threshold: z.number().int().min(0).optional(),
   max_projects: z.number().int().min(1).optional(),

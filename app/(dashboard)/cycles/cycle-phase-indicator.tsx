@@ -24,7 +24,9 @@ type Cycle = {
   end_date: string;
 };
 
-/* ── The 13-week Build Cycle model ─────────────────────────────────── */
+/* ── The 12-week Build Cycle model ─────────────────────────────────── */
+/* Kickoff + Summit opens Week 1; Showcase + Summit closes Week 12 (owner
+   decision — twelve weeks and a day). Four weeks per phase. */
 
 const WEEKS: {
   num: number;
@@ -42,15 +44,14 @@ const WEEKS: {
   { num: 8, label: "Project\nVoting", milestone: false, phase: 2 },
   { num: 9, label: "Meet The\nProjects", milestone: true, phase: 3 },
   { num: 10, label: "Mentor\nIntensive", milestone: false, phase: 3 },
-  { num: 11, label: "Mentor\nIntensive", milestone: false, phase: 3 },
-  { num: 12, label: "Rehearsal", milestone: false, phase: 3 },
-  { num: 13, label: "Showcase\n+ Summit", milestone: true, phase: 3 },
+  { num: 11, label: "Rehearsal", milestone: false, phase: 3 },
+  { num: 12, label: "Showcase\n+ Summit", milestone: true, phase: 3 },
 ];
 
 const PHASES = [
   { num: 1, title: "Problem Discovery & Definition", weeks: "1–4" },
   { num: 2, title: "Exploration & Experimentation", weeks: "5–8" },
-  { num: 3, title: "Prototype Building & Iterating", weeks: "9–13" },
+  { num: 3, title: "Prototype Building & Iterating", weeks: "9–12" },
 ];
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
@@ -77,12 +78,12 @@ function daysUntil(from: Date, to: Date): number {
 
 function getCurrentWeek(now: Date, start: Date, end: Date): number {
   if (now < start) return 0;
-  if (now > end) return 14;
+  if (now > end) return 13;
   const totalMs = end.getTime() - start.getTime();
   const elapsed = now.getTime() - start.getTime();
-  // 13 equal segments
-  const week = Math.floor((elapsed / totalMs) * 13) + 1;
-  return Math.min(week, 13);
+  // 12 equal segments
+  const week = Math.floor((elapsed / totalMs) * 12) + 1;
+  return Math.min(week, 12);
 }
 
 function getActiveWindows(
@@ -146,7 +147,7 @@ export default function CyclePhaseIndicator({
 
   // Which phase are we in?
   const currentPhaseNum =
-    currentWeek <= 4 ? 1 : currentWeek <= 8 ? 2 : currentWeek <= 13 ? 3 : 0;
+    currentWeek <= 4 ? 1 : currentWeek <= 8 ? 2 : currentWeek <= 12 ? 3 : 0;
 
   return (
     <div className="mb-10">
@@ -197,7 +198,7 @@ export default function CyclePhaseIndicator({
           {PHASES.map((p) => (
             <div
               key={p.num}
-              className={`${p.num === 3 ? "flex-[5]" : "flex-[4]"} ${
+              className={`flex-[4] ${
                 p.num > 1 ? "border-l border-ink/10 pl-4" : ""
               }`}
             >
@@ -277,7 +278,7 @@ export default function CyclePhaseIndicator({
               <div
                 className="absolute top-1/2 left-0 h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-teal-deep to-teal"
                 style={{
-                  width: `${((currentWeek - 0.5) / 13) * 100}%`,
+                  width: `${((currentWeek - 0.5) / 12) * 100}%`,
                 }}
               />
             )}
