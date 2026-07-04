@@ -144,7 +144,7 @@ const ROLE_OPTIONS: {
     v: "cycle",
     title: "Join a Cycle",
     badge: "Heart of the Labs",
-    sub: "Join a pod, take on a real problem, and ship something you’re proud of. Twelve weeks.",
+    sub: "Join a pod, take on a real problem, and ship something you’re proud of. Three months.",
   },
   {
     v: "events",

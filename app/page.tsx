@@ -113,7 +113,7 @@ export default async function LandingPage() {
               </div>
               <h3 className="t-h2">Civic &amp; Elections Cycle</h3>
               <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                Kicks off July 14, 2026 · a 12-week cohort shipping a real
+                Kicks off July 14, 2026 · a three-month cohort shipping a real
                 civic project.
               </p>
               <p className="t-small" style={{ marginTop: 6, color: "var(--od2)", maxWidth: "52ch" }}>
