@@ -33,7 +33,7 @@ const BELIEFS = [
 ];
 
 const BUILT: [string, string][] = [
-  ["Build Cycles", "Twelve weeks, a real problem, a small team that ships."],
+  ["Build Cycles", "Three months, a real problem, a small team that ships."],
   ["Pods", "A handful of people who dig into a problem together."],
   ["Workshops", "Hands-on sessions led by practitioners, open to everyone."],
   ["Mentors", "People who’ve done the work, around when you’re stuck."],
