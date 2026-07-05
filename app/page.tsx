@@ -11,6 +11,7 @@ import {
 import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getRecruitingCycle } from "@/lib/cycle/active";
 
 export const metadata = {
   title: "The Upskilling Labs",
@@ -20,29 +21,50 @@ export const metadata = {
 // Auth-aware nav + live content tables — always rendered per request.
 export const dynamic = "force-dynamic";
 
+// "Summer 2026" from a start date — the banner's season label (no location
+// column exists yet; the local lab is surfaced separately).
+function seasonYear(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const seasons = ["Winter", "Spring", "Summer", "Fall"];
+  return `${seasons[Math.floor(((d.getMonth() + 1) % 12) / 3)]} ${d.getFullYear()}`;
+}
+
 /* The public landing — onboarding-proto's view-landing: dark hero over
    photography, then browse-free sections (cycles · workshops · library ·
    labs) rendered from the content tables, ending in the open-source footer.
    The stories row and the survey CTA arrive with their stages. */
 export default async function LandingPage() {
-  const [{ signedIn, initials, avatarUrl }, events, resources, metros] =
-    await Promise.all([publicSession(), getEvents(), getResources(), getMetros()]);
+  const [{ signedIn, initials, avatarUrl }, events, resources, metros, recruitingCycle] =
+    await Promise.all([
+      publicSession(),
+      getEvents(),
+      getResources(),
+      getMetros(),
+      getRecruitingCycle(createServiceClient()).catch(() => null),
+    ]);
 
-  // The cycle banner's CTA: signed-in members go straight to the ceremony.
-  let activeCycleId: number | null = null;
-  try {
-    const supabase = createServiceClient();
-    const { data: cycle } = await supabase
-      .from("cycles")
-      .select("id")
-      .eq("status", "active")
-      .maybeSingle();
-    activeCycleId = cycle?.id ?? null;
-  } catch {
-    activeCycleId = null;
-  }
-  const joinCycleHref =
-    signedIn && activeCycleId ? `/cycles/${activeCycleId}/join` : "/login";
+  // The registration banner is driven by the recruiting cycle (the upcoming
+  // cohort if one is open, else the running one). Signed-in members go straight
+  // to the join ceremony; signed-out visitors enter the funnel at /login. A
+  // signed-in member with no open cycle lands on their dashboard — never
+  // bounced back to /login (the old fail-open).
+  const joinCycleHref = recruitingCycle
+    ? signedIn
+      ? `/cycles/${recruitingCycle.id}/join`
+      : "/login"
+    : signedIn
+      ? "/dashboard"
+      : "/login";
+  const bannerSeason = seasonYear(recruitingCycle?.start_date ?? null);
+  const bannerKickoff = recruitingCycle?.start_date
+    ? new Date(recruitingCycle.start_date).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
   const now = new Date();
   const upcoming = events.filter((e) => new Date(e.start_at) >= now);
@@ -104,29 +126,60 @@ export default async function LandingPage() {
               How cycles work →
             </Link>
           </div>
-          <div className="cycle-banner s-cover grain on-dark">
-            <Orb />
-            <div className="cb-body">
-              <span className="cb-status">Registration Open Now</span>
-              <div className="lbl lbl-teal" style={{ margin: "14px 0 6px" }}>
-                Summer 2026 · Washington, DC
+          {recruitingCycle ? (
+            <div className="cycle-banner s-cover grain on-dark">
+              <Orb />
+              <div className="cb-body">
+                <span className="cb-status">
+                  {recruitingCycle.status === "upcoming"
+                    ? "Registration open now"
+                    : "Cohort in progress"}
+                </span>
+                {bannerSeason && (
+                  <div className="lbl lbl-teal" style={{ margin: "14px 0 6px" }}>
+                    {bannerSeason}
+                  </div>
+                )}
+                <h3 className="t-h2">{recruitingCycle.name}</h3>
+                {bannerKickoff && (
+                  <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                    Kicks off {bannerKickoff} — twelve weeks, one real project,
+                    with people who notice.
+                  </p>
+                )}
+                {recruitingCycle.mode === "open" && (
+                  <p className="t-small" style={{ marginTop: 6, color: "var(--od2)", maxWidth: "52ch" }}>
+                    An Open Cycle — the projects are open source, free for anyone
+                    to use and build on.
+                  </p>
+                )}
               </div>
-              <h3 className="t-h2">Civic &amp; Elections Cycle</h3>
-              <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                Kicks off July 14, 2026 · a three-month cohort shipping a real
-                civic project.
-              </p>
-              <p className="t-small" style={{ marginTop: 6, color: "var(--od2)", maxWidth: "52ch" }}>
-                An Open Cycle — the projects are open source, free for anyone
-                to use and build on.
-              </p>
+              <div className="cb-cta">
+                <Link className="btn btn-red btn-lg" href={joinCycleHref}>
+                  {signedIn ? "Join this cycle" : "Join The Labs"}
+                </Link>
+              </div>
             </div>
-            <div className="cb-cta">
-              <Link className="btn btn-red btn-lg" href={joinCycleHref}>
-                Join this cycle
-              </Link>
+          ) : (
+            <div className="cycle-banner s-cover grain on-dark">
+              <Orb />
+              <div className="cb-body">
+                <span className="cb-status">Next cycle coming soon</span>
+                <h3 className="t-h2" style={{ marginTop: 14 }}>
+                  No cycle is open right now
+                </h3>
+                <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                  The next Build Cycle is still being planned. Join The Labs and
+                  we&apos;ll tell you the moment registration opens.
+                </p>
+              </div>
+              <div className="cb-cta">
+                <Link className="btn btn-red btn-lg" href={joinCycleHref}>
+                  {signedIn ? "Go to your dashboard" : "Join The Labs"}
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 

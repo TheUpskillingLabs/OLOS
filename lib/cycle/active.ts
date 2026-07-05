@@ -10,7 +10,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
    Both assume the ≤1-active / ≤1-upcoming invariants (migrations 00048/00049),
    so `.maybeSingle()` is safe. */
 
-const CYCLE_COLUMNS = "id, name, slug, start_date, end_date, status, sector_id";
+const CYCLE_COLUMNS =
+  "id, name, slug, start_date, end_date, status, mode, sector_id";
 
 export interface CycleRow {
   id: number;
@@ -19,6 +20,7 @@ export interface CycleRow {
   start_date: string | null;
   end_date: string | null;
   status: string;
+  mode: string;
   sector_id: number | null;
 }
 
