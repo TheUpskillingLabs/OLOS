@@ -17,7 +17,7 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · ⏳ deferred (deliberate)
 | **Phase 0** — hygiene + safety | ✅ (1 item ⏳) | Shipped; only the revocation-cron re-registration is deliberately held |
 | **Phase 0.5** — schema hardening | ✅ | Migrations 00037–00039 applied + verified on dev |
 | **Pod Squad batch** | ✅ | All 5 memo items shipped |
-| **Phase 1** — Learning Log pivot | 🟡 ~90% | Log + gate + Poderator repoint + dashboard done; share-feed reader now landed (Phase 2); only wk-7/13 milestones open |
+| **Phase 1** — Learning Log pivot | ✅ | Log + gate + Poderator repoint + dashboard done; share-feed reader landed (Phase 2); mid/end-cycle milestone logs landed (PR #161) |
 | **Testing pathway** (extra) | ✅ | 00042 — not in the roadmap; admin-granted tester accounts + self-reset |
 | **One-pod/one-project + 12-week model** (extra) | ✅ | PRs #152–#156: `pod_limit` (00043), 12-week rail (wk0 Kickoff→wk12 Showcase), lean mobile registration, brand left-align sweep |
 | **Phase 2** — Directory + Me | ✅ | PR #157 — `/directory`, `/u/[handle]`, updates feed, standalone nominations, migration 00044. Profile cred-band + locked badges + links deferred |
@@ -26,7 +26,7 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · ⏳ deferred (deliberate)
 | **Phase 5** — Trust + mentors | ⬜ | Not started |
 | **Phase 6** — Data Sensemaker | ⬜ | Not started |
 | **Phase 7** — Living Atlas (Ortelius) | ⬜ | Not started |
-| **Poderator throughline** | 🟡 | Health-band + blocked tier + orientation card done; process_signals, journey spine, milestone card open |
+| **Poderator throughline** | 🟡 | Health-band + blocked tier + orientation card + milestone card done; process_signals, journey spine open |
 
 ---
 
@@ -56,6 +56,15 @@ left the nav, Home carries the log-due pip); Poderator health repoint (`lib/mode
 — clarity/alignment averages, blocked-first list in the member's own words, logged/waiting
 compliance strip).
 
+**Phase 1 milestones (PR #161):** the mid/end-cycle evaluations — `learning_logs.kind`'s
+`milestone_7`/`milestone_13` variants finally get a write path and UI. Migration `00047` adds
+`cycle_config.milestone_mid_week`/`milestone_final_week` (admin-configurable, default weeks 6/12);
+the API server-derives the `kind` from the current cycle week (never trusts the client); the
+dashboard card flips to milestone mode, prefilled from the member's own prior logs (review your
+record, not a blank form); the Poderator pod page gains a `pod-milestone-logs` card showing
+per-member submitted/open status only — never a grade. Shared helpers `lib/cycle/week.ts` +
+`lib/cycle/milestones.ts`; `lib/moderator/milestone-status.ts`. Closes the Phase 1 pivot.
+
 **Testing pathway (PR #147–#151):** `testers` (`00042`), self-reset endpoint, admin toggle
 (now in the permissions panel), reset-in-avatar-menu, sign-out→home. Not a roadmap item —
 built on request to make the onboarding loop testable pre-kickoff.
@@ -64,9 +73,11 @@ built on request to make the onboarding loop testable pre-kickoff.
 
 ## Open within partially-done work
 
-**Phase 1 remainder (the ~10%):**
-- **Milestone logs (wk-7/13):** the `kind` enum exists in `learning_logs`, but there's
-  **no prefill UI** and no Poderator milestone card. (Roadmap Phase 1; memo "evaluations in OLOS".)
+**Phase 1 remainder — ✅ none.** Both former open items are now closed:
+- ~~**Milestone logs (wk-7/13):** no prefill UI, no Poderator milestone card~~ — **CLOSED by PR #161.**
+  Migration `00047` (admin-configurable mid/end weeks, default 6/12), the API server-derives `kind`,
+  the member card's milestone mode (prefilled from the member's own prior logs), and the Poderator
+  `pod-milestone-logs` status card all landed. (Roadmap Phase 1; memo "evaluations in OLOS".)
 - ~~**The share has no reader**~~ — **CLOSED by Phase 2 (PR #157).** `learning_logs.share_publicly`
   writes a `profile_updates` row, and the Phase-2 `updates-feed` now reads it — as the community
   "All" feed on `/directory`, member-scoped on `/u/[handle]`, and "Your shares" on `/profile`.
@@ -79,9 +90,9 @@ engaged dashboard now renders greeting → checklist → phase rail → Learning
 commitments → Up next → pods → past cycles.
 
 **Poderator throughline remainder:** `process_signals` (table + composer — the owner's core
-"shepherd, not manager" R&D mechanic) is **absent**; the frame-journey spine, teams drill-down,
-and milestone-logs card are absent. Shepherd voice: partial (orientation card added; page
-copy pass pending).
+"shepherd, not manager" R&D mechanic) is **absent**; the frame-journey spine and teams drill-down
+are absent (the milestone-logs card landed in PR #161). Shepherd voice: partial (orientation card
+added; page copy pass pending).
 
 ---
 
@@ -146,12 +157,11 @@ telemetry, **#13** Ortelius pilot scope, **#14** embeddings model.
 
 ## Recommended next moves
 
-1. **Finish Phase 1** (wk-7/13 milestone logs + the Poderator milestone card) — the last ~10%,
-   small and high member-value; closes the Learning Log pivot cleanly.
+1. **`process_signals`** (table + composer) — with Phase 1 closed (PR #161), this is the owner's
+   core "shepherd, not manager" R&D mechanic and the main remaining gap in the Poderator throughline.
 2. **Phase 2 tails** (cheap): profile cred band from `cycle_agreements`, locked-badge shells,
    external links in the profile editor — round out "Me" now that the directory is live.
 3. **Phase 3 (Learning destination + editorial)** — the natural next surface: authed `/learning`
    (route-shell over existing teasers) + `saved_items`/hearts completes the nav to the full five
    (only the **Learning** tab remains), then `/stories` + landing editorial.
-4. **`process_signals`** whenever — independent of everything, the owner's core shepherd mechanic.
-5. Get **owner decisions #1, #4–6** answered before Phase 4; **#11** before any Phase 6 build.
+4. Get **owner decisions #1, #4–6** answered before Phase 4; **#11** before any Phase 6 build.
