@@ -87,6 +87,15 @@ export default function MemberProfileView({
         </div>
       )}
 
+      {/* Owner action bar — the way into the editor (this is your own profile). */}
+      {isOwner && (
+        <div className="mb-4 flex justify-end">
+          <Link href="/profile/edit" className="btn btn-teal px-4 py-2 text-sm">
+            Edit profile
+          </Link>
+        </div>
+      )}
+
       <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card sm:p-8">
         {/* Header with avatar */}
         <div className="flex items-center gap-6 border-b border-ink/10 pb-6">
