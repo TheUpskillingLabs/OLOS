@@ -35,7 +35,7 @@ export interface DirectoryMember {
 export default async function DirectoryPage() {
   const service = createServiceClient();
 
-  const [{ data: rows }, { data: metros }] = await Promise.all([
+  const [{ data: rows, error: rowsErr }, { data: metros }] = await Promise.all([
     service
       .from("participants")
       .select(DISPLAY_COLUMNS)
@@ -46,6 +46,13 @@ export default async function DirectoryPage() {
       .order("created_at", { ascending: false }),
     service.from("metros").select("slug, name, st"),
   ]);
+
+  // Surface a failed read instead of silently rendering an empty directory — a
+  // 400 (e.g. a drifted/renamed column) otherwise looks exactly like "no
+  // members." Logs to the server (Vercel), never to the client.
+  if (rowsErr) {
+    console.error("[directory] participants query failed:", rowsErr.message);
+  }
 
   const metroBySlug = new Map<string, string>();
   for (const m of metros ?? []) {

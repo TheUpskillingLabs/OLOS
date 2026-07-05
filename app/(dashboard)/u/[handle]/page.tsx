@@ -28,11 +28,17 @@ export default async function MemberProfilePage({
   // Stored handles are always lowercase (the CHECK constraint + slugify enforce
   // it), so an exact lowercased match is correct — and avoids ilike treating a
   // `%`/`_` in the URL param as a wildcard that could resolve the wrong member.
-  const { data: member } = await service
+  const { data: member, error: memberErr } = await service
     .from("participants")
     .select(DISPLAY_COLUMNS)
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
+
+  // A failed read (e.g. a drifted column → 400) would otherwise notFound() like
+  // a missing handle; log it so it's diagnosable rather than a silent 404.
+  if (memberErr) {
+    console.error("[u/handle] participant query failed:", memberErr.message);
+  }
 
   // Unknown handle, or an internal account (test/staff) — never surfaced in
   // the members-only directory, matching the grid + the Poderator's
