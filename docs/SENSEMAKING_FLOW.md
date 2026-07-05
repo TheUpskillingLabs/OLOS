@@ -73,7 +73,7 @@ kind of actant is speaking).
 | Survey field | Column | Notes |
 |---|---|---|
 | survey identity + intro copy | `field_surveys(title, problem_domain, about, share_slug, status, allow_anonymous)` | the public "about" already promises an **open-source insights repository** = Ortelius, to the public |
-| **Consent to Participation** * | `consent_participation` BOOL + `consent_version` | required; gates submission; keep the exact wording (legal basis for sharing with participants) |
+| **Consent to Participation** * | `consent_participation` BOOL + `consent_version` | required; gates submission. **Reframed (owner 2026-07):** explicitly covers use in projects that **leverage AI hosted by The Labs** — this bundling (not a separate opt-in) is what makes contributions training-eligible; attorney review pending. See `ORTELIUS_NORTHSTAR.md` §12. |
 | **What are you observing…** * | `observation` TEXT NOT NULL | the core evidence body; the source every `extract` derives from. No title — atomization happens at the extract layer |
 | **What is your experience?** | `standpoint` TEXT[] | multi-select, structured (work-in-field / affected / tried-to-fix / research / pay-attention / other) — feeds evidence weighting |
 | **How much does this matter?** (1–5) | `salience` SMALLINT NULL | intensity |
@@ -90,8 +90,18 @@ the Ortelius `source_url`-has-no-producer gap — uploaded sources are its produ
 
 **Two-tier consent + anonymity stay intact.** Participation consent is required
 and gates submission; contact consent is optional and separate. Anonymous by
-default. (The retention/scrub policy for `participant_id IS NULL` submissions is a
-prerequisite before `allow_anonymous` ships — Ortelius gap #7.)
+default. The participation consent is **reframed (owner 2026-07)** to cover use in
+projects that leverage AI hosted by The Labs — so a consented submission (incl.
+anonymous) is training-eligible; a frontier-lab partner gets the eval/benchmark +
+derived artifacts, never raw data (`ORTELIUS_NORTHSTAR.md` §12; attorney review
+pending). (The retention/scrub policy for `participant_id IS NULL` submissions is
+a prerequisite before `allow_anonymous` ships — Ortelius gap #7.)
+
+**Every response is a node; curation is a temporal overlay (owner 2026-07).** No
+raw response is dropped at intake — it enters the graph, and the swipe/second
+signal-vs-noise judgments accrete as **bitemporal events**. The *trajectory*
+(what flipped between signal and noise, and when) is itself training data, so
+"noise" is filtered from the active pool, never deleted.
 
 ---
 

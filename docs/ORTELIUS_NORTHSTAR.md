@@ -258,6 +258,15 @@ The MVP is not a competitor to the ceiling — it is the ceiling with `sys_to = 
 
 ## 12. Load-bearing open questions (owner decisions)
 
+**Decided (owner, 2026-07-05):**
+- **Consent (#1/#2) → broad, bundled at submission.** The survey consent is reframed so a submission is used "as part of projects leveraging AI **hosted by The Labs**." This bundles training-eligibility into participation consent (training-eligible ≈ all consented submissions, incl. anonymous) rather than a separate low-uptake opt-in — which is what gives the flywheel fuel. Trade-off: broader than the unbundled/revocable model, so it leans on the **"hosted by The Labs"** scope — a frontier-lab *partner* (see below) receives the eval/benchmark + derived artifacts, **never raw participant data to train the partner's models** — and it **still requires attorney review** before it ships. Draft wording: *"…used by The Upskilling Labs in the development of public projects — including projects that leverage AI hosted by The Upskilling Labs — and shared with program participants…"*.
+- **Response→card (#5) → every response is a node; curation is a *temporal overlay*.** Nothing is dropped at intake. The swipe/second signal-vs-noise judgments accrete as bitemporal events, and the **trajectory** (what was signal vs. noise, and how it flipped over time) is itself the training data. This confirms the **bitemporal event-stream-as-label-store** as core, not optional; "noise" is retained (filtered from the active view, never deleted).
+- **Lead buyers (#6) → a frontier AI lab + local/state political leaders & philanthropists.** Not Palantir-as-source-system, not fed procurement. So v1 optimizes for (a) the **research artifact** (the reasoning benchmark + clean corpus + the human-in-the-loop flywheel) and (b) the **civic insight / sector-atlas surface + participatory legitimacy** — over audit/marking/FedRAMP hardening (which drops down the priority list).
+
+**Still gated before the model flywheel ships:** attorney review of the reframed consent, and the #11 governance framework. The v1 **floor** (survey intake + BYO-LLM extraction + the canvas) is gate-free and buildable now.
+
+Original framing of the questions, for context:
+
 1. **Consent economics — the make-or-break number.** Project the **C2 opt-in rate** after all correct exclusions (unbundled, revocable, anonymous-excluded). If the training-eligible fraction is tiny, the flywheel has no fuel and the "AI-native" premise must be re-scoped to *the small-clean-corpus + eval* story. Decide before building the training path.
 2. **The C2 promise wording** — ratify the three-"nevers" + one-"can" string; attorney-bless the retrospective-withdrawal *ceiling* language.
 3. **Standpoint: coverage flag vs. governed weight** — confirm the default is **equal weight** and standpoint feeds **diversity**, not credibility (the recommended, review-surviving choice), or ratify an appealable weighted parameter with a fairness audit.
