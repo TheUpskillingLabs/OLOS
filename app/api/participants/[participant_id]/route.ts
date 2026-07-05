@@ -99,10 +99,18 @@ export const PATCH = withAuth(
       .from("participants")
       .update(body)
       .eq("id", targetId)
-      .select("id, first_name, last_name, preferred_name, email")
+      .select("id, first_name, last_name, preferred_name, email, handle, headline, bio")
       .single();
 
     if (error) {
+      // Unique-violation on the case-insensitive handle index → a clean 409
+      // rather than a generic 500 (the profile editor surfaces this inline).
+      if (error.code === "23505") {
+        return NextResponse.json(
+          { error: "That handle is already taken." },
+          { status: 409 }
+        );
+      }
       return dbError(error, "patch-participant");
     }
 

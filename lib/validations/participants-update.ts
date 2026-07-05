@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HANDLE_RE } from "@/lib/participants/handle";
 
 // Reject the literal placeholder value 'Unknown' (case-insensitive, trimmed)
 // that scripts/migration/migrate.py wrote for participants missing name data.
@@ -35,6 +36,17 @@ export const participantsUpdateSchema = z
     first_name: nameField,
     last_name: nameField,
     preferred_name: z.string().min(1).max(100).nullable(),
+    // Directory profile fields (Phase 2). bio/headline nullable so they can be
+    // cleared; handle is the /u/[handle] key — always present, format-checked
+    // (uniqueness enforced by the DB index → 409 in the route).
+    bio: z.string().max(2000).nullable(),
+    headline: z.string().max(200).nullable(),
+    handle: z
+      .string()
+      .trim()
+      .min(1)
+      .max(50)
+      .regex(HANDLE_RE, "Use lowercase letters, numbers, and dashes"),
   })
   .partial()
   .strict();

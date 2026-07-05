@@ -103,6 +103,13 @@ export default function AppNav({
                 My Cycle
               </Link>
             )}
+            <Link
+              className={`nav-link${isActive(pathname, "/directory") ? " active" : ""}`}
+              id="nav-directory"
+              href="/directory"
+            >
+              Directory
+            </Link>
           </nav>
         )}
         <AvatarMenu
