@@ -21,6 +21,12 @@ const CYCLE_SVG = (
     <polyline points="21 3 21 9 15 9" />
   </svg>
 );
+const LEARNING_SVG = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </svg>
+);
 const DIRECTORY_SVG = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -58,6 +64,14 @@ export default function TabBar({
           <span>Cycle</span>
         </Link>
       )}
+      <Link
+        className={`tab${active("/learning")}`}
+        id="tab-learning"
+        href="/learning"
+      >
+        {LEARNING_SVG}
+        <span>Learning</span>
+      </Link>
       <Link
         className={`tab${active("/directory")}`}
         id="tab-directory"
