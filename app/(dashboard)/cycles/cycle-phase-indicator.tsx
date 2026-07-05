@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCycleWeek } from "@/lib/cycle/week";
 
 type CycleConfig = {
   phase_2_start: string | null;
@@ -77,16 +78,6 @@ function daysUntil(from: Date, to: Date): number {
   return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
 }
 
-function getCurrentWeek(now: Date, start: Date, end: Date): number {
-  if (now < start) return -1; // not started — Week 0 (kickoff) hasn't begun
-  if (now > end) return 13; // past the Showcase (Week 12)
-  const totalMs = end.getTime() - start.getTime();
-  const elapsed = now.getTime() - start.getTime();
-  // 13 weekly markers, numbered 0–12
-  const week = Math.floor((elapsed / totalMs) * 13);
-  return Math.min(week, 12);
-}
-
 function getActiveWindows(
   config: CycleConfig,
   now: Date
@@ -137,7 +128,7 @@ export default function CyclePhaseIndicator({
   const startDate = new Date(cycle.start_date);
   const endDate = new Date(cycle.end_date);
 
-  const currentWeek = getCurrentWeek(now, startDate, endDate);
+  const currentWeek = getCycleWeek(now, startDate, endDate);
   const daysLeft = daysUntil(now, endDate);
   const cycleActive = now >= startDate && now <= endDate;
   const cycleComplete = now > endDate;

@@ -5,7 +5,13 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
-import LearningLogCard from "./learning-log-card";
+import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
+import { getCycleWeek } from "@/lib/cycle/week";
+import {
+  milestoneKindForWeek,
+  milestoneLabel,
+  type MilestoneWeeks,
+} from "@/lib/cycle/milestones";
 import SetupChecklist, { type ChecklistItem } from "./setup-checklist";
 import CycleCommitments from "./cycle-commitments";
 import UpNext, { type TodoCard } from "./up-next";
@@ -54,7 +60,7 @@ export default async function DashboardPage() {
         serviceClient
           .from("cycle_config")
           .select(
-            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit"
+            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit, milestone_mid_week, milestone_final_week"
           )
           .eq("cycle_id", activeCycle.id)
           .single(),
@@ -124,6 +130,43 @@ export default async function DashboardPage() {
 
   // The weekly Learning Log gate (fixed window — lib/learning-logs/gate.ts).
   const logGate = await learningLogGate(participant.id);
+
+  // Milestone weeks reframe the weekly log as an evaluation, prefilled from the
+  // member's own record. Weeks are admin-configurable (cycle_config, 00047).
+  let milestoneCtx: MilestoneContext | null = null;
+  if (activeCycle && activeCycleConfig && enrollment?.status === "active") {
+    const week = getCycleWeek(
+      new Date(),
+      new Date(activeCycle.start_date),
+      new Date(activeCycle.end_date)
+    );
+    const kind = milestoneKindForWeek(
+      week,
+      activeCycleConfig as unknown as MilestoneWeeks
+    );
+    if (kind) {
+      const { data: last } = await serviceClient
+        .from("learning_logs")
+        .select("clarity, alignment, accomplished, exploring, next_focus")
+        .eq("participant_id", participant.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      milestoneCtx = {
+        kind,
+        label: milestoneLabel(kind),
+        prefill: last
+          ? {
+              clarity: last.clarity ?? 3,
+              alignment: last.alignment ?? 3,
+              accomplished: last.accomplished ?? "",
+              exploring: last.exploring ?? "",
+              next_focus: last.next_focus ?? "",
+            }
+          : null,
+      };
+    }
+  }
 
   let state: DashboardState = "no_cycle";
   if (activeCycle) {
@@ -345,7 +388,7 @@ export default async function DashboardPage() {
                   </p>
                 </div>
               )}
-              <LearningLogCard gateActive={logGate.active} />
+              <LearningLogCard gateActive={logGate.active} milestone={milestoneCtx} />
             </section>
           )}
 

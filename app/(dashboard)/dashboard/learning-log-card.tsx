@@ -72,18 +72,37 @@ function ScaleRow({
   );
 }
 
+export interface MilestoneContext {
+  kind: string;
+  /** "Mid-cycle review" / "End-cycle review". */
+  label: string;
+  /** Seed values from the member's most recent log (review, don't re-ask). */
+  prefill: {
+    clarity: number;
+    alignment: number;
+    accomplished: string;
+    exploring: string;
+    next_focus: string;
+  } | null;
+}
+
 export default function LearningLogCard({
   gateActive,
+  milestone = null,
 }: {
   gateActive: boolean;
+  /** When set, this week is a milestone evaluation — same flow, evaluation
+      framing, prefilled from the member's own logs (never a grade). */
+  milestone?: MilestoneContext | null;
 }) {
-  const [clarity, setClarity] = useState(3);
-  const [alignment, setAlignment] = useState(3);
+  const pf = milestone?.prefill ?? null;
+  const [clarity, setClarity] = useState(pf?.clarity ?? 3);
+  const [alignment, setAlignment] = useState(pf?.alignment ?? 3);
   const [blocked, setBlocked] = useState(false);
   const [blockerContext, setBlockerContext] = useState("");
-  const [accomplished, setAccomplished] = useState("");
-  const [exploring, setExploring] = useState("");
-  const [nextFocus, setNextFocus] = useState("");
+  const [accomplished, setAccomplished] = useState(pf?.accomplished ?? "");
+  const [exploring, setExploring] = useState(pf?.exploring ?? "");
+  const [nextFocus, setNextFocus] = useState(pf?.next_focus ?? "");
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +148,22 @@ export default function LearningLogCard({
   ]
     .filter(Boolean)
     .join(" ");
+
+  // Milestone weeks reframe the same three prompts as an evaluation.
+  const isFinal = milestone?.kind === "milestone_13";
+  const promptLabels: [string, string, string] = milestone
+    ? [
+        "Looking back over the cycle, what have you built or figured out?",
+        "Where are you now — what are you still working through?",
+        isFinal
+          ? "What are you taking with you from this cycle?"
+          : "What’s your focus for the rest of the cycle?",
+      ]
+    : [
+        "This week, I figured out…",
+        "I’m currently exploring…",
+        "Next week, my focus is…",
+      ];
 
   async function save() {
     setBusy(true);
@@ -185,8 +220,10 @@ export default function LearningLogCard({
     >
       <div className="flex items-baseline justify-between">
         <div>
-          <p className="lbl">Weekly ritual</p>
-          <h2 className="t-h3 text-ink">Learning Log</h2>
+          <p className="lbl">{milestone ? "Milestone" : "Weekly ritual"}</p>
+          <h2 className="t-h3 text-ink">
+            {milestone ? milestone.label : "Learning Log"}
+          </h2>
         </div>
         {count > 0 && (
           <span className="text-sm text-meta">
@@ -194,6 +231,14 @@ export default function LearningLogCard({
           </span>
         )}
       </div>
+
+      {milestone && (
+        <p className="mt-2 text-sm text-charcoal">
+          An evaluation inside the practice — the same Learning Log, prefilled
+          from your own logs so you review your record instead of a blank page.
+          Never a grade.
+        </p>
+      )}
 
       {justSaved && (
         <div
@@ -249,9 +294,9 @@ export default function LearningLogCard({
       <div className="mt-6 space-y-4">
         {(
           [
-            ["This week, I figured out…", accomplished, setAccomplished],
-            ["I’m currently exploring…", exploring, setExploring],
-            ["Next week, my focus is…", nextFocus, setNextFocus],
+            [promptLabels[0], accomplished, setAccomplished],
+            [promptLabels[1], exploring, setExploring],
+            [promptLabels[2], nextFocus, setNextFocus],
           ] as const
         ).map(([label, value, setter]) => (
           <div key={label}>
@@ -298,7 +343,7 @@ export default function LearningLogCard({
         disabled={busy}
         className="btn btn-teal mt-5"
       >
-        {busy ? "Saving…" : "Save log"}
+        {busy ? "Saving…" : milestone ? "Save review" : "Save log"}
       </button>
 
       {recent.length > 0 && (
