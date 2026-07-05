@@ -16,6 +16,8 @@ type Config = {
   max_projects: number;
   project_min: number;
   project_max: number;
+  milestone_mid_week: number;
+  milestone_final_week: number;
   phase_2_start: string | null;
   phase_3_start: string | null;
   problem_statement_open: string | null;
@@ -240,6 +242,15 @@ const PARAM_GROUPS = [
       { label: "Project max members", name: "project_max" },
     ],
   },
+  {
+    // Milestone review weeks (0–12), inside the practice — the mid/end-cycle
+    // Learning Log evaluations open on these cycle weeks (migration 00047).
+    heading: "Milestone Reviews",
+    fields: [
+      { label: "Mid-cycle review week", name: "milestone_mid_week", max: 12 },
+      { label: "End-cycle review week", name: "milestone_final_week", max: 12 },
+    ],
+  },
 ] as const;
 
 type ParamKey = typeof PARAM_GROUPS[number]["fields"][number]["name"];
@@ -308,6 +319,7 @@ export function CycleParamsForm({
                     id={field.name}
                     type="number"
                     min={0}
+                    max={"max" in field ? field.max : undefined}
                     {...register(field.name as ParamKey)}
                     className="w-20 rounded-card border border-ink/10 bg-white px-2 py-1 text-right text-base tabular-nums text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />

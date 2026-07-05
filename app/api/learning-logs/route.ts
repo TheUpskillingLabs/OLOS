@@ -10,6 +10,11 @@ import {
   sharedParagraph,
 } from "@/lib/validations/learning-logs";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import { getCycleWeek } from "@/lib/cycle/week";
+import {
+  milestoneKindForWeek,
+  type MilestoneKind,
+} from "@/lib/cycle/milestones";
 
 // The Learning Log (roadmap Phase 1; backend doc §6). One POST saves the
 // three-part ritual; when share_publicly is set and the reflection has
@@ -17,10 +22,11 @@ import { learningLogGate } from "@/lib/learning-logs/gate";
 // profile_updates with learning_log_id provenance — the only write path
 // into the member-updates feed (no composer, owner decision).
 //
-// cycle_id and kind are derived server-side: the active enrollment decides
-// the cycle (NULL = standalone reflection); kind is 'weekly' until the
-// milestone cron exists. Saving instantly clears the weekly gate — the
-// response says so ("You're back in ✓" is the client's beat to play).
+// cycle_id and kind are derived server-side (never trusted from the client):
+// the active enrollment decides the cycle (NULL = standalone reflection); kind
+// is the milestone variant when the current cycle week matches an admin-set
+// milestone week (cycle_config.milestone_mid_week/final_week), else 'weekly'.
+// Any log clears the weekly gate — the response says so ("You're back in ✓").
 
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
@@ -49,10 +55,11 @@ export const POST = withAuth(
     const service = createServiceClient();
     const { data: activeCycle } = await service
       .from("cycles")
-      .select("id")
+      .select("id, start_date, end_date")
       .eq("status", "active")
       .maybeSingle();
     let cycleId: number | null = null;
+    let kind: "weekly" | MilestoneKind = "weekly";
     if (activeCycle) {
       const { data: enrollment } = await service
         .from("cycle_enrollments")
@@ -61,7 +68,24 @@ export const POST = withAuth(
         .eq("cycle_id", activeCycle.id)
         .eq("status", "active")
         .maybeSingle();
-      if (enrollment) cycleId = activeCycle.id;
+      if (enrollment) {
+        cycleId = activeCycle.id;
+        // Milestone weeks are admin-configurable (cycle_config, 00047); if the
+        // current cycle week is one of them, this log is that evaluation.
+        const { data: cfg } = await service
+          .from("cycle_config")
+          .select("milestone_mid_week, milestone_final_week")
+          .eq("cycle_id", activeCycle.id)
+          .maybeSingle();
+        if (cfg && activeCycle.start_date && activeCycle.end_date) {
+          const week = getCycleWeek(
+            new Date(),
+            new Date(activeCycle.start_date),
+            new Date(activeCycle.end_date)
+          );
+          kind = milestoneKindForWeek(week, cfg) ?? "weekly";
+        }
+      }
     }
 
     const { data: log, error } = await auth.supabase
@@ -69,7 +93,7 @@ export const POST = withAuth(
       .insert({
         participant_id: participantId,
         cycle_id: cycleId,
-        kind: "weekly",
+        kind,
         clarity: body.clarity,
         alignment: body.alignment,
         is_blocked: body.is_blocked,

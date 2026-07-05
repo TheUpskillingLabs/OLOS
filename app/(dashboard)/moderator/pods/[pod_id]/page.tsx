@@ -16,6 +16,7 @@ import { getPodsForUser } from "@/lib/moderator/pods-list";
 import { getUiState } from "@/lib/moderator/ui-state";
 import { PodContentTabs } from "./pod-content-tabs";
 import PodSquadSections from "./pod-squad-sections";
+import PodMilestoneLogs from "./pod-milestone-logs";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +127,8 @@ export default async function ModeratorPodPage({
           sign-ups, feedback inbox — the memo batch + Phase 1 repoint. */}
       <PodSquadSections cycleId={detail.cycle_id} members={detail.members} />
 
+      {/* Milestone Logs: wk-mid/final evaluation status per member. */}
+      <PodMilestoneLogs cycleId={detail.cycle_id} members={detail.members} />
 
       <PodContentTabs
         members={detail.members}

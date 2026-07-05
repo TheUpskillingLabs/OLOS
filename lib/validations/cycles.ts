@@ -18,6 +18,9 @@ export const updateCycleConfigSchema = z.object({
   project_vote_threshold: z.number().int().min(0).optional(),
   max_projects: z.number().int().min(1).optional(),
   project_max: z.number().int().min(1).optional(),
+  // Milestone evaluation weeks (0–12; migration 00047). Admin-configurable.
+  milestone_mid_week: z.number().int().min(0).max(12).optional(),
+  milestone_final_week: z.number().int().min(0).max(12).optional(),
   problem_statement_open: z.string().nullable().optional(),
   problem_statement_close: z.string().nullable().optional(),
   voting_open: z.string().nullable().optional(),
