@@ -8,6 +8,14 @@ teammate implementation. Baseline is [`current-state.md`](./current-state.md).
 
 Legend: 🐛 bug · ✳️ net-new feature dependency · ⚠️ open decision.
 
+### Decisions log
+
+| Date | Decision |
+|---|---|
+| 2026-07-05 | **Cycle routing (R3):** `/cycles` auto-resolves to the current (active) cycle and becomes the cycle page; past cycles move to `/cycles/past`. |
+| 2026-07-05 | **Net-new scope:** for this reorg, **stub the links** for Directory (R4/R5), Learning Library (R8), the join reminder, and next-cycle registration (R6). Each feature is a separate downstream workstream; the reorg wires the affordances to placeholders so it stays shippable. |
+| 2026-07-05 | **Joining windows (R6):** a would-be participant has **three sequential joining slots** — cycle join/agreement → pod registration → project registration. Open/closed/past logic evaluates against these in order. |
+
 ---
 
 ## Target information architecture (summary)
@@ -17,13 +25,15 @@ The reorg moves toward a clean three-surface split:
 1. **Home (`/dashboard`)** — identity + orientation only: welcome, the
    fresh-joiner checklist, and the join/register call(s) to action.
    No current-cycle detail.
-2. **Cycle page** — everything about the *current* cycle: the Build Cycle
-   graphic, phase/window state, a participant directory preview, and pod /
-   project rosters (as directory links).
-3. **Past cycles** — a separate click-through page, no longer inline on Home.
+2. **Cycle page (`/cycles`)** — `/cycles` auto-resolves to the current (active)
+   cycle and holds everything about it: the Build Cycle graphic, phase/window
+   state, a participant directory preview, and pod / project rosters (as
+   directory links).
+3. **Past cycles (`/cycles/past`)** — a separate click-through page, no longer
+   inline on Home.
 
-Plus two net-new surfaces this reorg introduces or depends on: a **Directory**
-and a **Learning Library**.
+Two net-new surfaces are referenced but **stubbed** in this reorg (built as
+separate workstreams): a **Directory** and a **Learning Library**.
 
 ---
 
@@ -98,28 +108,22 @@ Cycle** whenever a cycle's joining window is open. It should not default to
 timeline + past cycles. Content is duplicated across Home and the cycle
 surfaces.
 
-**Requirement (preferred).**
-- All **current-cycle** content lives on the **Cycle page**: Build Cycle
-  graphic, phase/window state, stats, directory preview (R4), pods/projects
-  (R5), pod resources (R7).
-- **Past cycles** become a **separate click-through page** (e.g.
-  `/cycles/past`), not an inline section on Home or the cycle page.
+**Requirement (decided).**
+- `/cycles` **auto-resolves to the current (active) cycle** and becomes the
+  cycle page. All current-cycle content lives here: Build Cycle graphic,
+  phase/window state, stats, directory preview (R4), pods/projects (R5), pod
+  resources (R7).
+- **Past cycles** move to a dedicated **`/cycles/past`** click-through page,
+  not an inline section on Home or the cycle page.
 - **Home** keeps only welcome + fresh-joiner checklist + CTAs (R2/R6).
-
-**Fallback (if the full move is descoped).** At minimum, the Build Cycle
-graphic must also render on the current cycle page (it currently anchors Home).
+- The existing `/cycles/:id` detail route can remain for deep-linking (past
+  cycles link into it); `/cycles` (no id) is the current-cycle entry point.
 
 **Acceptance criteria.**
-- The Build Cycle graphic appears on the current cycle page.
-- Past cycles are reachable via a dedicated page, not inline.
+- Visiting `/cycles` shows the current cycle (Build Cycle graphic + detail); no
+  active cycle → an appropriate empty/next-cycle state.
+- Past cycles are reachable only via `/cycles/past`, not inline on Home.
 - No current-cycle detail duplicated between Home and the cycle page.
-
-⚠️ **Open decisions:**
-1. Which route is "the Cycle page"? Options: (a) `/cycles` auto-resolves to the
-   active cycle and becomes the current-cycle page, past cycles at
-   `/cycles/past`; or (b) keep `/cycles/:id` as the cycle page and repurpose
-   `/cycles` as the past-cycles list. Recommend (a).
-2. Confirm preferred vs. fallback scope for this release.
 
 **Affected:** `app/(dashboard)/dashboard/page.tsx`,
 `app/(dashboard)/cycles/page.tsx`, `app/(dashboard)/cycles/[cycle_id]/page.tsx`,
@@ -139,13 +143,12 @@ filtered to that cycle's participants.
 - The preview links to a Directory view pre-filtered to the current cycle.
 
 **Depends on:** ✳️ the **Directory** feature, which does not exist yet
-(the nav references it as a ghost destination). Directory scope must be defined:
-list/grid of participants, profile visibility tiers (the four-tier model exists
-in the Poderator PRD), filters (by cycle, pod, project, role), and the
-filtered-view URL contract.
-
-⚠️ **Open:** is the Directory built as part of this reorg, or are these links
-stubbed pending a separate Directory workstream? (See Open questions.)
+(the nav references it as a ghost destination). **Decision: stubbed for this
+reorg** — build the cycle-page preview affordance and point it at a placeholder
+Directory route; the full Directory is a separate workstream. That workstream
+must define: list/grid of participants, profile visibility tiers (the four-tier
+model exists in the Poderator PRD), filters (by cycle, pod, project, role), and
+the filtered-view URL contract that R5 also consumes.
 
 ---
 
@@ -162,7 +165,9 @@ rather than a standalone table.
   filtered to that pod / project.
 - The Directory filtered view honors the same participant-visibility rules.
 
-**Depends on:** R4 (Directory + its filter/URL contract).
+**Depends on:** R4 (Directory + its filter/URL contract). Directory is
+**stubbed** for this reorg, so these member links point at the same placeholder
+until the Directory workstream lands.
 **Affected:** `app/(dashboard)/pods/[pod_id]/page.tsx`,
 `app/(dashboard)/projects/[project_id]/page.tsx`, cycle page.
 
@@ -171,40 +176,47 @@ rather than a standalone table.
 ## R6 — CTA logic for unregistered participants
 
 For a participant **not registered for the current cycle**, the call(s) to
-action follow this logic:
+action follow this logic.
 
-| Current-cycle joining state | Primary CTA | Secondary CTA |
+**Joining slots (decided).** A would-be participant has **three sequential
+joining slots** in a cycle, evaluated in order:
+1. **Cycle join / agreement** (the `/cycles/:id/join` ceremony)
+2. **Pod registration** (`cycle_config.pod_registration_open/close`)
+3. **Project registration** (`cycle_config.project_registration_open/close`)
+
+"Open" = the current/next relevant slot is open now. "Closed (more to come)" =
+between slots, with a later slot still ahead. "Past all joining windows" = the
+last joining slot has closed.
+
+| State | Primary CTA | Secondary CTA |
 |---|---|---|
-| Joining window **open** | **Join current cycle** | Register for next cycle |
-| Joining window **closed** (more windows to come) | **Get a reminder for the next open window** | Register for next cycle |
-| **Past all joining windows** | **Register for next cycle** | — (sole action) |
+| A joining slot is **open now** | **Join current cycle** (routes to the open slot) | Register for next cycle |
+| Between slots — **closed, but a later slot is ahead** | **Get a reminder for the next open window** | Register for next cycle |
+| **Past all three joining slots** | **Register for next cycle** | — (sole action) |
 
 **Rules (from owner).**
-- "Join current cycle" and "Get a reminder" **never co-exist** (they are the
-  open vs. closed states of the same slot).
+- "Join current cycle" and "Get a reminder" **never co-exist** (open vs.
+  between-slots states of the same slot sequence).
 - "Register for next cycle" is **always the secondary** action when a primary
   exists.
 - "Register for next cycle" is the **only** action once the current cycle is
-  past any joining window.
+  past all joining slots.
 
 **Acceptance criteria.**
 - Exactly one primary CTA renders per state; the three states are mutually
   exclusive.
-- "Register for next cycle" never appears as primary while a joining window is
-  open or a reminder is offered.
+- The open/between/past evaluation walks the three slots in order.
+- "Register for next cycle" never appears as primary while a slot is open or a
+  reminder is offered.
 
-**Depends on / open:**
-- ✳️ **"Get a reminder"** has no mechanism today. Define it: an email/notif
-  opt-in tied to the next window opening, vs. UI-only copy. (There is a
-  pulse-check reminder cron to model on.)
+**Depends on (both stubbed for this reorg — decision 2026-07-05):**
+- ✳️ **"Get a reminder"** has no mechanism today. Wire the button to a
+  placeholder; the reminder itself (email/notif opt-in tied to the next slot
+  opening — model on the pulse-check reminder cron) is a separate workstream.
 - ✳️ **"Register for next cycle"** requires a "next cycle" concept — a
-  future/draft cycle with its own registration window. Define how the next
-  cycle and its reg window are represented (today only one `active` cycle is
-  surfaced).
-- ⚠️ Define what counts as **"the joining window"** for a would-be participant:
-  the cycle join/agreement (gated by cycle `active` status) and/or the
-  `pod_registration` window (time-boxed in `cycle_config`). This determines the
-  open/closed/past logic. See Open questions.
+  future/draft cycle with its own registration window. Stub the link; defining
+  how the next cycle + its reg window are modeled and surfaced (today only one
+  `active` cycle is surfaced) is a separate workstream.
 
 **Affected:** `app/(dashboard)/dashboard/page.tsx` (and/or the cycle page CTA
 block), `cycle_config` window fields.
@@ -248,9 +260,10 @@ resource that explains the Build Cycle in depth.
   Cycle.
 
 **Depends on:** ✳️ the **Learning Library** feature, which does not exist yet
-(another ghost nav destination). Define: is it in-app content, an external link
-(e.g. docs/Notion), or a new `/learning` route? At minimum this reorg needs the
-Build Cycle explainer resource + a link target.
+(another ghost nav destination). **Decision: stubbed for this reorg** — make the
+graphic a link to a placeholder target. The Learning Library workstream decides
+whether it's in-app content, an external link (docs/Notion), or a `/learning`
+route, and authors the Build Cycle explainer.
 
 **Affected:** `app/(dashboard)/cycles/cycle-phase-indicator.tsx`.
 
@@ -258,40 +271,43 @@ Build Cycle explainer resource + a link target.
 
 ## Dependency map
 
-| Requirement | Depends on |
-|---|---|
-| R1 | reset script + placeholder gate |
-| R2 | R6, R1 |
-| R3 | routing decision (⚠️) |
-| R4 | ✳️ Directory feature |
-| R5 | R4 |
-| R6 | ✳️ reminder mechanism, ✳️ next-cycle concept |
-| R7 | Slack link format (data exists) |
-| R8 | ✳️ Learning Library |
+| Requirement | Depends on | In-reorg scope |
+|---|---|---|
+| R1 | reset script + placeholder gate | fix |
+| R2 | R6, R1 | build |
+| R3 | routing (decided: `/cycles` + `/cycles/past`) | build |
+| R4 | ✳️ Directory feature | **stub link** |
+| R5 | R4 | **stub link** |
+| R6 | ✳️ reminder mechanism, ✳️ next-cycle concept | CTA logic build; reminder + next-cycle **stubbed** |
+| R7 | Slack link format (data exists) | build |
+| R8 | ✳️ Learning Library | **stub link** |
 
-Net-new features this reorg surfaces: **Directory** (R4/R5), **Learning
-Library** (R8), **join reminder** + **next-cycle registration** (R6). Each is a
-sizable workstream; the reorg can either build them or stub their links pending
-separate tracks.
+Net-new features referenced but **stubbed** in this reorg (each a separate
+downstream workstream): **Directory** (R4/R5), **Learning Library** (R8),
+**join reminder** + **next-cycle registration** (R6). The reorg wires the
+affordances to placeholders so it ships without blocking on them.
 
 ---
 
 ## Open questions
 
-1. **Cycle-page routing (R3):** `/cycles` becomes the current-cycle page with
-   `/cycles/past` (recommended), or keep `/cycles/:id` + repurpose `/cycles`?
-2. **R3 scope:** full move (current-cycle content off Home) vs. fallback (just
-   put the graphic on the cycle page) for this release?
-3. **Directory (R4/R5):** build now as part of the reorg, or stub the links
-   pending a dedicated Directory workstream?
-4. **Learning Library (R8):** in-app route, external link, or existing doc?
-   What's the Build Cycle explainer's source?
-5. **"Joining window" definition (R6):** cycle join/agreement, pod-registration
-   window, or both? This defines open/closed/past.
-6. **"Get a reminder" mechanism (R6):** email/notification opt-in vs. UI-only?
-7. **"Next cycle" (R6):** how is a future cycle + its registration window
-   modeled and surfaced?
-8. **Fresh-joiner checklist (R1/R2):** keep today's minimal welcome+hero, or
-   design an actual multi-step checklist?
-9. **Slack link format (R7):** deep-link format + team-ID source; include
-   GitHub repo link or not?
+**Resolved 2026-07-05** (see Decisions log): cycle-page routing (`/cycles`
+current + `/cycles/past`); Directory & Learning Library → stub links;
+joining-window definition → three sequential slots.
+
+**Still open:**
+
+1. **Fresh-joiner checklist (R1/R2):** keep today's minimal welcome + hero, or
+   design an actual multi-step checklist? Defines what "checklist view" means.
+2. **Slack link format (R7):** deep-link format + source of the team/workspace
+   ID. And: show the GitHub repo link too, or Drive/Slack/Group only?
+
+**Deferred to their own workstreams (stubbed here):**
+
+3. **"Get a reminder" mechanism (R6):** email/notification opt-in vs. UI-only.
+4. **"Next cycle" (R6):** how a future cycle + its registration window are
+   modeled and surfaced.
+5. **Directory (R4/R5):** full feature scope, visibility tiers, filter/URL
+   contract.
+6. **Learning Library (R8):** in-app route vs. external link vs. existing doc;
+   Build Cycle explainer source.
