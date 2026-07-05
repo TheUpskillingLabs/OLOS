@@ -134,7 +134,10 @@ export const POST = withAuth(
   }
 );
 
-// The member's own recent logs + count — feeds the card's history list.
+// The member's own logs + count — feeds the card's reviewable history. The
+// Learning Log is a journaling practice, so this is the member's record to
+// look back on; the card renders these newest-first, expandable. (A dedicated
+// paginated journal view is a follow-up if a heavy journaler exceeds this.)
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest) => {
     const participantId = auth.user.participantId;
@@ -149,7 +152,7 @@ export const GET = withAuth(
       )
       .eq("participant_id", participantId)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(50);
     return NextResponse.json({ logs: logs ?? [], count: count ?? 0 });
   }
 );
