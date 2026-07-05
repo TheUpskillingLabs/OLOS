@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowRight, ChevronLeft } from "lucide-react";
+import { BookOpen, ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
@@ -150,30 +150,30 @@ export default async function CycleDetailPage({
         </div>
       )}
 
-      {/* Pulse Check — always-on requirement */}
+      {/* Learning Log — the weekly practice, framed calmly (it replaced the pulse check) */}
       {cycle.status === "active" && (
         <div className="mb-8">
           <Link
-            href="/pulse-check"
-            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-red bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            href="/dashboard#learning-log"
+            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
           >
             <div className="flex items-center gap-3">
-              <Activity
-                className="h-5 w-5 flex-shrink-0 text-red"
+              <BookOpen
+                className="h-5 w-5 flex-shrink-0 text-teal-deep"
                 aria-hidden
               />
               <div>
                 <span className="font-semibold tracking-tight text-ink">
-                  Weekly pulse check
+                  Your weekly Learning Log
                 </span>
                 <p className="mt-0.5 text-sm text-meta">
-                  Complete your weekly check-in to stay active and retain access
-                  to GitHub, Google Docs, Slack, and Google Groups.
+                  A few lines each week on what you&apos;re figuring out. That&apos;s
+                  the check-in that keeps you in the cycle.
                 </p>
               </div>
             </div>
             <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-red transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
               aria-hidden
             />
           </Link>

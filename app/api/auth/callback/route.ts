@@ -59,7 +59,8 @@ export async function GET(request: Request) {
             hasPlaceholder
           );
 
-          return NextResponse.redirect(`${origin}/`);
+          // A returning member lands in the app, not on the public landing.
+          return NextResponse.redirect(`${origin}/dashboard`);
         } else {
           // No participant record — redirect to registration
           return NextResponse.redirect(`${origin}/register`);
