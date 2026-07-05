@@ -6,9 +6,13 @@ import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { updateCycleStatusSchema } from "@/lib/validations/cycles";
 
+// Cycle lifecycle (SECTOR_MODEL.md §4): draft → upcoming → active → closing →
+// archived. 'closed' is retained as a legacy terminal for pre-sector cohorts.
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft: ["active"],
-  active: ["closed"],
+  draft: ["upcoming", "active"],
+  upcoming: ["active"],
+  active: ["closing", "closed"],
+  closing: ["archived"],
 };
 
 export const PATCH = withAdminAuth(
@@ -31,9 +35,9 @@ export const PATCH = withAdminAuth(
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
 
-    if (cycle.status === "closed") {
+    if (cycle.status === "closed" || cycle.status === "archived") {
       return NextResponse.json(
-        { error: "A closed cycle cannot be reopened." },
+        { error: "A closed or archived cycle cannot be reopened." },
         { status: 400 }
       );
     }
@@ -45,17 +49,20 @@ export const PATCH = withAdminAuth(
       );
     }
 
-    // At most one active cycle at a time (migration 00048). Reject a second
-    // activation with a clear message instead of a raw unique-violation.
-    if (status === "active") {
+    // At most one 'active' and one 'upcoming' cycle at a time (migrations
+    // 00048/00049). Reject a second one with a clear message instead of a raw
+    // unique-violation.
+    if (status === "active" || status === "upcoming") {
       const { count } = await auth.supabase
         .from("cycles")
         .select("id", { count: "exact", head: true })
-        .eq("status", "active")
+        .eq("status", status)
         .neq("id", cycleId);
       if ((count ?? 0) > 0) {
         return NextResponse.json(
-          { error: "Another cycle is already active. Close it before activating this one." },
+          {
+            error: `Another cycle is already ${status}. Only one ${status} cycle is allowed at a time.`,
+          },
           { status: 409 }
         );
       }

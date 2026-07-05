@@ -1,9 +1,11 @@
 # Sectors, the cycle lifecycle, and open-source governance
 
-**Status:** Design (on paper) — 2026-07, owner-driven. No migration or code yet.
-This is the target model; it supersedes the flat single-active-cycle assumption.
-Build happens in phases (see *§9 Phased plan*). Nothing here ships until the
-design is ratified.
+**Status:** 2026-07, owner-driven. This is the target model; it supersedes the
+flat single-active-cycle assumption. **Phase A (foundation) has shipped**
+(migrations `00048`/`00049` — the `sectors` table, `cycle.sector_id` + `mode`,
+the extended lifecycle, the ≤1-active/≤1-upcoming invariants, and the
+operating-vs-recruiting read split). **Phases B–D remain design-on-paper.**
+Build happens in phases (see *§9 Phased plan*).
 
 **Companions:** `SENSEMAKING_FLOW.md` (how a cohort goes from field survey to
 formed pods — the Paradox Sprint mechanic) and `ORTELIUS_KNOWLEDGE_GRAPH.md` (the
@@ -208,11 +210,15 @@ New / changed (details finalized at build time):
 
 ## 9. Phased plan
 
-- **Phase A — Foundation & correctness.** `sectors` + `cycle.sector_id` +
-  `project.sector_id`; lifecycle states; ≤1-active/≤1-upcoming invariant;
-  reconcile dev data (Civics → `upcoming`; backfill sectors from existing cycle
-  themes); split the active-cycle reads into operating vs recruiting. *(This is
-  also the permanent fix for the two-active bug.)*
+- **Phase A — Foundation & correctness ✅ (migrations `00048`/`00049`).**
+  `sectors` + `cycle.sector_id` + `mode` + `project.sector_id`/`governance` +
+  `cycle_enrollments.tier`; lifecycle states (draft→upcoming→active→closing→
+  archived); ≤1-active/≤1-upcoming partial unique indexes + activation-route
+  guards; dev reconciled (Civics → `upcoming` under a Civics & Elections sector,
+  Energy & Climate `active` under its own); reads split via `lib/cycle/active.ts`
+  (`getOperatingCycle`/`getRecruitingCycle` — the signup funnel targets
+  recruiting). *(This also permanently fixed the two-active bug.)* Historical
+  backfill of the generic Spring cohorts onto sectors is deferred (§10 naming).
 - **Phase B — Windows & tiers.** Member-registration window tied to the
   Hackathon milestone; the member/contributor/subscriber ladder + DRI invites;
   funnel targets the recruiting cycle.

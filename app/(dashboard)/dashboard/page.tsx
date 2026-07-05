@@ -104,8 +104,10 @@ export default async function DashboardPage() {
     }
   }
 
+  // "Past cycles" = finished cohorts only (closed/archived); the upcoming
+  // recruiting cohort and drafts don't belong in an archive (SECTOR_MODEL Phase A).
   const otherCycles =
-    cycles?.filter((c) => c.id !== activeCycle?.id) ?? [];
+    cycles?.filter((c) => c.status === "closed" || c.status === "archived") ?? [];
 
   const displayName =
     participant.preferred_name || participant.first_name;

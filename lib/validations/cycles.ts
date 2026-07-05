@@ -36,7 +36,14 @@ export const updateCycleConfigSchema = z.object({
 });
 
 export const updateCycleStatusSchema = z.object({
-  status: z.enum(["draft", "active", "closed"], {
-    message: 'status must be one of: "draft", "active", "closed"',
-  }),
+  // Cycle lifecycle (SECTOR_MODEL.md §4): draft → upcoming → active → closing →
+  // archived. 'closed' retained as a legacy terminal. The status route enforces
+  // which transitions are legal.
+  status: z.enum(
+    ["draft", "upcoming", "active", "closing", "archived", "closed"],
+    {
+      message:
+        'status must be one of: "draft", "upcoming", "active", "closing", "archived", "closed"',
+    }
+  ),
 });
