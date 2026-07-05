@@ -3,7 +3,7 @@
 **What this is:** a status snapshot of the prototype→OLOS transfer against
 `docs/audit/IMPROVEMENT_ROADMAP.md` (v2). Read the roadmap for the *why* of each
 item; this doc records *where we are*. Assessed 2026-07-05 against `dev` (through
-PR #151); dev history is entirely this workstream (no external contributors to
+PR #157); dev history is entirely this workstream (no external contributors to
 reconcile). Verified against the code, not memory.
 
 Legend: ✅ done · 🟡 partial · ⬜ not started · ⏳ deferred (deliberate).
@@ -17,10 +17,11 @@ Legend: ✅ done · 🟡 partial · ⬜ not started · ⏳ deferred (deliberate)
 | **Phase 0** — hygiene + safety | ✅ (1 item ⏳) | Shipped; only the revocation-cron re-registration is deliberately held |
 | **Phase 0.5** — schema hardening | ✅ | Migrations 00037–00039 applied + verified on dev |
 | **Pod Squad batch** | ✅ | All 5 memo items shipped |
-| **Phase 1** — Learning Log pivot | 🟡 ~85% | Log + gate + Poderator repoint + dashboard completion done; milestones + feed-reader open |
+| **Phase 1** — Learning Log pivot | 🟡 ~90% | Log + gate + Poderator repoint + dashboard done; share-feed reader now landed (Phase 2); only wk-7/13 milestones open |
 | **Testing pathway** (extra) | ✅ | 00042 — not in the roadmap; admin-granted tester accounts + self-reset |
-| **Phase 2** — Directory + Me | ⬜ | Not started |
-| **Phase 3** — Learning dest + editorial | ⬜ | Not started (nav still lacks Learning/Directory) |
+| **One-pod/one-project + 12-week model** (extra) | ✅ | PRs #152–#156: `pod_limit` (00043), 12-week rail (wk0 Kickoff→wk12 Showcase), lean mobile registration, brand left-align sweep |
+| **Phase 2** — Directory + Me | ✅ | PR #157 — `/directory`, `/u/[handle]`, updates feed, standalone nominations, migration 00044. Profile cred-band + locked badges + links deferred |
+| **Phase 3** — Learning dest + editorial | 🟡 nav only | Directory added to app-nav + tab-bar (4 of the 5 tabs); Learning dest, saved/hearts, editorial not started |
 | **Phase 4** — Formation ceremonies | ⬜ | Not started (`stepped_back` enum reserved in 00037) |
 | **Phase 5** — Trust + mentors | ⬜ | Not started |
 | **Phase 6** — Data Sensemaker | ⬜ | Not started |
@@ -63,13 +64,13 @@ built on request to make the onboarding loop testable pre-kickoff.
 
 ## Open within partially-done work
 
-**Phase 1 remainder (the ~15%):**
+**Phase 1 remainder (the ~10%):**
 - **Milestone logs (wk-7/13):** the `kind` enum exists in `learning_logs`, but there's
   **no prefill UI** and no Poderator milestone card. (Roadmap Phase 1; memo "evaluations in OLOS".)
-- **The share has no reader:** `learning_logs.share_publicly` **writes** a `profile_updates`
-  row, but nothing displays it — no updates feed exists yet. Until the Phase 2 "Me"/Discover
-  feed lands, sharing is a no-op to the member. (Not a bug; the reader is scoped to Phase 2 —
-  deliberately deferred.)
+- ~~**The share has no reader**~~ — **CLOSED by Phase 2 (PR #157).** `learning_logs.share_publicly`
+  writes a `profile_updates` row, and the Phase-2 `updates-feed` now reads it — as the community
+  "All" feed on `/directory`, member-scoped on `/u/[handle]`, and "Your shares" on `/profile`.
+  Sharing now pays off for the member.
 
 **Dashboard completion — ✅ done** (Phase 1 item 5): setup checklist (actionable rows +
 "Start →", collapse-to-strip when done), "Your commitments" (the six dated anchor events +
@@ -84,15 +85,26 @@ copy pass pending).
 
 ---
 
-## Not started (Phases 2–7) — the substance of what remains
+## Phase 2 — done (PR #157), with tails
 
-- **Phase 2 (Directory + Me):** no `/directory` route, no `§1.8` columns (`handle`, `bio`,
-  `public_profile_visible`, `metro_id` FK), no `/u/[handle]` visitor mode, no updates-feed
-  reader, no standalone `POST /api/nominations` (still pulse-bundled). `/profile` is still the
-  registration read-out.
+Shipped: migration `00044` (`handle` UK + auto-gen trigger + backfill, `bio`, `headline`,
+`public_profile_visible` default false, `metro_id` FK — applied + verified on dev), `/directory`
+(service-client display allowlist, role chips + search, stretched-link cards), `/u/[handle]`
+visitor mode (allowlist-only, zero PII), the shared `member-profile-view` (owner|visitor),
+the `updates-feed` reader, widened `PATCH /api/participants/[id]` (bio/headline/handle + 409),
+standalone `POST /api/nominations`, and Directory in both nav bars.
+
+**Deferred tails (small):** the profile **cred band** (render the signed Open Cycle Agreement
+from the already-readable `cycle_agreements`), **locked-badge states** (Phase 5 supplies the
+earning systems; the locked shells were meant to render from Phase 2), and external **links**
+on the profile editor. None blocks the directory; all are quick follow-ups.
+
+## Not started (Phases 3–7) — the substance of what remains
+
 - **Phase 3 (Learning + editorial):** no authed `/learning`, no `saved_items`+hearts (the
-  `.heart` CSS is still ported-but-unused), nav still **Home · My Cycle · avatar** (Learning
-  and Directory never added), no `/stories`, no landing stories row, no start-a-waitlist create.
+  `.heart` CSS is still ported-but-unused). **Nav now Home · My Cycle · Directory · Me** —
+  Directory landed with Phase 2; **Learning is the one remaining tab.** No `/stories`, no
+  landing stories row, no start-a-waitlist create.
 - **Phase 4 (Formation ceremonies):** no ignition interstitial, no project-canvas fields
   (`frame/intervention/success_metrics/evidence`), no step-back route (enum reserved), no
   phase-info ⓘ modals, no `narrative_revisions` case-study approval, no `cycle_mode`.
@@ -112,28 +124,34 @@ copy pass pending).
   Phase-0 hold.
 - **`ENTITY_EXPLORER_ENABLED`:** the registry is wired; the env flag is a Vercel setting
   (owner action, not code) — confirm it's on for dev if the explorer should be live.
-- **Prod promotion:** dev is at migration `00042`; prod stops at `cycle_agreements`. The
-  promotion backlog is `00033`–`00042` (public content → hardening → Learning Log → testers).
+- **Prod promotion:** dev is at migration `00044`; prod stops at `cycle_agreements`. The
+  promotion backlog is `00033`–`00044` (public content → hardening → Learning Log → testers →
+  `pod_limit` → directory).
 
 ---
 
 ## Owner-decision queue — current state
 
 Resolved-by-build (defaults chosen, worth explicit ratification): **#2 gate cadence**
-(fixed weekly window built), **#3 cutover** (defaulted to the next cycle / kickoff).
+(fixed weekly window built), **#3 cutover** (defaulted to the next cycle / kickoff),
+**#7 directory default** (members-only; `public_profile_visible` opt-in, default false —
+confirmed + shipped in Phase 2). **#5/#6 partially set** by the one-pod/one-project decision:
+`pod_limit` is now a cycle-config value (default 1); team caps (#6) still use OLOS defaults.
 Still open and blocking their phases: **#1** pulse-field disposition, **#4** voter eligibility,
-**#5** unit of formation, **#6** team caps, **#7** directory default, **#8** survey stack,
-**#9** licensing legal review, **#10** resources editor, **#11** Sensemaker governance gate,
-**#12** interaction telemetry, **#13** Ortelius pilot scope, **#14** embeddings model.
+**#5** unit of formation (arena shape), **#6** team caps, **#8** survey stack, **#9** licensing
+legal review, **#10** resources editor, **#11** Sensemaker governance gate, **#12** interaction
+telemetry, **#13** Ortelius pilot scope, **#14** embeddings model.
 
 ---
 
 ## Recommended next moves
 
-1. **Finish Phase 1** (milestones + dashboard completion) — small, high member-value, closes
-   the pivot cleanly.
-2. **Phase 2 (Directory + Me)** — gives `profile_updates` its reader (so sharing pays off) and
-   lands the biggest missing member surface; the near-free `POST /api/nominations` rides along.
-3. **`process_signals`** whenever — independent of everything, and it's the owner's core
-   shepherd mechanic.
-4. Get **owner decisions #1, #4–6** answered before Phase 4; **#11** before any Phase 6 build.
+1. **Finish Phase 1** (wk-7/13 milestone logs + the Poderator milestone card) — the last ~10%,
+   small and high member-value; closes the Learning Log pivot cleanly.
+2. **Phase 2 tails** (cheap): profile cred band from `cycle_agreements`, locked-badge shells,
+   external links in the profile editor — round out "Me" now that the directory is live.
+3. **Phase 3 (Learning destination + editorial)** — the natural next surface: authed `/learning`
+   (route-shell over existing teasers) + `saved_items`/hearts completes the nav to the full five
+   (only the **Learning** tab remains), then `/stories` + landing editorial.
+4. **`process_signals`** whenever — independent of everything, the owner's core shepherd mechanic.
+5. Get **owner decisions #1, #4–6** answered before Phase 4; **#11** before any Phase 6 build.

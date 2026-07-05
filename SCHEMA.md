@@ -120,6 +120,7 @@ erDiagram
         text bio "directory (00044)"
         varchar headline "directory tagline (00044)"
         boolean public_profile_visible "opt-in future public tier, default false (00044)"
+        text profile_image_url "avatar URL (00003; re-ensured 00045 after dev drift)"
         text_array role_intents "NOT NULL DEFAULT {}"
         varchar agreement_version
         timestamptz agreement_accepted_at

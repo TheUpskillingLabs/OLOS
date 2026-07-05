@@ -106,6 +106,12 @@ export async function POST(request: NextRequest) {
       role_intents: body.role_intents,
       contact_consent: body.contact_consent,
       photo_video_consent: true,
+      // Seed the profile photo from the Google OAuth avatar so the directory
+      // has a face from day one; members can replace it in profile edit.
+      profile_image_url:
+        (user.user_metadata?.avatar_url as string | undefined) ||
+        (user.user_metadata?.picture as string | undefined) ||
+        null,
       agreement_version: body.agreement_version,
       agreement_accepted_at: new Date().toISOString(),
       is_test: !!testerGrant,

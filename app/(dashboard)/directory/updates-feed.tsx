@@ -95,7 +95,12 @@ export default async function UpdatesFeed({
       .eq("participants.is_staff", false);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  // Log a failed read rather than silently showing an empty feed (a 400 from a
+  // drifted column reads identically to "no updates" otherwise).
+  if (error) {
+    console.error("[updates-feed] profile_updates query failed:", error.message);
+  }
   const rows = (data ?? []) as unknown as UpdateRow[];
 
   return (

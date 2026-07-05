@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import NominateButton from "./nominate-button";
 import { ROLE_INTENT_LABELS } from "../profile/member-profile-view";
 import type { DirectoryMember } from "./page";
 
@@ -10,8 +9,8 @@ import type { DirectoryMember } from "./page";
  * The member directory grid — chip filter (All / Builders / Mentors /
  * Volunteers, from role_intents) + a name/metro search box, modeled on
  * participants-global-table + metro-search. Cards are `.card.tappable` teasers
- * linking to /u/[handle]; the Nominate ghost button stops the tap from
- * following the card link.
+ * (the same shape as the Luma event/resource cards): a square media thumbnail
+ * on top, then the body. Whole card links to /u/[handle].
  */
 
 const FILTERS: { key: string; label: string; intent?: string }[] = [
@@ -20,6 +19,11 @@ const FILTERS: { key: string; label: string; intent?: string }[] = [
   { key: "mentor", label: "Mentors", intent: "mentor" },
   { key: "volunteer", label: "Volunteers", intent: "volunteer" },
 ];
+
+// Placeholder gradients — reuse the teaser media gradients so a member without
+// a photo reads like the rest of the app's thumbnails. Picked deterministically
+// by id so the grid looks varied but stable across renders.
+const GRADS = ["m-teal", "m-forest", "m-navy"];
 
 export default function DirectoryGrid({
   members,
@@ -91,47 +95,26 @@ export default function DirectoryGrid({
 }
 
 function MemberCard({ member: m }: { member: DirectoryMember }) {
-  const href = m.handle ? `/u/${m.handle}` : null;
+  const href = m.handle ? `/u/${m.handle}` : "#";
   return (
-    // Stretched-link pattern: the whole card is tappable via an absolutely-
-    // positioned overlay <Link>, while the Nominate <button> sits above it
-    // (relative z-10). This keeps the button OUT of the anchor — React 19
-    // rejects a <button> nested inside an <a> as invalid nesting.
-    <div className="card tappable relative">
+    <Link className="card tappable" href={href}>
+      <MemberThumb member={m} />
       <div className="card-body">
-        <div className="flex items-start gap-3">
-          {m.profile_image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={m.profile_image_url}
-              alt={m.displayName}
-              className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-ink/10"
-            />
-          ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-deep text-sm font-bold text-white">
-              {m.firstInitial}
-              {m.lastInitial}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="t-h4 truncate text-ink">{m.displayName}</p>
-            {m.headline ? (
-              <p className="truncate text-sm font-medium text-teal-deep">
-                {m.headline}
-              </p>
-            ) : m.primary_expertise ? (
-              <p className="truncate text-sm text-charcoal">
-                {m.primary_expertise}
-              </p>
-            ) : null}
-            {m.metroName && (
-              <p className="mt-0.5 truncate text-xs text-meta">{m.metroName}</p>
-            )}
-          </div>
-        </div>
-
+        <div className="t-h4 truncate text-ink">{m.displayName}</div>
+        {m.headline ? (
+          <p className="mt-0.5 truncate text-sm font-medium text-teal-deep">
+            {m.headline}
+          </p>
+        ) : m.primary_expertise ? (
+          <p className="mt-0.5 truncate text-sm text-charcoal">
+            {m.primary_expertise}
+          </p>
+        ) : null}
+        {m.metroName && (
+          <p className="mt-0.5 truncate text-xs text-meta">{m.metroName}</p>
+        )}
         {(m.role_intents?.length ?? 0) > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {m.role_intents.map((r) => (
               <span
                 key={r}
@@ -142,20 +125,48 @@ function MemberCard({ member: m }: { member: DirectoryMember }) {
             ))}
           </div>
         )}
-
-        {/* Above the overlay link so it stays independently clickable. */}
-        <div className="relative z-10 mt-3 inline-flex">
-          <NominateButton nomineeName={m.displayName} />
-        </div>
       </div>
+    </Link>
+  );
+}
 
-      {href && (
-        <Link
-          href={href}
-          className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
-          aria-label={`View ${m.displayName}'s profile`}
+/**
+ * Square member thumbnail — the Luma teaser `MediaFrame` treatment: a cover
+ * photo when there's a profile image, otherwise a brand-gradient tile with the
+ * member's initials as the placeholder.
+ */
+function MemberThumb({ member: m }: { member: DirectoryMember }) {
+  if (m.profile_image_url) {
+    const src = /^https?:\/\//.test(m.profile_image_url)
+      ? m.profile_image_url
+      : `/${m.profile_image_url.replace(/^\//, "")}`;
+    return (
+      <div className="media sq">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt=""
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
         />
-      )}
+      </div>
+    );
+  }
+  const grad = GRADS[m.id % GRADS.length];
+  return (
+    <div
+      className={`media sq ${grad} flex items-center justify-center`}
+      aria-hidden
+    >
+      <span className="text-3xl font-bold tracking-tight text-white/95">
+        {m.firstInitial}
+        {m.lastInitial}
+      </span>
     </div>
   );
 }
