@@ -112,12 +112,20 @@ export const POST = withAdminAuth(
       );
     }
 
-    // Ensure cycle is active
-    await serviceClient
+    // Ensure cycle is active. A no-op when already active; when promoting a
+    // draft, the ≤1-active invariant (migration 00048) can reject it — surface
+    // that as a clear 409 rather than an unhandled 500.
+    const { error: activateError } = await serviceClient
       .from("cycles")
       .update({ status: "active" })
       .eq("id", cycleId)
       .eq("status", "draft");
+    if (activateError) {
+      return NextResponse.json(
+        { error: "Another cycle is already active. Close it before advancing this draft cycle." },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({
       previous_phase: currentActivePhase,

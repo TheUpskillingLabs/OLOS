@@ -45,6 +45,22 @@ export const PATCH = withAdminAuth(
       );
     }
 
+    // At most one active cycle at a time (migration 00048). Reject a second
+    // activation with a clear message instead of a raw unique-violation.
+    if (status === "active") {
+      const { count } = await auth.supabase
+        .from("cycles")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active")
+        .neq("id", cycleId);
+      if ((count ?? 0) > 0) {
+        return NextResponse.json(
+          { error: "Another cycle is already active. Close it before activating this one." },
+          { status: 409 }
+        );
+      }
+    }
+
     const { data, error } = await auth.supabase
       .from("cycles")
       .update({ status })
