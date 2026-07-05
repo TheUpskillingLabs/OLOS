@@ -26,10 +26,12 @@ const DESTS = [
 export default function PublicNav({
   signedIn,
   initials,
+  avatarUrl = null,
   overHero = false,
 }: {
   signedIn: boolean;
   initials: string | null;
+  avatarUrl?: string | null;
   overHero?: boolean;
 }) {
   const pathname = usePathname() || "";
@@ -62,8 +64,18 @@ export default function PublicNav({
             <Link className="nav-link pn-login" href="/dashboard">
               Home
             </Link>
-            <Link className="pg-avatar" href="/profile" aria-label="Your profile">
-              {initials || "U"}
+            <Link className="pg-avatar" href="/profile" aria-label="Your profile" style={avatarUrl ? { padding: 0, overflow: "hidden" } : undefined}>
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  className="block h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                initials || "U"
+              )}
             </Link>
           </span>
         ) : (

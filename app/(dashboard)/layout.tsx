@@ -27,7 +27,7 @@ export default async function DashboardLayout({
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, preferred_name, first_name, last_name, is_test")
+    .select("id, preferred_name, first_name, last_name, is_test, profile_image_url")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -113,11 +113,20 @@ export default async function DashboardLayout({
     ? `${participant.first_name[0]}${participant.last_name[0]}`
     : (user.email?.[0] ?? "?").toUpperCase();
 
+  // The site-wide avatar: the member's photo (uploaded or Google), falling back
+  // to the OAuth picture, then to initials in the chrome components.
+  const avatarUrl =
+    participant?.profile_image_url ||
+    (user.user_metadata?.avatar_url as string | undefined) ||
+    (user.user_metadata?.picture as string | undefined) ||
+    null;
+
   return (
     <div className="flex min-h-screen flex-col">
       <OrbDefs />
       <AppNav
         initials={initials}
+        avatarUrl={avatarUrl}
         displayName={displayName}
         isAdmin={adminUser}
         isModerator={moderatorUser}
@@ -127,7 +136,7 @@ export default async function DashboardLayout({
         isTest={!!participant?.is_test}
       />
       <main className="app-main container w-full flex-1 py-8">{children}</main>
-      <TabBar initials={initials} hasEnrollment={hasEnrollment} />
+      <TabBar initials={initials} avatarUrl={avatarUrl} hasEnrollment={hasEnrollment} />
       <FeedbackWidget />
     </div>
   );

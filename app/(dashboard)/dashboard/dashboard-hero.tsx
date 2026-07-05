@@ -14,12 +14,14 @@ export interface HeroStat {
 
 export default function DashboardHero({
   initials,
+  avatarUrl,
   eyebrow,
   greeting,
   lede,
   stats,
 }: {
   initials: string;
+  avatarUrl?: string | null;
   eyebrow: string;
   greeting: string;
   lede: string;
@@ -39,9 +41,20 @@ export default function DashboardHero({
       />
       <div className="app-cover-inner px-6 sm:px-10">
         <div className="flex flex-wrap items-center gap-5 sm:gap-7">
-          <div className="avatar-lg" aria-hidden>
-            {initials}
-          </div>
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              aria-hidden
+              referrerPolicy="no-referrer"
+              className="avatar-lg object-cover"
+            />
+          ) : (
+            <div className="avatar-lg" aria-hidden>
+              {initials}
+            </div>
+          )}
           <div className="min-w-[220px] flex-1">
             <div className="lbl lbl-teal mb-2">{eyebrow}</div>
             <h1 className="t-h1">{greeting}</h1>

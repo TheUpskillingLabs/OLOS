@@ -32,9 +32,11 @@ const DIRECTORY_SVG = (
 
 export default function TabBar({
   initials,
+  avatarUrl,
   hasEnrollment,
 }: {
   initials: string;
+  avatarUrl: string | null;
   hasEnrollment: boolean;
 }) {
   const pathname = usePathname() || "";
@@ -65,7 +67,18 @@ export default function TabBar({
         <span>Directory</span>
       </Link>
       <Link className={`tab${active("/profile")}`} id="tab-me" href="/profile">
-        <span className="tab-avatar">{initials}</span>
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="tab-avatar object-cover"
+            style={{ padding: 0 }}
+          />
+        ) : (
+          <span className="tab-avatar">{initials}</span>
+        )}
         <span>Me</span>
       </Link>
     </nav>
