@@ -181,6 +181,41 @@ export default async function DashboardPage() {
     }
   }
 
+  // The Learning Log is a personal journaling practice — available from the
+  // moment the account exists (owner decision). Journal mode when the member
+  // isn't an active cycle member; the weekly gate + pod health check only
+  // apply inside an active cycle. Rendered in every dashboard state below.
+  const inActiveCycle = state === "active";
+  const logSectionFor = (journal: boolean) => (
+    <section className="mb-8" id="learning-log">
+      <div className="mb-4">
+        <div className="lbl lbl-teal mb-1.5">
+          {journal ? "Your practice" : "Weekly practice"}
+        </div>
+        <h2 className="t-h3 text-ink">Your Learning Log</h2>
+      </div>
+      {!journal && logGate.active && (
+        <div
+          className="mb-4 rounded-card border border-red bg-red/5 px-5 py-4"
+          role="alert"
+          id="log-gate-banner"
+        >
+          <p className="font-semibold tracking-tight text-ink">
+            Your weekly Learning Log is due
+          </p>
+          <p className="mt-0.5 text-sm text-charcoal">
+            Save one below and everything unlocks the moment you do.
+          </p>
+        </div>
+      )}
+      <LearningLogCard
+        gateActive={!journal && logGate.active}
+        milestone={journal ? null : milestoneCtx}
+        journal={journal}
+      />
+    </section>
+  );
+
   // Empty state: no enrollment — the hero + a single join CTA card.
   if (state === "no_enrollment" && activeCycle) {
     return (
@@ -216,6 +251,7 @@ export default async function DashboardPage() {
             />
           </span>
         </Link>
+        <div className="mt-8">{logSectionFor(true)}</div>
       </div>
     );
   }
@@ -236,6 +272,7 @@ export default async function DashboardPage() {
           title="No cycle running right now"
           description="Check back soon for the next Build Cycle."
         />
+        <div className="mt-8">{logSectionFor(true)}</div>
       </div>
     );
   }
@@ -365,32 +402,11 @@ export default async function DashboardPage() {
           {/* Setup leads for a new member; collapses to a strip once done. */}
           {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
 
-          {/* The weekly Learning Log — the ritual lives on Home (Phase 1;
-              replaces the pulse-check CTA). The gate banner explains the lock;
-              saving a log below clears it instantly. */}
-          {state === "active" && (
-            <section className="mb-8" id="learning-log">
-              <div className="mb-4">
-                <div className="lbl lbl-teal mb-1.5">Weekly practice</div>
-                <h2 className="t-h3 text-ink">Your Learning Log</h2>
-              </div>
-              {logGate.active && (
-                <div
-                  className="mb-4 rounded-card border border-red bg-red/5 px-5 py-4"
-                  role="alert"
-                  id="log-gate-banner"
-                >
-                  <p className="font-semibold tracking-tight text-ink">
-                    Your weekly Learning Log is due
-                  </p>
-                  <p className="mt-0.5 text-sm text-charcoal">
-                    Save one below and everything unlocks the moment you do.
-                  </p>
-                </div>
-              )}
-              <LearningLogCard gateActive={logGate.active} milestone={milestoneCtx} />
-            </section>
-          )}
+          {/* The Learning Log — a personal journaling practice on Home (Phase
+              1; replaces the pulse-check CTA). Active cycle members get the
+              weekly ritual + gate + pod health check; everyone else journals
+              (journal mode). The gate banner + lock apply only inside a cycle. */}
+          {logSectionFor(!inActiveCycle)}
 
           {/* Interest submitted, pod window not yet open */}
           {state === "interest_submitted_window_closed" && activeCycleConfig && (

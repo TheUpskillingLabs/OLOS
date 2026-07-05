@@ -89,11 +89,16 @@ export interface MilestoneContext {
 export default function LearningLogCard({
   gateActive,
   milestone = null,
+  journal = false,
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
       framing, prefilled from the member's own logs (never a grade). */
   milestone?: MilestoneContext | null;
+  /** Journal mode: the member isn't an active cycle member, so this is a
+      personal diary — no pod health check, no gate, timeless prompts. The
+      practice is theirs from account creation; the cycle only adds cadence. */
+  journal?: boolean;
 }) {
   const pf = milestone?.prefill ?? null;
   const [clarity, setClarity] = useState(pf?.clarity ?? 3);
@@ -109,6 +114,17 @@ export default function LearningLogCard({
   const [justSaved, setJustSaved] = useState<null | { cleared: boolean }>(null);
   const [recent, setRecent] = useState<RecentLog[]>([]);
   const [count, setCount] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  const toggleExpanded = useCallback((id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const loadRecent = useCallback(async () => {
     try {
@@ -159,11 +175,17 @@ export default function LearningLogCard({
           ? "What are you taking with you from this cycle?"
           : "What’s your focus for the rest of the cycle?",
       ]
-    : [
-        "This week, I figured out…",
-        "I’m currently exploring…",
-        "Next week, my focus is…",
-      ];
+    : journal
+      ? [
+          "What did you figure out?",
+          "What are you exploring?",
+          "What’s your focus next?",
+        ]
+      : [
+          "This week, I figured out…",
+          "I’m currently exploring…",
+          "Next week, my focus is…",
+        ];
 
   async function save() {
     setBusy(true);
@@ -220,7 +242,9 @@ export default function LearningLogCard({
     >
       <div className="flex items-baseline justify-between">
         <div>
-          <p className="lbl">{milestone ? "Milestone" : "Weekly ritual"}</p>
+          <p className="lbl">
+            {journal ? "Journal" : milestone ? "Milestone" : "Weekly ritual"}
+          </p>
           <h2 className="t-h3 text-ink">
             {milestone ? milestone.label : "Learning Log"}
           </h2>
@@ -240,6 +264,14 @@ export default function LearningLogCard({
         </p>
       )}
 
+      {journal && (
+        <p className="mt-2 text-sm text-charcoal">
+          A running record of what you&apos;re learning — yours to keep and look
+          back on anytime. Join a Build Cycle and this becomes your weekly
+          check-in.
+        </p>
+      )}
+
       {justSaved && (
         <div
           className="mt-4 rounded-card border border-teal/40 bg-teal/5 px-4 py-3 text-sm font-semibold text-teal-deep"
@@ -249,46 +281,51 @@ export default function LearningLogCard({
         </div>
       )}
 
-      {/* Part 1 — health check (private) */}
-      <div className="mt-5 space-y-4">
-        <p className="text-xs text-meta">
-          This part stays between you, your Poderator, and admins. It never
-          gets shared.
-        </p>
-        <ScaleRow
-          label="Clarity on your next steps"
-          low="Foggy"
-          high="Crystal"
-          value={clarity}
-          onChange={setClarity}
-        />
-        <ScaleRow
-          label="Alignment with your pod"
-          low="Adrift"
-          high="In sync"
-          value={alignment}
-          onChange={setAlignment}
-        />
-        <label className="flex items-center gap-2 text-sm font-semibold text-ink">
-          <input
-            type="checkbox"
-            checked={blocked}
-            onChange={(e) => setBlocked(e.target.checked)}
-            className="h-4 w-4 accent-[var(--red)]"
+      {/* Part 1 — health check (private). Cycle practice only: it's the
+          pod-support instrument (clarity + pod alignment + blocked → the
+          Poderator). A solo journaler has no pod, so journal mode drops it
+          and keeps the reflection. */}
+      {!journal && (
+        <div className="mt-5 space-y-4">
+          <p className="text-xs text-meta">
+            This part stays between you, your Poderator, and admins. It never
+            gets shared.
+          </p>
+          <ScaleRow
+            label="Clarity on your next steps"
+            low="Foggy"
+            high="Crystal"
+            value={clarity}
+            onChange={setClarity}
           />
-          I’m currently blocked
-        </label>
-        {blocked && (
-          <textarea
-            value={blockerContext}
-            onChange={(e) => setBlockerContext(e.target.value)}
-            placeholder="What do you need?"
-            rows={2}
-            maxLength={2000}
-            className="w-full rounded-card border border-ink/15 p-3 text-base"
+          <ScaleRow
+            label="Alignment with your pod"
+            low="Adrift"
+            high="In sync"
+            value={alignment}
+            onChange={setAlignment}
           />
-        )}
-      </div>
+          <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+            <input
+              type="checkbox"
+              checked={blocked}
+              onChange={(e) => setBlocked(e.target.checked)}
+              className="h-4 w-4 accent-[var(--red)]"
+            />
+            I’m currently blocked
+          </label>
+          {blocked && (
+            <textarea
+              value={blockerContext}
+              onChange={(e) => setBlockerContext(e.target.value)}
+              placeholder="What do you need?"
+              rows={2}
+              maxLength={2000}
+              className="w-full rounded-card border border-ink/15 p-3 text-base"
+            />
+          )}
+        </div>
+      )}
 
       {/* Part 2 — scaffolded reflection */}
       <div className="mt-6 space-y-4">
@@ -346,34 +383,105 @@ export default function LearningLogCard({
         {busy ? "Saving…" : milestone ? "Save review" : "Save log"}
       </button>
 
+      {/* Your record — every past entry, readable in place (review, don't
+          re-derive). Tap a row to open the full reflection. */}
       {recent.length > 0 && (
         <div className="mt-6 border-t border-ink/10 pt-4">
-          <p className="lbl mb-2">Recent logs</p>
-          <ul className="space-y-2">
-            {recent.slice(0, 5).map((log) => (
-              <li key={log.id} className="flex items-center gap-3 text-sm">
-                <span className="text-meta">
-                  {new Date(log.created_at).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-                <span className="truncate text-charcoal">
-                  {log.accomplished || log.exploring || log.next_focus || "Health check"}
-                </span>
-                {log.is_blocked && (
-                  <span className="flex-shrink-0 text-xs font-semibold text-red">
-                    blocked
-                  </span>
-                )}
-                {log.share_publicly && (
-                  <span className="flex-shrink-0 text-xs text-teal-deep">
-                    shared
-                  </span>
-                )}
-              </li>
-            ))}
+          <p className="lbl mb-2">{journal ? "Your journal" : "Your logs"}</p>
+          <ul className="space-y-1.5">
+            {(showAll ? recent : recent.slice(0, 5)).map((log) => {
+              const open = expanded.has(log.id);
+              const summary =
+                log.accomplished ||
+                log.exploring ||
+                log.next_focus ||
+                "Health check";
+              const hasBody =
+                !!(log.accomplished || log.exploring || log.next_focus);
+              return (
+                <li
+                  key={log.id}
+                  className="overflow-hidden rounded-card border border-ink/10"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(log.id)}
+                    aria-expanded={open}
+                    className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-150 hover:bg-ink/[0.02]"
+                  >
+                    <span className="flex-shrink-0 text-meta tabular-nums">
+                      {new Date(log.created_at).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-charcoal">
+                      {summary}
+                    </span>
+                    {log.is_blocked && (
+                      <span className="flex-shrink-0 text-xs font-semibold text-red">
+                        blocked
+                      </span>
+                    )}
+                    {log.share_publicly && (
+                      <span className="flex-shrink-0 text-xs text-teal-deep">
+                        shared
+                      </span>
+                    )}
+                    <span aria-hidden className="flex-shrink-0 text-meta">
+                      {open ? "–" : "+"}
+                    </span>
+                  </button>
+                  {open && (
+                    <div className="space-y-1.5 border-t border-ink/10 px-3 py-2.5 text-sm text-charcoal">
+                      {log.accomplished && (
+                        <p>
+                          <span className="font-semibold text-ink">
+                            Figured out:
+                          </span>{" "}
+                          {log.accomplished}
+                        </p>
+                      )}
+                      {log.exploring && (
+                        <p>
+                          <span className="font-semibold text-ink">
+                            Exploring:
+                          </span>{" "}
+                          {log.exploring}
+                        </p>
+                      )}
+                      {log.next_focus && (
+                        <p>
+                          <span className="font-semibold text-ink">Next:</span>{" "}
+                          {log.next_focus}
+                        </p>
+                      )}
+                      {!hasBody && (
+                        <p className="text-meta">
+                          No written reflection on this one.
+                        </p>
+                      )}
+                      {!journal && (
+                        <p className="text-xs text-meta">
+                          Clarity {log.clarity}/5 · Alignment {log.alignment}/5
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
+          {recent.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-2 text-sm font-semibold text-teal-deep hover:underline"
+            >
+              {showAll ? "Show less" : `Show all ${recent.length}`}
+            </button>
+          )}
         </div>
       )}
     </section>
