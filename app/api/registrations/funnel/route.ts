@@ -5,6 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration";
 import { metroFromZip } from "@/lib/metros";
+import { getRecruitingCycle } from "@/lib/cycle/active";
 import { fulfillInvitation } from "@/lib/auth/invitations";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
 import {
@@ -133,22 +134,19 @@ export async function POST(request: NextRequest) {
   // The funnel always writes real names, so no placeholder guard is needed.
   await fulfillInvitation(supabase, participant.id, body.email, false);
 
-  // Registration confirmation — include the cycle CTA only when an active
-  // cycle's registration window is open (same logic as the short route).
+  // Registration confirmation — point a new signup at the RECRUITING cohort
+  // (the upcoming cycle if one is open, else the active one — SECTOR_MODEL §8),
+  // and only when its registration window is open.
   let emailCycleName: string | null = null;
   let emailCycleJoinUrl: string | null = null;
 
-  const { data: activeCycle } = await supabase
-    .from("cycles")
-    .select("id, name")
-    .eq("status", "active")
-    .maybeSingle();
+  const recruitingCycle = await getRecruitingCycle(supabase);
 
-  if (activeCycle) {
+  if (recruitingCycle) {
     const { data: config } = await supabase
       .from("cycle_config")
       .select("pod_registration_open, pod_registration_close")
-      .eq("cycle_id", activeCycle.id)
+      .eq("cycle_id", recruitingCycle.id)
       .maybeSingle();
 
     const now = new Date();
@@ -159,8 +157,8 @@ export async function POST(request: NextRequest) {
       now <= new Date(config.pod_registration_close);
 
     if (isOpen) {
-      emailCycleName = activeCycle.name;
-      emailCycleJoinUrl = `${appUrl}/cycles/${activeCycle.id}/join`;
+      emailCycleName = recruitingCycle.name;
+      emailCycleJoinUrl = `${appUrl}/cycles/${recruitingCycle.id}/join`;
     }
   }
 
@@ -190,8 +188,8 @@ export async function POST(request: NextRequest) {
       participant_id: participant.id,
       created_at: participant.created_at,
       // The funnel's role branch: picking "Join a Cycle" routes into the
-      // cycle registration ceremony when a cycle is open.
-      active_cycle_id: activeCycle?.id ?? null,
+      // cycle registration ceremony for the recruiting cohort when one is open.
+      active_cycle_id: recruitingCycle?.id ?? null,
     },
     { status: 201 }
   );

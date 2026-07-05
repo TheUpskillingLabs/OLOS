@@ -3,16 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const NEXT_STATUS: Record<string, string | null> = {
-  draft: "active",
-  active: "closed",
-  closed: null,
+// Mirror the API's cycle lifecycle (SECTOR_MODEL.md §4):
+// draft → upcoming → active → closing → archived ('closed' = legacy terminal).
+const NEXT_STATUSES: Record<string, string[]> = {
+  draft: ["upcoming", "active"],
+  upcoming: ["active"],
+  active: ["closing", "closed"],
+  closing: ["archived"],
 };
 
 const BUTTON_LABELS: Record<string, string> = {
-  active: "Activate Cycle",
-  closed: "Close Cycle",
+  upcoming: "Open for recruiting",
+  active: "Activate",
+  closing: "Begin closing",
+  archived: "Archive to sector",
+  closed: "Close (legacy)",
 };
+
+const IRREVERSIBLE = new Set(["closed", "archived"]);
 
 export default function CycleStatusForm({
   cycleId,
@@ -21,30 +29,29 @@ export default function CycleStatusForm({
   cycleId: number;
   currentStatus: string;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const nextStatus = NEXT_STATUS[currentStatus] ?? null;
+  const nextOptions = NEXT_STATUSES[currentStatus] ?? [];
 
-  async function advance() {
-    if (!nextStatus) return;
+  async function advance(next: string) {
     if (
       !confirm(
-        `Advance cycle status to "${nextStatus}"? ${nextStatus === "closed" ? "This cannot be undone." : ""}`
+        `Advance cycle status to "${next}"?${IRREVERSIBLE.has(next) ? " This cannot be undone." : ""}`
       )
     )
       return;
 
-    setLoading(true);
+    setLoading(next);
     setError(null);
 
     const res = await fetch(`/api/cycles/${cycleId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
+      body: JSON.stringify({ status: next }),
     });
 
-    setLoading(false);
+    setLoading(null);
     if (res.ok) {
       router.refresh();
     } else {
@@ -61,7 +68,7 @@ export default function CycleStatusForm({
           className={`status ${
             currentStatus === "active"
               ? "active"
-              : currentStatus === "closed"
+              : currentStatus === "closed" || currentStatus === "archived"
                 ? ""
                 : "soon"
           }`}
@@ -70,21 +77,22 @@ export default function CycleStatusForm({
         </span>
       </span>
 
-      {nextStatus ? (
-        <button
-          onClick={advance}
-          disabled={loading}
-          className={`btn px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
-            nextStatus === "closed"
-              ? "btn-red"
-              : "btn-teal"
-          }`}
-        >
-          {loading ? "Updating…" : BUTTON_LABELS[nextStatus]}
-        </button>
+      {nextOptions.length > 0 ? (
+        nextOptions.map((next) => (
+          <button
+            key={next}
+            onClick={() => advance(next)}
+            disabled={loading !== null}
+            className={`btn px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
+              IRREVERSIBLE.has(next) ? "btn-red" : "btn-teal"
+            }`}
+          >
+            {loading === next ? "Updating…" : (BUTTON_LABELS[next] ?? next)}
+          </button>
+        ))
       ) : (
         <span className="text-sm text-meta">
-          Cycle is closed — no further transitions.
+          Cycle is {currentStatus} — no further transitions.
         </span>
       )}
 
