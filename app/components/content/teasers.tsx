@@ -1,22 +1,30 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import Orb from "@/app/components/chrome/orb";
 import { fmtDate, CONTENT_TYPE_LABEL } from "@/lib/content/format";
 import type { EventRow, ResourceRow, MetroRow } from "@/lib/content/queries";
 
 /* Teaser cards — every card is the metadata for its real page (owner
    decision: cards are teasers; no accordion expansion on browse cards).
-   Ported from onboarding-proto's eventTeaser/resourceTeaser/labTeaser. */
+   Ported from onboarding-proto's eventTeaser/resourceTeaser/labTeaser.
+
+   `corner` is an optional overlay slot on the media frame (top-right) — the
+   authed /learning page slots a SaveButton there. It's rendered inside the
+   card's <Link>, so an interactive corner must stop its own click from
+   navigating (SaveButton does). Public pages pass nothing → no overlay. */
 
 export function MediaFrame({
   img,
   grad,
   tag,
   square,
+  corner,
 }: {
   img?: string | null;
   grad?: string | null;
   tag?: string | null;
   square?: boolean;
+  corner?: ReactNode;
 }) {
   const sq = square ? " sq" : "";
   if (img) {
@@ -29,6 +37,7 @@ export function MediaFrame({
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
         />
         {tag && <div className="m-tag">{tag}</div>}
+        {corner}
       </div>
     );
   }
@@ -36,11 +45,18 @@ export function MediaFrame({
     <div className={`media${sq} ${grad || "m-teal"}`}>
       <Orb />
       {tag && <div className="m-tag">{tag}</div>}
+      {corner}
     </div>
   );
 }
 
-export function EventTeaser({ event: e }: { event: EventRow }) {
+export function EventTeaser({
+  event: e,
+  corner,
+}: {
+  event: EventRow;
+  corner?: ReactNode;
+}) {
   return (
     <Link className="card tappable" href={`/events/${e.slug}`}>
       <MediaFrame
@@ -48,6 +64,7 @@ export function EventTeaser({ event: e }: { event: EventRow }) {
         grad={e.grad}
         tag={e.kind || (e.location_type === "virtual" ? "Virtual" : "In person")}
         square
+        corner={corner}
       />
       <div className="card-body">
         <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
@@ -61,11 +78,17 @@ export function EventTeaser({ event: e }: { event: EventRow }) {
   );
 }
 
-export function ResourceTeaser({ resource: r }: { resource: ResourceRow }) {
+export function ResourceTeaser({
+  resource: r,
+  corner,
+}: {
+  resource: ResourceRow;
+  corner?: ReactNode;
+}) {
   const typeLabel = CONTENT_TYPE_LABEL[r.content_type] || "Guide";
   return (
     <Link className="card tappable" href={`/library/${r.slug}`}>
-      <MediaFrame img={r.img} grad={r.grad} tag={typeLabel} square />
+      <MediaFrame img={r.img} grad={r.grad} tag={typeLabel} square corner={corner} />
       <div className="card-body">
         <div className="lbl lbl-teal">{r.meta || ""}</div>
         <div className="t-h4" style={{ margin: "6px 0 4px" }}>

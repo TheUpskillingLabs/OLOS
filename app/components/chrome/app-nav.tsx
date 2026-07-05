@@ -107,6 +107,13 @@ export default function AppNav({
               </Link>
             )}
             <Link
+              className={`nav-link${isActive(pathname, "/learning") ? " active" : ""}`}
+              id="nav-learning"
+              href="/learning"
+            >
+              Learning
+            </Link>
+            <Link
               className={`nav-link${isActive(pathname, "/directory") ? " active" : ""}`}
               id="nav-directory"
               href="/directory"
