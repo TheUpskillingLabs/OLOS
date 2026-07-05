@@ -6,6 +6,8 @@ import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { dbError } from "@/lib/api/errors";
 import { participantsUpdateSchema } from "@/lib/validations/participants-update";
+import { createServiceClient } from "@/lib/supabase/server";
+import { metroFromZip } from "@/lib/metros";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -88,32 +90,103 @@ export const PATCH = withAuth(
     const body = await parseBody(request, participantsUpdateSchema);
     if (isErrorResponse(body)) return body;
 
-    if (Object.keys(body).length === 0) {
+    // `options` isn't a participants column — it reconciles participant_options
+    // rows separately. Everything else maps 1:1 to a column.
+    const { options, ...cols } = body;
+
+    // Editing the ZIP re-derives the local lab, exactly as signup does.
+    if (typeof cols.zip === "string" && cols.zip) {
+      const metro = await metroFromZip(cols.zip);
+      (cols as Record<string, unknown>).metro_slug = metro.slug;
+    }
+
+    const hasCols = Object.keys(cols).length > 0;
+    const hasOptions = !!options && Object.keys(options).length > 0;
+    if (!hasCols && !hasOptions) {
       return NextResponse.json(
         { error: "No fields to update" },
         { status: 400 }
       );
     }
 
-    const { data, error } = await auth.supabase
-      .from("participants")
-      .update(body)
-      .eq("id", targetId)
-      .select("id, first_name, last_name, preferred_name, email, handle, headline, bio")
-      .single();
+    let updated: unknown = null;
+    if (hasCols) {
+      const { data, error } = await auth.supabase
+        .from("participants")
+        .update(cols)
+        .eq("id", targetId)
+        .select("id, first_name, last_name, preferred_name, email, handle, headline, bio")
+        .single();
 
-    if (error) {
-      // Unique-violation on the case-insensitive handle index → a clean 409
-      // rather than a generic 500 (the profile editor surfaces this inline).
-      if (error.code === "23505") {
-        return NextResponse.json(
-          { error: "That handle is already taken." },
-          { status: 409 }
-        );
+      if (error) {
+        // Unique-violation on the case-insensitive handle index → a clean 409
+        // rather than a generic 500 (the profile editor surfaces this inline).
+        if (error.code === "23505") {
+          return NextResponse.json(
+            { error: "That handle is already taken." },
+            { status: 409 }
+          );
+        }
+        return dbError(error, "patch-participant");
       }
-      return dbError(error, "patch-participant");
+      updated = data;
     }
 
-    return NextResponse.json(data);
+    if (hasOptions) {
+      const err = await reconcileParticipantOptions(
+        targetId,
+        options as Record<string, number[] | undefined>
+      );
+      if (err) return err;
+    }
+
+    return NextResponse.json(updated ?? { ok: true });
   }
 );
+
+/**
+ * Reconcile the participant_options multiselects. For each provided list we
+ * clear the participant's existing selections in that list and insert the new
+ * ones — but only option ids that genuinely belong to the list, so a tampered
+ * body can't attach arbitrary option rows. Service role: application-layer
+ * authz (isSelf || isAdmin) already ran in the handler.
+ */
+async function reconcileParticipantOptions(
+  participantId: number,
+  options: Record<string, number[] | undefined>
+): Promise<NextResponse | null> {
+  const service = createServiceClient();
+  const lists = Object.keys(options);
+
+  const { data: valid, error: vErr } = await service
+    .from("option_lists")
+    .select("id, list_name")
+    .in("list_name", lists);
+  if (vErr) return dbError(vErr, "options-lookup");
+
+  const idsByList: Record<string, number[]> = {};
+  for (const r of valid ?? []) (idsByList[r.list_name] ??= []).push(r.id);
+
+  for (const list of lists) {
+    const listIds = idsByList[list] ?? [];
+    if (listIds.length === 0) continue;
+    const selected = (options[list] ?? []).filter((id) => listIds.includes(id));
+
+    const { error: delErr } = await service
+      .from("participant_options")
+      .delete()
+      .eq("participant_id", participantId)
+      .in("option_id", listIds);
+    if (delErr) return dbError(delErr, "options-clear");
+
+    if (selected.length) {
+      const { error: insErr } = await service
+        .from("participant_options")
+        .insert(
+          selected.map((option_id) => ({ participant_id: participantId, option_id }))
+        );
+      if (insErr) return dbError(insErr, "options-set");
+    }
+  }
+  return null;
+}
