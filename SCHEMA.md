@@ -42,6 +42,8 @@ flowchart TD
 
 > `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default 6 / 12) are the admin-editable cycle weeks the mid/end-cycle milestone Learning Logs open on. They drive `learning_logs.kind` = `milestone_7` / `milestone_13` (opaque legacy IDs from the old 13-week model, surfaced in the UI as "Mid-cycle" / "End-cycle"); the API server-derives which `kind` to write from the current cycle week against these values, else `weekly`. `log_due_at` / `log_gate_paused` (migration `00040`) are the weekly-gate stamp + grace toggle.
 
+> **At most one `active` cycle at a time** — the `one_active_cycle` partial unique index (migration `00048`) enforces the house invariant every `.eq('status','active').maybeSingle()` read assumes (home, funnel, learning-log gate). The two cycle-activation paths (`/api/cycles/[id]/status`, `/api/cycles/[id]/advance-phase`) return a clear 409 instead of a raw unique-violation. Forward-compatible groundwork for `docs/SECTOR_MODEL.md` Phase A (which adds a sibling ≤1-`upcoming` index; until then a not-yet-started next cohort sits in `draft`).
+
 ```mermaid
 erDiagram
     cycles {
