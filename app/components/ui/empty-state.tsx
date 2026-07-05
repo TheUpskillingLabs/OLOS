@@ -16,7 +16,7 @@ export function EmptyState({
 }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-card border border-dashed border-meta-soft p-12 text-center ${className ?? ""}`}
+      className={`flex flex-col justify-center rounded-card border border-dashed border-meta-soft p-12 ${className ?? ""}`}
     >
       {Icon && <Icon className="mb-4 h-12 w-12 text-meta-soft" aria-hidden />}
       <h3 className="t-h4 mb-2">{title}</h3>

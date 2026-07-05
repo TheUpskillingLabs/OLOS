@@ -310,7 +310,7 @@ export function RosterTable({
             {visible.length === 0 && (
               <tr className="border-t border-ink/10">
                 <td
-                  className="px-4 py-6 text-center text-meta"
+                  className="px-4 py-6 text-meta"
                   colSpan={5}
                 >
                   No members match the current filter.

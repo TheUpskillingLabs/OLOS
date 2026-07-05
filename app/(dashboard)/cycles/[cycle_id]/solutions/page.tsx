@@ -105,7 +105,7 @@ export default async function SolutionsPage({
       </div>
 
       {!tabVisible ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             Project submission is not currently open.
           </p>
@@ -122,7 +122,7 @@ export default async function SolutionsPage({
           )}
         </div>
       ) : myPods.length === 0 ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             You are not a member of any pods in this cycle.
           </p>

@@ -88,7 +88,7 @@ export default async function RegisterPodsPage({
           </div>
         </>
       ) : (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             Pod registration is not currently open.
           </p>

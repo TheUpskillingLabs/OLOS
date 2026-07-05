@@ -346,7 +346,7 @@ export default function InvitationsTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-meta">
+                <td colSpan={6} className="px-4 py-8 text-sm text-meta">
                   No invitations match your filter.
                 </td>
               </tr>

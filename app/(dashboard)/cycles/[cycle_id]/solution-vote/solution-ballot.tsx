@@ -220,7 +220,7 @@ export default function SolutionBallot({
           Loading projects...
         </div>
       ) : proposals.length === 0 ? (
-        <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+        <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
           <p className="text-sm text-meta">
             No projects have been submitted in this pod.
           </p>

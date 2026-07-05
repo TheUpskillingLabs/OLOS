@@ -171,11 +171,11 @@ export default function ProposeForm({
 
   if (submitted) {
     return (
-      <div className="rounded-card border border-teal/30 bg-teal/10 p-8 text-center">
+      <div className="rounded-card border border-teal/30 bg-teal/10 p-8">
         <h2 className="t-h3 text-ink">
           Proposal submitted
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-charcoal">
+        <p className="mt-3 max-w-lg text-sm leading-relaxed text-charcoal">
           Your proposal enters the Open Cycle queue. At the start of each cycle,
           active participants vote during Phase 1 to build a shortlist. If your
           proposal makes the shortlist, it opens for registration. Research pods

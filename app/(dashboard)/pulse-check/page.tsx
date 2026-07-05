@@ -32,7 +32,7 @@ export default async function PulseCheckPage() {
 
   if (!participantId) {
     return (
-      <div className="mx-auto max-w-2xl py-10 text-center text-sm text-slate">
+      <div className="mx-auto max-w-2xl py-10 text-sm text-slate">
         {copy.page.notRegistered}
       </div>
     );

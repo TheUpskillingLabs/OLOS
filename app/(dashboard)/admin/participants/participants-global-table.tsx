@@ -197,7 +197,7 @@ export default function ParticipantsGlobalTable({
               <tr>
                 <td
                   colSpan={7}
-                  className="px-4 py-8 text-center text-sm text-meta"
+                  className="px-4 py-8 text-sm text-meta"
                 >
                   No participants match your search.
                 </td>

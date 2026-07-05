@@ -219,7 +219,7 @@ export default function RsvpButton({
               </p>
             </div>
           ) : (
-            <div style={{ textAlign: "center", padding: "12px 0" }}>
+            <div style={{ padding: "12px 0" }}>
               <h3 className="t-h3" style={{ marginBottom: 8 }}>
                 Spot saved ✓
               </h3>
