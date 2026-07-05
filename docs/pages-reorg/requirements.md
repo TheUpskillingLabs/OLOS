@@ -17,6 +17,7 @@ Legend: 🐛 bug · ✳️ net-new feature dependency · ⚠️ open decision.
 | 2026-07-05 | **Joining windows (R6):** a would-be participant has **three sequential joining slots** — cycle join/agreement → pod registration → project registration. Open/closed/past logic evaluates against these in order. |
 | 2026-07-05 | **Main nav (R9):** becomes **Home · Cycle · Library · Events · Directory**. Library, Events, Directory are net-new (**stubbed** targets this reorg). |
 | 2026-07-05 | **New-joiner home (R10):** composed of welcome + CTAs → checklist → one preview section per nav destination (Build/Events/Learn/Directory) → quick links. Past cycles never shown on Home. |
+| 2026-07-05 | **Pulse Check placement (R9):** not a standalone nav item. Surfaced on the **Cycle page and Home page**; a **late/overdue banner** appears app-wide when a check is due. |
 
 ---
 
@@ -296,14 +297,16 @@ enrollment-gated).
 **Depends on:** ✳️ Directory (R4/R5), ✳️ Learning Library (R8), and ✳️ **Events**
 — a third net-new surface introduced here (event list + detail). All stubbed.
 
-⚠️ **Open — Pulse Check placement.** The new nav omits Pulse Check. Pulse Check
-is a hard enforcement gate today (overdue → locked). Decide where it lives:
-surfaced on the Cycle page, a persistent banner/badge, the avatar menu, or a
-gated nav item that only appears when a check is due. It cannot simply disappear
-while enforcement is active.
+**Pulse Check placement (decided).** Not a standalone nav item. Instead:
+- Surfaced as a section/CTA on the **Cycle page** and the **Home page**.
+- A **late/overdue banner** appears (app-wide) when a check is due — reusing the
+  existing enforcement states (`warning_3day` / `warning_1day` / `overdue`).
+- The existing hard-lock behavior (overdue → routed to the pulse-check flow)
+  remains intact; only its nav entry point changes.
 
 **Affected:** `app/components/chrome/app-nav.tsx`,
-`app/components/chrome/tab-bar.tsx` (mobile), `app/(dashboard)/layout.tsx`.
+`app/components/chrome/tab-bar.tsx` (mobile), `app/(dashboard)/layout.tsx`
+(banner), `app/(dashboard)/dashboard/page.tsx` + cycle page (pulse section).
 
 ---
 
@@ -384,20 +387,17 @@ joining-window definition → three sequential slots.
    the "checklist view" and Home's second block.
 2. **Slack link format (R7):** deep-link format + source of the team/workspace
    ID. And: show the GitHub repo link too, or Drive/Slack/Group only?
-3. **Pulse Check placement (R9):** the new nav drops Pulse Check — where does it
-   live given it's an active enforcement gate? (Cycle page / banner / avatar
-   menu / conditional nav item.)
-4. **Registered-member Home (R10):** R10 specifies only the new-joiner Home.
+3. **Registered-member Home (R10):** R10 specifies only the new-joiner Home.
    What does Home look like for an already-registered/active member?
 
 **Deferred to their own workstreams (stubbed here):**
 
-5. **"Get a reminder" mechanism (R6):** email/notification opt-in vs. UI-only.
-6. **"Next cycle" (R6):** how a future cycle + its registration window are
+4. **"Get a reminder" mechanism (R6):** email/notification opt-in vs. UI-only.
+5. **"Next cycle" (R6):** how a future cycle + its registration window are
    modeled and surfaced.
-7. **Directory (R4/R5/R9/R10):** full feature scope, visibility tiers,
+6. **Directory (R4/R5/R9/R10):** full feature scope, visibility tiers,
    filter/URL contract, current-cycle preview data.
-8. **Learning Library (R8/R9/R10):** in-app route vs. external link vs. existing
+7. **Learning Library (R8/R9/R10):** in-app route vs. external link vs. existing
    doc; Build Cycle explainer source; resource-preview data.
-9. **Events (R9/R10):** event list + detail feature; source of the "next 3
+8. **Events (R9/R10):** event list + detail feature; source of the "next 3
    events" preview data.
