@@ -40,7 +40,7 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, email, first_name, last_name, preferred_name")
+    .select("id, email, first_name, last_name, preferred_name, headline, bio, handle")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -74,7 +74,8 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
           )}
           {!required && (
             <p className="mt-2 text-sm text-slate">
-              Update your name and how you&apos;d like to be addressed.
+              Update your name, how you&apos;d like to be addressed, and your
+              directory profile.
             </p>
           )}
         </header>
@@ -85,6 +86,9 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
             first_name: participant.first_name ?? "",
             last_name: participant.last_name ?? "",
             preferred_name: participant.preferred_name ?? "",
+            headline: participant.headline ?? "",
+            bio: participant.bio ?? "",
+            handle: participant.handle ?? "",
           }}
           required={required}
           nextPath={nextPath}

@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FormField, Input } from "@/app/components/ui/form";
+import { FormField, Input, Textarea } from "@/app/components/ui/form";
+import { HANDLE_RE } from "@/lib/participants/handle";
 
 // Form-side schema: stricter than the API's partial-update schema because
 // the form always submits all three whitelisted fields. The API accepts
@@ -26,6 +27,20 @@ const formSchema = z.object({
   first_name: nameField,
   last_name: nameField,
   preferred_name: z.string().max(100).optional().or(z.literal("")),
+  // Directory profile (Phase 2). Empty is allowed on the client — an empty
+  // handle is omitted from the PATCH so the DB keeps the existing one; empty
+  // bio/headline send null to clear. A non-empty handle must be url-safe;
+  // uniqueness is enforced server-side (409 surfaced inline).
+  headline: z.string().max(200, "Too long").optional().or(z.literal("")),
+  bio: z.string().max(2000, "Too long").optional().or(z.literal("")),
+  handle: z
+    .string()
+    .max(50, "Too long")
+    .refine((s) => s === "" || HANDLE_RE.test(s), {
+      message: "Use lowercase letters, numbers, and dashes",
+    })
+    .optional()
+    .or(z.literal("")),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -36,6 +51,9 @@ interface Props {
     first_name: string;
     last_name: string;
     preferred_name: string;
+    headline: string;
+    bio: string;
+    handle: string;
   };
   required: boolean;
   nextPath: string;
@@ -81,7 +99,16 @@ export default function ProfileEditForm({
       preferred_name: values.preferred_name?.trim()
         ? values.preferred_name.trim()
         : null,
+      // bio/headline are nullable — empty clears them.
+      headline: values.headline?.trim() ? values.headline.trim() : null,
+      bio: values.bio?.trim() ? values.bio.trim() : null,
     };
+
+    // handle is NOT NULL in the DB (auto-generated). Only send it when the
+    // user typed one, so clearing the field keeps their existing handle
+    // rather than failing the min-length check.
+    const handle = values.handle?.trim();
+    if (handle) body.handle = handle;
 
     const res = await fetch(`/api/participants/${participantId}`, {
       method: "PATCH",
@@ -160,6 +187,62 @@ export default function ProfileEditForm({
             {...register("preferred_name")}
           />
         </FormField>
+
+        {/* Directory profile — only on the voluntary edit path. Mode B (forced
+            name completion) stays a single-purpose interstitial. */}
+        {!required && (
+          <div className="space-y-5 border-t border-ink/10 pt-5">
+            <p className="lbl">Directory profile</p>
+
+            <FormField
+              name="headline"
+              label="Headline"
+              helper="One line under your name in the directory (e.g. “Frontend dev learning AI in practice”)."
+              htmlFor="headline"
+            >
+              <Input
+                id="headline"
+                type="text"
+                maxLength={200}
+                invalid={!!errors.headline}
+                {...register("headline")}
+              />
+            </FormField>
+
+            <FormField
+              name="bio"
+              label="About"
+              helper="A short intro shown on your profile. Optional."
+              htmlFor="bio"
+            >
+              <Textarea
+                id="bio"
+                rows={4}
+                maxLength={2000}
+                invalid={!!errors.bio}
+                {...register("bio")}
+              />
+            </FormField>
+
+            <FormField
+              name="handle"
+              label="Profile URL"
+              helper="Your directory address: /u/your-handle. Lowercase letters, numbers, and dashes."
+              htmlFor="handle"
+            >
+              <Input
+                id="handle"
+                type="text"
+                inputMode="url"
+                autoCapitalize="none"
+                spellCheck={false}
+                maxLength={50}
+                invalid={!!errors.handle}
+                {...register("handle")}
+              />
+            </FormField>
+          </div>
+        )}
 
         {serverError && (
           <p className="rounded-card border border-red/30 bg-red/10 px-3 py-2 text-sm text-red">

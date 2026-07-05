@@ -115,6 +115,11 @@ erDiagram
         varchar referred_by
         varchar zip
         varchar metro_slug
+        int metro_id FK "→ metros(id), normalizes metro_slug (00044)"
+        varchar handle UK "url-safe, auto-gen + editable (00044)"
+        text bio "directory (00044)"
+        varchar headline "directory tagline (00044)"
+        boolean public_profile_visible "opt-in future public tier, default false (00044)"
         text_array role_intents "NOT NULL DEFAULT {}"
         varchar agreement_version
         timestamptz agreement_accepted_at
