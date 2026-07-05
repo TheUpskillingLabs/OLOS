@@ -276,6 +276,14 @@ function AvatarMenu({
           >
             Profile
           </Link>
+          <Link
+            className="menu-item"
+            role="menuitem"
+            href="/profile/edit"
+            onClick={() => setOpen(false)}
+          >
+            Edit profile
+          </Link>
           {canViewAs && (
             <>
               <div className="menu-rule" />
