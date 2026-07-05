@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import MemberProfileView from "../../profile/member-profile-view";
 import UpdatesFeed from "../../directory/updates-feed";
-import NominateButton from "../../directory/nominate-button";
 
 /**
  * /u/[handle] — a member's public-to-members profile (visitor mode).
@@ -93,7 +92,6 @@ export default async function MemberProfilePage({
           cycle_name: (cycle?.name as string) ?? null,
         };
       })}
-      nominateSlot={<NominateButton nomineeName={displayName} variant="secondary" />}
       updatesSlot={
         <UpdatesFeed
           participantId={member.id}

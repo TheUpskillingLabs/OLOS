@@ -2,8 +2,6 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { can, isAdmin } from "@/lib/auth/roles";
-import { parseBody, isErrorResponse } from "@/lib/api/request";
-import { nominationSchema } from "@/lib/validations/nominations";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
@@ -51,47 +49,5 @@ export const GET = withAuth(
     const { data, error } = await query;
     if (error) return dbError(error);
     return NextResponse.json(data);
-  }
-);
-
-/**
- * POST /api/nominations
- *
- * A member nominates someone (a peer for mentor/advisor, or an outsider worth
- * inviting). This is the directory-card / visitor-profile "Nominate" target —
- * standalone, decoupled from the pulse-check bundle.
- *
- * The insert runs through the cookie-bound client so RLS's insert-own policy
- * (migration 00017: `participant_id = current_participant_id()`) fires: the
- * nominator is always the authenticated participant, never a body-supplied id.
- */
-export const POST = withAuth(
-  async (request: NextRequest, auth: AuthenticatedRequest) => {
-    const participantId = auth.user.participantId;
-    if (!participantId) {
-      return NextResponse.json(
-        { error: "Not a registered participant" },
-        { status: 403 }
-      );
-    }
-
-    const body = await parseBody(request, nominationSchema);
-    if (isErrorResponse(body)) return body;
-
-    const { data, error } = await auth.supabase
-      .from("nominations")
-      .insert({
-        participant_id: participantId,
-        nominee_name: body.nominee_name,
-        nominee_email: body.nominee_email || null,
-        nominee_linkedin: body.nominee_linkedin || null,
-        nomination_type: body.nomination_type,
-        reason: body.reason,
-      })
-      .select("id")
-      .single();
-
-    if (error) return dbError(error, "post-nomination");
-    return NextResponse.json({ id: data.id }, { status: 201 });
   }
 );
