@@ -15,6 +15,8 @@ Legend: 🐛 bug · ✳️ net-new feature dependency · ⚠️ open decision.
 | 2026-07-05 | **Cycle routing (R3):** `/cycles` auto-resolves to the current (active) cycle and becomes the cycle page; past cycles move to `/cycles/past`. |
 | 2026-07-05 | **Net-new scope:** for this reorg, **stub the links** for Directory (R4/R5), Learning Library (R8), the join reminder, and next-cycle registration (R6). Each feature is a separate downstream workstream; the reorg wires the affordances to placeholders so it stays shippable. |
 | 2026-07-05 | **Joining windows (R6):** a would-be participant has **three sequential joining slots** — cycle join/agreement → pod registration → project registration. Open/closed/past logic evaluates against these in order. |
+| 2026-07-05 | **Main nav (R9):** becomes **Home · Cycle · Library · Events · Directory**. Library, Events, Directory are net-new (**stubbed** targets this reorg). |
+| 2026-07-05 | **New-joiner home (R10):** composed of welcome + CTAs → checklist → one preview section per nav destination (Build/Events/Learn/Directory) → quick links. Past cycles never shown on Home. |
 
 ---
 
@@ -22,9 +24,10 @@ Legend: 🐛 bug · ✳️ net-new feature dependency · ⚠️ open decision.
 
 The reorg moves toward a clean three-surface split:
 
-1. **Home (`/dashboard`)** — identity + orientation only: welcome, the
-   fresh-joiner checklist, and the join/register call(s) to action.
-   No current-cycle detail.
+1. **Home (`/dashboard`)** — orientation hub: welcome + CTAs, fresh-joiner
+   checklist, then a preview section per nav destination (Build / Events /
+   Learn / Directory), then quick links. No full current-cycle detail, no past
+   cycles. See R10.
 2. **Cycle page (`/cycles`)** — `/cycles` auto-resolves to the current (active)
    cycle and holds everything about it: the Build Cycle graphic, phase/window
    state, a participant directory preview, and pod / project rosters (as
@@ -32,8 +35,9 @@ The reorg moves toward a clean three-surface split:
 3. **Past cycles (`/cycles/past`)** — a separate click-through page, no longer
    inline on Home.
 
-Two net-new surfaces are referenced but **stubbed** in this reorg (built as
-separate workstreams): a **Directory** and a **Learning Library**.
+**Main nav (R9):** Home · Cycle · Library · Events · Directory. Three surfaces
+are net-new and **stubbed** in this reorg (built as separate workstreams):
+**Directory**, **Learning Library**, and **Events**.
 
 ---
 
@@ -269,6 +273,82 @@ route, and authors the Build Cycle explainer.
 
 ---
 
+## R9 ✳️ — Main navigation restructure
+
+**Current.** Member nav is Home · My Cycle · Pulse Check (the latter two
+enrollment-gated).
+
+**Requirement.** Main nav becomes five destinations:
+
+| Nav item | Target | Status |
+|---|---|---|
+| **Home** | `/dashboard` | exists |
+| **Cycle** | `/cycles` (current cycle, R3) | exists (rework) |
+| **Library** | `/library` (Learning Library) | ✳️ **stub** |
+| **Events** | `/events` | ✳️ **stub** |
+| **Directory** | `/directory` | ✳️ **stub** |
+
+**Acceptance criteria.**
+- Nav renders exactly these five items in this order.
+- Library / Events / Directory link to placeholder routes until their
+  workstreams land.
+
+**Depends on:** ✳️ Directory (R4/R5), ✳️ Learning Library (R8), and ✳️ **Events**
+— a third net-new surface introduced here (event list + detail). All stubbed.
+
+⚠️ **Open — Pulse Check placement.** The new nav omits Pulse Check. Pulse Check
+is a hard enforcement gate today (overdue → locked). Decide where it lives:
+surfaced on the Cycle page, a persistent banner/badge, the avatar menu, or a
+gated nav item that only appears when a check is due. It cannot simply disappear
+while enforcement is active.
+
+**Affected:** `app/components/chrome/app-nav.tsx`,
+`app/components/chrome/tab-bar.tsx` (mobile), `app/(dashboard)/layout.tsx`.
+
+---
+
+## R10 — New-joiner Home composition
+
+**Scope.** The Home layout for a user **not registered for anything and a new
+joiner**. (Home composition for already-registered/active members is not yet
+specified — see Open questions.)
+
+**Requirement.** Top to bottom:
+
+1. **"Welcome to the Labs"** hero with the CTAs from R6 (join current / remind /
+   register next, per the precedence rules).
+2. **Welcome checklist** — the fresh-joiner onboarding checklist (R1/R2). Exact
+   steps TBD (see Open questions).
+3. **One preview section per main-nav destination:**
+   - **Build (Cycle)** — shows where the current cycle is at (a compact
+     Build Cycle status) and **repeats the cycle-join CTAs** (R6).
+   - **Events** — the **next 3 events** as a preview; links to the Events page.
+   - **Learn (Library)** — **3 resources** from the Library; links to the
+     Library.
+   - **Directory** — a preview of **who is in the current cycle** (framing like
+     "join these upskillers"); links to the Directory. Its **secondary CTA is
+     join cycle** (R6).
+4. **Quick links** — a quick-links block.
+
+**Explicitly:** **Past cycles do not appear on Home** (they live at
+`/cycles/past`, R3).
+
+**Acceptance criteria.**
+- New-joiner Home renders the four blocks in order: welcome+CTAs → checklist →
+  preview sections → quick links.
+- Each preview section links to its full destination; Build and Directory
+  previews carry the R6 join CTAs (join as primary/secondary respectively).
+- Events preview shows ≤3 upcoming events; Library preview shows 3 resources.
+- No past-cycles content on Home.
+
+**Depends on:** R6 (CTAs), and the preview data for the stubbed surfaces —
+Events, Library, and Directory previews render placeholder/empty states until
+those workstreams provide data.
+
+**Affected:** `app/(dashboard)/dashboard/page.tsx` (+ new preview components).
+
+---
+
 ## Dependency map
 
 | Requirement | Depends on | In-reorg scope |
@@ -281,11 +361,14 @@ route, and authors the Build Cycle explainer.
 | R6 | ✳️ reminder mechanism, ✳️ next-cycle concept | CTA logic build; reminder + next-cycle **stubbed** |
 | R7 | Slack link format (data exists) | build |
 | R8 | ✳️ Learning Library | **stub link** |
+| R9 | ✳️ Library, Events, Directory routes | nav build; targets **stubbed** |
+| R10 | R6, + Events/Library/Directory preview data | layout build; previews **stubbed** |
 
 Net-new features referenced but **stubbed** in this reorg (each a separate
-downstream workstream): **Directory** (R4/R5), **Learning Library** (R8),
-**join reminder** + **next-cycle registration** (R6). The reorg wires the
-affordances to placeholders so it ships without blocking on them.
+downstream workstream): **Directory** (R4/R5/R9/R10), **Learning Library**
+(R8/R9/R10), **Events** (R9/R10), **join reminder** + **next-cycle
+registration** (R6). The reorg wires the affordances to placeholders so it
+ships without blocking on them.
 
 ---
 
@@ -297,17 +380,24 @@ joining-window definition → three sequential slots.
 
 **Still open:**
 
-1. **Fresh-joiner checklist (R1/R2):** keep today's minimal welcome + hero, or
-   design an actual multi-step checklist? Defines what "checklist view" means.
+1. **Fresh-joiner checklist (R1/R2/R10):** what are the checklist steps? Defines
+   the "checklist view" and Home's second block.
 2. **Slack link format (R7):** deep-link format + source of the team/workspace
    ID. And: show the GitHub repo link too, or Drive/Slack/Group only?
+3. **Pulse Check placement (R9):** the new nav drops Pulse Check — where does it
+   live given it's an active enforcement gate? (Cycle page / banner / avatar
+   menu / conditional nav item.)
+4. **Registered-member Home (R10):** R10 specifies only the new-joiner Home.
+   What does Home look like for an already-registered/active member?
 
 **Deferred to their own workstreams (stubbed here):**
 
-3. **"Get a reminder" mechanism (R6):** email/notification opt-in vs. UI-only.
-4. **"Next cycle" (R6):** how a future cycle + its registration window are
+5. **"Get a reminder" mechanism (R6):** email/notification opt-in vs. UI-only.
+6. **"Next cycle" (R6):** how a future cycle + its registration window are
    modeled and surfaced.
-5. **Directory (R4/R5):** full feature scope, visibility tiers, filter/URL
-   contract.
-6. **Learning Library (R8):** in-app route vs. external link vs. existing doc;
-   Build Cycle explainer source.
+7. **Directory (R4/R5/R9/R10):** full feature scope, visibility tiers,
+   filter/URL contract, current-cycle preview data.
+8. **Learning Library (R8/R9/R10):** in-app route vs. external link vs. existing
+   doc; Build Cycle explainer source; resource-preview data.
+9. **Events (R9/R10):** event list + detail feature; source of the "next 3
+   events" preview data.
