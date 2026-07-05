@@ -58,11 +58,12 @@ export interface MetroRow {
 
 export async function getEvents(): Promise<EventRow[]> {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select("*")
     .eq("status", "published")
     .order("start_at", { ascending: true });
+  if (error) console.error("[content] getEvents:", error.message);
   return (data as EventRow[]) ?? [];
 }
 
@@ -79,11 +80,12 @@ export async function getEvent(slug: string): Promise<EventRow | null> {
 
 export async function getResources(): Promise<ResourceRow[]> {
   const supabase = createServiceClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("resources")
     .select("*")
     .eq("status", "published")
     .order("id", { ascending: true });
+  if (error) console.error("[content] getResources:", error.message);
   return (data as ResourceRow[]) ?? [];
 }
 
@@ -118,7 +120,8 @@ async function withWaiting(rows: Record<string, unknown>[]): Promise<MetroRow[]>
 /** Active lab first, then waitlists by list size (the prototype's sort). */
 export async function getMetros(): Promise<MetroRow[]> {
   const supabase = createServiceClient();
-  const { data } = await supabase.from("metros").select("*");
+  const { data, error } = await supabase.from("metros").select("*");
+  if (error) console.error("[content] getMetros:", error.message);
   const rows = await withWaiting((data as Record<string, unknown>[]) ?? []);
   return rows.sort((a, b) =>
     a.status === "active" ? -1 : b.status === "active" ? 1 : b.waiting - a.waiting
