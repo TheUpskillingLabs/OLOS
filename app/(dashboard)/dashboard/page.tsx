@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
   ]);
 
@@ -218,7 +218,48 @@ export default async function DashboardPage() {
     </section>
   );
 
-  // Empty state: no enrollment — the hero + a single join CTA card.
+  // Setup checklist — the onboarding home for a new member (prototype
+  // panel-dashboard: "checklist first"). Built here so it shows in EVERY state
+  // below, not only once enrolled: the profile step is always relevant; the
+  // cycle steps appear when a cycle is running. SetupChecklist collapses to a
+  // strip once every row is done.
+  const profileDone = !!(participant.bio || participant.headline);
+  const checklistItems: ChecklistItem[] = [
+    {
+      key: "profile",
+      label: "Complete your profile",
+      done: profileDone,
+      href: "/profile/edit",
+      cta: "Edit",
+    },
+    ...(activeCycle
+      ? [
+          {
+            key: "register",
+            label: `Register for ${activeCycle.name}`,
+            done: hasAgreement || enrollment?.status === "active",
+            href: `/cycles/${activeCycle.id}/join`,
+            cta: "Register",
+          },
+          {
+            key: "pod",
+            label: "Join a pod",
+            done: myPods.length > 0,
+            href: `/cycles/${activeCycle.id}/register-pods`,
+            cta: "Choose",
+          },
+          {
+            key: "log",
+            label: "Save your first Learning Log",
+            done: logCount > 0,
+            href: "#learning-log",
+            cta: "Log",
+          },
+        ]
+      : []),
+  ];
+
+  // Empty state: no enrollment — the onboarding checklist leads, then the join CTA.
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
@@ -227,8 +268,9 @@ export default async function DashboardPage() {
           avatarUrl={avatarUrl}
           eyebrow="Member portal"
           greeting={`Welcome, ${displayName}`}
-          lede="You're almost in. Join the current Build Cycle to get started."
+          lede="You're almost in — here's how to get set up."
         />
+        <SetupChecklist items={checklistItems} />
         <Link
           href={`/cycles/${activeCycle.id}/join`}
           className="group flex items-center justify-between rounded-card border border-teal/30 bg-white p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
@@ -269,6 +311,7 @@ export default async function DashboardPage() {
           greeting={`Welcome, ${displayName}`}
           lede="Here's your home base at The Labs. The next Build Cycle will show up right here."
         />
+        {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
         <EmptyState
           icon={Calendar}
           title="No cycle running right now"
@@ -280,41 +323,7 @@ export default async function DashboardPage() {
   }
 
   // Engaged state: user has a cycle_enrollments row — full dashboard chrome.
-
-  // Setup checklist — actionable rows, collapses to a strip once done
-  // (prototype panel-dashboard: checklist first).
-  const checklistItems: ChecklistItem[] = activeCycle
-    ? [
-        {
-          key: "profile",
-          label: "Complete your profile",
-          done: true,
-          href: "/profile/edit",
-          cta: "Edit",
-        },
-        {
-          key: "register",
-          label: `Register for ${activeCycle.name}`,
-          done: hasAgreement || enrollment?.status === "active",
-          href: `/cycles/${activeCycle.id}/join`,
-          cta: "Register",
-        },
-        {
-          key: "pod",
-          label: "Join a pod",
-          done: myPods.length > 0,
-          href: `/cycles/${activeCycle.id}/register-pods`,
-          cta: "Choose",
-        },
-        {
-          key: "log",
-          label: "Save your first Learning Log",
-          done: logCount > 0,
-          href: "#learning-log",
-          cta: "Log",
-        },
-      ]
-    : [];
+  // (checklistItems is built above the early returns so it renders in every state.)
 
   // "Up next" — the cycle actions whose window is open right now, as
   // dismissible cards (the rail shows timing; this gives the button).
