@@ -10,6 +10,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 export interface PublicSession {
   signedIn: boolean;
   initials: string | null;
+  avatarUrl: string | null;
   email: string | null;
   fullName: string | null;
 }
@@ -17,6 +18,7 @@ export interface PublicSession {
 const SIGNED_OUT: PublicSession = {
   signedIn: false,
   initials: null,
+  avatarUrl: null,
   email: null,
   fullName: null,
 };
@@ -32,7 +34,7 @@ export async function publicSession(): Promise<PublicSession> {
     const serviceClient = createServiceClient();
     const { data: participant } = await serviceClient
       .from("participants")
-      .select("first_name, last_name")
+      .select("first_name, last_name, profile_image_url")
       .eq("auth_user_id", user.id)
       .maybeSingle();
 
@@ -42,9 +44,15 @@ export async function publicSession(): Promise<PublicSession> {
     const fullName = participant
       ? `${participant.first_name} ${participant.last_name}`.trim()
       : null;
+    const avatarUrl =
+      participant?.profile_image_url ||
+      (user.user_metadata?.avatar_url as string | undefined) ||
+      (user.user_metadata?.picture as string | undefined) ||
+      null;
     return {
       signedIn: true,
       initials,
+      avatarUrl,
       email: user.email?.toLowerCase() ?? null,
       fullName,
     };

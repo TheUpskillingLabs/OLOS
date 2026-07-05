@@ -20,6 +20,8 @@ import { createClient } from "@/lib/supabase/client";
 
 export interface AppNavProps {
   initials: string;
+  /** The member's profile photo (uploaded or Google); initials when null. */
+  avatarUrl: string | null;
   displayName: string;
   isAdmin: boolean;
   isModerator: boolean;
@@ -34,6 +36,7 @@ export interface AppNavProps {
 
 export default function AppNav({
   initials,
+  avatarUrl,
   displayName,
   isAdmin,
   isModerator,
@@ -114,6 +117,7 @@ export default function AppNav({
         )}
         <AvatarMenu
           initials={initials}
+          avatarUrl={avatarUrl}
           displayName={displayName}
           isAdmin={isAdmin}
           isModerator={isModerator}
@@ -132,6 +136,7 @@ function isActive(pathname: string, prefix: string) {
 
 function AvatarMenu({
   initials,
+  avatarUrl,
   displayName,
   isAdmin,
   isModerator,
@@ -140,6 +145,7 @@ function AvatarMenu({
   isTest,
 }: {
   initials: string;
+  avatarUrl: string | null;
   displayName: string;
   isAdmin: boolean;
   isModerator: boolean;
@@ -257,8 +263,19 @@ function AvatarMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        style={avatarUrl ? { padding: 0, overflow: "hidden" } : undefined}
       >
-        {initials}
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="block h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          initials
+        )}
       </button>
       {open && (
         <div id="avatar-menu" role="menu" aria-label="Account menu">

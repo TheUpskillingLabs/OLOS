@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
    labs) rendered from the content tables, ending in the open-source footer.
    The stories row and the survey CTA arrive with their stages. */
 export default async function LandingPage() {
-  const [{ signedIn, initials }, events, resources, metros] =
+  const [{ signedIn, initials, avatarUrl }, events, resources, metros] =
     await Promise.all([publicSession(), getEvents(), getResources(), getMetros()]);
 
   // The cycle banner's CTA: signed-in members go straight to the ceremony.
@@ -53,7 +53,7 @@ export default async function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <OrbDefs />
-      <PublicNav signedIn={signedIn} initials={initials} overHero />
+      <PublicNav signedIn={signedIn} initials={initials} avatarUrl={avatarUrl} overHero />
 
       {/* ── Hero ── */}
       <div className="hero-band s-cover grain on-dark">

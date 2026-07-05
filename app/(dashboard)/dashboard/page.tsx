@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
   ]);
 
@@ -108,6 +108,12 @@ export default async function DashboardPage() {
     (participant.first_name?.[0] ?? "") + (participant.last_name?.[0] ?? "")
   ).toUpperCase() || "?";
 
+  const avatarUrl =
+    participant.profile_image_url ||
+    (user.user_metadata?.avatar_url as string | undefined) ||
+    (user.user_metadata?.picture as string | undefined) ||
+    null;
+
   // Determine enrollment state for active cycle
   type DashboardState =
     | "no_cycle"
@@ -138,6 +144,7 @@ export default async function DashboardPage() {
       <div>
         <DashboardHero
           initials={initials}
+          avatarUrl={avatarUrl}
           eyebrow="Member portal"
           greeting={`Welcome, ${displayName}`}
           lede="You're almost in. Join the current Build Cycle to get started."
@@ -176,6 +183,7 @@ export default async function DashboardPage() {
       <div>
         <DashboardHero
           initials={initials}
+          avatarUrl={avatarUrl}
           eyebrow="Member portal"
           greeting={`Welcome, ${displayName}`}
           lede="Here's your home base at The Labs. The next Build Cycle will show up right here."

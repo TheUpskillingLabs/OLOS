@@ -11,12 +11,12 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { signedIn, initials } = await publicSession();
+  const { signedIn, initials, avatarUrl } = await publicSession();
 
   return (
     <div className={`flex min-h-screen flex-col${signedIn ? "" : " has-upsell"}`}>
       <OrbDefs />
-      <PublicNav signedIn={signedIn} initials={initials} />
+      <PublicNav signedIn={signedIn} initials={initials} avatarUrl={avatarUrl} />
       <div className="flex-1">{children}</div>
       <PgFoot />
       {!signedIn && <UpsellBand />}
