@@ -28,34 +28,37 @@ import { OPEN_CYCLE_AGREEMENT_VERSION } from "@/lib/validations/cycle-agreement"
    plain language) — change it in the prototype first.
    ════════════════════════════════════════════════════════════════════════ */
 
-const LEVELS: [string, string][] = [
-  ["Beginner", "New to this area"],
-  ["Developing", "Some hands-on experience"],
-  ["Proficient", "Comfortable working solo"],
-  ["Advanced", "Deep experience, can guide others"],
-];
 const HOURS = ["2–4 hrs / week", "5–8 hrs / week", "8+ hrs / week"];
 
 function cycleSteps(cycleName: string, fullName: string): FlowStep[] {
+  // Compact dated recap of the presence commitment — the sign step restates
+  // the dates + open-source policy here so nothing is a surprise, without a
+  // wall of reading (owner decision).
+  const coreDated = coreEvents()
+    .map((e) => `${e.name} (${fmtEvt(e).split(" · ")[0]})`)
+    .join(", ");
   return [
     {
-      id: "problem",
+      id: "theme_interest",
       type: "textarea",
-      q: "What problem area excites you most?",
-      help: "A sentence or two is plenty.",
-      ph: "e.g. how AI can help DC residents navigate benefits eligibility...",
+      required: false,
+      q: "What draws you to this cycle’s theme?",
+      help: "No wrong answer — “the timing’s finally right for me” counts. Skip it if you’d rather.",
+      ph: "e.g. local elections have been on my mind for a while…",
     },
     {
-      id: "level",
-      type: "choice",
-      q: "Where are you at in your primary area?",
-      options: LEVELS.map((l) => ({ v: l[0], label: l[0], sub: l[1] })),
+      id: "learning_goals",
+      type: "textarea",
+      q: "What do you want to learn or get sharper at?",
+      help: "A line is plenty.",
+      ph: "e.g. get comfortable shipping a real data pipeline",
     },
     {
-      id: "goals",
+      id: "professional_goals",
       type: "textarea",
-      q: "What do you most want from this cycle?",
-      ph: "What would make this time well spent?",
+      q: "Where are you hoping this takes you?",
+      help: "A line is plenty — a job, a portfolio piece, a new direction.",
+      ph: "e.g. a project I can point employers to",
     },
     {
       id: "hours",
@@ -72,7 +75,7 @@ function cycleSteps(cycleName: string, fullName: string): FlowStep[] {
       terms: [
         {
           title: "I’ll be there.",
-          body: "In person, at the five core events: the Problem Sprint, Meet the Pods, the Hackathon, Meet the Projects, and the Showcase Summit. My pod plans around me being there.",
+          body: `In person, at the five core events — ${coreDated}. My pod plans around me being there.`,
         },
         {
           title: "I’ll check in every week.",
@@ -107,8 +110,11 @@ export default function CycleCeremony({
   podRegistrationOpen: boolean;
 }) {
   const router = useRouter();
-  const [stage, setStage] = useState<"ts1" | "ts2" | "flow" | "signed">(
-    alreadySigned ? "signed" : "ts1"
+  // The cycle's purpose + dates + open-source policy now live on the public
+  // /build-cycles page; registration goes straight to the questions + sign
+  // (owner decision — read the pitch there, just agree + register here).
+  const [stage, setStage] = useState<"flow" | "signed">(
+    alreadySigned ? "signed" : "flow"
   );
   const [signedNow, setSignedNow] = useState<string | null>(signedAt);
   const steps = useMemo(
@@ -128,9 +134,9 @@ export default function CycleCeremony({
         signature_name: String(answers.signature ?? "").trim(),
         agreement_version: OPEN_CYCLE_AGREEMENT_VERSION,
         answers: {
-          problem: String(answers.problem ?? ""),
-          level: String(answers.level ?? ""),
-          goals: String(answers.goals ?? ""),
+          theme_interest: String(answers.theme_interest ?? ""),
+          learning_goals: String(answers.learning_goals ?? ""),
+          professional_goals: String(answers.professional_goals ?? ""),
           hours: String(answers.hours ?? ""),
         },
       }),
@@ -149,171 +155,25 @@ export default function CycleCeremony({
     return (
       <div className="fixed inset-0 z-[70]">
         <FlowScreen
-          eyebrow={`${cycleName} · An Open Cycle`}
+          eyebrow={eyebrow}
           steps={steps}
           finalLabel="Sign & register"
           finalClass="btn-red"
           submittingLabel="Signing…"
           onComplete={submit}
-          onExit={() => setStage("ts2")}
+          onExit={() => router.push("/dashboard")}
         />
       </div>
     );
   }
 
-  if (stage === "signed") {
-    return <SignedScreen cycleId={cycleId} signedAt={signedNow} podRegistrationOpen={podRegistrationOpen} />;
-  }
-
-  /* ── The threshold (dark cover, two beats) ── */
-  const kickoff = ANCHOR_EVENTS.find((e) => e.kickoff);
-  const kickoffShort = kickoff
-    ? fmtEvt(kickoff).split(" · ")[0] // "Jul 14"
-    : "Jul 14";
-
+  // stage === "signed" — the confirmation
   return (
-    <div className="fixed inset-0 z-[70] view s-cover grain on-dark" style={{ animation: "none" }}>
-      <div className="vscroll" style={{ height: "100%" }}>
-        <div className="container" style={{ maxWidth: 560, padding: "48px 24px 56px" }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 18 }}>
-            {eyebrow}
-          </div>
-
-          {stage === "ts1" && (
-            /* Beat 1 · Benefits first, rooted in the member's hero's journey:
-               open with where THEY end up, then the path, then what it takes. */
-            <div>
-              <h1 className="t-display" style={{ marginBottom: 14 }}>
-                Three months from now, you’ll have built something real.
-              </h1>
-              <p className="t-lede" style={{ color: "var(--od2)", marginBottom: 28 }}>
-                You’ll pick a problem that matters to you, team up, and see it
-                through — with mentors and a whole community behind you.
-              </p>
-              <ThCard label="What you walk away with">
-                Something real you helped build, proof of it on your profile,
-                and people who’ve seen what you can do.
-              </ThCard>
-              <ThCard label="How you get there">
-                Month one: dig into a real problem with your pod. Month two:
-                decide what to build at the Hackathon. Month three: build it,
-                test it, and show it.
-              </ThCard>
-              <ThCard label="What it takes">
-                Six in-person events, a five-minute check-in each week, and the
-                rest on your own time with your team.
-              </ThCard>
-              <button
-                className="btn btn-red btn-lg btn-block"
-                style={{ marginTop: 8 }}
-                onClick={() => setStage("ts2")}
-              >
-                See the commitment →
-              </button>
-            </div>
-          )}
-
-          {stage === "ts2" && (
-            /* Beat 2 · The deal (three commitments, plain speech) */
-            <div>
-              <h1 className="t-display" style={{ marginBottom: 14 }}>
-                Here’s the deal.
-              </h1>
-              <p className="t-lede" style={{ color: "var(--od2)", marginBottom: 28 }}>
-                Three things. They’re what makes a cycle work, and you’ll put
-                your name to them.
-              </p>
-              <div className="th-card">
-                <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                  1 · Show up
-                </div>
-                <div className="t-h4" style={{ marginBottom: 6 }}>
-                  Be at the five core events
-                </div>
-                <p className="t-small" style={{ color: "var(--od2)", marginBottom: 8 }}>
-                  Kickoff ({kickoffShort}) gets it started. These five are
-                  where the whole cycle happens in person — your pod plans
-                  around you being there.
-                </p>
-                <div>
-                  {coreEvents().map((e) => (
-                    <div className="th-ev" key={e.api_id}>
-                      <span className="t-small" style={{ color: "var(--od1)", fontWeight: 600 }}>
-                        ✦ {e.name}
-                      </span>
-                      <span className="t-small" style={{ color: "var(--od2)", flexShrink: 0 }}>
-                        {fmtEvt(e)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="th-card">
-                <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                  2 · Check in
-                </div>
-                <div className="t-h4" style={{ marginBottom: 6 }}>
-                  Once a week, five minutes
-                </div>
-                <p className="t-small" style={{ color: "var(--od2)" }}>
-                  One short log each week so your pod knows where you’re at. If
-                  you skip it, the app pauses until you catch up. And if life
-                  gets busy, just tell your Poderator — that’s always okay.
-                </p>
-              </div>
-              <div className="th-card">
-                <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                  3 · Open source
-                </div>
-                <div className="t-h4" style={{ marginBottom: 6 }}>
-                  The projects belong to everyone
-                </div>
-                <p className="t-small" style={{ color: "var(--od2)" }}>
-                  Everything a team builds here is an open-source community
-                  project. When the cycle’s over, you’re free to do whatever
-                  you want with it — and so is everyone else. MIT for code, CC
-                  BY 4.0 for the rest, with everyone who worked on it credited.
-                </p>
-              </div>
-              <button
-                className="btn btn-red btn-lg btn-block"
-                style={{ marginTop: 8 }}
-                onClick={() => setStage("flow")}
-              >
-                Begin registration →
-              </button>
-            </div>
-          )}
-
-          <button
-            className="btn-link"
-            style={{
-              color: "var(--od2)",
-              marginTop: 16,
-              display: "block",
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}
-            onClick={() => router.push("/dashboard")}
-          >
-            Not now — stay a member, browse the free events
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ThCard({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="th-card">
-      <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-        {label}
-      </div>
-      <p className="t-small" style={{ color: "var(--od2)" }}>
-        {children}
-      </p>
-    </div>
+    <SignedScreen
+      cycleId={cycleId}
+      signedAt={signedNow}
+      podRegistrationOpen={podRegistrationOpen}
+    />
   );
 }
 
@@ -346,14 +206,15 @@ function SignedScreen({
     <div className="fixed inset-0 z-[70] view light s-paper" style={{ animation: "none" }}>
       <div
         className="vscroll"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100dvh",
-        }}
+        style={{ flex: 1, minHeight: 0, display: "flex" }}
       >
-        <div className="container" style={{ maxWidth: 520, textAlign: "center", padding: "48px 24px" }}>
+        {/* margin:auto (not flex centering) so a tall card on a short/landscape
+            viewport can still scroll to its top — auto margins collapse to 0
+            when space is tight, unlike align-items:center which clips upward. */}
+        <div
+          className="container"
+          style={{ maxWidth: 520, margin: "auto", padding: "48px 24px" }}
+        >
           <div className="lbl lbl-teal" style={{ marginBottom: 18 }}>
             Registration complete
           </div>
@@ -375,10 +236,15 @@ function SignedScreen({
           >
             Add the cycle&rsquo;s events to your calendar
           </a>
-          <p className="t-small" style={{ color: "var(--meta)", marginBottom: 12 }}>
+          <p className="t-small" style={{ color: "var(--meta)" }}>
             Your committed dates live on your cycle page and dashboard — find
             them there anytime.
           </p>
+        </div>
+      </div>
+      {/* Pinned action bar — primary CTA in the thumb zone on mobile. */}
+      <div className="actionbar light-bar">
+        <div style={{ maxWidth: 520, width: "100%", margin: "0 auto" }}>
           {podRegistrationOpen ? (
             <>
               <Link
@@ -389,7 +255,11 @@ function SignedScreen({
               </Link>
               <Link
                 className="btn-link"
-                style={{ color: "var(--meta)", marginTop: 16, display: "inline-block" }}
+                style={{
+                  color: "var(--meta)",
+                  marginTop: 12,
+                  display: "block",
+                }}
                 href={`/cycles/${cycleId}`}
               >
                 Go to your cycle →

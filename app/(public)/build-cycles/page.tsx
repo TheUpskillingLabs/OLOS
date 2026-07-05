@@ -35,7 +35,7 @@ const CYCLE = {
   theme: "Civic & Elections",
   city: "Washington, DC",
   kickoff: "2026-07-14T18:00",
-  weeks: 13,
+  weeks: 12,
 };
 
 const PHASES = [
@@ -51,7 +51,7 @@ const PHASES = [
   },
   {
     title: "Building",
-    when: "Weeks 10–13",
+    when: "Weeks 10–12",
     body: "Winning proposals become teams of 3–5. You build something real, test it with real people, and bring everything — the wins and the misses — back to the commons at the Showcase Summit.",
   },
 ];
