@@ -126,6 +126,7 @@ export default function PublicNav({
           </Link>
         ))}
         <Link className="nav-link" href="/build-cycles">Build Cycles</Link>
+        <Link className="nav-link" href="/stories">Stories</Link>
         <Link className="nav-link" href="/about">About</Link>
         {!signedIn && (
           <Link className="nav-link" href="/login">Log in</Link>
