@@ -8,9 +8,12 @@ crosswalk, Appendix A) + `docs/audit/DATA_ARCHITECTURE.md` (the DB blueprint ser
 Data Sensemaker and Project Ortelius canvases). Phases are ordered by dependency and member
 impact; each is shippable alone.
 
-> **Live status (2026-07-05):** Phase 0 done (revocation cron held), Phase 0.5 done, Pod
-> Squad batch done, Phase 1 ~70%, Phases 2–7 not started. Per-phase progress detail lives
-> in **`docs/audit/PROGRESS.md`** — update it as phases land; keep this file as the plan.
+> **Live status (2026-07-05, through PR #157):** Phase 0 done (revocation cron held), Phase
+> 0.5 done, Pod Squad batch done, Phase 1 ~90% (share-feed reader now landed via Phase 2;
+> only wk-7/13 milestone logs open), **Phase 2 done** (small profile tails deferred), Phases
+> 3–7 not started (Phase 3 nav partially advanced — Directory added). Per-phase progress
+> detail lives in **`docs/audit/PROGRESS.md`** — update it as phases land; keep this file as
+> the plan.
 
 ---
 
@@ -88,7 +91,7 @@ milestones" (the roster gains milestone-status columns in the Poderator repoint)
    Luma-synced anchor events (also closes the C1 signed-screen `.ics` tail).
 6. Owner calls needed before build: see Decision queue #1–#3.
 
-## Phase 2 — Directory + Me ⬜ (the Connect layer, minimal credible launch)
+## Phase 2 — Directory + Me ✅ (PR #157; profile cred-band + locked badges + links deferred)
 
 1. **The RLS decision (load-bearing):** keep `00020` tight; serve `GET /api/directory` +
    `GET /api/profiles/[handle]` via service client with an explicit display-column allowlist.
