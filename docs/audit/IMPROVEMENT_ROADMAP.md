@@ -8,9 +8,9 @@ crosswalk, Appendix A) + `docs/audit/DATA_ARCHITECTURE.md` (the DB blueprint ser
 Data Sensemaker and Project Ortelius canvases). Phases are ordered by dependency and member
 impact; each is shippable alone.
 
-> **Live status (2026-07-05, through PR #157):** Phase 0 done (revocation cron held), Phase
-> 0.5 done, Pod Squad batch done, Phase 1 ~90% (share-feed reader now landed via Phase 2;
-> only wk-7/13 milestone logs open), **Phase 2 done** (small profile tails deferred), Phases
+> **Live status (2026-07-05, through PR #161):** Phase 0 done (revocation cron held), Phase
+> 0.5 done, Pod Squad batch done, **Phase 1 done** (share-feed reader landed via Phase 2;
+> mid/end-cycle milestone logs landed via PR #161), **Phase 2 done** (small profile tails deferred), Phases
 > 3–7 not started (Phase 3 nav partially advanced — Directory added). Per-phase progress
 > detail lives in **`docs/audit/PROGRESS.md`** — update it as phases land; keep this file as
 > the plan.
@@ -61,7 +61,7 @@ TIMESTAMPTZ standard + documented soft-delete convention · `schema_version` int
 5. Restore the A-vs-B orientation card on the Poderator page (the memo re-asked the exact
    question the card answers; reverse the PRD's cut).
 
-## Phase 1 — The Learning Log pivot 🟡 ~70% (the deepest conceptual change)
+## Phase 1 — The Learning Log pivot ✅ done (the deepest conceptual change)
 
 Replaces pulse-check as the weekly practice ritual (proto CLAUDE.md: "replaces the Practice
 Journal, and the Pulse before it"). Migration path in GAP_AUDIT A3: pulse history stays
@@ -204,8 +204,8 @@ compound:
 
 ## Poderator throughline 🟡 (lands piecewise)
 
-Phase 1 → health-band + blocked-tier repoint. Phase 4 → journey spine + teams drill-down
-(formation context), milestone-logs card. Phase 5 → member-drawer mentor flag. Plus, any
+Phase 1 → health-band + blocked-tier repoint + milestone-logs card (PR #161). Phase 4 →
+journey spine + teams drill-down (formation context). Phase 5 → member-drawer mentor flag. Plus, any
 phase: `process_signals` (§6b — table + composer + prefills; the owner's core shepherd
 mechanic, independent of everything else), pod-scoped feedback inbox (`feedback` table
 already exists), shepherd voice pass on page copy.
@@ -216,7 +216,7 @@ already exists), shepherd voice pass on page copy.
 |---|---|
 | OAuth read-only email in the funnel | Already ratified (Stage B precedent) |
 | LLM project/pod naming (Claude) | The real version of the prototype's deterministic fake — prototype says so itself |
-| 13-week `CyclePhaseIndicator` rail | Exceeds the prototype's week rail |
+| 12-week `CyclePhaseIndicator` rail | Exceeds the prototype's week rail |
 | Withdraw-to-switch on project registration | Prototype is join-once; withdraw is kinder |
 | Post-save confirmation card (vs silent reset) | Clearer feedback |
 | `nudge_key` re-firing dismissals; persisted roster filters | Stronger than session-dismiss |

@@ -48,7 +48,7 @@ before it").
 | Setup checklist (visible Start →, collapse to "All done ✓" strip) | missing | Dashboard has no onboarding checklist; the placeholder-name gate (`layout.tsx:49-56`) could front the profile row |
 | "Up next" todos (phase-aware, dismissible) | partial | Phase-window chips exist (`cycle-phase-indicator.tsx:358-379`) but nothing is dismissible; `nudge_dismissals` (`00023`) is the ready primitive |
 | "Your commitments" dated rows + anytime `.ics` | missing | No anchor-event commitment list, no `.ics` anywhere; Luma-synced `events` is the natural source |
-| Week rail | **diverged-better** | `CyclePhaseIndicator` (13-week rail, milestones, live progress, window chips) exceeds the prototype — keep |
+| Week rail | **diverged-better** | `CyclePhaseIndicator` (12-week rail, milestones, live progress, window chips) exceeds the prototype — keep |
 | No public composer; LL shares are the only update source | parity by absence | OLOS never had a composer; build `profile_updates` fed only by LL shares from day one |
 
 **Migration path (from the deep read):** keep `pulse_checks` + history untouched (authored
