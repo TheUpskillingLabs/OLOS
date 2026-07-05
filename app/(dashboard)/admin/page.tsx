@@ -67,6 +67,12 @@ export default async function AdminPage() {
           >
             All participants
           </Link>
+          <Link
+            href="/admin/stories"
+            className="btn btn-ghost px-4 py-2 text-sm"
+          >
+            Stories
+          </Link>
           {ENTITY_EXPLORER_ENABLED && (
             <Link
               href="/admin/explore"

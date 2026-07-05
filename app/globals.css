@@ -454,6 +454,18 @@ button:focus-visible {
   .m-navy { background: radial-gradient(110% 110% at 50% 120%, rgba(0, 148, 160, 0.5), transparent 60%), linear-gradient(160deg, var(--navy), var(--ink)); }
   @media (hover: hover) { .card.tappable:hover .media > .m-orb { transform: scale(1.06); } }
 
+  /* ── Upskiller Spotlights (/stories) — ported from onboarding-proto stories.html ── */
+  .spot-grid { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
+  @media (min-width: 1024px) { .spot-grid { grid-template-columns: repeat(2, 1fr); } }
+  .spot-media { position: relative; aspect-ratio: 16/10; overflow: hidden; }
+  .spot-media::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); mix-blend-mode: overlay; opacity: 0.45; pointer-events: none; }
+  .spot-media .m-orb { position: absolute; width: 148px; height: 148px; right: -26px; bottom: -34px; opacity: 0.95; }
+  .spot-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal-deep); background: rgba(0, 148, 160, 0.1); border-radius: var(--r); padding: 4px 10px; }
+  .spot-story { border-top: 1px solid var(--rule); padding-top: 14px; margin-top: 14px; }
+  .spot-more { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-deep); margin-top: 12px; }
+  .spot-more .chev { transition: transform 0.2s ease; display: inline-flex; }
+  .card.expanded .spot-more .chev { transform: rotate(180deg); }
+
   /* ── heart save ── */
   .heart { position: absolute; top: 10px; right: 10px; width: 38px; height: 38px; border-radius: 50%; background: rgba(0, 20, 27, 0.32); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: transform 0.12s; z-index: 2; }
   .heart:active { transform: scale(0.86); }
