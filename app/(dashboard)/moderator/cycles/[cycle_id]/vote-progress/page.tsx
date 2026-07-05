@@ -167,7 +167,7 @@ export default async function ModeratorVoteProgressPage({
       </div>
 
       {podData.length === 0 ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             No pods to display for this cycle.
             {!isAdmin(userRoles) && " You are not assigned to any pods here."}
@@ -193,7 +193,7 @@ export default async function ModeratorVoteProgressPage({
                 </header>
 
                 {pod.proposals.length === 0 ? (
-                  <p className="rounded-card border border-dashed border-meta-soft p-6 text-center text-sm text-meta">
+                  <p className="rounded-card border border-dashed border-meta-soft p-6 text-sm text-meta">
                     No projects submitted in this pod.
                   </p>
                 ) : (

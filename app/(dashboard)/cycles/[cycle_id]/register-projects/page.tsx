@@ -135,7 +135,7 @@ export default async function RegisterProjectsPage({
       </div>
 
       {!isOpen ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             Project registration is not currently open.
           </p>
@@ -151,7 +151,7 @@ export default async function RegisterProjectsPage({
             )}
         </div>
       ) : !enrollmentActive ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             You are not an active participant in this cycle.
           </p>

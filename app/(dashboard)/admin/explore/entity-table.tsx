@@ -88,7 +88,7 @@ export function EntityTable({
               <tr>
                 <td
                   colSpan={config.columns.length}
-                  className="px-4 py-8 text-center text-sm text-meta"
+                  className="px-4 py-8 text-sm text-meta"
                 >
                   No rows.
                 </td>

@@ -143,7 +143,7 @@ export default async function AdminPage() {
               <tr>
                 <td
                   colSpan={5}
-                  className="px-4 py-8 text-center text-sm text-meta"
+                  className="px-4 py-8 text-sm text-meta"
                 >
                   No cycles yet. Create one to get started.
                 </td>

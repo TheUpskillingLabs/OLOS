@@ -136,7 +136,7 @@ export default function VoteBallot({
 
   if (statements.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
         <p className="text-sm text-meta">
           No problem statements have been submitted yet.
         </p>

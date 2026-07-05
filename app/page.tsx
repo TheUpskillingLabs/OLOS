@@ -175,7 +175,7 @@ export default async function LandingPage() {
               ))}
             </div>
           ) : (
-            <div className="lcard" style={{ padding: 48, textAlign: "center" }}>
+            <div className="lcard" style={{ padding: 48 }}>
               <div className="t-h3">Coming Soon</div>
             </div>
           )}

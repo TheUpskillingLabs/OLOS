@@ -132,7 +132,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
   );
 
   const finePrint = (
-    <p className="t-small" style={{ textAlign: "center" }}>
+    <p className="t-small">
       We only access your name and email. Already a member? Same door — Google
       signs you in either way.
     </p>

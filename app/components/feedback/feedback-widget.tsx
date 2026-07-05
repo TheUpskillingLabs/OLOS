@@ -190,7 +190,7 @@ export default function FeedbackWidget() {
             </div>
 
             {done ? (
-              <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
+              <div className="flex flex-col gap-3 px-5 py-10">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal/10 text-teal-deep">
                   <Check className="h-6 w-6" aria-hidden />
                 </span>
