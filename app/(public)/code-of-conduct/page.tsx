@@ -47,7 +47,9 @@ export default function CodeOfConductPage() {
       <p className="t-body" style={p}>
         The Upskilling Labs is a community built on learning together — openly, in
         person, and with respect. This Code of Conduct sets the expectations for
-        everyone who takes part.
+        everyone who takes part. It is part of the Participant Agreement every member
+        accepts at registration, and it applies to all members equally, regardless of
+        role.
       </p>
 
       <h2 className="t-h2" style={h2}>Who this applies to</h2>

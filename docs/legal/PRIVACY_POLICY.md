@@ -4,6 +4,8 @@
 
 The Upskilling Labs, Inc. ("The Labs," "we," "us") operates OLOS (Open Labs OS), a platform supporting peer-driven learning cycles and community programs for people navigating career transitions. This Privacy Policy explains what information we collect through OLOS, how we use it, and the choices you have.
 
+This Privacy Policy is part of the Participant Agreement every member accepts at registration, and it applies to all members equally, regardless of role.
+
 ## 1. Information We Collect
 
 **Through Google Sign-In:** When you sign in with your Google Account, we receive your name, email address, and profile picture (basic profile scopes only — we do not request access to your Gmail, Drive, Calendar, or other Google data).

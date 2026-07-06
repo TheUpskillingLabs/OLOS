@@ -39,6 +39,10 @@ export default function PrivacyPage() {
         explains what information we collect through OLOS, how we use it, and the
         choices you have.
       </p>
+      <p className="t-body" style={p}>
+        This Privacy Policy is part of the Participant Agreement every member accepts
+        at registration, and it applies to all members equally, regardless of role.
+      </p>
 
       <h2 className="t-h2" style={h2}>1. Information we collect</h2>
       <p className="t-body" style={p}>

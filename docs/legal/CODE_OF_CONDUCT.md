@@ -7,7 +7,9 @@
 
 The Upskilling Labs is a community built on learning together — openly, in person, and with
 respect. This Code of Conduct sets the expectations for everyone who takes part, so the
-Labs stays a place where anyone can show up, contribute, and belong.
+Labs stays a place where anyone can show up, contribute, and belong. It is part of the
+Participant Agreement every member accepts at registration, and it applies to all members
+equally, regardless of role.
 
 ## Who this applies to
 

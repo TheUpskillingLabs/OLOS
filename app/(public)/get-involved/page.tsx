@@ -59,8 +59,10 @@ export default function GetInvolvedPage() {
 
       <h2 className="t-h2" style={h2}>Ready to jump in?</h2>
       <p className="t-body" style={{ marginBottom: 24 }}>
-        Create an account to get started, or reach out if you’d like to talk through
-        where you might fit.
+        However you want to help — mentor, organizer, or builder — it starts with the
+        same account, one door for everyone. Create one to get started and tell us how
+        you’d like to take part when you sign up, or reach out if you’d like to talk
+        through where you might fit.
       </p>
       <Link className="btn btn-red btn-lg" href="/login">
         Join The Labs

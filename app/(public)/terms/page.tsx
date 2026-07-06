@@ -54,13 +54,15 @@ export default function TermsPage() {
         registration.
       </p>
 
-      <h2 className="t-h2" style={h2}>3. Volunteer and participant agreements</h2>
+      <h2 className="t-h2" style={h2}>3. One agreement for every role</h2>
       <p className="t-body" style={p}>
-        Participation in specific roles (volunteer, mentor) may require you to
-        separately accept a Volunteer Participation Agreement, Volunteer Guidelines,
-        or Volunteer Mentor Agreement. Those documents govern the specific terms of
-        volunteer or mentor engagement and are incorporated by reference where
-        applicable.
+        Everyone joins The Upskilling Labs through the same registration and accepts
+        the same Participant Agreement — whether you take part as a learner, mentor,
+        organizer, or builder. That agreement incorporates these Terms, our{" "}
+        <a className="see" href="/privacy">Privacy Policy</a>, and our{" "}
+        <a className="see" href="/code-of-conduct">Code of Conduct</a>, and they apply
+        to all members equally, regardless of role. The only additional agreement is
+        the Build Cycle agreement you accept if and when you join a specific cycle.
       </p>
 
       <h2 className="t-h2" style={h2}>4. Acceptable use</h2>
