@@ -75,3 +75,7 @@ scripts/dev/
 
 # superpowers skill runner (local tooling, not project source)
 .superpowers/
+
+# Claude Code: per-developer local settings (e.g. the experimental agent-teams
+# flag). The shared .claude/settings.json and .claude/agents/ ARE tracked.
+.claude/settings.local.json
