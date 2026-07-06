@@ -64,6 +64,13 @@ export type RosterRow = {
    * pod-level health math. A visibility toggle, never a permission.
    */
   is_staff_or_test: boolean;
+  /**
+   * Slack onboarding (issue #189): whether the daily verification has
+   * confirmed this member is in the workspace and has posted their intro in
+   * #intros. Null stamps read as false. Status-only, like the pulse buckets.
+   */
+  slack_joined: boolean;
+  slack_intro: boolean;
 };
 
 export type PodDetail = {
@@ -128,7 +135,8 @@ export async function getPodDetail(
       participant_id, joined_at, inactive_at,
       participants (
         id, first_name, last_name, preferred_name, email,
-        ai_experience_level, availability_snippet, is_staff, is_test
+        ai_experience_level, availability_snippet, is_staff, is_test,
+        slack_joined_at, slack_intro_at
       )
     `)
     .eq("pod_id", podId)
@@ -189,6 +197,8 @@ export async function getPodDetail(
       availability_snippet: string | null;
       is_staff: boolean;
       is_test: boolean;
+      slack_joined_at: string | null;
+      slack_intro_at: string | null;
     } | null;
 
     const first = p?.preferred_name?.trim() || p?.first_name?.trim() || "?";
@@ -241,6 +251,8 @@ export async function getPodDetail(
       streak,
       is_trending_at_risk: isTrendingAtRisk,
       is_staff_or_test: !!(p?.is_staff || p?.is_test),
+      slack_joined: !!p?.slack_joined_at,
+      slack_intro: !!p?.slack_intro_at,
     };
   });
 

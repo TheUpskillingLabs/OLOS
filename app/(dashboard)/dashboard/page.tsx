@@ -18,6 +18,7 @@ import UpNext, { type TodoCard } from "./up-next";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import { slackEnabled } from "@/lib/integrations/slack";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, slack_joined_at, slack_intro_at").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
   ]);
 
@@ -255,6 +256,28 @@ export default async function DashboardPage() {
             href: "#learning-log",
             cta: "Log",
           },
+          // Slack onboarding (issue #189) — only when the workspace is wired up.
+          // Done-ness is stamped by the daily slack-verification cron; the CTA
+          // links to the workspace invite when NEXT_PUBLIC_SLACK_INVITE_URL is
+          // set, else the row just shows its status.
+          ...(slackEnabled()
+            ? [
+                {
+                  key: "slack-join",
+                  label: "Join the Slack",
+                  done: !!participant.slack_joined_at,
+                  href: process.env.NEXT_PUBLIC_SLACK_INVITE_URL,
+                  cta: "Join",
+                },
+                {
+                  key: "slack-intro",
+                  label: "Post your intro in Slack",
+                  done: !!participant.slack_intro_at,
+                  href: process.env.NEXT_PUBLIC_SLACK_INVITE_URL,
+                  cta: "Intro",
+                },
+              ]
+            : []),
         ]
       : []),
   ];

@@ -17,6 +17,7 @@ import { getUiState } from "@/lib/moderator/ui-state";
 import { PodContentTabs } from "./pod-content-tabs";
 import PodSquadSections from "./pod-squad-sections";
 import PodMilestoneLogs from "./pod-milestone-logs";
+import { slackEnabled } from "@/lib/integrations/slack";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +136,7 @@ export default async function ModeratorPodPage({
         podId={detail.id}
         podName={detail.name ?? `Pod ${detail.id}`}
         initialTab={initialTab}
+        slackEnabled={slackEnabled()}
       />
     </div>
   );

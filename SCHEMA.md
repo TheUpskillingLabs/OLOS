@@ -135,6 +135,10 @@ erDiagram
         varchar agreement_version
         timestamptz agreement_accepted_at
         varchar slack_username
+        varchar slack_user_id "Slack API user id (Uxxxx), resolved from email (00054)"
+        timestamptz slack_joined_at "workspace/#intros membership verified (00054)"
+        timestamptz slack_intro_at "authored intro post found in #intros (00054)"
+        timestamptz slack_checked_at "last Slack verification run (00054)"
         varchar github_username
         varchar drive_email
         text notes

@@ -29,11 +29,13 @@ export function PodContentTabs({
   podId,
   podName,
   initialTab,
+  slackEnabled = false,
 }: {
   members: RosterRow[];
   podId: number;
   podName: string;
   initialTab: PodTab;
+  slackEnabled?: boolean;
 }) {
   const [tab, setTab] = React.useState<PodTab>(initialTab);
 
@@ -65,7 +67,12 @@ export function PodContentTabs({
       </div>
 
       {tab === "members" && (
-        <RosterTable members={members} podId={podId} podName={podName} />
+        <RosterTable
+          members={members}
+          podId={podId}
+          podName={podName}
+          slackEnabled={slackEnabled}
+        />
       )}
       {tab === "recent_pulses" && <RecentPulsesFeed podId={podId} />}
     </section>

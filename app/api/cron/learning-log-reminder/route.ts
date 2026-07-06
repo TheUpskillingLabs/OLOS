@@ -6,6 +6,8 @@ import {
   logReminderEmailText,
   logReminderSubject,
 } from "@/lib/email/learning-log-reminder-template";
+import { slackEnabled, sendDirectMessage } from "@/lib/integrations/slack";
+import { logReminderSlackText } from "@/lib/integrations/slack-messages";
 
 // The Learning Log reminder (Phase 1; replaces the pulse-check reminder
 // ladder). Stateless single-send idempotency: the daily run only emails
@@ -13,6 +15,11 @@ import {
 // after the Friday arm — so a locked member gets ONE nudge per window,
 // not a daily drip. The gate itself does the enforcing; the email just
 // tells them where the door is.
+//
+// Slack DM (issue #189) rides the SAME per-member, once-per-window loop: if
+// Slack is configured and the member's slack_user_id is known, they also get
+// a bot DM. It's a supplement — a Slack failure is recorded but never blocks
+// the email, which is the source of truth for the reminder.
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const SEND_DELAY_MS = 200;
@@ -21,6 +28,7 @@ type Outcome = {
   participant_id: number;
   status: "sent" | "error";
   error?: string;
+  slack?: "sent" | "error" | "skipped";
 };
 
 export async function GET(request: NextRequest) {
@@ -79,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     const { data: enrollments } = await supabase
       .from("cycle_enrollments")
-      .select("participant_id, participants:participant_id(id, email)")
+      .select("participant_id, participants:participant_id(id, email, slack_user_id)")
       .eq("cycle_id", cycle.id)
       .eq("status", "active");
 
@@ -99,6 +107,7 @@ export async function GET(request: NextRequest) {
         .gte("created_at", dueAt);
       if ((count ?? 0) > 0) continue;
 
+      const outcome: Outcome = { participant_id: participant.id, status: "sent" };
       try {
         const { error: sendError } = await resend.emails.send({
           from: FROM_EMAIL,
@@ -111,26 +120,37 @@ export async function GET(request: NextRequest) {
           console.error(
             `[learning-log-reminder] send failed participant_id=${participant.id} error=${sendError.message ?? String(sendError)}`
           );
-          outcomes.push({
-            participant_id: participant.id,
-            status: "error",
-            error: sendError.message ?? String(sendError),
-          });
-        } else {
-          outcomes.push({ participant_id: participant.id, status: "sent" });
+          outcome.status = "error";
+          outcome.error = sendError.message ?? String(sendError);
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         console.error(
           `[learning-log-reminder] exception participant_id=${participant.id} error=${message}`
         );
-        outcomes.push({
-          participant_id: participant.id,
-          status: "error",
-          error: message,
-        });
+        outcome.status = "error";
+        outcome.error = message;
       }
 
+      // Supplementary Slack DM — best-effort, never blocks the email outcome.
+      if (slackEnabled() && participant.slack_user_id) {
+        try {
+          await sendDirectMessage(
+            participant.slack_user_id,
+            logReminderSlackText(dashboardUrl)
+          );
+          outcome.slack = "sent";
+        } catch (e) {
+          console.error(
+            `[learning-log-reminder] slack DM failed participant_id=${participant.id} error=${e instanceof Error ? e.message : String(e)}`
+          );
+          outcome.slack = "error";
+        }
+      } else {
+        outcome.slack = "skipped";
+      }
+
+      outcomes.push(outcome);
       await new Promise((r) => setTimeout(r, SEND_DELAY_MS));
     }
   }
@@ -138,6 +158,8 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     sent_count: outcomes.filter((o) => o.status === "sent").length,
     error_count: outcomes.filter((o) => o.status === "error").length,
+    slack_sent_count: outcomes.filter((o) => o.slack === "sent").length,
+    slack_error_count: outcomes.filter((o) => o.slack === "error").length,
     outcomes,
     timestamp: new Date().toISOString(),
   });

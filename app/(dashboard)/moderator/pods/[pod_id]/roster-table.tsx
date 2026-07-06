@@ -71,10 +71,14 @@ export function RosterTable({
   members,
   podId,
   podName,
+  slackEnabled = false,
 }: {
   members: RosterRow[];
   podId: number;
   podName: string;
+  /** Show the Slack join/intro column (issue #189) — only when the workspace
+      integration is configured for this environment. */
+  slackEnabled?: boolean;
 }) {
   const [filters, setFilters] = React.useState<RosterFilters>({});
   const [sort, setSort] = React.useState<RosterSort>("last_activity_desc");
@@ -228,6 +232,7 @@ export function RosterTable({
               <th className="lbl px-4 py-3">AI level</th>
               <th className="lbl px-4 py-3">Availability</th>
               <th className="lbl px-4 py-3">Pulse</th>
+              {slackEnabled && <th className="lbl px-4 py-3">Slack</th>}
               <th className="lbl px-4 py-3">Last activity</th>
             </tr>
           </thead>
@@ -283,6 +288,36 @@ export function RosterTable({
                     )}
                   </div>
                 </td>
+                {slackEnabled && (
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <ManagedTooltip
+                        tooltipKey="slack_joined"
+                        content={
+                          m.slack_joined
+                            ? "Verified in the Slack workspace."
+                            : "Not yet found in the Slack workspace (checked daily)."
+                        }
+                      >
+                        <span className={m.slack_joined ? "status active" : "status soon"}>
+                          joined
+                        </span>
+                      </ManagedTooltip>
+                      <ManagedTooltip
+                        tooltipKey="slack_intro"
+                        content={
+                          m.slack_intro
+                            ? "Posted an intro in #intros."
+                            : "No intro post found in #intros yet (checked daily)."
+                        }
+                      >
+                        <span className={m.slack_intro ? "status active" : "status soon"}>
+                          intro
+                        </span>
+                      </ManagedTooltip>
+                    </div>
+                  </td>
+                )}
                 <td className="px-4 py-3 tabular-nums text-slate">
                   <div className="flex items-center gap-2">
                     {m.last_activity_at ? (
@@ -311,7 +346,7 @@ export function RosterTable({
               <tr className="border-t border-ink/10">
                 <td
                   className="px-4 py-6 text-meta"
-                  colSpan={5}
+                  colSpan={slackEnabled ? 6 : 5}
                 >
                   No members match the current filter.
                 </td>
