@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
-import { getOpenFieldSurvey } from "@/lib/content/surveys";
+import {
+  getOpenFieldSurvey,
+  getFieldSurveyResponseCount,
+  RESPONSE_GOAL,
+} from "@/lib/content/surveys";
 import SurveyFlow from "./survey-flow";
 
 /* The public field survey (SENSEMAKING_FLOW.md §3) — account-free, anonymous by
@@ -34,11 +38,15 @@ export default async function SurveyPage({
   const survey = await getOpenFieldSurvey(slug);
   if (!survey) notFound();
 
+  const responseCount = await getFieldSurveyResponseCount(survey.id);
+
   return (
     <SurveyFlow
       slug={survey.share_slug}
       domain={survey.problem_domain ?? "the field"}
       about={survey.about}
+      responseCount={responseCount}
+      responseGoal={RESPONSE_GOAL}
     />
   );
 }
