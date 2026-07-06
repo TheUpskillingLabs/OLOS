@@ -22,7 +22,10 @@ import {
    reader scrolls the box to its end (content that fits counts as read).
    ════════════════════════════════════════════════════════════════════════ */
 
-export type FlowAnswers = Record<string, string | boolean | undefined>;
+export type FlowAnswers = Record<
+  string,
+  string | boolean | string[] | undefined
+>;
 
 export interface ChoiceOption {
   v: string;
@@ -50,6 +53,25 @@ export type FlowStep =
       required?: boolean;
     }
   | { id: string; type: "fields"; q: string; help?: string; fields: FieldDef[] }
+  | {
+      id: string;
+      type: "multiselect";
+      q: string;
+      help?: string;
+      options: ChoiceOption[];
+      /** minimum picks to be valid; omit ⇒ optional (0). */
+      min?: number;
+    }
+  | {
+      id: string;
+      type: "scale";
+      q: string;
+      help?: string;
+      lowLabel: string;
+      highLabel: string;
+      /** true ⇒ the step can be skipped without a pick. */
+      optional?: boolean;
+    }
   | {
       id: string;
       type: "choice";
@@ -171,7 +193,7 @@ export function FlowScreen({
   const isLast = stepIndex === steps.length - 1;
 
   const setAnswer = useCallback(
-    (id: string, value: string | boolean | undefined) =>
+    (id: string, value: string | boolean | string[] | undefined) =>
       setAnswers((a) => ({ ...a, [id]: value })),
     []
   );
@@ -191,6 +213,12 @@ export function FlowScreen({
         );
       case "choice":
         return typeof answers[step.id] === "string";
+      case "multiselect": {
+        const v = answers[step.id];
+        return (Array.isArray(v) ? v.length : 0) >= (step.min ?? 0);
+      }
+      case "scale":
+        return step.optional ? true : typeof answers[step.id] === "string";
       case "consent":
         return answers[step.id] === true;
       case "signature": {
@@ -293,7 +321,7 @@ function StepInput({
 }: {
   step: FlowStep;
   answers: FlowAnswers;
-  setAnswer: (id: string, value: string | boolean | undefined) => void;
+  setAnswer: (id: string, value: string | boolean | string[] | undefined) => void;
   valid: boolean;
   advance: () => void;
   onGateChange: (open: boolean) => void;
@@ -317,6 +345,12 @@ function StepInput({
       );
     case "choice":
       return <ChoiceInput step={step} answers={answers} setAnswer={setAnswer} />;
+    case "multiselect":
+      return (
+        <MultiSelectInput step={step} answers={answers} setAnswer={setAnswer} />
+      );
+    case "scale":
+      return <ScaleInput step={step} answers={answers} setAnswer={setAnswer} />;
     case "consent":
       return <ConsentInput step={step} answers={answers} setAnswer={setAnswer} />;
     case "signature":
@@ -495,6 +529,86 @@ function ChoiceInput({
           />
         </div>
       )}
+    </>
+  );
+}
+
+/* type:'multiselect' — pick any number of tags (value stored as string[]) */
+function MultiSelectInput({
+  step,
+  answers,
+  setAnswer,
+}: {
+  step: Extract<FlowStep, { type: "multiselect" }>;
+  answers: FlowAnswers;
+  setAnswer: (id: string, value: string[]) => void;
+}) {
+  const selected = Array.isArray(answers[step.id])
+    ? (answers[step.id] as string[])
+    : [];
+  const toggle = (v: string) =>
+    setAnswer(
+      step.id,
+      selected.includes(v)
+        ? selected.filter((x) => x !== v)
+        : [...selected, v]
+    );
+
+  return (
+    <div className="tag-wrap" role="group" aria-label={step.q}>
+      {step.options.map((o) => {
+        const on = selected.includes(o.v);
+        return (
+          <button
+            key={o.v}
+            type="button"
+            aria-pressed={on}
+            className={`tag-btn${on ? " active" : ""}`}
+            onClick={() => toggle(o.v)}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* type:'scale' — a 1–5 pip row with low/high captions (value stored as "1".."5") */
+function ScaleInput({
+  step,
+  answers,
+  setAnswer,
+}: {
+  step: Extract<FlowStep, { type: "scale" }>;
+  answers: FlowAnswers;
+  setAnswer: (id: string, value: string | undefined) => void;
+}) {
+  const selected =
+    typeof answers[step.id] === "string" ? (answers[step.id] as string) : "";
+  return (
+    <>
+      <div className="scale-row" role="radiogroup" aria-label={step.q}>
+        {["1", "2", "3", "4", "5"].map((n) => {
+          const on = selected === n;
+          return (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              className={`tag-btn scale-cell${on ? " active" : ""}`}
+              onClick={() => setAnswer(step.id, on ? undefined : n)}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      <div className="scale-caption">
+        <span>{step.lowLabel}</span>
+        <span>{step.highLabel}</span>
+      </div>
     </>
   );
 }
