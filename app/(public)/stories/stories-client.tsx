@@ -104,8 +104,27 @@ export default function StoriesClient({ spotlights }: { spotlights: Spotlight[] 
                   }
                 }}
               >
-                <div className={`spot-media ${s.grad || "m-teal"}`} aria-hidden="true">
-                  <Orb />
+                <div
+                  className={s.image_url ? "spot-media" : `spot-media ${s.grad || "m-teal"}`}
+                  aria-hidden="true"
+                >
+                  {s.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={/^https?:\/\//.test(s.image_url) ? s.image_url : `/${s.image_url.replace(/^\//, "")}`}
+                      alt=""
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        objectPosition: "center 20%",
+                      }}
+                    />
+                  ) : (
+                    <Orb />
+                  )}
                 </div>
                 <div className="card-body">
                   <span className="spot-tag">{s.tag_label || TAG_LABELS[s.tag]}</span>

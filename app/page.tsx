@@ -136,8 +136,27 @@ export default async function LandingPage() {
                   className="card tappable story-card"
                   href={`/stories#s-${s.slug}`}
                 >
-                  <div className={`story-media ${s.grad || "m-teal"}`} aria-hidden="true">
-                    <Orb />
+                  <div
+                    className={s.image_url ? "story-media" : `story-media ${s.grad || "m-teal"}`}
+                    aria-hidden="true"
+                  >
+                    {s.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={/^https?:\/\//.test(s.image_url) ? s.image_url : `/${s.image_url.replace(/^\//, "")}`}
+                        alt=""
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          objectPosition: "center 20%",
+                        }}
+                      />
+                    ) : (
+                      <Orb />
+                    )}
                   </div>
                   <div className="card-body">
                     <p className="t-body story-quote">&ldquo;{s.quote}&rdquo;</p>

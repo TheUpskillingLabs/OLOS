@@ -15,10 +15,11 @@ export interface Spotlight {
   quote: string | null;
   story: string[];
   grad: string;
+  image_url: string | null;
 }
 
 const SPOTLIGHT_COLUMNS =
-  "id, slug, name, role, tag, tag_label, quote, story, grad";
+  "id, slug, name, role, tag, tag_label, quote, story, grad, image_url";
 
 export async function getPublishedSpotlights(): Promise<Spotlight[]> {
   const supabase = createServiceClient();
