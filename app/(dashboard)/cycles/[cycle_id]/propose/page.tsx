@@ -42,15 +42,27 @@ export default async function ProposePage({
   } = await supabase.auth.getUser();
 
   let participantName = "";
+  let isActiveInCycle = false;
   if (user) {
     const { data: participant } = await supabase
       .from("participants")
-      .select("first_name, last_name, preferred_name")
+      .select("id, first_name, last_name, preferred_name")
       .eq("auth_user_id", user.id)
       .single();
     if (participant) {
       participantName =
         `${participant.preferred_name || participant.first_name || ""} ${participant.last_name || ""}`.trim();
+
+      // Only active participants can submit (the /api/problem-statements route
+      // enforces this). Resolve eligibility up front so we don't render the
+      // whole multi-step form and then 403 on submit (audit fix).
+      const { data: enrollment } = await supabase
+        .from("cycle_enrollments")
+        .select("status")
+        .eq("participant_id", participant.id)
+        .eq("cycle_id", cycleId)
+        .maybeSingle();
+      isActiveInCycle = enrollment?.status === "active";
     }
   }
 
@@ -79,9 +91,7 @@ export default async function ProposePage({
         </p>
       </div>
 
-      {isOpen ? (
-        <ProposeForm cycleId={cycleId} participantName={participantName} />
-      ) : (
+      {!isOpen ? (
         <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
           <p className="text-charcoal">
             Problem statement submission is not currently open.
@@ -102,6 +112,20 @@ export default async function ProposePage({
               </p>
             )}
         </div>
+      ) : !isActiveInCycle ? (
+        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+          <p className="text-charcoal">
+            Only active participants in this cycle can submit a problem
+            proposal.
+          </p>
+          <p className="mt-2 text-sm text-meta">
+            Your cycle enrollment isn&rsquo;t active yet, so this form is
+            locked. Once you&rsquo;re an active participant, it will open for you
+            here.
+          </p>
+        </div>
+      ) : (
+        <ProposeForm cycleId={cycleId} participantName={participantName} />
       )}
     </div>
   );

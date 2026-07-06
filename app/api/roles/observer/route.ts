@@ -13,13 +13,23 @@ export const POST = withAdminAuth(
     if (isErrorResponse(body)) return body;
     const { participant_id } = body;
 
-    const { data, error } = await auth.supabase
+    // Upsert on the service client: the user_roles insert RLS requires
+    // roles:write (which a cycles:write-only admin lacks), and plain .insert()
+    // throws a unique-violation when re-granting a soft-revoked role. Upsert
+    // (resetting revoked_at) handles both; app-level withAdminAuth already
+    // authorizes this (audit fix).
+    const serviceClient = createServiceClient();
+    const { data, error } = await serviceClient
       .from("user_roles")
-      .insert({
-        participant_id,
-        role: "observer",
-        granted_by: auth.user.participantId,
-      })
+      .upsert(
+        {
+          participant_id,
+          role: "observer",
+          granted_by: auth.user.participantId,
+          revoked_at: null,
+        },
+        { onConflict: "participant_id,role" }
+      )
       .select("id, granted_at")
       .single();
 
@@ -28,7 +38,6 @@ export const POST = withAdminAuth(
     }
 
     // Also grant corresponding permissions
-    const serviceClient = createServiceClient();
     const permissions = ROLE_PRESETS["observer"] ?? [];
     for (const permission of permissions) {
       await serviceClient

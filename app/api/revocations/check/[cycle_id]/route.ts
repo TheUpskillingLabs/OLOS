@@ -27,12 +27,16 @@ export const POST = withAdminAuth(
       let shouldRevoke = false;
       let reason = "";
 
-      // Check 1: No active pod membership
+      // Check 1: No active pod membership IN THIS CYCLE. Scope the count to the
+      // cycle via the pods join — otherwise a stale active membership from a
+      // prior cycle keeps podCount > 0 and a genuinely pod-less participant is
+      // never flagged (audit fix, matches the cron + add-membership route).
       const { count: podCount } = await auth.supabase
         .from("pod_memberships")
-        .select("id", { count: "exact", head: true })
+        .select("id, pods!inner(cycle_id)", { count: "exact", head: true })
         .eq("participant_id", pid)
-        .is("inactive_at", null);
+        .is("inactive_at", null)
+        .eq("pods.cycle_id", cycleId);
 
       if (!podCount || podCount === 0) {
         shouldRevoke = true;
@@ -46,6 +50,10 @@ export const POST = withAdminAuth(
           .select("completed_at")
           .eq("cycle_id", cycleId)
           .eq("participant_id", pid)
+          // Only pulses that are actually due — a future-dated (pre-seeded)
+          // pulse row is uncompleted-but-not-late and must not count as a miss
+          // (audit fix).
+          .lte("scheduled_date", now)
           .order("scheduled_date", { ascending: false })
           .limit(2);
 
@@ -53,7 +61,9 @@ export const POST = withAdminAuth(
           const missedConsecutive = checks.every((c) => !c.completed_at);
           if (missedConsecutive) {
             shouldRevoke = true;
-            reason = "missed_pulse_checks";
+            // Match the cron's value ('missed_pulses') so both paths and the
+            // admin table's label map agree (audit fix).
+            reason = "missed_pulses";
           }
         }
       }
@@ -83,18 +93,30 @@ export const POST = withAdminAuth(
         .eq("participant_id", pid)
         .eq("cycle_id", cycleId);
 
-      // 4. Record revocation
-      await auth.supabase.from("access_revocations").insert({
-        participant_id: pid,
-        cycle_id: cycleId,
-        reason,
-        revocation_scope: "full",
-        revoked_systems: [
-          "pod_membership",
-          "project_membership",
-          "enrollment",
-        ],
-      });
+      // 4. Record revocation. Capture the insert error instead of swallowing
+      // it — the unique partial index can collide on a repeat revoke after a
+      // reactivation, and a silent failure hid that de-provisioning happened
+      // without a fresh audit row (audit fix).
+      const { error: revErr } = await auth.supabase
+        .from("access_revocations")
+        .insert({
+          participant_id: pid,
+          cycle_id: cycleId,
+          reason,
+          revocation_scope: "full",
+          revoked_systems: [
+            "pod_membership",
+            "project_membership",
+            "enrollment",
+          ],
+        });
+      if (revErr) {
+        console.error(
+          "[revocations-check] access_revocations insert failed for participant",
+          pid,
+          revErr.message
+        );
+      }
 
       transitioned.push({
         participant_id: pid,
