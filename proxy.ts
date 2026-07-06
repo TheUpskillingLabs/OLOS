@@ -56,6 +56,7 @@ export async function proxy(request: NextRequest) {
       "/labs", // old path — next.config redirects it to /local-labs
       "/about",
       "/build-cycles",
+      "/stories", // public Upskiller Spotlights — browses free, no auth
     ];
     const isPublicPath =
       request.nextUrl.pathname === "/" ||
