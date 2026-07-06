@@ -547,6 +547,59 @@ erDiagram
 
 ---
 
+## ERD — Data Sensemaker (field survey → Ortelius groundwork)
+
+The intake bedrock of the Data Sensemaker (`docs/SENSEMAKING_FLOW.md` §3, `docs/ORTELIUS_KNOWLEDGE_GRAPH.md` §3a) — the public, account-free field survey that replaces the Civics & Elections Google Form and seeds the first Ortelius provenance node. Gate-free (a form + storage, no in-app LLM). The AI-assisted extraction, canvas, and `asset_links`/`content_embeddings` graph build additively on top; the envelope columns here land day one so nothing at this leaf is ever migrated.
+
+```mermaid
+erDiagram
+    field_surveys {
+        int id PK
+        int cycle_id FK "nullable"
+        int sector_id FK "nullable"
+        varchar title
+        varchar problem_domain
+        text about
+        varchar share_slug UK
+        varchar status "draft/open/closed"
+        boolean allow_anonymous
+        varchar consent_version
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    survey_responses {
+        bigint id PK
+        int field_survey_id FK
+        int participant_id FK "NULL for anonymous"
+        text observation
+        text_array standpoint
+        smallint salience "1-5, nullable"
+        text prior_attempts
+        boolean consent_participation
+        varchar consent_version
+        boolean contactable
+        varchar submitter_name
+        varchar submitter_email
+        varchar submitter_phone
+        boolean mentor_interest
+        text source_url
+        varchar moderation_status "pending/approved/rejected"
+        int schema_version
+        text ip_hash
+        timestamptz created_at
+    }
+
+    cycles ||--o{ field_surveys : "runs"
+    sectors ||--o{ field_surveys : "homes"
+    field_surveys ||--o{ survey_responses : "collects"
+    participants ||--o{ survey_responses : "submits"
+```
+
+**`field_surveys` / `survey_responses` (migration `00053`):** the field-survey intake (`docs/SENSEMAKING_FLOW.md` §3). `field_surveys` is the instrument — one row per sector/cycle problem domain, seeded idempotently for Civics & Elections (`share_slug='civics'`, `status='open'`). The public page `/survey/[slug]` renders it (the survey-specific `about` lede from the row; the "what is the Labs / where do insights go" copy is boilerplate in the page). `survey_responses` is the observation bedrock: `observation` is the required evidence body every future `extract` derives from; `standpoint[]` feeds the coverage/diversity signal (never a credibility weight — `ORTELIUS_NORTHSTAR.md` §6); `salience`, `prior_attempts` (archaeology), and the contact fields are optional. Two distinct consents: `consent_participation` (required, gates submit) and `contactable` (optional). The **nullable `participant_id`** is the load-bearing anonymous public path; `mentor_interest` is a recruiting side-channel. **Ortelius groundwork columns land day one:** `source_url` (the evidence-producer gap, `ORTELIUS §5` gap #6), `consent_version`, `moderation_status`, and `schema_version` (gap #12 — versioned from day one). Every response is retained; curation is a later temporal overlay, never a delete (owner decision 2026-07-05). RLS: `field_surveys` anon-SELECT-`open`-only (mirrors spotlights/events); `survey_responses` has **no public policy** — all writes go through the service-role `POST /api/surveys/[slug]/responses` (member session binds `participant_id`; anonymous path is per-IP throttled via `lib/api/rate-limit.ts`, `moderation_status='pending'`), and reads stay service-role until a consented atlas surface ships.
+
+---
+
 ## Table Summary
 
 | Table | Group | Purpose |
@@ -579,4 +632,6 @@ erDiagram
 | `profile_updates` | Practice | Member updates feed — written ONLY by Learning Log shares |
 | `saved_items` | Practice | A member's saved events/resources (the /learning hearts) — polymorphic by slug |
 | `spotlights` | Public Content | Upskiller Spotlights + their submission pipeline (public /stories) |
+| `field_surveys` | Data Sensemaker | The field-survey instrument — one row per sector/cycle problem domain (public `/survey/[slug]`) |
+| `survey_responses` | Data Sensemaker | Field observations — the evidence bedrock; anon-capable, the first Ortelius provenance node |
 | `testers` | Testing | Email-keyed tester grant — survives the tester's full self-reset |
