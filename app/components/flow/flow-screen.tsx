@@ -69,6 +69,9 @@ export type FlowStep =
       q: string;
       agreementTitle: string;
       agreement: { h: string; p: string }[];
+      // Canonical documents this agreement incorporates — rendered as links at
+      // the end of the scroll-gated region (open in a new tab).
+      references?: { label: string; href: string }[];
       text: string;
     }
   | {
@@ -532,6 +535,19 @@ function ConsentInput({
             <p className="t-small">{a.p}</p>
           </div>
         ))}
+        {step.references && step.references.length > 0 && (
+          <p className="t-small" style={{ marginTop: 4 }}>
+            Read in full:{" "}
+            {step.references.map((r, i) => (
+              <span key={r.href}>
+                {i > 0 && " · "}
+                <a href={r.href} target="_blank" rel="noopener">
+                  {r.label}
+                </a>
+              </span>
+            ))}
+          </p>
+        )}
       </div>
       <div className={`agree-hint${read ? " read" : ""}`}>
         {read ? "Read to the end ✓" : "↓ Scroll to the end to agree"}
