@@ -12,6 +12,7 @@ import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getRecruitingCycle } from "@/lib/cycle/active";
+import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
 export const metadata = {
   title: "The Upskilling Labs",
@@ -36,13 +37,14 @@ function seasonYear(dateStr: string | null): string | null {
    labs) rendered from the content tables, ending in the open-source footer.
    The stories row and the survey CTA arrive with their stages. */
 export default async function LandingPage() {
-  const [{ signedIn, initials, avatarUrl }, events, resources, metros, recruitingCycle] =
+  const [{ signedIn, initials, avatarUrl }, events, resources, metros, recruitingCycle, spotlights] =
     await Promise.all([
       publicSession(),
       getEvents(),
       getResources(),
       getMetros(),
       getRecruitingCycle(createServiceClient()).catch(() => null),
+      getPublishedSpotlights(),
     ]);
 
   // The registration banner is driven by the recruiting cycle (the upcoming
@@ -112,8 +114,76 @@ export default async function LandingPage() {
         </div>
       </div>
 
+      {/* ── Upskiller Spotlights (onboarding-proto #sec-stories) ── */}
+      {spotlights.length > 0 && (
+        <section className="section s-white sec-after-hero" id="sec-stories">
+          <div className="container">
+            <div className="section-head">
+              <div>
+                <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
+                  Upskiller Spotlights
+                </div>
+                <h2 className="t-h2">Real people, real practice</h2>
+              </div>
+              <Link className="see" href="/stories">
+                Upskilling Stories →
+              </Link>
+            </div>
+            <div className="story-row">
+              {spotlights.slice(0, 6).map((s) => (
+                <Link
+                  key={s.id}
+                  className="card tappable story-card"
+                  href={`/stories#s-${s.slug}`}
+                >
+                  <div className={`story-media ${s.grad || "m-teal"}`} aria-hidden="true">
+                    <Orb />
+                  </div>
+                  <div className="card-body">
+                    <p className="t-body story-quote">&ldquo;{s.quote}&rdquo;</p>
+                    <div className="t-h4" style={{ marginTop: "auto" }}>
+                      {s.name}
+                    </div>
+                    {s.role && (
+                      <div className="lbl" style={{ marginTop: 4 }}>
+                        {s.role}
+                      </div>
+                    )}
+                    <span className="see" style={{ display: "inline-block", marginTop: 12 }}>
+                      Read more →
+                    </span>
+                  </div>
+                </Link>
+              ))}
+              <Link className="card tappable story-cta" href="/stories">
+                <div
+                  className="card-body"
+                  style={{ display: "flex", flexDirection: "column", height: "100%" }}
+                >
+                  <div className="lbl lbl-teal" style={{ marginBottom: 10 }}>
+                    Your turn
+                  </div>
+                  <div className="t-h3" style={{ marginBottom: 10 }}>
+                    Share your story or read more
+                  </div>
+                  <p className="t-body" style={{ marginBottom: 18 }}>
+                    Spotlights are public — read more from the community, or add your own.
+                  </p>
+                  <span className="see" style={{ marginTop: "auto" }}>
+                    Upskilling Stories →
+                  </span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── Cycles ── */}
-      <section className="section s-white sec-after-hero" id="sec-cycles">
+      <section
+        className={`section s-white${spotlights.length > 0 ? "" : " sec-after-hero"}`}
+        id="sec-cycles"
+      >
         <div className="container">
           <div className="section-head">
             <div>

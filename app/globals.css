@@ -466,6 +466,28 @@ button:focus-visible {
   .spot-more .chev { transition: transform 0.2s ease; display: inline-flex; }
   .card.expanded .spot-more .chev { transform: rotate(180deg); }
 
+  /* ── Landing spotlights row (#sec-stories) — from onboarding-proto app.css ── */
+  .story-row { display: grid; gap: 16px; grid-template-columns: 1fr; align-items: stretch; }
+  .story-card { display: flex; align-items: stretch; color: inherit; text-decoration: none; }
+  .story-media { flex: 0 0 110px; position: relative; overflow: hidden; }
+  .story-media::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); mix-blend-mode: overlay; opacity: 0.45; pointer-events: none; }
+  .story-media .m-orb { position: absolute; left: 10%; top: 16%; width: 80%; height: 80%; opacity: 0.95; }
+  .story-card .card-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .story-quote { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Overflow story cards hide per breakpoint; the CTA (not .story-card) never hides. */
+  .story-row > .story-card:nth-child(n + 2) { display: none; }
+  @media (min-width: 700px) { .story-row { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) {
+    .story-row { grid-template-columns: repeat(3, 1fr); }
+    .story-row > .story-card:nth-child(-n + 2) { display: flex; }
+    .story-row > .story-card:nth-child(n + 3) { display: none; }
+  }
+  @media (min-width: 1440px) {
+    .story-row { grid-template-columns: repeat(4, 1fr); }
+    .story-row > .story-card:nth-child(-n + 3) { display: flex; }
+    .story-row > .story-card:nth-child(n + 4) { display: none; }
+  }
+
   /* ── heart save ── */
   .heart { position: absolute; top: 10px; right: 10px; width: 38px; height: 38px; border-radius: 50%; background: rgba(0, 20, 27, 0.32); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: transform 0.12s; z-index: 2; }
   .heart:active { transform: scale(0.86); }
