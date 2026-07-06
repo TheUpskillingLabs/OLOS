@@ -90,65 +90,47 @@ export default async function ProfilePage() {
         {/* Profile sections */}
         <div className="mt-6 space-y-6">
           {/* Location */}
-          <Section title="Location">
-            <Field label="State" value={participant.state} />
-            <Field label="Neighborhood" value={participant.neighborhood} />
-            <Field label="DCPL Card" value={participant.dcpl_card} />
-          </Section>
+          {participant.state && (
+            <Section title="Location">
+              <Field label="State" value={participant.state} />
+            </Section>
+          )}
 
           {/* Professional */}
-          <Section title="Professional context">
-            <Field label="Work Situation" value={participant.work_situation} />
-            <Field label="Main Focus" value={participant.main_focus} />
-            {participant.sector && (
-              <Field label="Sector" value={participant.sector} />
-            )}
-            {participant.linkedin && (
-              <Field label="LinkedIn" value={participant.linkedin} isLink />
-            )}
-          </Section>
+          {(participant.work_situation ||
+            participant.main_focus ||
+            participant.sector ||
+            participant.linkedin) && (
+            <Section title="Professional context">
+              {participant.work_situation && (
+                <Field label="Work Situation" value={participant.work_situation} />
+              )}
+              {participant.main_focus && (
+                <Field label="Main Focus" value={participant.main_focus} />
+              )}
+              {participant.sector && (
+                <Field label="Sector" value={participant.sector} />
+              )}
+              {participant.linkedin && (
+                <Field label="LinkedIn" value={participant.linkedin} isLink />
+              )}
+            </Section>
+          )}
 
           {/* AI Background */}
-          <Section title="AI background">
-            <Field
-              label="Tool Familiarity"
-              value={`${participant.ai_tool_familiarity} / 5`}
-            />
-            {grouped.ai_tools && (
-              <Field label="Tools Used" value={grouped.ai_tools.join(", ")} />
-            )}
-          </Section>
-
-          {/* Labs Fit */}
-          <Section title="Labs fit">
-            {grouped.labs_goals && (
-              <Field label="Goals" value={grouped.labs_goals.join(", ")} />
-            )}
-            {grouped.availability && (
-              <Field
-                label="Availability"
-                value={grouped.availability.join(", ")}
-              />
-            )}
-            {grouped.work_style && (
-              <Field
-                label="Work Style"
-                value={grouped.work_style.join(", ")}
-              />
-            )}
-            {grouped.group_strengths && (
-              <Field
-                label="Strengths"
-                value={grouped.group_strengths.join(", ")}
-              />
-            )}
-            {participant.primary_expertise && (
-              <Field
-                label="Primary Expertise"
-                value={participant.primary_expertise}
-              />
-            )}
-          </Section>
+          {(participant.ai_tool_familiarity != null || grouped.ai_tools) && (
+            <Section title="AI background">
+              {participant.ai_tool_familiarity != null && (
+                <Field
+                  label="Tool Familiarity"
+                  value={`${participant.ai_tool_familiarity} / 5`}
+                />
+              )}
+              {grouped.ai_tools && (
+                <Field label="Tools Used" value={grouped.ai_tools.join(", ")} />
+              )}
+            </Section>
+          )}
 
           {/* Cycle Enrollments */}
           {enrollments && enrollments.length > 0 && (
@@ -204,9 +186,10 @@ function Field({
   isLink,
 }: {
   label: string;
-  value: string;
+  value: string | null | undefined;
   isLink?: boolean;
 }) {
+  if (!value) return null;
   return (
     <div className="flex items-baseline gap-3">
       <span className="w-32 shrink-0 text-sm text-meta">{label}</span>
