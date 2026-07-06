@@ -3,15 +3,11 @@ import { Activity, ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
+import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
+import { isCycleOpenForRegistration } from "@/lib/cycles/registration";
+import { CycleInfo } from "@/app/components/cycle/cycle-info";
 
-type CycleStatus = "active" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
-
-const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
-  active: "active",
-  closed: "inactive",
-  draft: "draft",
-};
 
 const POD_STATUS_VARIANT: Record<
   PodStatus,
@@ -36,29 +32,100 @@ const WINDOW_ROUTES: {
   { label: "Register for Projects", field: "project_registration", route: "register-projects" },
 ];
 
+function BackLink() {
+  return (
+    <Link
+      href="/cycles"
+      className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+    >
+      <ChevronLeft className="h-4 w-4" aria-hidden />
+      All cycles
+    </Link>
+  );
+}
+
 export default async function CycleDetailPage({
   params,
 }: {
   params: Promise<{ cycle_id: string }>;
 }) {
   const { cycle_id } = await params;
+  const cycleId = parseInt(cycle_id);
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const serviceClient = createServiceClient();
 
-  const { data: cycle } = await supabase
+  const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, slug, start_date, end_date, status")
-    .eq("id", parseInt(cycle_id))
+    .select(
+      "id, name, slug, start_date, end_date, status, description, what_you_build"
+    )
+    .eq("id", cycleId)
     .single();
 
   if (!cycle) notFound();
 
-  const { data: pods } = await supabase
+  // Is the current user already enrolled in this cycle?
+  let isEnrolled = false;
+  if (user) {
+    const { data: participant } = await serviceClient
+      .from("participants")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (participant) {
+      const { data: enr } = await serviceClient
+        .from("cycle_enrollments")
+        .select("id")
+        .eq("participant_id", participant.id)
+        .eq("cycle_id", cycle.id)
+        .maybeSingle();
+      isEnrolled = !!enr;
+    }
+  }
+
+  // Not enrolled → the information overview + a Register CTA (when the cycle is
+  // active or open for registration).
+  if (!isEnrolled) {
+    const joinable =
+      cycle.status === "active" ||
+      (await isCycleOpenForRegistration(serviceClient, cycle.id));
+    return (
+      <div>
+        <div className="mb-8">
+          <BackLink />
+        </div>
+        <CycleInfo
+          cycle={cycle}
+          cta={
+            joinable ? (
+              <Link
+                href={`/cycles/${cycle.id}/join`}
+                className="btn btn-teal btn-block"
+              >
+                Register for {cycle.name}
+              </Link>
+            ) : (
+              <p className="text-sm text-meta">
+                Registration isn&rsquo;t open for this cycle right now.
+              </p>
+            )
+          }
+        />
+      </div>
+    );
+  }
+
+  // Enrolled → the member detail view.
+  const { data: pods } = await serviceClient
     .from("pods")
     .select("id, name, status")
     .eq("cycle_id", cycle.id)
     .order("created_at");
 
-  const { data: enrollments } = await supabase
+  const { data: enrollments } = await serviceClient
     .from("cycle_enrollments")
     .select("status")
     .eq("cycle_id", cycle.id);
@@ -66,8 +133,6 @@ export default async function CycleDetailPage({
   const activeCount =
     enrollments?.filter((e) => e.status === "active").length || 0;
 
-  // Fetch active windows
-  const serviceClient = createServiceClient();
   const { data: config } = await serviceClient
     .from("cycle_config")
     .select(
@@ -89,28 +154,19 @@ export default async function CycleDetailPage({
     }
   }
 
-  const cycleStatusVariant =
-    CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
-
   return (
     <div>
       <div className="mb-8">
-        <Link
-          href="/cycles"
-          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          All cycles
-        </Link>
-        <h1 className="t-h1 mt-2 text-ink">
-          {cycle.name}
-        </h1>
+        <BackLink />
+        <h1 className="t-h1 mt-2 text-ink">{cycle.name}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-meta">
           <span className="tabular-nums">
             {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
             {new Date(cycle.end_date).toLocaleDateString()}
           </span>
-          <StatusBadge variant={cycleStatusVariant}>{cycle.status}</StatusBadge>
+          <StatusBadge variant={cycleStatusVariant(cycle.status)}>
+            {cycleStatusLabel(cycle.status)}
+          </StatusBadge>
         </div>
       </div>
 
@@ -158,10 +214,7 @@ export default async function CycleDetailPage({
             className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-red bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
           >
             <div className="flex items-center gap-3">
-              <Activity
-                className="h-5 w-5 flex-shrink-0 text-red"
-                aria-hidden
-              />
+              <Activity className="h-5 w-5 flex-shrink-0 text-red" aria-hidden />
               <div>
                 <span className="font-semibold tracking-tight text-ink">
                   Weekly pulse check
@@ -191,9 +244,7 @@ export default async function CycleDetailPage({
 
       {pods && pods.length > 0 && (
         <div>
-          <h2 className="t-h3 mb-4 text-ink">
-            Pods
-          </h2>
+          <h2 className="t-h3 mb-4 text-ink">Pods</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {pods.map((pod) => {
               const variant =

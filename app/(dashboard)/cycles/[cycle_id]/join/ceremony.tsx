@@ -97,6 +97,8 @@ export default function CycleCeremony({
   alreadySigned,
   signedAt,
   podRegistrationOpen,
+  notYetStarted,
+  startDate,
 }: {
   cycleId: number;
   cycleName: string;
@@ -105,6 +107,8 @@ export default function CycleCeremony({
   alreadySigned: boolean;
   signedAt: string | null;
   podRegistrationOpen: boolean;
+  notYetStarted: boolean;
+  startDate: string;
 }) {
   const router = useRouter();
   const [stage, setStage] = useState<"ts1" | "ts2" | "flow" | "signed">(
@@ -162,7 +166,16 @@ export default function CycleCeremony({
   }
 
   if (stage === "signed") {
-    return <SignedScreen cycleId={cycleId} signedAt={signedNow} podRegistrationOpen={podRegistrationOpen} />;
+    return (
+      <SignedScreen
+        cycleId={cycleId}
+        cycleName={cycleName}
+        signedAt={signedNow}
+        podRegistrationOpen={podRegistrationOpen}
+        notYetStarted={notYetStarted}
+        startDate={startDate}
+      />
+    );
   }
 
   /* ── The threshold (dark cover, two beats) ── */
@@ -320,12 +333,18 @@ function ThCard({ label, children }: { label: string; children: React.ReactNode 
 /* ── view-cycle-signed — the confirmation ── */
 function SignedScreen({
   cycleId,
+  cycleName,
   signedAt,
   podRegistrationOpen,
+  notYetStarted,
+  startDate,
 }: {
   cycleId: number;
+  cycleName: string;
   signedAt: string | null;
   podRegistrationOpen: boolean;
+  notYetStarted: boolean;
+  startDate: string;
 }) {
   const kickoff = ANCHOR_EVENTS.find((e) => e.kickoff);
   const kickoffLong = kickoff
@@ -341,6 +360,11 @@ function SignedScreen({
         year: "numeric",
       })
     : "today";
+  const startLong = new Date(startDate).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   return (
     <div className="fixed inset-0 z-[70] view light s-paper" style={{ animation: "none" }}>
@@ -361,7 +385,9 @@ function SignedScreen({
             You&rsquo;re registered ✓
           </h1>
           <p className="t-lede" style={{ marginBottom: 8 }}>
-            See you at Kickoff — {kickoffLong}, DC Public Library.
+            {notYetStarted
+              ? `You're in for ${cycleName}. It starts ${startLong} — we’ll email you when the first steps open.`
+              : `See you at Kickoff — ${kickoffLong}, DC Public Library.`}
           </p>
           <p className="t-small" style={{ marginBottom: 28 }}>
             Open Cycle Agreement · signed {signedLong} — it lives on your
@@ -379,7 +405,11 @@ function SignedScreen({
             Your committed dates live on your cycle page and dashboard — find
             them there anytime.
           </p>
-          {podRegistrationOpen ? (
+          {notYetStarted ? (
+            <Link className="btn btn-teal btn-lg btn-block" href="/dashboard">
+              Go to your dashboard →
+            </Link>
+          ) : podRegistrationOpen ? (
             <>
               <Link
                 className="btn btn-teal btn-lg btn-block"

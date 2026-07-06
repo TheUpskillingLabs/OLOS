@@ -5,6 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleAgreementSchema } from "@/lib/validations/cycle-agreement";
+import { isCycleOpenForRegistration } from "@/lib/cycles/registration";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // The Open Cycle Agreement signature (backend doc §2c) — the completion of
@@ -33,7 +34,9 @@ export const POST = withAuth(
 
     const supabase = createServiceClient();
 
-    // Verify cycle is active
+    // Registration is allowed when the cycle is active OR its registration
+    // window is open (so members can sign up for an `upcoming` cycle before it
+    // starts). The enrollment is still written `inactive` either way.
     const { data: cycle } = await supabase
       .from("cycles")
       .select("id, status")
@@ -43,7 +46,10 @@ export const POST = withAuth(
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
-    if (cycle.status !== "active") {
+    const acceptingRegistration =
+      cycle.status === "active" ||
+      (await isCycleOpenForRegistration(supabase, cycleId));
+    if (!acceptingRegistration) {
       return NextResponse.json(
         { error: "This cycle is not currently accepting registrations" },
         { status: 400 }

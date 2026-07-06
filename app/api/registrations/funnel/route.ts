@@ -6,6 +6,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration";
 import { metroFromZip } from "@/lib/metros";
+import { getRegistrationCycle } from "@/lib/cycles/registration";
 import { fulfillInvitation } from "@/lib/auth/invitations";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
 import {
@@ -120,36 +121,14 @@ export async function POST(request: NextRequest) {
   // The funnel always writes real names, so no placeholder guard is needed.
   await fulfillInvitation(supabase, participant.id, body.email, false);
 
-  // Registration confirmation — include the cycle CTA only when an active
-  // cycle's registration window is open (same logic as the short route).
-  let emailCycleName: string | null = null;
-  let emailCycleJoinUrl: string | null = null;
-
-  const { data: activeCycle } = await supabase
-    .from("cycles")
-    .select("id, name")
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (activeCycle) {
-    const { data: config } = await supabase
-      .from("cycle_config")
-      .select("pod_registration_open, pod_registration_close")
-      .eq("cycle_id", activeCycle.id)
-      .maybeSingle();
-
-    const now = new Date();
-    const isOpen =
-      !!config?.pod_registration_open &&
-      !!config?.pod_registration_close &&
-      now >= new Date(config.pod_registration_open) &&
-      now <= new Date(config.pod_registration_close);
-
-    if (isOpen) {
-      emailCycleName = activeCycle.name;
-      emailCycleJoinUrl = `${appUrl}/cycles/${activeCycle.id}/join`;
-    }
-  }
+  // Registration confirmation — CTA points at the cycle that is currently open
+  // for registration (may be `upcoming`, e.g. Civics & Elections), not
+  // whichever cycle happens to be `active`. Links to the public info page.
+  const registrationCycle = await getRegistrationCycle(supabase);
+  const emailCycleName = registrationCycle?.name ?? null;
+  const emailCycleJoinUrl = registrationCycle
+    ? `${appUrl}/c/${registrationCycle.id}`
+    : null;
 
   try {
     const resend = getResendClient();
@@ -176,9 +155,11 @@ export async function POST(request: NextRequest) {
     {
       participant_id: participant.id,
       created_at: participant.created_at,
-      // The funnel's role branch: picking "Join a Cycle" routes into the
-      // cycle registration ceremony when a cycle is open.
-      active_cycle_id: activeCycle?.id ?? null,
+      // The funnel's role branch: picking "Join a Cycle" routes into the cycle
+      // registration ceremony for the cycle open for registration.
+      registration_cycle_id: registrationCycle?.id ?? null,
+      registration_cycle_name: registrationCycle?.name ?? null,
+      registration_cycle_start: registrationCycle?.start_date ?? null,
     },
     { status: 201 }
   );

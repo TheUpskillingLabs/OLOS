@@ -3,18 +3,11 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
 // The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
 // as the route; removing the feature = delete this block + the two folders.
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import CreateCycleForm from "./cycles/create-cycle-form";
-
-type CycleStatus = "active" | "closed" | "draft";
-
-const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
-  active: "active",
-  closed: "inactive",
-  draft: "draft",
-};
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -106,8 +99,6 @@ export default async function AdminPage() {
                 total: 0,
                 active: 0,
               };
-              const variant =
-                CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
               return (
                 <tr
                   key={cycle.id}
@@ -117,7 +108,9 @@ export default async function AdminPage() {
                     {cycle.name}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
+                    <StatusBadge variant={cycleStatusVariant(cycle.status)}>
+                      {cycleStatusLabel(cycle.status)}
+                    </StatusBadge>
                   </td>
                   <td className="px-4 py-3 text-meta tabular-nums">
                     {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
