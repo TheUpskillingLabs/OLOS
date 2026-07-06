@@ -29,14 +29,19 @@ export function fmtTime(iso: string): string {
   return `${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`;
 }
 
-/** "…, Washington, DC 20001, USA" → "Washington". Falls back to the
+/** "…, Washington, DC 20001, USA" → "Washington, DC". Falls back to the
     original string if it can't find a state+ZIP segment. */
 export function cityOf(locationName: string | null): string {
   if (!locationName) return "";
   const parts = locationName.split(",").map((s) => s.trim()).filter(Boolean);
-  // The segment right before "ST ZIP" (e.g. "DC 20001") is the city.
+  // The "ST ZIP" segment (e.g. "DC 20001") gives the state; the segment
+  // right before it is the city.
   const stateZipIdx = parts.findIndex((p) => /^[A-Z]{2}\s+\d{5}/.test(p));
-  if (stateZipIdx > 0) return parts[stateZipIdx - 1];
+  if (stateZipIdx > 0) {
+    const city = parts[stateZipIdx - 1];
+    const state = parts[stateZipIdx].slice(0, 2);
+    return `${city}, ${state}`;
+  }
   return locationName; // unparseable → keep current behavior
 }
 
