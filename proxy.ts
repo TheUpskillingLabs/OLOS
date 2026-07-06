@@ -57,6 +57,14 @@ export async function proxy(request: NextRequest) {
       "/about",
       "/build-cycles",
       "/stories", // public Upskiller Spotlights — browses free, no auth
+      // Footer pages — legal, contact, get-involved, donate, team browse free.
+      "/privacy",
+      "/terms",
+      "/code-of-conduct",
+      "/contact",
+      "/get-involved",
+      "/donate",
+      "/team",
     ];
     const isPublicPath =
       request.nextUrl.pathname === "/" ||
