@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import Orb from "@/app/components/chrome/orb";
-import { fmtDate, CONTENT_TYPE_LABEL } from "@/lib/content/format";
+import { fmtDate, cityOf, CONTENT_TYPE_LABEL } from "@/lib/content/format";
 import type { EventRow, ResourceRow, MetroRow } from "@/lib/content/queries";
 
 /* Teaser cards — every card is the metadata for its real page (owner
@@ -62,17 +62,19 @@ export function EventTeaser({
       <MediaFrame
         img={e.img}
         grad={e.grad}
-        tag={e.kind || (e.location_type === "virtual" ? "Virtual" : "In person")}
+        tag={e.kind}
         square
         corner={corner}
       />
       <div className="card-body">
         <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
-        <div className="t-h4" style={{ margin: "6px 0 4px" }}>
+        <div className="t-h4 card-title" style={{ margin: "6px 0 4px" }}>
           {e.anchor ? "✦ " : ""}
           {e.name}
         </div>
-        <p className="t-small">{e.location_name}</p>
+        <p className="t-small">
+          {e.location_type === "virtual" ? "Virtual" : cityOf(e.location_name)}
+        </p>
       </div>
     </Link>
   );
