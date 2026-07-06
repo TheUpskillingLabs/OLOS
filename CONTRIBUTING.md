@@ -75,6 +75,34 @@ All work happens on **`dev`**. `main` is production.
 
 > Reviews route to the maintainers via [`.github/CODEOWNERS`](.github/CODEOWNERS).
 
+### Working in parallel
+
+Several people can work at once as long as branches stay segregated:
+
+- **One feature per branch, off `dev`.** Name it for the work (`fix/linkedin-url-guard`,
+  not `wip`). Don't stack unrelated changes.
+- **Claim shared surfaces first.** Before you start, check whether an open issue/PR
+  already touches your files. A few areas are collision-prone — coordinate (or take
+  the whole area) rather than editing them from two branches at once:
+  the shared form primitives (`app/components/ui/form.tsx`), and the
+  enrollment/moderator/admin surface (`lib/enrollment/`, `lib/moderator/`,
+  `app/api/admin/pods/`, `app/api/moderator/pods/`), which several issues touch together.
+- **Claim your migration number.** Say so on the issue before you write
+  `supabase/migrations/000NN_…`. Two branches grabbing the same number collide;
+  `npm run check:migrations` (also enforced in CI) catches a duplicate before merge.
+- **Rebase on `dev` before opening the PR**, and keep PRs small so reviews don't queue.
+- **Never target or push `main`.** It's production; only a maintainer promotes `dev → main`.
+
+### Branch protection (maintainers)
+
+`dev` and `main` should be protected so the workflow above is enforced, not just
+documented. Intended rules (GitHub → Settings → Branches):
+
+- Require a pull request before merging (≥1 approving review).
+- Require the **`ci`** status check to pass, with "require branches up to date."
+- Require review from Code Owners.
+- Restrict direct pushes (no bypassing the PR).
+
 ## Database migrations
 
 The database schema lives in `supabase/migrations/`, numbered sequentially
@@ -82,7 +110,9 @@ The database schema lives in `supabase/migrations/`, numbered sequentially
 migration file** — the files are the source of truth ([SCHEMA.md](SCHEMA.md) is the
 generated reference).
 
-- **Never reuse a migration number** — `ls supabase/migrations/ | tail -1` first.
+- **Never reuse a migration number** — `ls supabase/migrations/ | tail -1` first, and
+  claim it on the issue if others are working in parallel. `npm run check:migrations`
+  (run in CI) fails the build if two files share a numeric prefix.
 - Full conventions (header comments, idempotency, RLS, `-- DOWN:` blocks) are in
   [`supabase/CLAUDE.md`](supabase/CLAUDE.md).
 - Applying to dev vs prod is documented in
