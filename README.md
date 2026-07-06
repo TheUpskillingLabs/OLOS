@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OLOS
 
-## Getting Started
+**OLOS is the build-cycle operating system for [The Upskilling Labs](https://theupskillinglabs.org).**
+It runs the public member experience, the participant onboarding funnel, and the
+signed-in app that walks members through a Build Cycle — from field observations
+to formed pods to shipped projects — plus the Poderator and Admin surfaces that
+keep a cycle moving. It replaces a battery of Google Forms and reconciliation
+spreadsheets with one tool.
 
-First, run the development server:
+> **Naming:** the brand is **"The Upskilling Labs"**, shortened only to **"The Labs"** —
+> never "TUL". This holds in all user-facing copy.
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) · React 19 · TypeScript 5 |
+| Styling | Tailwind CSS v4 + a token-based design system (see [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md)) |
+| Data / Auth | Supabase (Postgres + Auth + Storage), Google OAuth |
+| Email | Resend (HTTP API) |
+| Tests | Vitest |
+| Hosting | Vercel (`dev` → preview, `main` → prod) + Vercel Cron |
+
+There is **no separate backend service** — server logic lives in Next.js route
+handlers (`app/api/**`) and server components, talking to Supabase.
+
+## Get running
+
+New here? Start with **[CONTRIBUTING.md](CONTRIBUTING.md)** — it has the full setup,
+the branch/PR workflow, and how to pick up your first task. The short version:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+nvm use                 # Node 22 (see .nvmrc)
+npm install
+cp .env.local.example .env.development.local   # then fill in the values (see CONTRIBUTING)
+npm run dev             # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Environment setup, the shared dev Supabase project, and login are documented in
+[`docs/environments.md`](docs/environments.md).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the local dev server |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest unit tests |
+| `npm run build` | Production build (also type-checks) |
 
-## Learn More
+## Repo layout
 
-To learn more about Next.js, take a look at the following resources:
+| Path | What it is |
+|---|---|
+| `app/` | Next.js App Router — route groups `(public)`, `(dashboard)`, `(auth)`, the `api/` route handlers, and shared `components/` |
+| `lib/` | Server + shared logic (auth, content, cycle, enrollment, learning-logs, participants, moderator, integrations, email, supabase clients, validations) |
+| `proxy.ts` | Edge middleware — the auth gate + public-path allowlist |
+| `supabase/migrations/` | SQL migrations — the source of truth for the database schema |
+| `scripts/` | Operational + migration scripts (see the `CLAUDE.md` in each) |
+| `docs/` | Architecture, roadmap, environments, PRDs, and audit docs |
+| `public/` | Static assets |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Branch & PR model
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Work happens on `dev`. Branch off `dev`, open a PR **into `dev`**, and CI
+(`lint` + `test` + `build`) must pass before merge. `dev` auto-deploys to a Vercel
+preview; `main` is production and is promoted from `dev` by a maintainer. Details
+in [CONTRIBUTING.md](CONTRIBUTING.md) and [`docs/environments.md`](docs/environments.md).
 
-## Deploy on Vercel
+## Where to read next
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — setup, workflow, conventions, where to start
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the codebase is organized
+- **[SCHEMA.md](SCHEMA.md)** — database schema reference (ERDs + table summary)
+- **[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** — the design system (tokens, components, voice)
+- **[docs/OLOS-roadmap.md](docs/OLOS-roadmap.md)** — what's being built, in what order
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deeper, area-specific context lives in the `CLAUDE.md` files next to the code they
+describe (e.g. [`lib/auth/CLAUDE.md`](lib/auth/CLAUDE.md), [`supabase/CLAUDE.md`](supabase/CLAUDE.md)).
+
+## License
+
+Not yet licensed. MIT is intended for Open-Cycle project code (content under
+CC BY 4.0), pending legal review — until then treat this repository as
+all-rights-reserved. See [CONTRIBUTING.md](CONTRIBUTING.md#licensing).
