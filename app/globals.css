@@ -359,6 +359,18 @@ dialog::backdrop {
   .tag-btn.active { border-color: var(--teal); background: rgba(0, 148, 160, 0.1); color: var(--teal-deep); }
   .tag-btn:active { transform: scale(0.97); }
 
+  /* ── scale (1–5 pip row for flow 'scale' steps) ── */
+  .scale-row { display: flex; gap: 8px; }
+  .scale-cell { flex: 1; text-align: center; font-weight: 600; padding: 14px 0; }
+  .scale-caption { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 13px; line-height: 20px; color: var(--meta); }
+  .scale-caption span:last-child { text-align: right; }
+
+  /* ── field survey welcome/done ── */
+  .survey-intro-list { list-style: none; display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; }
+  .survey-intro-list li { position: relative; padding-left: 22px; font-size: 15px; line-height: 22px; color: var(--slate); }
+  .survey-intro-list li::before { content: ""; position: absolute; left: 3px; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+  .survey-join { border: 1px solid var(--tint-edge); background: var(--tint); border-radius: var(--r); padding: 20px; }
+
   /* ── google ── */
   .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; border-radius: var(--r); background: var(--ink); color: #fff; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; }
   .google-btn:active { transform: scale(0.98); }
