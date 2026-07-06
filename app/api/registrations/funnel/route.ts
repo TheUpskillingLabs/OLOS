@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
+import { escapeEmailForIlike } from "@/lib/auth/email";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration";
@@ -44,11 +45,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Case-insensitive dedup check
+  // Case-insensitive dedup check. escapeEmailForIlike neutralizes `_` and `%`
+  // wildcards so a valid address isn't matched against an unrelated
+  // participant (audit: false "already registered" dead-end).
   const { data: existing } = await supabase
     .from("participants")
     .select("id")
-    .ilike("email", body.email)
+    .ilike("email", escapeEmailForIlike(body.email))
     .maybeSingle();
 
   const appUrl =

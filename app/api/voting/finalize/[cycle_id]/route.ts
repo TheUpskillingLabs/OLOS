@@ -20,6 +20,22 @@ export const POST = withAdminAuth(
       return NextResponse.json({ error: "Cycle config not found" }, { status: 404 });
     }
 
+    // Idempotency guard: finalize is destructive-by-append (one INSERT per
+    // winning statement, no unique constraint). A double-click or proxy retry
+    // would otherwise create a second full set of pods. If any pod already
+    // exists for this cycle, treat voting as already finalized (audit fix).
+    const { count: existingPodCount } = await auth.supabase
+      .from("pods")
+      .select("id", { count: "exact", head: true })
+      .eq("cycle_id", cycleId);
+
+    if ((existingPodCount ?? 0) > 0) {
+      return NextResponse.json(
+        { error: "Voting has already been finalized for this cycle." },
+        { status: 409 }
+      );
+    }
+
     // Tally votes
     const { data: votes } = await auth.supabase
       .from("votes")

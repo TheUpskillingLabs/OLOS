@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
+import { escapeEmailForIlike } from "@/lib/auth/email";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { shortRegistrationSchema } from "@/lib/validations/short-registration";
@@ -40,11 +41,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Case-insensitive dedup check
+  // Case-insensitive dedup check. escapeEmailForIlike neutralizes `_` and `%`
+  // so a legitimate address like `a_b@example.com` isn't matched against an
+  // unrelated participant by ILIKE wildcard semantics (audit: false
+  // "already registered" dead-end).
   const { data: existing } = await supabase
     .from("participants")
     .select("id")
-    .ilike("email", email)
+    .ilike("email", escapeEmailForIlike(email))
     .maybeSingle();
 
   if (existing) {
