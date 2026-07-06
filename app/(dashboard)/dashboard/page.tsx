@@ -214,7 +214,7 @@ export default async function DashboardPage() {
                   day: "numeric",
                 })
               : "soon"}
-            . We'll let you know when it's time to choose your pods.
+            . We&rsquo;ll let you know when it&rsquo;s time to choose your pods.
           </p>
         </div>
       )}

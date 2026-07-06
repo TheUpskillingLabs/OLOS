@@ -46,20 +46,30 @@ export function Tooltip({
 }) {
   const [hovered, setHovered] = React.useState(false);
   const [autoVisible, setAutoVisible] = React.useState(false);
-  const autoNotified = React.useRef(false);
-
+  const autoStarted = React.useRef(false);
+  const onAutoShownRef = React.useRef(onAutoShown);
   React.useEffect(() => {
-    if (!autoShow) return;
-    setAutoVisible(true);
-    const t = setTimeout(() => {
+    onAutoShownRef.current = onAutoShown;
+  });
+
+  // Auto-show is one-shot per tooltip: reveal briefly, then persist "seen".
+  // Guarded by a ref and keyed only on `autoShow` so a parent re-render (e.g. a
+  // sibling being marked seen) can't restart the timer or re-flash it, and the
+  // state updates run in timeout callbacks rather than synchronously in the
+  // effect body (audit + lint fix).
+  React.useEffect(() => {
+    if (!autoShow || autoStarted.current) return;
+    autoStarted.current = true;
+    const show = setTimeout(() => setAutoVisible(true), 0);
+    const hide = setTimeout(() => {
       setAutoVisible(false);
-      if (!autoNotified.current) {
-        autoNotified.current = true;
-        onAutoShown?.();
-      }
+      onAutoShownRef.current?.();
     }, 4000);
-    return () => clearTimeout(t);
-  }, [autoShow, onAutoShown]);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+    };
+  }, [autoShow]);
 
   const visible = hovered || autoVisible;
 
