@@ -15,8 +15,12 @@ at publish time, and the copy will be refined.
 docs/marketing-site/
   README.md              # this file
   pages/*.md             # 11 site pages (Home, About, Join, …), named by slug
-  blog/*.md              # 28 blog posts + role/program cards, named by slug
+  blog/*.md              # 7 curated blog posts (educational + upskiller spotlights)
 ```
+
+The blog is deliberately curated down to the content worth carrying forward: **educational
+posts** and **upskiller spotlights**. Press releases, event recaps, newsletter updates,
+volunteer role cards, and build-cycle/theme descriptions were dropped (see below).
 
 ## Frontmatter
 
@@ -48,19 +52,34 @@ blocks, converts headings/lists/links to Markdown, and drops the Squarespace chr
 images are removed; where an image had a **caption**, the caption text is kept as an italic
 line so the writer knows a visual belonged there (e.g. *"Photo credit: …"*).
 
+## What was kept
+
+**11 pages + 7 blog posts.** The blog was filtered to only educational content and
+upskiller spotlights:
+
+- **Educational (5):** *Building Your First AI Agents* (draft), *Prompt Engineering for
+  Deep Research* (draft), *Prompt Engineering for Deep Research: Health Systems Edition*,
+  *Ship Fast, Break Nothing: How to Build with Claude Code Responsibly*, *Why You Should
+  Start Building Out Loud*.
+- **Upskiller spotlights (2):** *Alumni Spotlight: EChO*, *"I Love It!" John Cornwell
+  Enjoying Hands-On AI Learning*.
+
 ## What was excluded
 
-From the 99 export items, cruft was dropped and **11 pages + 28 posts** kept:
+From the 99 export items, everything below was dropped:
 
+- **Press / event recaps & newsletters (7):** e.g. *Microsoft Hosts 40 Upskillers…*,
+  *Something Real Happened in DC on April 14th*, *…Climate Hackathon on Capitol Hill*,
+  *From Idea to Prototype in a Single Day*, *Weekend Update*, the republished library
+  coordinator profile, and the Eric Meniefield mentor feature — general press-style content.
+- **Build-cycle / theme descriptions (4):** Energy & Climate, Civics & Elections, Health
+  Systems, Q4 Theme — program metadata, not articles.
+- **Volunteer role cards (10):** Mentor, Pod Moderator, Grant Writing, Design, Social Media,
+  Content Writing, Event Management, Day-of Volunteers, Web & Tools Development, etc.
 - **Empty page stubs:** Community Guidelines, Terms of Use, Upskiller's Agreement (0 words),
   and a leftover `test` page.
-- **Squarespace demo drafts:** ~13 duplicate placeholder posts dated `2019-05-28`
-  ("Redefine Success", "Small Steps Create Big Shifts", "Turn Intention Into Action", …).
-- **Empty drafts:** 0-word draft posts with no content.
+- **Squarespace demo drafts:** ~13 duplicate placeholder posts dated `2019-05-28`.
 - **Media attachments:** 31 image files (out of scope — see above).
-
-Two legitimate drafts were **kept** (marked `status: draft`): *Building Your First AI
-Agents* and *Prompt Engineering for Deep Research*.
 
 ## Notes for the migration
 
