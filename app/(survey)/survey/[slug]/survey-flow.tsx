@@ -110,12 +110,16 @@ export default function SurveyFlow({
   slug,
   domain,
   about,
+  responseCount,
+  responseGoal,
 }: {
   slug: string;
   domain: string;
   about: string | null;
+  responseCount: number;
+  responseGoal: number;
 }) {
-  const [stage, setStage] = useState<"welcome" | "flow" | "done">("welcome");
+  const [stage, setStage] = useState<"landing" | "flow" | "done">("landing");
   // Bumping this remounts FlowScreen with a fresh answer set ("Share another").
   const [runKey, setRunKey] = useState(0);
   const steps = useMemo(() => surveySteps(domain), [domain]);
@@ -155,9 +159,15 @@ export default function SurveyFlow({
     return json?.error || "Something went wrong — try again.";
   };
 
-  if (stage === "welcome") {
+  if (stage === "landing") {
     return (
-      <Welcome domain={domain} about={about} onBegin={() => setStage("flow")} />
+      <Landing
+        domain={domain}
+        about={about}
+        count={responseCount}
+        goal={responseGoal}
+        onBegin={() => setStage("flow")}
+      />
     );
   }
 
@@ -181,60 +191,174 @@ export default function SurveyFlow({
       finalLabel="Submit observation"
       submittingLabel="Submitting…"
       onComplete={submit}
-      onExit={() => setStage("welcome")}
+      onExit={() => setStage("landing")}
     />
   );
 }
 
-/* ── Welcome cover — branded orb hero, then Begin ── */
-function Welcome({
+/* ── Landing — the full-width, responsive AIDA entry that fronts the flow.
+   A scrolling content page (NOT the .onboard sheet, which locks scroll):
+   Attention hero (+ live counter) → Interest → Desire → Action, then Begin
+   drops into the one-question flow. Copy is DRAFT (owner-approvable, ported
+   from the prototype byte-for-byte per DESIGN_INTENT §1). ── */
+function Landing({
   domain,
   about,
+  count,
+  goal,
   onBegin,
 }: {
   domain: string;
   about: string | null;
+  count: number;
+  goal: number;
   onBegin: () => void;
 }) {
   return (
-    <div className="view light onboard s-paper">
-      <div className="sheet">
-        <div className="topbar">
-          <span className="lbl">The Upskilling Labs</span>
+    <div className="flex min-h-screen flex-col">
+      {/* Attention — full-bleed hero */}
+      <section className="s-cover grain on-dark landing-hero">
+        <span className="landing-orb" aria-hidden>
+          <Orb />
+        </span>
+        <div className="landing-scrim" aria-hidden />
+        <div className="container landing-hero-inner">
+          <div className="landing-col">
+            <div className="lbl" style={{ marginBottom: 28 }}>
+              The Upskilling Labs
+            </div>
+            <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
+              Field survey · {domain}
+            </div>
+            <h1 className="t-display" style={{ marginBottom: 18 }}>
+              You see something the data misses.
+            </h1>
+            <p className="t-lede" style={{ marginBottom: 4, maxWidth: "40ch" }}>
+              {about ??
+                `You live in a field. You notice what's stuck, what's broken, what keeps coming back. Tell us — that's where the next ${domain} Build Cycle begins.`}
+            </p>
+            <GoalCounter count={count} goal={goal} />
+            <button
+              className="btn btn-red btn-lg landing-cta"
+              onClick={onBegin}
+            >
+              Share what you&rsquo;re seeing →
+            </button>
+            <p className="t-small" style={{ marginTop: 16 }}>
+              ~2 minutes · no account needed · anonymous by default
+            </p>
+          </div>
         </div>
-        <div className="vscroll pad" style={{ paddingTop: 8 }}>
-          <div className="media m-teal" style={{ marginBottom: 24 }}>
-            <span className="m-tag">{domain}</span>
-            <Orb />
+      </section>
+
+      {/* Interest — why an observation matters */}
+      <section className="section s-white">
+        <div className="container" style={{ maxWidth: 760 }}>
+          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
+            Why it matters
           </div>
-          <div className="lbl lbl-teal" style={{ marginBottom: 14 }}>
-            Field survey · ~2 minutes
-          </div>
-          <h1 className="t-h1" style={{ marginBottom: 14 }}>
-            Tell us what you&rsquo;re seeing.
-          </h1>
-          <p className="t-lede" style={{ marginBottom: 24 }}>
-            {about ??
-              "Observations from people closest to a problem are where the best projects begin."}
+          <h2 className="t-h2" style={{ marginBottom: 16 }}>
+            The best projects start with what someone noticed.
+          </h2>
+          <p className="t-lede" style={{ margin: 0 }}>
+            Not a report. Not a headline. A person who was close enough to see
+            what wasn&rsquo;t working. Your observation is that starting point —
+            weighed by who&rsquo;s speaking, and read by the people deciding what
+            to build next.
           </p>
-          <ul className="survey-intro-list">
-            <li>
-              Your observation joins an open, participant-built insights
-              repository that shapes the problems the next {domain} Build Cycle
-              takes on — everything built from it is open-source.
-            </li>
-            <li>
-              Answer only what you want. Most questions are optional and you can
-              skip them.
-            </li>
-            <li>Voluntary and anonymous — contact info is yours to share or not.</li>
-          </ul>
         </div>
-        <div className="actionbar light-bar">
-          <button className="btn btn-teal btn-block" onClick={onBegin}>
-            Begin
+      </section>
+
+      {/* Desire — where it goes */}
+      <section className="section s-white">
+        <div className="container" style={{ maxWidth: 760 }}>
+          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
+            Where it goes
+          </div>
+          <h2 className="t-h2" style={{ marginBottom: 24 }}>
+            Your observation joins an open commons.
+          </h2>
+          <div className="cards two">
+            <div className="lcard" style={{ padding: 24 }}>
+              <h3 className="t-h4" style={{ marginBottom: 6 }}>
+                Open by default
+              </h3>
+              <p className="t-body text-meta" style={{ margin: 0 }}>
+                Everything built from these observations is open-source — free
+                for anyone to use, including you.
+              </p>
+            </div>
+            <div className="lcard" style={{ padding: 24 }}>
+              <h3 className="t-h4" style={{ marginBottom: 6 }}>
+                One of {goal.toLocaleString()}
+              </h3>
+              <p className="t-body text-meta" style={{ margin: 0 }}>
+                We&rsquo;re gathering {goal.toLocaleString()} field observations
+                to choose the problems this cycle takes on. Add yours.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Action — the closing ask */}
+      <section
+        className="s-cover grain on-dark"
+        style={{ padding: "72px 0", textAlign: "center" }}
+      >
+        <div className="container" style={{ maxWidth: 640 }}>
+          <h2 className="t-h2" style={{ marginBottom: 22 }}>
+            Tell us what you&rsquo;re seeing.
+          </h2>
+          <button
+            className="btn btn-red btn-lg landing-cta"
+            onClick={onBegin}
+          >
+            Share your observation →
           </button>
+          <p className="t-small" style={{ marginTop: 16 }}>
+            Voluntary and anonymous. Answer only what you want.
+          </p>
         </div>
+      </section>
+    </div>
+  );
+}
+
+/* The live count toward the campaign goal — real number, no baseline. */
+function GoalCounter({ count, goal }: { count: number; goal: number }) {
+  const pct = goal > 0 ? Math.min(100, Math.round((count / goal) * 100)) : 0;
+  const reached = count >= goal;
+  const label = reached
+    ? `Goal reached — ${count.toLocaleString()} and counting`
+    : count === 0
+      ? "Be one of the first"
+      : `of ${goal.toLocaleString()} observations`;
+
+  return (
+    <div className="landing-goal">
+      <span
+        className="lbl lbl-teal"
+        style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+      >
+        <span className="live-dot" aria-hidden />
+        Live count
+      </span>
+      <div className="t-stat tabular-nums" style={{ marginTop: 8 }}>
+        {count.toLocaleString()}
+      </div>
+      <div className="lbl" style={{ marginTop: 4 }}>
+        {label}
+      </div>
+      <div
+        className="goal-bar"
+        role="progressbar"
+        aria-valuenow={Math.min(count, goal)}
+        aria-valuemin={0}
+        aria-valuemax={goal}
+        aria-label={`${count} of ${goal} observations collected`}
+      >
+        <div className="goal-fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

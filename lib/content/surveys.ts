@@ -32,3 +32,25 @@ export async function getOpenFieldSurvey(
     .maybeSingle();
   return (data as FieldSurvey) ?? null;
 }
+
+// The campaign target the landing counter counts toward — a fixed number, not
+// per-survey config (promote to a field_surveys column if that ever changes).
+export const RESPONSE_GOAL = 1000;
+
+/**
+ * How many observations a field survey has collected — the live count the
+ * landing shows against RESPONSE_GOAL. Excludes moderated-out (rejected) rows,
+ * so it reads as real observations, not spam. Index-backed by
+ * idx_survey_responses_survey; cheap under the page's force-dynamic render.
+ */
+export async function getFieldSurveyResponseCount(
+  surveyId: number
+): Promise<number> {
+  const supabase = createServiceClient();
+  const { count } = await supabase
+    .from("survey_responses")
+    .select("id", { count: "exact", head: true })
+    .eq("field_survey_id", surveyId)
+    .neq("moderation_status", "rejected");
+  return count ?? 0;
+}
