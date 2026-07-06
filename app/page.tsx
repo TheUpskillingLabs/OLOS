@@ -118,17 +118,6 @@ export default async function LandingPage() {
       {spotlights.length > 0 && (
         <section className="section s-white sec-after-hero" id="sec-stories">
           <div className="container">
-            <div className="section-head">
-              <div>
-                <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                  Upskiller Spotlights
-                </div>
-                <h2 className="t-h2">Real people, real practice</h2>
-              </div>
-              <Link className="see" href="/stories">
-                Upskilling Stories →
-              </Link>
-            </div>
             <div className="story-row">
               {spotlights.slice(0, 6).map((s) => (
                 <Link
