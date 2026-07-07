@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SearchX } from "lucide-react";
-import { EmptyState, Tabs } from "@/app/components/ui";
+import { EmptyState, FilterDropdown, Tabs } from "@/app/components/ui";
 import { rankByQuery, statusRank } from "@/lib/directory/rank";
 import type {
   DirectoryData,
@@ -17,7 +17,6 @@ import type {
   DirectoryPod,
   DirectoryProject,
 } from "@/lib/directory/types";
-import { FilterDropdown } from "./filter-dropdown";
 import { PersonRow, PodRow, ProjectRow, ResultList } from "./result-rows";
 
 /**
