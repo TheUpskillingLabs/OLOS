@@ -76,7 +76,7 @@ export default async function AdminPeoplePage({
   const [{ data: invitations }, { data: cycles }, { data: pods }] = await Promise.all([
     serviceClient
       .from("invitations")
-      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, status, created_at, expires_at, accepted_at, email_sent_at, cycles (name)")
+      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, pod_role, status, created_at, expires_at, accepted_at, email_sent_at, cycles (name)")
       .order("created_at", { ascending: false }),
     serviceClient.from("cycles").select("id, name, status").order("start_date", { ascending: false }),
     serviceClient.from("pods").select("id, name, cycle_id, cycles (name)").order("created_at", { ascending: false }),
@@ -102,6 +102,7 @@ export default async function AdminPeoplePage({
       cycle_id: inv.cycle_id,
       cycle_name: cycle?.name ?? null,
       pod_id: inv.pod_id,
+      pod_role: inv.pod_role,
       status: inv.status,
       created_at: inv.created_at,
       expires_at: inv.expires_at,

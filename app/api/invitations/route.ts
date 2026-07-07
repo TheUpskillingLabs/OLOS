@@ -28,7 +28,11 @@ export const POST = withAdminAuth(
     const body = await parseBody(request, createInvitationSchema);
     if (isErrorResponse(body)) return body;
 
-    const { email, role_preset, permissions: extraPerms, cycle_id, pod_id } = body;
+    const { email, role_preset, permissions: extraPerms, cycle_id, pod_id, pod_role } = body;
+
+    if (pod_role && !pod_id) {
+      return NextResponse.json({ error: "pod_role requires a pod" }, { status: 400 });
+    }
 
     // Build final permissions list
     let finalPerms: string[] = [];
@@ -88,9 +92,10 @@ export const POST = withAdminAuth(
         role_preset: role_preset ?? null,
         cycle_id: cycle_id ?? null,
         pod_id: pod_id ?? null,
+        pod_role: pod_role ?? null,
         invited_by: auth.user.participantId,
       })
-      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, status, created_at, expires_at")
+      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, pod_role, status, created_at, expires_at")
       .single();
 
     if (error) return dbError(error);

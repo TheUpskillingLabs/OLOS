@@ -37,7 +37,7 @@ export default async function JoinCyclePage({
 
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, status")
+    .select("id, name, status, mode")
     .eq("id", cycleId)
     .single();
 
@@ -48,6 +48,10 @@ export default async function JoinCyclePage({
   // registration ceremony.
   if (!cycle || (cycle.status !== "active" && cycle.status !== "upcoming"))
     redirect("/cycles");
+
+  // Org cycles (docs/ORG_CYCLES.md) are invite-only — no self-serve join
+  // ceremony. Redirect before any interest/agreement UI renders.
+  if (cycle.mode === "org") redirect("/cycles");
 
   // Already signed → the ceremony opens on the confirmation, not the pitch.
   const { data: agreement } = await serviceClient

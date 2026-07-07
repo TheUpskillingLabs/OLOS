@@ -5,6 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleInterestSchema } from "@/lib/validations/cycle-interest";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -25,6 +26,13 @@ export const POST = withAuth(
     }
 
     const supabase = createServiceClient();
+
+    const orgRejection = await rejectOrgCycle(
+      supabase,
+      cycleId,
+      "Organization cycles are invite-only."
+    );
+    if (orgRejection) return orgRejection;
 
     // Open for the running cohort ('active') and the next one ('upcoming') —
     // the upcoming cohort collects interest pre-kickoff. The enrollment written

@@ -5,6 +5,7 @@ import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { problemStatementSchema } from "@/lib/validations/votes";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -17,6 +18,13 @@ export const POST = withAuth(
     if (!participant_id) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
+
+    const orgRejection = await rejectOrgCycle(
+      auth.supabase,
+      cycle_id,
+      "Organization cycles don't collect problem statements — workstreams are chartered directly."
+    );
+    if (orgRejection) return orgRejection;
 
     // Check window
     const window = await checkWindow(auth.supabase, cycle_id, "problem_statement");

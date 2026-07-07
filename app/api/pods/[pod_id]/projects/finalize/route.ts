@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { generateName } from "@/lib/llm/names";
 import { parseIntParam } from "@/lib/api/params";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -24,6 +25,13 @@ export const POST = withAuth(
     if (!pod) {
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
+
+    const orgRejection = await rejectOrgCycle(
+      auth.supabase,
+      pod.cycle_id,
+      "Organization projects are chartered by the workstream, not voted."
+    );
+    if (orgRejection) return orgRejection;
 
     // Get config
     const { data: config } = await auth.supabase

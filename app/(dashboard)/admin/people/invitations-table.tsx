@@ -11,6 +11,7 @@ const inviteFormSchema = z.object({
   role_preset: z.string().optional(),
   cycle_id: z.string().optional(),
   pod_id: z.string().optional(),
+  pod_role: z.string().optional(),
 });
 
 type InviteFormData = z.infer<typeof inviteFormSchema>;
@@ -24,6 +25,7 @@ type Invitation = {
   cycle_id: number | null;
   cycle_name: string | null;
   pod_id: number | null;
+  pod_role?: string | null;
   status: string;
   created_at: string;
   expires_at: string;
@@ -53,11 +55,11 @@ export default function InvitationsTable({
 
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteFormSchema),
-    defaultValues: { email: "", role_preset: "", cycle_id: "", pod_id: "" },
+    defaultValues: { email: "", role_preset: "", cycle_id: "", pod_id: "", pod_role: "" },
   });
   const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = form;
 
-  const rolePreset = watch("role_preset");
+  const podId = watch("pod_id");
 
   const filtered = invitations.filter(
     (i) => statusFilter === "all" || i.status === statusFilter
@@ -70,6 +72,7 @@ export default function InvitationsTable({
     if (data.role_preset) body.role_preset = data.role_preset;
     if (data.cycle_id) body.cycle_id = parseInt(data.cycle_id);
     if (data.pod_id) body.pod_id = parseInt(data.pod_id);
+    if (data.pod_id && data.pod_role) body.pod_role = data.pod_role;
 
     const res = await fetch("/api/invitations", {
       method: "POST",
@@ -184,16 +187,27 @@ export default function InvitationsTable({
                 ))}
               </select>
             </div>
-            {rolePreset === "moderator" && (
+            {/* Moderator invites need a pod; org workstream invites
+                (co-lead/member, no preset) pick one too — so the select is
+                always offered rather than gated on the moderator preset. */}
+            <div>
+              <label className="text-xs font-medium text-charcoal">Pod</label>
+              <select {...register("pod_id")} className={inputClass}>
+                <option value="">None</option>
+                {pods.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.cycle_name})
+                  </option>
+                ))}
+              </select>
+            </div>
+            {podId && (
               <div>
-                <label className="text-xs font-medium text-charcoal">Pod</label>
-                <select {...register("pod_id")} className={inputClass}>
-                  <option value="">Select pod...</option>
-                  {pods.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.cycle_name})
-                    </option>
-                  ))}
+                <label className="text-xs font-medium text-charcoal">Pod role</label>
+                <select {...register("pod_role")} className={inputClass}>
+                  <option value="">Poderator only</option>
+                  <option value="co_lead">Co-lead (workstream)</option>
+                  <option value="member">Member (workstream)</option>
                 </select>
               </div>
             )}
@@ -289,6 +303,11 @@ export default function InvitationsTable({
                       <span className="text-xs text-meta tabular-nums">
                         {inv.permissions.length} perm
                         {inv.permissions.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {inv.pod_role && (
+                      <span className="ml-1.5 inline-flex items-center rounded-sm bg-ink/[0.04] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-meta">
+                        {inv.pod_role === "co_lead" ? "co-lead" : "member"}
                       </span>
                     )}
                   </td>

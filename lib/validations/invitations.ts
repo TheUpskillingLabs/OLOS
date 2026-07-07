@@ -12,6 +12,7 @@ export const createInvitationSchema = z.object({
     .optional(),
   cycle_id: z.number().int().positive().nullable().optional(),
   pod_id: z.number().int().positive().nullable().optional(),
+  pod_role: z.enum(["co_lead", "member"]).nullable().optional(),
 });
 
 export const revokeInvitationSchema = z.object({
