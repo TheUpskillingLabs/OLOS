@@ -121,13 +121,13 @@ export default async function LandingPage() {
       {/* ── Upskiller Spotlights (onboarding-proto #sec-stories) ── */}
       {spotlights.length > 0 && (
         <section className="section s-white sec-after-hero" id="sec-stories">
-          <div className="container">
+          <div className="story-bleed">
             <div className="story-row">
               {spotlights.slice(0, 6).map((s) => (
                 <Link
                   key={s.id}
                   className="card tappable story-card"
-                  href={`/stories#s-${s.slug}`}
+                  href={`/stories/${s.slug}`}
                 >
                   <div
                     className={s.image_url ? "story-media" : `story-media ${s.grad || "m-teal"}`}

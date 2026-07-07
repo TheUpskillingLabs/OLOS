@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Orb from "@/app/components/chrome/orb";
 import type { Spotlight, SpotlightTag } from "@/lib/content/spotlights";
 
-/* Upskiller Spotlights — the client half of /stories (onboarding-proto's
-   stories.html): filter chips, expand-in-place cards, #s-{slug} deep links,
-   and the "Share your story" modal → POST /api/stories. The published
-   spotlights are fetched server-side and passed in. */
+/* Upskiller Spotlights — the client half of /stories: filter chips, an
+   on-brand gallery whose cards link to each spotlight's own page
+   (/stories/[slug]), and the "Share your story" modal → POST /api/stories.
+   The published spotlights are fetched server-side and passed in. */
 
 const CATS: [string, string][] = [
   ["all", "All stories"],
@@ -23,44 +24,15 @@ const TAG_LABELS: Record<SpotlightTag, string> = {
   other: "Story",
 };
 
-const Chevron = () => (
-  <span className="chev">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  </span>
-);
+function imgSrc(url: string): string {
+  return /^https?:\/\//.test(url) ? url : `/${url.replace(/^\//, "")}`;
+}
 
 export default function StoriesClient({ spotlights }: { spotlights: Spotlight[] }) {
   const [filter, setFilter] = useState<string>("all");
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [shareOpen, setShareOpen] = useState(false);
 
-  // #s-{slug} deep link (from the landing story row): expand + scroll it.
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash.startsWith("#s-")) return;
-    const slug = hash.slice(3);
-    const target = spotlights.find((s) => s.slug === slug);
-    if (!target) return;
-    // Mount-time sync from the URL hash — one extra render is expected here, and
-    // reading the hash in a useState initializer would break hydration.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExpanded(new Set([target.id]));
-    requestAnimationFrame(() =>
-      document.getElementById(`s-${slug}`)?.scrollIntoView({ block: "center" })
-    );
-  }, [spotlights]);
-
   const list = spotlights.filter((s) => filter === "all" || s.tag === filter);
-
-  const toggle = (id: number) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
 
   return (
     <>
@@ -87,22 +59,12 @@ export default function StoriesClient({ spotlights }: { spotlights: Spotlight[] 
       {list.length ? (
         <div className="spot-grid">
           {list.map((s) => {
-            const isOpen = expanded.has(s.id);
+            const first = s.name.split(" ")[0];
             return (
-              <div
+              <Link
                 key={s.id}
-                id={s.slug ? `s-${s.slug}` : undefined}
-                className={`card tappable${isOpen ? " expanded" : ""}`}
-                role="button"
-                tabIndex={0}
-                aria-expanded={isOpen}
-                onClick={() => toggle(s.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toggle(s.id);
-                  }
-                }}
+                href={s.slug ? `/stories/${s.slug}` : "/stories"}
+                className="card tappable spot-card"
               >
                 <div
                   className={s.image_url ? "spot-media" : `spot-media ${s.grad || "m-teal"}`}
@@ -111,7 +73,7 @@ export default function StoriesClient({ spotlights }: { spotlights: Spotlight[] 
                   {s.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={/^https?:\/\//.test(s.image_url) ? s.image_url : `/${s.image_url.replace(/^\//, "")}`}
+                      src={imgSrc(s.image_url)}
                       alt=""
                       style={{
                         position: "absolute",
@@ -129,28 +91,17 @@ export default function StoriesClient({ spotlights }: { spotlights: Spotlight[] 
                 <div className="card-body">
                   <span className="spot-tag">{s.tag_label || TAG_LABELS[s.tag]}</span>
                   {s.quote && (
-                    <p className="t-body" style={{ margin: "12px 0 14px" }}>
+                    <p className="t-body story-quote" style={{ margin: "12px 0 14px" }}>
                       &ldquo;{s.quote}&rdquo;
                     </p>
                   )}
                   <div className="t-h4">{s.name}</div>
                   {s.role && <div className="lbl" style={{ marginTop: 4 }}>{s.role}</div>}
-                  {isOpen && s.story.length > 0 && (
-                    <div className="spot-story">
-                      {s.story.map((p, i) => (
-                        <p key={i} className="t-body" style={{ marginBottom: 12 }}>
-                          {p}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  {s.story.length > 0 && (
-                    <span className="spot-more">
-                      {isOpen ? "Show less" : "Read the full story"} <Chevron />
-                    </span>
-                  )}
+                  <span className="see" style={{ display: "inline-block", marginTop: 14 }}>
+                    Read {first}&rsquo;s story →
+                  </span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

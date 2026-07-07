@@ -32,3 +32,17 @@ export async function getPublishedSpotlights(): Promise<Spotlight[]> {
   if (error) console.error("[content] getPublishedSpotlights:", error.message);
   return (data as Spotlight[]) ?? [];
 }
+
+// One published spotlight by slug — for the /stories/[slug] detail page.
+// Mirrors getResource/getEvent in lib/content/queries.ts.
+export async function getSpotlight(slug: string): Promise<Spotlight | null> {
+  const supabase = createServiceClient();
+  const { data, error } = await supabase
+    .from("spotlights")
+    .select(SPOTLIGHT_COLUMNS)
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) console.error("[content] getSpotlight:", error.message);
+  return (data as Spotlight) ?? null;
+}
