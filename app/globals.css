@@ -649,7 +649,10 @@ button:focus-visible {
   }
   @media (min-width: 1024px) {
     .cards.three { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
-    .cards.dense { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 20px; }
+    /* auto-FILL (not auto-fit): keep empty tracks so a short row — e.g. an
+       agenda month with two events — renders the same card size as a full
+       one, instead of stretching a few cards across the whole row. */
+    .cards.dense { grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 20px; }
   }
 
   /* ── gate / alert banner (white card, colored left edge) ── */
