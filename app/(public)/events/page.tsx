@@ -23,12 +23,8 @@ export default async function EventsPage() {
   const events = await getEvents();
 
   // Server clock, passed down so the SSR and hydrated upcoming/past splits
-  // agree. Same in-progress rule as the island (end_at fallback start_at).
+  // agree with the island's in-progress rule (end_at fallback start_at).
   const nowMs = new Date().getTime();
-  const upcomingCount = events.filter(
-    (e) => new Date(e.end_at ?? e.start_at).getTime() >= nowMs
-  ).length;
-  const pastCount = events.length - upcomingCount;
 
   return (
     <section className="section">
@@ -36,13 +32,13 @@ export default async function EventsPage() {
         <div className="section-head">
           <div>
             <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-              Events & workshops · {upcomingCount} upcoming · {pastCount} past
+              Events & workshops
             </div>
             <h1 className="t-h2">Drop into a session</h1>
           </div>
         </div>
-        <p className="t-lede" style={{ marginBottom: 28 }}>
-          Free and public, every one. ✦ marks the cycle’s six anchor events.
+        <p className="t-small" style={{ marginTop: -10, marginBottom: 14 }}>
+          Free and public, every one. ✦ marks the cycle’s anchor events.
         </p>
         {/* The island reads useSearchParams — Suspense keeps Next happy. */}
         <Suspense>

@@ -9,7 +9,7 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CalendarX2, SearchX } from "lucide-react";
-import { EmptyState, FilterDropdown, Tabs } from "@/app/components/ui";
+import { EmptyState, FilterDropdown } from "@/app/components/ui";
 import { fmtMonth, monthKey } from "@/lib/content/format";
 import type { EventRow } from "@/lib/content/queries";
 import { EventTeaser } from "./teasers";
@@ -193,32 +193,39 @@ export default function EventsAgenda({
     set({ q: "", loc: null, anchor: false, kind: null });
   };
 
-  const countBadge = (n: number) => (
-    <span className="text-xs text-meta tabular-nums">{n}</span>
-  );
+  const isFiltered = !!q || activeFilterCount > 0;
 
   return (
-    <div>
-      <input
-        type="text"
-        placeholder="Search sessions and venues…"
-        value={qInput}
-        onChange={(e) => setQInput(e.target.value)}
-        aria-label="Search events"
-        className="w-full max-w-xl rounded-card border border-ink/10 bg-white px-3.5 py-2.5 text-base text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150"
-      />
-
-      <Tabs
-        className="mt-5"
-        value={view}
-        onValueChange={(v) => set({ view: v as View })}
-        tabs={[
-          { value: "upcoming", label: "Upcoming", badge: countBadge(filteredUpcoming.length) },
-          { value: "past", label: "Past", badge: countBadge(filteredPast.length) },
-        ]}
-      />
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+    <div className="agenda">
+      {/* One slim toolbar — segmented view toggle, compact search, filter
+          chips, kind dropdown, reset — so the cards start near the fold. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="seg" role="group" aria-label="Upcoming or past events">
+          {(
+            [
+              { key: "upcoming", label: "Upcoming", n: filteredUpcoming.length },
+              { key: "past", label: "Past", n: filteredPast.length },
+            ] as const
+          ).map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              className={view === v.key ? "active" : undefined}
+              aria-pressed={view === v.key}
+              onClick={() => set({ view: v.key })}
+            >
+              {v.label} <span className="tabular-nums">{v.n}</span>
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          placeholder="Search sessions and venues…"
+          value={qInput}
+          onChange={(e) => setQInput(e.target.value)}
+          aria-label="Search events"
+          className="h-[38px] w-full rounded-card border border-ink/10 bg-white px-3 text-sm text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150 md:w-60"
+        />
         {LOC_FILTERS.map((f) => {
           const active = loc === f.key;
           return (
@@ -237,6 +244,7 @@ export default function EventsAgenda({
           type="button"
           className={`chip${anchor ? " active" : ""}`}
           aria-pressed={anchor}
+          title="The cycle's anchor events"
           onClick={() => set({ anchor: !anchor })}
         >
           ✦ Anchor events
@@ -259,15 +267,12 @@ export default function EventsAgenda({
             Reset filters ({activeFilterCount})
           </button>
         )}
+        {isFiltered && shown.length > 0 && (
+          <span className="text-xs text-meta tabular-nums">
+            {shown.length} of {total}
+          </span>
+        )}
       </div>
-
-      {shown.length > 0 && (
-        <p className="mb-3 mt-6 text-sm text-meta tabular-nums">
-          {shown.length === total
-            ? `${total} ${total === 1 ? "session" : "sessions"}`
-            : `${shown.length} of ${total} sessions`}
-        </p>
-      )}
 
       {shown.length === 0 ? (
         <div className="mt-6">
