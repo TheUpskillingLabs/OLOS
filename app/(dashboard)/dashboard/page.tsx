@@ -2,8 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { StatusBadge, EmptyState, AlertBanner } from "@/app/components/ui";
-import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
+import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CycleJourney from "./cycle-journey";
 import PodJoinSection from "./pod-join-section";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
@@ -19,7 +18,6 @@ import {
 } from "@/lib/cycle/milestones";
 import SetupChecklist, { type ChecklistItem } from "./setup-checklist";
 import CycleCommitments from "./cycle-commitments";
-import UpNext, { type TodoCard } from "./up-next";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import { learningLogGate } from "@/lib/learning-logs/gate";
@@ -394,6 +392,12 @@ export default async function DashboardPage() {
           lede="You're almost in — here's how to get set up."
         />
         <SetupChecklist items={checklistItems} />
+        {upcomingCycle && !preRegisteredUpcoming && (
+          <p className="mb-4 text-sm text-meta">
+            {activeCycle.name} is already underway — the next cohort is open for
+            registration below.
+          </p>
+        )}
         {upcomingCycle
           ? preRegisteredUpcoming
             ? preRegisteredCard(upcomingCycle)
@@ -442,40 +446,14 @@ export default async function DashboardPage() {
   // Engaged state: user has a cycle_enrollments row — full dashboard chrome.
   // (checklistItems is built above the early returns so it renders in every state.)
 
-  // "Up next" — the cycle actions whose window is open right now, as dismissible
-  // cards (the journey shows the full roadmap; this gives the button). Pod
-  // selection only appears once pods actually exist.
-  const upNextTodos: TodoCard[] =
-    activeCycle && timeline
-      ? timeline.phases
-          .filter((p) => p.state === "open")
-          .filter((p) => p.field !== "pod_registration" || podsExist)
-          .map((p) => ({
-            id: p.field,
-            title: p.action,
-            detail: `Open now — closes ${
-              p.closeAt
-                ? new Date(p.closeAt).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                  })
-                : "soon"
-            }`,
-            href: `/cycles/${activeCycle.id}/${p.route}`,
-            cta: p.cta,
-          }))
-      : [];
-
-  // Hero copy + at-a-glance stats — the identity band adapts to the state.
+  // Hero copy + at-a-glance stats — the identity band adapts to the state. The
+  // window framing keys off whether ANY action is live (timeline.current), not
+  // just the pod window, so the lede can't contradict the journey below it.
   const heroLede = logGate.active
     ? "Your weekly Learning Log is due — save it below and everything unlocks."
-    : state === "interest_submitted_window_open"
-      ? podsExist
-        ? "You're on the list. Choose your pod below to lock in your spot."
-        : "You're on the list. Pods are forming now — you'll choose yours here soon."
-      : state === "interest_submitted_window_closed"
-        ? "You're in. We'll open the next step soon — here's where things stand."
-        : "Here's what's happening in your cycle right now.";
+    : timeline?.current
+      ? "Here's what's happening in your cycle right now — your next step is below."
+      : "You're in. We'll surface your next step here the moment it opens.";
 
   const heroStats: HeroStat[] =
     state === "active"
@@ -502,16 +480,12 @@ export default async function DashboardPage() {
     <div>
       <DashboardHero
         initials={initials}
+        avatarUrl={avatarUrl}
         eyebrow={activeCycle?.name ?? "Member portal"}
         greeting={`Welcome back, ${displayName}`}
         lede={heroLede}
         stats={heroStats.length > 0 ? heroStats : undefined}
       />
-
-      {/* Phase timeline — the whole journey at a glance, full width */}
-      {activeCycle && activeCycleConfig && (
-        <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
-      )}
 
       {/* Two-column working layout: the main column carries what to do now;
           the right rail carries the durable utilities (LinkedIn's rail in
@@ -526,29 +500,21 @@ export default async function DashboardPage() {
               timeline={timeline}
               week={cycleWeek}
               podsReady={podsExist}
+              canAct={enrollment?.status !== "revoked"}
             />
           )}
 
-          {/* Setup leads for a new member; collapses to a strip once done. */}
-          {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
+          {/* Setup leads for a new member; drops off once every item is done. */}
+          {checklistItems.length > 0 &&
+            !checklistItems.every((i) => i.done) && (
+              <SetupChecklist items={checklistItems} />
+            )}
 
           {/* The Learning Log — a personal journaling practice on Home (Phase
               1; replaces the pulse-check CTA). Active cycle members get the
               weekly ritual + gate + pod health check; everyone else journals
               (journal mode). The gate banner + lock apply only inside a cycle. */}
           {logSectionFor(!inActiveCycle)}
-
-          {/* Pod window open but no pods exist yet — say so plainly instead of
-              showing an empty chooser. (The between-phase "opens {date}" case is
-              already covered by the cycle journey above.) */}
-          {activeCycle && podWindowOpen && !podsExist && (
-            <div className="mb-8">
-              <AlertBanner variant="info" title="Pods are forming">
-                Pods are being created from the winning problem statements. Pod
-                selection opens here as soon as they&apos;re ready.
-              </AlertBanner>
-            </div>
-          )}
 
           {podRegOpen && activeCycle && (
             <PodJoinSection
@@ -558,9 +524,6 @@ export default async function DashboardPage() {
               podLimit={podLimit}
             />
           )}
-
-          {/* Up next — dismissible action cards for the currently-open windows */}
-          {upNextTodos.length > 0 && <UpNext todos={upNextTodos} />}
 
           {/* My Pod — the dashboard is optimized for one pod; a single pod
               gets a full-width card, more than one falls back to a grid. */}

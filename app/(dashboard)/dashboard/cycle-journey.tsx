@@ -29,12 +29,15 @@ export default function CycleJourney({
   timeline,
   week,
   podsReady,
+  canAct = true,
 }: {
   cycleId: number;
   timeline: CycleTimeline;
   week: number;
   /** Whether pods exist yet — annotates the pod-selection stage. */
   podsReady: boolean;
+  /** Whether the viewer may act (false for revoked enrollees → status-only). */
+  canAct?: boolean;
 }) {
   return (
     <section className="mb-8">
@@ -53,6 +56,7 @@ export default function CycleJourney({
             phase={p}
             cycleId={cycleId}
             podsReady={podsReady}
+            canAct={canAct}
           />
         ))}
       </ol>
@@ -64,10 +68,12 @@ function JourneyRow({
   phase: p,
   cycleId,
   podsReady,
+  canAct,
 }: {
   phase: TimelinePhase;
   cycleId: number;
   podsReady: boolean;
+  canAct: boolean;
 }) {
   const podsForming = p.field === "pod_registration" && p.state === "open" && !podsReady;
   const live = p.state === "open" && !podsForming;
@@ -85,7 +91,7 @@ function JourneyRow({
         </span>
         <p className="mt-0.5 text-xs text-meta">{detail(p, podsForming)}</p>
       </div>
-      {live && (
+      {live && canAct && (
         <Link
           href={`/cycles/${cycleId}/${p.route}`}
           className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-card bg-teal-deep px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
