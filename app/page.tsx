@@ -35,13 +35,11 @@ function seasonYear(dateStr: string | null): string | null {
   return `${seasons[Math.floor(((d.getMonth() + 1) % 12) / 3)]} ${d.getFullYear()}`;
 }
 
-/* A landing section head recomposed on the editorial grid: a heavy rule, then
-   the eyebrow in column 1 baseline-aligned to the heading (columns 2–5), with
-   the section's "see →" link trailing the heading at the grid's right edge. The
-   card grid / banner that follows is a full-width sibling OUTSIDE this row — the
-   `.ed-sec` grid only governs its own children, so the browse grids are
-   untouched. (The `.see` link keeps its old `.section-head .see` styling inline
-   now that it no longer sits inside a `.section-head`.) */
+/* A landing section head: the eyebrow + heading stacked at the left edge, so
+   they line up with the full-width card grid / banner that follows, and the
+   section's "see →" link trailing at the right. `.section-head` carries the
+   heavy rule and the flex layout — the editorial column grid is for the content
+   pages, not these browse sections whose content runs full-width. */
 function SectionHead({
   eyebrow,
   heading,
@@ -54,34 +52,18 @@ function SectionHead({
   seeLabel?: string;
 }) {
   return (
-    <div className="ed-sec" style={{ marginBottom: 24 }}>
-      <hr className="ed-rule" />
-      <div className="ed-eyebrow">
-        <div className="lbl lbl-teal">{eyebrow}</div>
+    <div className="section-head">
+      <div>
+        <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
+          {eyebrow}
+        </div>
+        <h2 className="t-h2">{heading}</h2>
       </div>
-      <div
-        className="ed-heading"
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-        }}
-      >
-        <h2 className="t-h2" style={{ margin: 0 }}>
-          {heading}
-        </h2>
-        {seeHref && seeLabel && (
-          <Link
-            className="see"
-            href={seeHref}
-            style={{ fontSize: 13, fontWeight: 600, color: "var(--teal-deep)", whiteSpace: "nowrap" }}
-          >
-            {seeLabel}
-          </Link>
-        )}
-      </div>
+      {seeHref && seeLabel && (
+        <Link className="see" href={seeHref}>
+          {seeLabel}
+        </Link>
+      )}
     </div>
   );
 }
