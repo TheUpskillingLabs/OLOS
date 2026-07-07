@@ -101,7 +101,7 @@ export default async function BuildCyclesPage() {
 
       {/* ── Dark hero (the generator's darkHero()) ── */}
       <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
-        <div className="container" style={{ maxWidth: 760, paddingTop: 56, paddingBottom: 56 }}>
+        <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
           <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
             Build Cycles · 4 a year
           </div>
@@ -120,7 +120,7 @@ export default async function BuildCyclesPage() {
         </div>
       </section>
 
-      <div className="container" style={{ paddingTop: 56, paddingBottom: 24, maxWidth: 760 }}>
+      <div className="reading" style={{ paddingTop: 56, paddingBottom: 24 }}>
         {/* ── The four promise cards ── */}
         <div className="cards two" style={{ marginBottom: 56 }}>
           {PROMISES.map(([t, b]) => (

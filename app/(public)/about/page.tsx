@@ -96,7 +96,7 @@ export default function AboutPage() {
 
       {/* ── Dark hero (the generator's darkHero()) ── */}
       <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
-        <div className="container" style={{ maxWidth: 760, paddingTop: 56, paddingBottom: 56 }}>
+        <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
           <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
             About
           </div>
@@ -122,7 +122,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <div className="container" style={{ paddingTop: 56, paddingBottom: 24, maxWidth: 760 }}>
+      <div className="reading" style={{ paddingTop: 56, paddingBottom: 24 }}>
         {/* ── Our perspective ── */}
         <Eyebrow>Our perspective</Eyebrow>
         <h2 className="t-h2" style={{ marginBottom: 16 }}>

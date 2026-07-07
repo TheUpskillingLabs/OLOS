@@ -92,7 +92,7 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
     null;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card sm:p-8">
         <header className="border-b border-ink/10 pb-4">
           <h1 className="t-h2 text-ink">

@@ -74,9 +74,3 @@ export const createOptionSchema = z.object({
   value: z.string().min(1, "Value is required").max(200),
   display_order: z.number().int().optional(),
 });
-
-export const observerRoleSchema = z.object({
-  participant_id: z.number().int({
-    message: "participant_id must be a number",
-  }),
-});

@@ -24,10 +24,7 @@ export function ProsePage({
       </div>
 
       <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
-        <div
-          className="container"
-          style={{ maxWidth: 760, paddingTop: 56, paddingBottom: 56 }}
-        >
+        <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
           <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
             {eyebrow}
           </div>
@@ -45,10 +42,7 @@ export function ProsePage({
         </div>
       </section>
 
-      <div
-        className="container"
-        style={{ paddingTop: 56, paddingBottom: 40, maxWidth: 760 }}
-      >
+      <div className="reading" style={{ paddingTop: 56, paddingBottom: 40 }}>
         {children}
       </div>
     </>

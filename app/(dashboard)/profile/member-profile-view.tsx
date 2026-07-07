@@ -88,7 +88,7 @@ export default function MemberProfileView({
   const grouped = options ?? {};
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="max-w-3xl">
       {/* Visitor context bar — who you're looking at, the way back, and follow. */}
       {!isOwner && (
         <div className="mb-4 flex items-center justify-between gap-3">

@@ -95,7 +95,7 @@ export default function ShowcaseEditForm({
   const [coverUrl, setCoverUrl] = useState(initial.coverUrl);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <div className="mb-4">
         <Link
           href={backHref}

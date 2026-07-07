@@ -135,7 +135,7 @@ export default async function DirectoryPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-10">
+    <div className="space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="t-h1 text-ink">Directory</h1>

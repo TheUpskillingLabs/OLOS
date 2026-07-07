@@ -94,7 +94,7 @@ export default async function LandingPage() {
               Build your edge.
             </h1>
             <div className="hero-cta">
-              <p className="t-lede" style={{ marginBottom: 24 }}>
+              <p className="t-lede" style={{ marginBottom: 24, maxWidth: "52ch" }}>
                 The Labs isn’t a class you sit through. It’s where you practice
                 becoming the person you want to be — on real problems, with
                 people who notice.
