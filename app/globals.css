@@ -686,8 +686,11 @@ button:focus-visible {
   .ham-menu .nav-link { color: var(--od2); font-size: 16px; font-weight: 500; padding: 15px 2px; border-radius: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
   .ham-menu .nav-link:last-child { border-bottom: none; }
   .ham-menu .nav-link:hover { color: var(--od1); background: transparent; }
-  /* the landing variant: fixed over the hero, gradient fade */
-  .sitenav.overhero { position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(to bottom, var(--ink) 0%, transparent 100%); }
+  /* the landing variant: sticky over the hero (gradient fade), bounded to the
+     hero by .hero-shell — the bar rides the top while the hero is on screen,
+     then scrolls away with it. The base .sitenav is already sticky/top:0;
+     overhero only re-skins it with the fade and keeps it transparent. */
+  .sitenav.overhero { position: sticky; top: 0; background: linear-gradient(to bottom, var(--ink) 0%, transparent 100%); }
   .sitenav.overhero .ham-menu { background: var(--ink); }
   @media (min-width: 1024px) {
     .sitenav .nav-links { display: flex; }
@@ -702,6 +705,13 @@ button:focus-visible {
   }
 
   /* ── landing hero band ── */
+  /* The shell is the sticky nav's containing block: the nav sticks to the top
+     while the shell (== the hero) is on screen, then unsticks and scrolls off
+     with it. --hero-nav-h is the bar's height (min-height of .sitenav-inner);
+     the hero is pulled up by it so the photo still runs full-bleed behind the
+     translucent bar, exactly as the old fixed nav did. */
+  .hero-shell { position: relative; --hero-nav-h: 76px; }
+  .hero-shell > .hero-band { margin-top: calc(-1 * var(--hero-nav-h)); }
   .hero-band { position: relative; z-index: 2; overflow: hidden; border-radius: 0 0 calc(var(--r) * 3) calc(var(--r) * 3); margin-bottom: calc(-3 * var(--r)); min-height: calc(100svh + calc(var(--r) * 3)); display: flex; align-items: flex-end; background: none; }
   .hero-scrim { position: absolute; top: 0; left: 0; right: 0; height: 190px; z-index: 3; pointer-events: none; background: linear-gradient(to bottom, var(--ink) 0%, rgba(0, 20, 27, 0.55) 45%, transparent 100%); }
   .hero-band::before { z-index: 2; } /* grain sits over the tint */
