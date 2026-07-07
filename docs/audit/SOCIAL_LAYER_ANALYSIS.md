@@ -52,10 +52,10 @@ So the Venmo-like ambition is not blocked on more surface — it's blocked on **
   *"Directory (members-only), profiles, follow, requested-only testimonials, nominations"*
   with the intent label *"Trustworthy, earned"* (`DESIGN_INTENT.md` journey table).
 - The signed-in app is explicitly the LinkedIn model: destinations *Home · My Cycle ·
-  Learning · Directory · Me* (`DESIGN_INTENT.md` §app shell).
+  Learning · Directory · Me* (`DESIGN_INTENT.md:92-93`).
 - Success for the Upskiller persona is social by definition: *"finishing the cycle and
   showcasing what they've built, alongside the group of people they built it with"*
-  (`docs/personas.md:39`).
+  (`docs/personas.md:41`).
 - The long-term thesis makes member activity the asset: the Ortelius north star frames the
   event stream as *"the labeled corpus, for free"* — *"the product working is the labeling"*
   (`docs/ORTELIUS_NORTHSTAR.md:126-127`).
@@ -86,8 +86,9 @@ Then **everyone lands on `/dashboard`** (`funnel.tsx` submit) — a deliberate c
 intent silently chains into another flow"), but it means:
 
 1. **Never asked:** headline, bio, preferred name, expertise, handle, photo beyond Google,
-   metro as a visible concept. All of it lives only in `/profile/edit`, which nothing points
-   to except one checklist row.
+   metro as a visible concept. All of it lives only in `/profile/edit` — reachable via the
+   avatar menu and the profile page's Edit button, but nothing in the *onboarding* flow points
+   there except one checklist row.
 2. **The only nudge is generic and self-dismissing.** The dashboard Setup Checklist row
    "Complete your profile" is `done = !!(bio || headline)`
    (`app/(dashboard)/dashboard/page.tsx` checklist builder) — a one-word headline satisfies
@@ -154,7 +155,7 @@ dead-end profile.
 | `user_roles` | Staff audit trail (owner/admin/observer/developer only — CHECK excludes moderator/participant) | same three writers, audit-only | `resolveUserRoles`, admin People badges | No |
 | `moderator_assignments` | Pod-scoped moderator truth | invitations, pod moderator routes | `resolveUserRoles` (derives `moderator`), `requireModeratorForPod` | Only as the "Poderator" persona |
 | `role_intents` TEXT[] | Self-declared member identity (cycle/events/volunteer/mentor) | funnel, profile edit | profile chips, directory rows + filter | **The only member-visible one** |
-| `participant_roles` (00054) | Designed unified temporal ledger — *"replaces role_intents-as-truth, user_roles, moderator_assignments"* (00054:5-8) | **Nobody since its one-time backfill** | **Only** 00058's RLS helpers | No |
+| `participant_roles` (00054) | Designed unified temporal ledger — *"replaces role_intents-as-truth, user_roles, moderator_assignments"* (00054:4-8) | **Nobody since its one-time backfill** | **Only** 00058's RLS helpers | No |
 | Personas (Upskiller/Poderator/Admin) | URL-derived UI dressing (`app-nav.tsx:50-54`) | — | nav pill, View-as radios | Yes (chrome only) |
 
 **Defects, ordered by severity:**
@@ -203,7 +204,7 @@ dead-end profile.
 | Events + RSVP + Luma | live, liveliest data (86 events / 137 RSVPs) | anon or member | org + Luma only | RSVPs are member→org; peers never see attendance |
 | Pods / projects | live | members join | co-members see rosters | **Joins/formations emit nothing** — the highest-value latent events |
 | Slack/GitHub/Drive columns | dormant | seed/import | nobody (zero UI renders) | The natural "where the work happens" links |
-| Follow graph, notifications, messaging | absent | — | — | Follows + "Following" filter are Phase 5 (`updates-feed.tsx:10`) |
+| Follow graph, notifications, messaging | absent | — | — | Follows + "Following" filter are Phase 5 (`updates-feed.tsx:11`) |
 
 **Net:** one hub-and-spoke feed (member → shared log → everyone), zero reciprocity loops.
 Passive presence exists (directory, profiles, rosters); nothing a member does creates a
