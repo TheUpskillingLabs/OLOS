@@ -58,7 +58,7 @@ export function EventTeaser({
   corner?: ReactNode;
 }) {
   return (
-    <Link className="card tappable" href={`/events/${e.slug}`}>
+    <Link className="card tappable event-card" href={`/events/${e.slug}`}>
       <MediaFrame
         img={e.img}
         grad={e.grad}

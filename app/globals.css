@@ -536,6 +536,17 @@ button:focus-visible {
      event covers are 1:1 natively, so synced images render uncropped). */
   .media.sq, .cards.dense .media.sq { aspect-ratio: 1 / 1; }
   .cards.dense .t-h4 { font-size: 15px; line-height: 20px; }
+  /* Event teasers go horizontal on phones — square thumbnail (1/5 width) on
+     the left, the vertically-stacked info on the right. `align-items:
+     flex-start` keeps the media at its 1:1 aspect ratio instead of stretching. */
+  @media (max-width: 699px) {
+    .card.event-card { display: flex; align-items: flex-start; }
+    .card.event-card .media { flex: 0 0 20%; border-radius: 0; }
+    /* the kind badge can't fit legibly on a 1/5-width thumbnail — the card body
+       already carries the event's details, so drop it in this compact layout */
+    .card.event-card .media .m-tag { display: none; }
+    .card.event-card .card-body { flex: 1; min-width: 0; }
+  }
   @media (min-width: 700px) { .cards.dense { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 768px) {
     .cards { grid-template-columns: repeat(2, 1fr); gap: 24px; }
@@ -574,7 +585,7 @@ button:focus-visible {
   .cycle-banner .cb-cta { position: relative; z-index: 1; width: 100%; }
   /* scrim between the orb and the banner's text/CTA — the orb never sits raw under content */
   .cycle-banner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0, 20, 27, 0) 35%, rgba(0, 20, 27, 0.55) 100%); pointer-events: none; }
-  @media (max-width: 699px) { .cycle-banner .m-orb { opacity: 0.4; } .cycle-banner::after { background: rgba(0, 20, 27, 0.35); } }
+  @media (max-width: 699px) { .cycle-banner { min-height: 85svh; justify-content: center; } .cycle-banner .m-orb { opacity: 0.4; } .cycle-banner::after { background: rgba(0, 20, 27, 0.35); } }
   .cb-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--r); background: rgba(0, 148, 160, 0.22); border: 1px solid rgba(0, 148, 160, 0.55); color: #fff; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
   .cb-status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px rgba(0, 148, 160, 0.25); }
 
