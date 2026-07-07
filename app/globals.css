@@ -656,6 +656,10 @@ button:focus-visible {
        agenda month with two events — renders the same card size as a full
        one, instead of stretching a few cards across the whole row. */
     .cards.dense { grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 20px; }
+    /* Landing-preview variant: auto-FIT so a capped single row (the six-card
+       landing) fills the width instead of leaving the trailing track auto-fill
+       would keep on a wide viewport. Directories/agenda stay auto-fill. */
+    .cards.dense.fit { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
   }
 
   /* ── gate / alert banner (white card, colored left edge) ── */
