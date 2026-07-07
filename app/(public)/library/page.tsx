@@ -1,4 +1,4 @@
-import { Crumbs, ResourceTeaser } from "@/app/components/content/teasers";
+import { ResourceTeaser } from "@/app/components/content/teasers";
 import { getResources } from "@/lib/content/queries";
 
 /* The Learning Library directory — the prototype generator's
@@ -20,9 +20,6 @@ export default async function LibraryPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Library", null]]} />
-      </div>
       <section className="section">
         <div className="container">
           <div className="section-head">

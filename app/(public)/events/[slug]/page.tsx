@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Crumbs, EventTeaser } from "@/app/components/content/teasers";
+import { EventTeaser } from "@/app/components/content/teasers";
 import { getEvent, getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay, fmtTime } from "@/lib/content/format";
 import { publicSession } from "@/lib/auth/public-session";
@@ -110,11 +110,6 @@ export default async function EventPage({
 
   return (
     <>
-      <div className="container">
-        <Crumbs
-          trail={[["Home", "/"], ["Events", "/events"], [e.name, null]]}
-        />
-      </div>
       <div className="container">
         <div className="detail" style={{ marginTop: 16 }}>
           <div className="detail-main">
