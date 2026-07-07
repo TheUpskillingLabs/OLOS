@@ -19,31 +19,50 @@ export function ProsePage({
 }) {
   return (
     <>
-      <div className="container">
-        <Crumbs trail={trail} />
+      {/* Document bar — crumbs left, identifier right, rule under */}
+      <div className="container" style={{ paddingTop: 22 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 16,
+            paddingBottom: 12,
+          }}
+        >
+          <Crumbs trail={trail} />
+          <span className="lbl">The Upskilling Labs</span>
+        </div>
+        <hr className="ed-rule" style={{ marginBottom: 0 }} />
       </div>
 
-      <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
-        <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
-            {eyebrow}
+      {/* ── Editorial header ── */}
+      <section className="grain on-dark" style={{ background: "var(--ink)" }}>
+        <div className="container" style={{ paddingTop: 88, paddingBottom: 88 }}>
+          <div className="ed-grid">
+            <div className="ed-index">
+              <div className="lbl lbl-teal">{eyebrow}</div>
+            </div>
+            <div className="ed-main">
+              <h1 className="t-h1">{title}</h1>
+            </div>
+            {lede && (
+              <div className="ed-aside ed-drop">
+                <p className="t-lede" style={{ color: "var(--od2)" }}>
+                  {lede}
+                </p>
+              </div>
+            )}
           </div>
-          <h1 className="t-h1" style={{ maxWidth: "28ch" }}>
-            {title}
-          </h1>
-          {lede && (
-            <p
-              className="t-lede"
-              style={{ marginTop: 18, maxWidth: "56ch", color: "var(--od2)" }}
-            >
-              {lede}
-            </p>
-          )}
         </div>
       </section>
 
-      <div className="reading" style={{ paddingTop: 56, paddingBottom: 40 }}>
-        {children}
+      {/* Body — a readable column set on the grid's content zone (col 4+),
+          aligned under the header's headline. */}
+      <div className="container" style={{ paddingTop: 72, paddingBottom: 40 }}>
+        <div className="ed-grid">
+          <div className="ed-main ed-text">{children}</div>
+        </div>
       </div>
     </>
   );
