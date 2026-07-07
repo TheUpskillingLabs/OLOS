@@ -21,10 +21,18 @@
 --               recognizes those files as applied. No DDL — it's all present.
 --   Section 2 — Sanity check to eyeball.
 --
--- The timestamp rows are left in place (the CLI matches by version; extra
--- remote-only rows are harmless noise in `migration list`).
+-- STEP 2 (required — learned from dev: `db push` REFUSES to run while
+-- remote-only timestamp versions exist). From the OLOS repo, linked to PROD,
+-- clear the timestamp claims (bookkeeping only, no schema/data change):
 --
--- AFTER THIS RUNS
+--   supabase migration repair --status reverted \
+--     20260521185024 20260522040043 20260522040047 20260531122024 \
+--     20260604005310 20260604005314 20260604005317 20260604005320 \
+--     20260604005322 20260604041556 20260604041606 20260604041615 \
+--     20260604041647 20260604041655 20260604074708 20260703222356 \
+--     20260703222414
+--
+-- AFTER BOTH STEPS
 --   `supabase db push` against prod will apply 00033..00058 — the dev-tested
 --   catch-up (public content, learning logs, metros, sector model, …) plus the
 --   onboarding migrations. Do it with --dry-run first, and note the two
