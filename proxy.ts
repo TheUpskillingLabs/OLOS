@@ -50,6 +50,7 @@ export async function proxy(request: NextRequest) {
       "/login",
       "/api/",
       "/register",
+      "/c/", // public shareable cycle info pages — browses free, no auth
       "/events",
       "/library",
       "/local-labs",
