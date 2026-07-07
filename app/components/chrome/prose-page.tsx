@@ -41,7 +41,6 @@ export function ProsePage({
         <div className="container" style={{ paddingTop: 88, paddingBottom: 88 }}>
           <div className="ed-grid">
             <div className="ed-index">
-              <span className="ed-num">00</span>
               <div className="lbl lbl-teal">{eyebrow}</div>
             </div>
             <div className="ed-main">

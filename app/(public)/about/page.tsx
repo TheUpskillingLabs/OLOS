@@ -70,7 +70,9 @@ function Sec({
   children,
   aside,
 }: {
-  num: string;
+  // A numeral only where a real sequence exists (steps, phases) — never on plain
+  // content sections, where it would imply an order that isn't there.
+  num?: string;
   label: string;
   heading?: string;
   children: React.ReactNode;
@@ -81,7 +83,7 @@ function Sec({
       <hr className="ed-rule" />
       <div className="ed-grid">
         <div className="ed-index">
-          <span className="ed-num">{num}</span>
+          {num && <span className="ed-num">{num}</span>}
           <div className="lbl lbl-teal">{label}</div>
         </div>
         <div className="ed-main">
@@ -141,7 +143,6 @@ export default function AboutPage() {
         <div className="container" style={{ paddingTop: 88, paddingBottom: 88 }}>
           <div className="ed-grid">
             <div className="ed-index">
-              <span className="ed-num">00</span>
               <div className="lbl lbl-teal">About</div>
             </div>
             <div className="ed-main">
@@ -175,7 +176,6 @@ export default function AboutPage() {
       <div className="container" style={{ paddingTop: 88, paddingBottom: 56 }}>
         <div className="ed-doc">
           <Sec
-            num="01"
             label="Our perspective"
             heading="The way we learn hasn’t kept pace with the world."
             aside={<RailQuote>Learning that becomes capability.</RailQuote>}
@@ -193,7 +193,6 @@ export default function AboutPage() {
           </Sec>
 
           <Sec
-            num="02"
             label="What we believe"
             heading="Capability changes everything."
           >
@@ -210,7 +209,6 @@ export default function AboutPage() {
           </Sec>
 
           <Sec
-            num="03"
             label="What we built"
             heading="So we built a different kind of place."
           >
@@ -232,7 +230,6 @@ export default function AboutPage() {
           </Sec>
 
           <Sec
-            num="04"
             label="What happens here"
             heading="Transformation happens through practice."
             aside={<RailQuote>You leave more capable than you arrived.</RailQuote>}
@@ -250,7 +247,6 @@ export default function AboutPage() {
           </Sec>
 
           <Sec
-            num="05"
             label="Who belongs here"
             heading="You don’t need to have it all figured out."
           >
@@ -273,7 +269,6 @@ export default function AboutPage() {
           </Sec>
 
           <Sec
-            num="06"
             label="Looking forward"
             heading="We’re building for a future none of us can predict."
           >
@@ -288,7 +283,7 @@ export default function AboutPage() {
             </p>
           </Sec>
 
-          <Sec num="07" label="Join" heading="This is just the beginning.">
+          <Sec label="Join" heading="This is just the beginning.">
             <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
               Whether you’re looking to challenge yourself, contribute to something
               meaningful, meet extraordinary people, or simply become more capable

@@ -259,7 +259,8 @@ dialog::backdrop {
 
   /* ── Editorial "standards-manual" grid ─────────────────────────────────────
      Homage to the 1976 NASA Graphics Standards Manual (with Column Five / The
-     Futur): a left INDEX column carries a red section number over its label; the
+     Futur): a left INDEX column carries the section label (with a teal numeral
+     only where the sequence is real — never on plain content sections); the
      CONTENT column holds the headline and body at a readable measure; an
      optional right rail takes the standfirst or a pulled quote. Heavy horizontal
      rules divide sections. One structure governs the whole page, so every
@@ -274,8 +275,10 @@ dialog::backdrop {
   .ed-aside { min-width: 0; }
   .ed-text { max-width: 64ch; } /* readable measure in the content column */
 
-  /* the section index: a red tabular number over its label (the manual's device) */
-  .ed-num { display: block; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; letter-spacing: 0.02em; color: var(--red); margin-bottom: 10px; }
+  /* the section index numeral — the brand accent (teal), like .idx/.lbl-teal;
+     use ONLY where the sequence is real (steps, phases), never on prose sections */
+  .ed-num { display: block; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; letter-spacing: 0.02em; color: var(--teal-deep); margin-bottom: 10px; }
+  .on-dark .ed-num { color: var(--teal); }
   /* a heavy modernist rule that divides sections / underscores the header */
   .ed-rule { border: 0; border-top: 2px solid var(--ink); margin: 0 0 24px; }
   .on-dark .ed-rule { border-top-color: var(--od1); }
@@ -294,7 +297,8 @@ dialog::backdrop {
      hairline rule, label and blurb. The "how it works" pattern from the refs. */
   .ed-steps { display: grid; grid-template-columns: 1fr; gap: clamp(28px, 4vw, 48px); }
   @media (min-width: 700px) { .ed-steps { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); } }
-  .ed-step-n { font-weight: 700; font-size: 15px; letter-spacing: 0.06em; color: var(--red); font-variant-numeric: tabular-nums; }
+  .ed-step-n { font-weight: 700; font-size: 15px; letter-spacing: 0.06em; color: var(--teal-deep); font-variant-numeric: tabular-nums; }
+  .on-dark .ed-step-n { color: var(--teal); }
   .ed-step-rule { height: 2px; background: var(--ink); margin: 12px 0 16px; }
   .on-dark .ed-step-rule { background: var(--od1); }
 
