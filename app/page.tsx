@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PublicNav from "@/app/components/chrome/public-nav";
+import HeroFade from "@/app/components/chrome/hero-fade";
 import OrbDefs from "@/app/components/chrome/orb-defs";
 import Orb from "@/app/components/chrome/orb";
 import { OsFooter } from "@/app/components/chrome/site-footers";
@@ -77,40 +78,43 @@ export default async function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <OrbDefs />
-      <PublicNav signedIn={signedIn} initials={initials} avatarUrl={avatarUrl} overHero />
 
-      {/* ── Hero ── */}
-      <div className="hero-band s-cover grain on-dark">
-        <div className="hero-scrim" aria-hidden="true" />
-        <div className="hero-photo" aria-hidden="true" />
-        <div className="hero-tint" aria-hidden="true" />
-        <div className="hero-inner">
-          <h1 className="t-display">
-            Find your people.
-            <br />
-            Build your edge.
-          </h1>
-          <div className="hero-cta">
-            <p className="t-lede" style={{ marginBottom: 24 }}>
-              The Labs isn’t a class you sit through. It’s where you practice
-              becoming the person you want to be — on real problems, with
-              people who notice.
-            </p>
-            {signedIn ? (
-              <Link className="btn btn-teal btn-lg" href="/dashboard">
-                Go to your dashboard
-              </Link>
-            ) : (
-              <>
-                <Link className="btn btn-red btn-lg" href="/login">
-                  Join The Labs
+      {/* ── Hero ── The nav + hero share one shell so the nav stays sticky only
+          while the hero is on screen, then scrolls away with it. */}
+      <div className="hero-shell">
+        <PublicNav signedIn={signedIn} initials={initials} avatarUrl={avatarUrl} overHero />
+        <div className="hero-band s-cover grain on-dark">
+          <div className="hero-scrim" aria-hidden="true" />
+          <div className="hero-photo" aria-hidden="true" />
+          <div className="hero-tint" aria-hidden="true" />
+          <HeroFade>
+            <h1 className="t-display">
+              Find your people.
+              <br />
+              Build your edge.
+            </h1>
+            <div className="hero-cta">
+              <p className="t-lede" style={{ marginBottom: 24 }}>
+                The Labs isn’t a class you sit through. It’s where you practice
+                becoming the person you want to be — on real problems, with
+                people who notice.
+              </p>
+              {signedIn ? (
+                <Link className="btn btn-teal btn-lg" href="/dashboard">
+                  Go to your dashboard
                 </Link>
-                <Link className="btn btn-ghost btn-lg hero-login" href="/login">
-                  Log in
-                </Link>
-              </>
-            )}
-          </div>
+              ) : (
+                <>
+                  <Link className="btn btn-red btn-lg" href="/login">
+                    Join The Labs
+                  </Link>
+                  <Link className="btn btn-ghost btn-lg hero-login" href="/login">
+                    Log in
+                  </Link>
+                </>
+              )}
+            </div>
+          </HeroFade>
         </div>
       </div>
 
