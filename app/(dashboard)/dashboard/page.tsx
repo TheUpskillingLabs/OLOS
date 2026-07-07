@@ -46,6 +46,15 @@ export default async function DashboardPage() {
 
   const activeCycle = cycles?.find((c) => c.status === "active") ?? null;
 
+  // The cohort a not-yet-enrolled member registers for: the newest cycle open
+  // for pre-registration (`upcoming`), if any. Mirrors getRecruitingCycle
+  // (lib/cycle/active.ts) — the signup funnel and the confirmation email
+  // already point new members at this cohort, so the dashboard's join CTA has
+  // to as well, or a member who signed up for the upcoming cohort lands here
+  // with no path to it. `cycles` is ordered start_date desc → the first match
+  // is the newest upcoming.
+  const upcomingCycle = cycles?.find((c) => c.status === "upcoming") ?? null;
+
   type PodMembership = { id: number; pod_id: number; pods: { id: number; name: string; status: string } };
   let activeCycleConfig = null;
   let enrollment = null;
@@ -91,6 +100,20 @@ export default async function DashboardPage() {
     myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
     hasAgreement = (agreementResult.count ?? 0) > 0;
     logCount = logResult.count ?? 0;
+  }
+
+  // Has the member already signed the upcoming cohort's Open Cycle Agreement?
+  // Drives the "Register" checklist row + the pre-registration confirmation so
+  // a member who's pre-registered for the next cohort isn't asked to do it
+  // again.
+  let preRegisteredUpcoming = false;
+  if (upcomingCycle) {
+    const { count } = await serviceClient
+      .from("cycle_agreements")
+      .select("id", { head: true, count: "exact" })
+      .eq("participant_id", participant.id)
+      .eq("cycle_id", upcomingCycle.id);
+    preRegisteredUpcoming = (count ?? 0) > 0;
   }
 
   // Determine pod registration window status
@@ -221,9 +244,24 @@ export default async function DashboardPage() {
   // Setup checklist — the onboarding home for a new member (prototype
   // panel-dashboard: "checklist first"). Built here so it shows in EVERY state
   // below, not only once enrolled: the profile step is always relevant; the
-  // cycle steps appear when a cycle is running. SetupChecklist collapses to a
-  // strip once every row is done.
+  // cycle steps appear when a cycle is running or open for registration.
+  // SetupChecklist collapses to a strip once every row is done.
   const profileDone = !!(participant.bio || participant.headline);
+
+  // The "Register" row leads to the cohort the member should register for. In
+  // the onboarding states (no active enrollment yet) that's the upcoming cohort
+  // when one is open for pre-registration — matching where the signup funnel
+  // routed them — otherwise the running cohort. Once the member is engaged in
+  // the active cycle the row reflects that cycle (and collapses when done), so
+  // an active member isn't nagged about the next cohort.
+  const onboarding = state === "no_cycle" || state === "no_enrollment";
+  const registerCycle =
+    onboarding && upcomingCycle ? upcomingCycle : activeCycle;
+  const registerDone =
+    onboarding && upcomingCycle
+      ? preRegisteredUpcoming
+      : hasAgreement || enrollment?.status === "active";
+
   const checklistItems: ChecklistItem[] = [
     {
       key: "profile",
@@ -232,15 +270,21 @@ export default async function DashboardPage() {
       href: "/profile/edit",
       cta: "Edit",
     },
-    ...(activeCycle
+    ...(registerCycle
       ? [
           {
             key: "register",
-            label: `Register for ${activeCycle.name}`,
-            done: hasAgreement || enrollment?.status === "active",
-            href: `/cycles/${activeCycle.id}/join`,
+            label: `Register for ${registerCycle.name}`,
+            done: registerDone,
+            href: `/cycles/${registerCycle.id}/join`,
             cta: "Register",
           },
+        ]
+      : []),
+    // Pod + Learning Log steps belong to the running cohort — an upcoming
+    // cohort has no pods yet — so these stay tied to the active cycle.
+    ...(activeCycle
+      ? [
           {
             key: "pod",
             label: "Join a pod",
@@ -259,7 +303,66 @@ export default async function DashboardPage() {
       : []),
   ];
 
-  // Empty state: no enrollment — the onboarding checklist leads, then the join CTA.
+  // Join / pre-register CTA card for the onboarding empty states, pointed at
+  // the cohort the member should register for. For an upcoming cohort the copy
+  // frames it as pre-registration; for the running cohort it's a straight join.
+  type CycleCardData = {
+    id: number;
+    name: string;
+    start_date: string | null;
+    end_date: string | null;
+  };
+  const joinCycleCard = (cycle: CycleCardData, upcoming: boolean) => (
+    <Link
+      href={`/cycles/${cycle.id}/join`}
+      className="group flex items-center justify-between rounded-card border border-teal/30 bg-white p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+    >
+      <div>
+        <h2 className="t-h3 text-ink">{cycle.name}</h2>
+        {cycle.start_date && cycle.end_date && (
+          <p className="mt-1 text-sm text-meta">
+            {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
+            {new Date(cycle.end_date).toLocaleDateString()}
+          </p>
+        )}
+        <p className="mt-3 text-sm text-meta">
+          {upcoming
+            ? "Pre-register now to claim your spot for the next cohort."
+            : "Complete this form to join the cycle."}
+        </p>
+      </div>
+      <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
+        {upcoming ? "Pre-register" : `Join ${cycle.name}`}
+        <ArrowRight
+          className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </span>
+    </Link>
+  );
+
+  // Shown instead of the join card once the member has signed the upcoming
+  // cohort's agreement — they're set; nothing to do until it starts.
+  const preRegisteredCard = (cycle: CycleCardData) => (
+    <div className="rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card">
+      <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
+      <h2 className="t-h3 text-ink">{cycle.name}</h2>
+      <p className="mt-2 text-sm text-meta">
+        You&apos;re all set for the next cohort
+        {cycle.start_date
+          ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
+              "en-US",
+              { month: "long", day: "numeric" }
+            )}`
+          : ""}
+        . We&apos;ll open your next steps here when it starts.
+      </p>
+    </div>
+  );
+
+  // Empty state: no enrollment — the onboarding checklist leads, then the join
+  // CTA. When the next cohort is open for pre-registration, the CTA points at
+  // it (that's where signup routed the member), not the closing active cycle.
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
@@ -271,36 +374,18 @@ export default async function DashboardPage() {
           lede="You're almost in — here's how to get set up."
         />
         <SetupChecklist items={checklistItems} />
-        <Link
-          href={`/cycles/${activeCycle.id}/join`}
-          className="group flex items-center justify-between rounded-card border border-teal/30 bg-white p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-        >
-          <div>
-            <h2 className="t-h3 text-ink">
-              {activeCycle.name}
-            </h2>
-            <p className="mt-1 text-sm text-meta">
-              {new Date(activeCycle.start_date).toLocaleDateString()} &ndash;{" "}
-              {new Date(activeCycle.end_date).toLocaleDateString()}
-            </p>
-            <p className="mt-3 text-sm text-meta">
-              Complete this form to join the cycle.
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
-            Join {activeCycle.name}
-            <ArrowRight
-              className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </span>
-        </Link>
+        {upcomingCycle
+          ? preRegisteredUpcoming
+            ? preRegisteredCard(upcomingCycle)
+            : joinCycleCard(upcomingCycle, true)
+          : joinCycleCard(activeCycle, false)}
         <div className="mt-8">{logSectionFor(true)}</div>
       </div>
     );
   }
 
-  // Empty state: no active cycle at all
+  // Empty state: no active cycle. If the next cohort is already open for
+  // registration, lead with its join CTA instead of the "nothing running" note.
   if (state === "no_cycle") {
     return (
       <div>
@@ -309,14 +394,26 @@ export default async function DashboardPage() {
           avatarUrl={avatarUrl}
           eyebrow="Member portal"
           greeting={`Welcome, ${displayName}`}
-          lede="Here's your home base at The Labs. The next Build Cycle will show up right here."
+          lede={
+            upcomingCycle
+              ? "Here's your home base — the next Build Cycle is open for registration below."
+              : "Here's your home base at The Labs. The next Build Cycle will show up right here."
+          }
         />
         {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
-        <EmptyState
-          icon={Calendar}
-          title="No cycle running right now"
-          description="Check back soon for the next Build Cycle."
-        />
+        {upcomingCycle ? (
+          preRegisteredUpcoming ? (
+            preRegisteredCard(upcomingCycle)
+          ) : (
+            joinCycleCard(upcomingCycle, true)
+          )
+        ) : (
+          <EmptyState
+            icon={Calendar}
+            title="No cycle running right now"
+            description="Check back soon for the next Build Cycle."
+          />
+        )}
         <div className="mt-8">{logSectionFor(true)}</div>
       </div>
     );

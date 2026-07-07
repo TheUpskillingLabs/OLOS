@@ -187,9 +187,6 @@ export async function POST(request: NextRequest) {
     {
       participant_id: participant.id,
       created_at: participant.created_at,
-      // The funnel's role branch: picking "Join a Cycle" routes into the
-      // cycle registration ceremony for the recruiting cohort when one is open.
-      active_cycle_id: recruitingCycle?.id ?? null,
     },
     { status: 201 }
   );
