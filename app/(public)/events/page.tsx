@@ -1,4 +1,4 @@
-import { Crumbs, EventTeaser } from "@/app/components/content/teasers";
+import { EventTeaser } from "@/app/components/content/teasers";
 import { getEvents } from "@/lib/content/queries";
 
 /* The public events directory — the generator's directoryPage('events'):
@@ -22,9 +22,6 @@ export default async function EventsPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Events", null]]} />
-      </div>
       <section className="section">
         <div className="container">
           <div className="section-head">

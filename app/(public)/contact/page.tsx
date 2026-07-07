@@ -12,11 +12,6 @@ export const metadata = {
     "Get in touch with The Upskilling Labs — partnerships, sponsorship, venues, and general questions.",
 };
 
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Contact", null],
-];
-
 const h2 = { marginTop: 44, marginBottom: 12 } as const;
 const p = { marginBottom: 16 } as const;
 
@@ -32,7 +27,6 @@ export default function ContactPage() {
       eyebrow="Get in touch"
       title="Partner with us"
       lede="Interested in supporting our mission? We’re always looking for people and organizations to build with."
-      trail={TRAIL}
     >
       <p className="t-body" style={p}>
         The Upskilling Labs runs in the open and grows through partnership. Whether

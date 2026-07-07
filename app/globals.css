@@ -649,11 +649,6 @@ button:focus-visible {
     .cards.dense { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 20px; }
   }
 
-  /* ── kv label + crumbs ── */
-  .crumbs { display: flex; align-items: center; gap: 8px; padding: 20px 0 0; font-size: 13px; color: var(--meta); }
-  .crumbs a { color: var(--teal-deep); text-decoration: none; font-weight: 600; }
-  .crumbs .sep { color: var(--meta-soft); }
-
   /* ── gate / alert banner (white card, colored left edge) ── */
   .gate-banner { background: var(--white); border: 1px solid var(--rule); border-left: 4px solid var(--red); border-radius: var(--r); padding: 20px 22px; }
   .gate-banner.unlocked { border-left-color: var(--teal); }

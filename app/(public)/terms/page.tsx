@@ -12,11 +12,6 @@ export const metadata = {
     "The terms that govern your use of the OLOS platform operated by The Upskilling Labs.",
 };
 
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Terms of Service", null],
-];
-
 const h2 = { marginTop: 44, marginBottom: 12 } as const;
 const p = { marginBottom: 16 } as const;
 
@@ -26,7 +21,6 @@ export default function TermsPage() {
       eyebrow="Legal"
       title="Terms of Service"
       lede="The terms you agree to when you create an account or use OLOS."
-      trail={TRAIL}
     >
       <p className="t-small" style={{ marginBottom: 28 }}>
         Effective date: July 3, 2026

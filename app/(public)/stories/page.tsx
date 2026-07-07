@@ -1,4 +1,3 @@
-import { Crumbs } from "@/app/components/content/teasers";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 import StoriesClient from "./stories-client";
 
@@ -21,10 +20,6 @@ export default async function StoriesPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Stories", null]]} />
-      </div>
-
       {/* Dark hero (the generator's darkHero()) */}
       <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
         <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>

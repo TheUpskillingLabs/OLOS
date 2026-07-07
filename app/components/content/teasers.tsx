@@ -127,16 +127,3 @@ export function LabTeaser({ metro: m }: { metro: MetroRow }) {
     </Link>
   );
 }
-
-export function Crumbs({ trail }: { trail: [string, string | null][] }) {
-  return (
-    <div className="crumbs">
-      {trail.map(([label, href], i) => (
-        <span key={label} style={{ display: "contents" }}>
-          {i > 0 && <span className="sep">/</span>}
-          {href ? <Link href={href}>{label}</Link> : <span>{label}</span>}
-        </span>
-      ))}
-    </div>
-  );
-}

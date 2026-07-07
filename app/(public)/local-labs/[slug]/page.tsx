@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  Crumbs,
   EventTeaser,
   LabTeaser,
   MediaFrame,
@@ -77,19 +76,10 @@ export default async function LabPage({
   const m = await getMetro(slug);
   if (!m) notFound();
 
-  const crumbs = (
-    <div className="container">
-      <Crumbs
-        trail={[["Home", "/"], ["Local labs", "/local-labs"], [labTitle(m), null]]}
-      />
-    </div>
-  );
-
   if (m.status === "active") {
     const events = (await getEvents()).slice(0, 3);
     return (
       <>
-        {crumbs}
         <section
           className="grain"
           style={{
@@ -226,7 +216,6 @@ export default async function LabPage({
 
   return (
     <>
-      {crumbs}
       <div className="container">
         <div className="detail" style={{ marginTop: 16 }}>
           <div className="detail-main">
