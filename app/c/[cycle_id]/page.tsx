@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CycleInfo } from "@/app/components/cycle/cycle-info";
+import { OsFooter } from "@/app/components/chrome/site-footers";
 
 // Public, shareable cycle information page (no auth). Renders non-sensitive
 // cycle info with a "Sign in to register" CTA — the shareable link for a wave of
@@ -29,30 +30,33 @@ export default async function PublicCyclePage({
   if (!cycle || cycle.status === "draft") notFound();
 
   return (
-    <main className="flex-1">
-      <header className="border-b border-ink/10">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <span className="font-semibold tracking-tight text-ink">
-            The Upskilling Labs
-          </span>
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-teal-deep hover:underline"
-          >
-            Sign in
-          </Link>
-        </div>
-      </header>
-      <div className="px-6 py-12">
-        <CycleInfo
-          cycle={cycle}
-          cta={
-            <Link href="/login" className="btn btn-teal btn-block">
-              Sign in to register
+    <>
+      <main className="flex-1">
+        <header className="border-b border-ink/10">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+            <span className="font-semibold tracking-tight text-ink">
+              The Upskilling Labs
+            </span>
+            <Link
+              href="/login"
+              className="text-sm font-semibold text-teal-deep hover:underline"
+            >
+              Sign in
             </Link>
-          }
-        />
-      </div>
-    </main>
+          </div>
+        </header>
+        <div className="px-6 py-12">
+          <CycleInfo
+            cycle={cycle}
+            cta={
+              <Link href="/login" className="btn btn-teal btn-block">
+                Sign in to register
+              </Link>
+            }
+          />
+        </div>
+      </main>
+      <OsFooter />
+    </>
   );
 }
