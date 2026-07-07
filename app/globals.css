@@ -259,15 +259,16 @@ dialog::backdrop {
 
   /* ── Editorial "standards-manual" grid ─────────────────────────────────────
      Homage to the 1976 NASA Graphics Standards Manual (with Column Five / The
-     Futur): a left INDEX column carries the section label (with a teal numeral
-     only where the sequence is real — never on plain content sections); the
-     CONTENT column holds the headline and body at a readable measure; an
-     optional right rail takes the standfirst or a pulled quote. Heavy horizontal
-     rules divide sections. One structure governs the whole page, so every
-     number, label, headline and rule lands on the same columns — no jumble of
-     column starts. Flush-left, high-contrast, generous space; stacks to a single
-     column below the desktop breakpoint. .ed-doc gives the run of sections a
-     generous, even vertical rhythm. */
+     Futur): a FIVE-COLUMN desktop field. Column 1 is the left INDEX (the section
+     label, with a teal numeral only where the sequence is real — never on plain
+     content sections). Columns 2–5 are the content play-space: the headline and
+     body sit at a readable measure, an optional right rail (col 5) takes the
+     standfirst or a pulled quote, and wide rows (media/steps) span 2–5. Heavy
+     horizontal rules divide sections. One structure governs the whole page, so
+     every number, label, headline and rule lands on the same columns — no jumble
+     of column starts. Flush-left, high-contrast, generous space; stacks to a
+     single column below the desktop breakpoint. .ed-doc gives the run of
+     sections a generous, even vertical rhythm. */
   .ed-doc { display: grid; row-gap: clamp(48px, 6vw, 104px); }
   .ed-grid { display: grid; grid-template-columns: 1fr; column-gap: clamp(28px, 3.5vw, 56px); row-gap: clamp(14px, 2vw, 24px); }
   .ed-index { min-width: 0; }
@@ -284,11 +285,11 @@ dialog::backdrop {
   .on-dark .ed-rule { border-top-color: var(--od1); }
 
   @media (min-width: 1024px) {
-    .ed-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-    .ed-index { grid-column: 1 / span 3; }
-    .ed-main { grid-column: 4 / span 6; }
-    .ed-aside { grid-column: 10 / -1; }
-    .ed-wide { grid-column: 4 / -1; } /* media / full-measure rows */
+    .ed-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ed-index { grid-column: 1; }          /* the index — unchanged role */
+    .ed-main { grid-column: 2 / span 3; }  /* cols 2–4: headline + body */
+    .ed-aside { grid-column: 5; }          /* col 5: standfirst / pulled quote */
+    .ed-wide { grid-column: 2 / -1; }      /* cols 2–5: media / steps / full row */
     /* the hero standfirst drops to sit at the headline's baseline */
     .ed-drop { align-self: end; }
   }
