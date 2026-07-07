@@ -135,6 +135,24 @@ export function resolveCurrentPhase(
 
 export type PhaseState = "done" | "open" | "upcoming" | "unscheduled";
 
+/**
+ * Classify a single window against `now`. `unscheduled` = one or both timestamps
+ * are unset. Shared by resolveCycleTimeline and the action pages' WindowStateCard
+ * so "not open yet" and "already closed" are never conflated. Open/close instants
+ * are inclusive.
+ */
+export function phaseStateFor(
+  openAt: string | null,
+  closeAt: string | null,
+  now: Date = new Date()
+): PhaseState {
+  if (!openAt || !closeAt) return "unscheduled";
+  const nowMs = now.getTime();
+  if (nowMs < new Date(openAt).getTime()) return "upcoming";
+  if (nowMs <= new Date(closeAt).getTime()) return "open";
+  return "done";
+}
+
 export interface TimelinePhase extends CyclePhase {
   state: PhaseState;
   openAt: string | null;
@@ -158,20 +176,9 @@ export function resolveCycleTimeline(
   cfg: CycleConfigPhaseColumns,
   now: Date = new Date()
 ): CycleTimeline {
-  const nowMs = now.getTime();
   const phases: TimelinePhase[] = CYCLE_PHASES.map((p) => {
     const { openAt, closeAt } = readWindow(cfg, p.field);
-    let state: PhaseState;
-    if (!openAt || !closeAt) {
-      state = "unscheduled";
-    } else if (nowMs < new Date(openAt).getTime()) {
-      state = "upcoming";
-    } else if (nowMs <= new Date(closeAt).getTime()) {
-      state = "open";
-    } else {
-      state = "done";
-    }
-    return { ...p, state, openAt, closeAt };
+    return { ...p, state: phaseStateFor(openAt, closeAt, now), openAt, closeAt };
   });
 
   const current = phases.find((p) => p.state === "open") ?? null;

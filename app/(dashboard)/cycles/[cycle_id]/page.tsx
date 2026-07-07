@@ -5,6 +5,12 @@ import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import FollowButton from "@/app/components/follow-button";
 import { isFollowing, getFollowerCount } from "@/lib/follows/queries";
+import CycleJourney from "@/app/components/cycle/cycle-journey";
+import {
+  resolveCycleTimeline,
+  type CycleConfigPhaseColumns,
+} from "@/lib/cycle/phases";
+import { getCycleWeek } from "@/lib/cycle/week";
 
 type CycleStatus = "active" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -24,19 +30,6 @@ const POD_STATUS_VARIANT: Record<
   closed: "inactive",
   inactive: "inactive",
 };
-
-const WINDOW_ROUTES: {
-  label: string;
-  field: string;
-  route: string;
-}[] = [
-  { label: "Submit Problem Statements", field: "problem_statement", route: "propose" },
-  { label: "Vote on Problem Statements", field: "voting", route: "vote" },
-  { label: "Register for Pods", field: "pod_registration", route: "register-pods" },
-  { label: "Submit Solution Proposals", field: "solution_proposal", route: "solutions" },
-  { label: "Vote on Solutions", field: "solution_voting", route: "solution-vote" },
-  { label: "Register for Projects", field: "project_registration", route: "register-projects" },
-];
 
 export default async function CycleDetailPage({
   params,
@@ -78,18 +71,16 @@ export default async function CycleDetailPage({
     .eq("cycle_id", cycle.id)
     .single();
 
-  const now = new Date();
-  const activeWindows: { label: string; route: string; closesAt: string }[] = [];
-  if (config) {
-    for (const w of WINDOW_ROUTES) {
-      const configRecord = config as Record<string, string | null>;
-      const openVal = configRecord[`${w.field}_open`];
-      const closeVal = configRecord[`${w.field}_close`];
-      if (openVal && closeVal && now >= new Date(openVal) && now <= new Date(closeVal)) {
-        activeWindows.push({ label: w.label, route: w.route, closesAt: closeVal });
-      }
-    }
-  }
+  // The same phase roadmap the dashboard shows — one source, so the two agree.
+  const timeline = config
+    ? resolveCycleTimeline(config as unknown as CycleConfigPhaseColumns)
+    : null;
+  const cycleWeek = getCycleWeek(
+    new Date(),
+    new Date(cycle.start_date),
+    new Date(cycle.end_date)
+  );
+  const podsReady = (pods?.length ?? 0) > 0;
 
   const cycleStatusVariant =
     CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
@@ -149,40 +140,14 @@ export default async function CycleDetailPage({
         )}
       </div>
 
-      {/* Active window CTAs */}
-      {activeWindows.length > 0 && (
-        <div className="mb-8 space-y-3">
-          {activeWindows.map((w) => (
-            <Link
-              key={w.route}
-              href={`/cycles/${cycle.id}/${w.route}`}
-              className="group flex items-center justify-between gap-3 rounded-card border border-teal/30 bg-teal/10 p-4 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-            >
-              <div className="flex items-center gap-3">
-                <span className="relative flex h-2 w-2" aria-hidden>
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
-                </span>
-                <span className="font-semibold tracking-tight text-ink">
-                  {w.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate">
-                <span className="tabular-nums">
-                  closes{" "}
-                  {new Date(w.closesAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-                <ArrowRight
-                  className="h-4 w-4 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-                  aria-hidden
-                />
-              </div>
-            </Link>
-          ))}
-        </div>
+      {/* Where you are in the cycle — the same roadmap the dashboard shows. */}
+      {timeline && (
+        <CycleJourney
+          cycleId={cycle.id}
+          timeline={timeline}
+          week={cycleWeek}
+          podsReady={podsReady}
+        />
       )}
 
       {/* Learning Log — the weekly practice, framed calmly (it replaced the pulse check) */}

@@ -158,6 +158,12 @@ export default function PodRegistration({
         </p>
       </div>
 
+      {podLimit === 1 && registeredCount >= 1 && (
+        <p className="text-xs text-meta">
+          You&apos;re in one pod per cycle — leave your current pod to switch.
+        </p>
+      )}
+
       {error && (
         <p
           role="alert"

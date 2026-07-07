@@ -65,11 +65,20 @@ export default async function JoinCyclePage({
     .maybeSingle();
 
   const now = new Date();
-  const podRegistrationOpen =
+  const podWindowOpen =
     !!config?.pod_registration_open &&
     !!config?.pod_registration_close &&
     now >= new Date(config.pod_registration_open) &&
     now <= new Date(config.pod_registration_close);
+
+  // Pods only exist after an admin finalizes problem-statement voting — don't
+  // send a just-signed member to an empty chooser during the window.
+  const { count: podsCount } = await serviceClient
+    .from("pods")
+    .select("id", { head: true, count: "exact" })
+    .eq("cycle_id", cycleId)
+    .in("status", ["forming", "active"]);
+  const podRegistrationOpen = podWindowOpen && (podsCount ?? 0) > 0;
 
   const fullName = `${participant.first_name} ${participant.last_name}`.trim();
 

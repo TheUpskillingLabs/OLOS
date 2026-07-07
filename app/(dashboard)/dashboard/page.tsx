@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StatusBadge, EmptyState } from "@/app/components/ui";
-import CycleJourney from "./cycle-journey";
+import CycleJourney from "@/app/components/cycle/cycle-journey";
 import PodJoinSection from "./pod-join-section";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
 import { getCycleWeek } from "@/lib/cycle/week";

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import WindowStateCard from "@/app/components/cycle/window-state-card";
 import VoteBallot from "./vote-ballot";
 
 export default async function VotePage({
@@ -61,20 +62,11 @@ export default async function VotePage({
           nonSubmitterBudget={config?.non_submitter_votes ?? 0}
         />
       ) : (
-        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
-          <p className="text-charcoal">Voting is not currently open.</p>
-          {config?.voting_open && now < new Date(config.voting_open) && (
-            <p className="mt-2 text-sm text-meta tabular-nums">
-              Opens{" "}
-              {new Date(config.voting_open).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
-        </div>
+        <WindowStateCard
+          field="voting"
+          openAt={config?.voting_open ?? null}
+          closeAt={config?.voting_close ?? null}
+        />
       )}
     </div>
   );

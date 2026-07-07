@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import WindowStateCard from "@/app/components/cycle/window-state-card";
 import ProjectRegistration from "./project-registration";
 
 export default async function RegisterProjectsPage({
@@ -135,21 +136,11 @@ export default async function RegisterProjectsPage({
       </div>
 
       {!isOpen ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
-          <p className="text-charcoal">
-            Project registration is not currently open.
-          </p>
-          {config?.project_registration_open &&
-            now < new Date(config.project_registration_open) && (
-              <p className="mt-2 text-sm text-meta tabular-nums">
-                Opens{" "}
-                {new Date(config.project_registration_open).toLocaleDateString(
-                  "en-US",
-                  { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
-                )}
-              </p>
-            )}
-        </div>
+        <WindowStateCard
+          field="project_registration"
+          openAt={config?.project_registration_open ?? null}
+          closeAt={config?.project_registration_close ?? null}
+        />
       ) : !enrollmentActive ? (
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">

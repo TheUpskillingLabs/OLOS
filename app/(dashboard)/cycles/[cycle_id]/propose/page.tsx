@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import WindowStateCard from "@/app/components/cycle/window-state-card";
 import ProposeForm from "./propose-form";
 
 export default async function ProposePage({
@@ -82,26 +83,11 @@ export default async function ProposePage({
       {isOpen ? (
         <ProposeForm cycleId={cycleId} participantName={participantName} />
       ) : (
-        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
-          <p className="text-charcoal">
-            Problem statement submission is not currently open.
-          </p>
-          {config?.problem_statement_open &&
-            now < new Date(config.problem_statement_open) && (
-              <p className="mt-2 text-sm text-meta tabular-nums">
-                Opens{" "}
-                {new Date(config.problem_statement_open).toLocaleDateString(
-                  "en-US",
-                  {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }
-                )}
-              </p>
-            )}
-        </div>
+        <WindowStateCard
+          field="problem_statement"
+          openAt={config?.problem_statement_open ?? null}
+          closeAt={config?.problem_statement_close ?? null}
+        />
       )}
     </div>
   );

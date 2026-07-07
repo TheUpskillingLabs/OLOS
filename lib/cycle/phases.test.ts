@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveCycleTimeline,
   resolveCurrentPhase,
+  phaseStateFor,
   CYCLE_PHASES,
   type CycleConfigPhaseColumns,
 } from "./phases";
@@ -72,6 +73,24 @@ describe("resolveCycleTimeline", () => {
     // Scheduled windows are done; unscheduled stay unscheduled.
     expect(phases.find((p) => p.field === "solution_proposal")?.state).toBe("done");
     expect(phases.find((p) => p.field === "solution_voting")?.state).toBe("unscheduled");
+  });
+});
+
+describe("phaseStateFor", () => {
+  const open = "2026-06-10T00:00:00Z";
+  const close = "2026-06-20T00:00:00Z";
+  it("returns unscheduled when either timestamp is missing", () => {
+    expect(phaseStateFor(null, close, NOW)).toBe("unscheduled");
+    expect(phaseStateFor(open, null, NOW)).toBe("unscheduled");
+  });
+  it("distinguishes upcoming, open, and done", () => {
+    expect(phaseStateFor(open, close, new Date("2026-06-05T00:00:00Z"))).toBe("upcoming");
+    expect(phaseStateFor(open, close, new Date("2026-06-15T00:00:00Z"))).toBe("open");
+    expect(phaseStateFor(open, close, new Date("2026-06-25T00:00:00Z"))).toBe("done");
+  });
+  it("treats the open and close instants as inclusive", () => {
+    expect(phaseStateFor(open, close, new Date(open))).toBe("open");
+    expect(phaseStateFor(open, close, new Date(close))).toBe("open");
   });
 });
 

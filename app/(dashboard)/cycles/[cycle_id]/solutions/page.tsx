@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import WindowStateCard from "@/app/components/cycle/window-state-card";
 import ProposalForm, { type InitialProposal } from "./proposal-form";
 
 // W2-001: submission tab visibility extends T-1 day before
@@ -104,23 +105,16 @@ export default async function SolutionsPage({
         </p>
       </div>
 
-      {!tabVisible ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
-          <p className="text-charcoal">
-            Project submission is not currently open.
-          </p>
-          {openAt && now < openAt && (
-            <p className="mt-2 text-sm text-meta tabular-nums">
-              Opens{" "}
-              {openAt.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
-        </div>
+      {!tabVisible || (!submissionOpen && !initialProposal) ? (
+        // Window isn't open for submitting AND they have nothing to review —
+        // show a distinct "opens {date}" / "closed {date}" card rather than a
+        // dead disabled form. (A member who already submitted keeps their
+        // read-only view below, even after close.)
+        <WindowStateCard
+          field="solution_proposal"
+          openAt={config?.solution_proposal_open ?? null}
+          closeAt={config?.solution_proposal_close ?? null}
+        />
       ) : myPods.length === 0 ? (
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">

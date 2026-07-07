@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCycleWeek } from "@/lib/cycle/week";
+import { CYCLE_PHASES } from "@/lib/cycle/phases";
 
 type CycleConfig = {
   phase_2_start: string | null;
@@ -58,15 +59,6 @@ const PHASES = [
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
-const OPERATIONAL_WINDOWS = [
-  { label: "Problem Statements", field: "problem_statement", route: "propose" },
-  { label: "Voting", field: "voting", route: "vote" },
-  { label: "Pod Registration", field: "pod_registration", route: "register-pods" },
-  { label: "Solution Proposals", field: "solution_proposal", route: "solutions" },
-  { label: "Solution Voting", field: "solution_voting", route: "solution-vote" },
-  { label: "Project Registration", field: "project_registration", route: "register-projects" },
-] as const;
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
@@ -83,7 +75,7 @@ function getActiveWindows(
   now: Date
 ): { label: string; closesAt: string; route: string }[] {
   const active: { label: string; closesAt: string; route: string }[] = [];
-  for (const w of OPERATIONAL_WINDOWS) {
+  for (const w of CYCLE_PHASES) {
     const openKey = `${w.field}_open` as keyof CycleConfig;
     const closeKey = `${w.field}_close` as keyof CycleConfig;
     const openVal = config[openKey];
@@ -101,7 +93,7 @@ function getUpcomingWindow(
   config: CycleConfig,
   now: Date
 ): { label: string; opensAt: string } | null {
-  for (const w of OPERATIONAL_WINDOWS) {
+  for (const w of CYCLE_PHASES) {
     const openKey = `${w.field}_open` as keyof CycleConfig;
     const openVal = config[openKey];
     if (openVal && new Date(openVal) > now) {
@@ -120,10 +112,6 @@ export default function CyclePhaseIndicator({
   cycle: Cycle;
   config: CycleConfig;
 }) {
-  if (!config.phase_2_start || !config.phase_3_start) {
-    return null;
-  }
-
   const now = new Date();
   const startDate = new Date(cycle.start_date);
   const endDate = new Date(cycle.end_date);

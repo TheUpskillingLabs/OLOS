@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
+import WindowStateCard from "@/app/components/cycle/window-state-card";
 import PodRegistration from "./pod-registration";
 
 export default async function RegisterPodsPage({
@@ -54,10 +55,14 @@ export default async function RegisterPodsPage({
   return (
     <div>
       <div className="mb-8">
-        <p className="lbl">
+        <Link
+          href={`/cycles/${cycle.id}`}
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
-        </p>
-        <h1 className="t-h1 mt-1 text-ink">
+        </Link>
+        <h1 className="t-h1 mt-2 text-ink">
           {single ? "Choose your pod" : "Choose your pods"}
         </h1>
         <p className="mt-2 text-sm text-meta">
@@ -88,29 +93,11 @@ export default async function RegisterPodsPage({
           </div>
         </>
       ) : (
-        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
-          <p className="text-charcoal">
-            Pod registration is not currently open.
-          </p>
-          {config?.pod_registration_open &&
-            now < new Date(config.pod_registration_open) && (
-              <p className="mt-2 text-sm text-meta tabular-nums">
-                Opens{" "}
-                {new Date(config.pod_registration_open).toLocaleDateString(
-                  "en-US",
-                  { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
-                )}
-              </p>
-            )}
-          <div className="mt-4">
-            <Link
-              href="/dashboard"
-              className="text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-teal"
-            >
-              Go to Dashboard
-            </Link>
-          </div>
-        </div>
+        <WindowStateCard
+          field="pod_registration"
+          openAt={config?.pod_registration_open ?? null}
+          closeAt={config?.pod_registration_close ?? null}
+        />
       )}
     </div>
   );
