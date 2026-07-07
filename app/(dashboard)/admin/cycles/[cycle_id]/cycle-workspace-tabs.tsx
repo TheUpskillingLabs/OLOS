@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Tabs, type TabItem } from "@/app/components/ui";
+import type { CycleTab } from "./cycle-tabs";
 
 /**
  * The per-cycle workspace — replaces the old 8-section vertical scroll with
@@ -12,30 +13,6 @@ import { Tabs, type TabItem } from "@/app/components/ui";
  * round-trip), so it survives reload and is deep-linkable. Client state also
  * survives router.refresh(), so saving a form keeps you on the same tab.
  */
-
-export type CycleTab =
-  | "overview"
-  | "configuration"
-  | "formation"
-  | "people"
-  | "dev";
-
-const VALID_TABS: CycleTab[] = [
-  "overview",
-  "configuration",
-  "formation",
-  "people",
-  "dev",
-];
-
-/** Normalize an untrusted ?tab= value, honoring the dev-tab permission gate. */
-export function resolveInitialTab(
-  raw: string | undefined,
-  showDev: boolean,
-): CycleTab {
-  const tab = VALID_TABS.includes(raw as CycleTab) ? (raw as CycleTab) : "overview";
-  return tab === "dev" && !showDev ? "overview" : tab;
-}
 
 export default function CycleWorkspaceTabs({
   initialTab,
