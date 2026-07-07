@@ -3,19 +3,10 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import ShowcaseHeader from "@/app/components/showcase/showcase-header";
+import { getEntityLinks } from "@/lib/showcase/links";
+import { isFollowing, getFollowerCount } from "@/lib/follows/queries";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
-
-type ProjectStatus = "active" | "forming" | "closed" | "inactive";
-
-const PROJECT_STATUS_VARIANT: Record<
-  ProjectStatus,
-  "active" | "forming" | "inactive"
-> = {
-  active: "active",
-  forming: "forming",
-  closed: "inactive",
-  inactive: "inactive",
-};
 
 export default async function ProjectDetailPage({
   params,
@@ -34,7 +25,9 @@ export default async function ProjectDetailPage({
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, name, status, pod_id, cycle_id, solution_proposal_id")
+    .select(
+      "id, name, status, pod_id, cycle_id, solution_proposal_id, tagline, description, logo_url, cover_url, github_repo_url"
+    )
     .eq("id", projectId)
     .single();
 
@@ -113,39 +106,67 @@ export default async function ProjectDetailPage({
     });
   }
 
-  const projectVariant =
-    PROJECT_STATUS_VARIANT[project.status as ProjectStatus] ?? "inactive";
+  const participantId = userRoles?.participantId ?? null;
+  const canEditPage =
+    !!userRoles && (isAdmin(userRoles) || isModeratorForPod(userRoles, project.pod_id));
+
+  const [links, following, followerCount] = await Promise.all([
+    getEntityLinks(serviceClient, "project", project.id),
+    participantId
+      ? isFollowing(serviceClient, participantId, "project", project.id)
+      : Promise.resolve(false),
+    getFollowerCount(serviceClient, "project", project.id),
+  ]);
 
   return (
     <div>
-      <div className="mb-8">
-        <nav
-          aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-sm text-meta"
-        >
-          <Link
-            href={`/cycles/${project.cycle_id}`}
-            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+      <ShowcaseHeader
+        entityType="project"
+        entityId={project.id}
+        name={project.name || `Project ${project.id}`}
+        tagline={project.tagline ?? null}
+        status={project.status}
+        logoUrl={project.logo_url ?? null}
+        coverUrl={project.cover_url ?? null}
+        memberCount={activeMembers.length}
+        githubRepoUrl={project.github_repo_url ?? null}
+        links={links}
+        following={following}
+        followerCount={followerCount}
+        canEdit={canEditPage}
+        editHref={`/projects/${project.id}/edit`}
+        breadcrumb={
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-2 text-sm text-meta"
           >
-            Cycle
-          </Link>
-          <span className="text-meta-soft" aria-hidden>
-            /
-          </span>
-          <Link
-            href={`/pods/${project.pod_id}`}
-            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
-          >
-            {pod?.name || `Pod ${project.pod_id}`}
-          </Link>
-        </nav>
-        <h1 className="t-h1 mt-2 text-ink">
-          {project.name || `Project ${project.id}`}
-        </h1>
-        <span className="mt-2 inline-block">
-          <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
-        </span>
-      </div>
+            <Link
+              href={`/cycles/${project.cycle_id}`}
+              className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+            >
+              Cycle
+            </Link>
+            <span className="text-meta-soft" aria-hidden>
+              /
+            </span>
+            <Link
+              href={`/pods/${project.pod_id}`}
+              className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+            >
+              {pod?.name || `Pod ${project.pod_id}`}
+            </Link>
+          </nav>
+        }
+      />
+
+      {project.description && (
+        <div className="mb-6 rounded-card border border-ink/10 bg-white p-5 shadow-card">
+          <h2 className="lbl mb-2">About</h2>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-charcoal">
+            {project.description}
+          </p>
+        </div>
+      )}
 
       <div className="mb-8">
         <h2 className="t-h3 mb-3 text-ink">

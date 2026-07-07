@@ -280,6 +280,11 @@ erDiagram
         varchar slack_channel_id
         varchar github_repo_url
         varchar drive_folder_id
+        varchar tagline
+        text description
+        text logo_url
+        text cover_url
+        boolean directory_visible
         timestamp created_at
         timestamp updated_at
     }
@@ -371,6 +376,11 @@ erDiagram
         varchar slack_channel_id
         varchar github_repo_url
         varchar drive_folder_id
+        varchar tagline
+        text description
+        text logo_url
+        text cover_url
+        boolean directory_visible
         timestamp created_at
         timestamp updated_at
     }
@@ -598,6 +608,8 @@ erDiagram
 
 **`field_surveys` / `survey_responses` (migration `00053`):** the field-survey intake (`docs/SENSEMAKING_FLOW.md` §3). `field_surveys` is the instrument — one row per sector/cycle problem domain, seeded idempotently for Civics & Elections (`share_slug='civics'`, `status='open'`). The public page `/survey/[slug]` renders it (the survey-specific `about` lede from the row; the "what is the Labs / where do insights go" copy is boilerplate in the page). `survey_responses` is the observation bedrock: `observation` is the required evidence body every future `extract` derives from; `standpoint[]` feeds the coverage/diversity signal (never a credibility weight — `ORTELIUS_NORTHSTAR.md` §6); `salience`, `prior_attempts` (archaeology), and the contact fields are optional. Two distinct consents: `consent_participation` (required, gates submit) and `contactable` (optional). The **nullable `participant_id`** is the load-bearing anonymous public path; `mentor_interest` is a recruiting side-channel. **Ortelius groundwork columns land day one:** `source_url` (the evidence-producer gap, `ORTELIUS §5` gap #6), `consent_version`, `moderation_status`, and `schema_version` (gap #12 — versioned from day one). Every response is retained; curation is a later temporal overlay, never a delete (owner decision 2026-07-05). RLS: `field_surveys` anon-SELECT-`open`-only (mirrors spotlights/events); `survey_responses` has **no public policy** — all writes go through the service-role `POST /api/surveys/[slug]/responses` (member session binds `participant_id`; anonymous path is per-IP throttled via `lib/api/rate-limit.ts`, `moderation_status='pending'`), and reads stay service-role until a consented atlas surface ships.
 
+**Showcase pages + social graph (migrations `00060`, `00061`):** pods & projects gain LinkedIn-style member-facing home pages. `00060` adds `tagline` / `description` / `logo_url` / `cover_url` / `directory_visible` to both `pods` and `projects` (curated by the pod's Poderator or an admin; members, projects, GitHub, and status auto-populate), plus a public `showcase` Storage bucket for logos/covers (mirrors `avatars` — public read, service-role writes, logo/cover keyed per-image). `directory_visible` (default false) is backfilled true for `active`/`forming` entities so the `/directory` Pods & Projects tabs aren't empty at launch. `00061` adds two polymorphic tables (the `saved_items` shape): **`entity_links`** — external links (`github`/`linkedin`/`x`/`website`/`youtube`/`instagram`/`discord`/`other`) on any `participant`/`pod`/`project`/`cycle`, `UNIQUE(owner_type, owner_id, platform)`, world-readable within the app (`SELECT USING(true)`), curator-gated service-role writes; and **`follows`** — the follow graph (`follower_participant_id` → `(target_type, target_id)`), `UNIQUE(follower_participant_id, target_type, target_id)` + a no-self-follow CHECK, self-scoped RLS via `current_participant_id()`. Follower **counts** and follower lists are read with the **service role** (an RLS-client count would see only the viewer's own row); the viewer's own follow-set powers initial button state + the directory Following filter. Toggle route `POST /api/follows` (session identity, validates target exists, rejects self-follow + test/staff targets).
+
 ---
 
 ## Table Summary
@@ -616,11 +628,11 @@ erDiagram
 | `pulse_checks` | Engagement | Weekly check-in responses (flexible JSONB) |
 | `problem_statements` | Pod Layer | Submitted problems, one per participant per cycle |
 | `votes` | Pod Layer | Budget-based votes on problem statements |
-| `pods` | Pod Layer | Shortlisted problems with external integrations |
+| `pods` | Pod Layer | Shortlisted problems with external integrations + showcase-page fields (tagline/description/logo/cover/directory_visible, migration 00060) |
 | `pod_memberships` | Pod Layer | Self-registration into pods (soft delete) |
 | `solution_proposals` | Project Layer | Solutions submitted within pods. Rich payload via `name` + `summary` columns + `proposal_data` JSONB. `UNIQUE(cycle_id, participant_id)` enforces one submission per participant per cycle (migration 00016, W2-001). |
 | `project_votes` | Project Layer | Budget-based votes on solution proposals |
-| `projects` | Project Layer | Shortlisted solutions with external integrations |
+| `projects` | Project Layer | Shortlisted solutions with external integrations + showcase-page fields (tagline/description/logo/cover/directory_visible, migration 00060) |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
 | `events` | Public Content | Public events/workshops (Luma-shaped cache; the source until live sync) |
@@ -635,3 +647,5 @@ erDiagram
 | `field_surveys` | Data Sensemaker | The field-survey instrument — one row per sector/cycle problem domain (public `/survey/[slug]`) |
 | `survey_responses` | Data Sensemaker | Field observations — the evidence bedrock; anon-capable, the first Ortelius provenance node |
 | `testers` | Testing | Email-keyed tester grant — survives the tester's full self-reset |
+| `entity_links` | Social | External links (github/linkedin/x/website/…) on any participant/pod/project/cycle — polymorphic; one per platform (migration 00061) |
+| `follows` | Social | Polymorphic follow graph: participant → user/pod/project/cycle; self-scoped RLS, service-role counts (migration 00061) |

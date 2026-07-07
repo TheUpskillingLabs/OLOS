@@ -3,6 +3,8 @@ import { BookOpen, ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
+import FollowButton from "@/app/components/follow-button";
+import { isFollowing, getFollowerCount } from "@/lib/follows/queries";
 
 type CycleStatus = "active" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -92,6 +94,27 @@ export default async function CycleDetailPage({
   const cycleStatusVariant =
     CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
 
+  // Resolve the viewer for the follow button + follower count. Counts go through
+  // the service client (follows RLS is self-scoped).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let viewerId: number | null = null;
+  if (user) {
+    const { data: p } = await serviceClient
+      .from("participants")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    viewerId = p?.id ?? null;
+  }
+  const [cycleFollowing, cycleFollowerCount] = await Promise.all([
+    viewerId
+      ? isFollowing(serviceClient, viewerId, "cycle", cycle.id)
+      : Promise.resolve(false),
+    getFollowerCount(serviceClient, "cycle", cycle.id),
+  ]);
+
   return (
     <div>
       <div className="mb-8">
@@ -112,6 +135,18 @@ export default async function CycleDetailPage({
           </span>
           <StatusBadge variant={cycleStatusVariant}>{cycle.status}</StatusBadge>
         </div>
+        {viewerId && (
+          <div className="mt-3">
+            <FollowButton
+              targetType="cycle"
+              targetId={cycle.id}
+              initialFollowing={cycleFollowing}
+              initialCount={cycleFollowerCount}
+              showCount
+              size="sm"
+            />
+          </div>
+        )}
       </div>
 
       {/* Active window CTAs */}

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getFollowerCount, getFollowingCount } from "@/lib/follows/queries";
 import MemberProfileView from "./member-profile-view";
 import UpdatesFeed from "../directory/updates-feed";
 
@@ -55,6 +56,11 @@ export default async function ProfilePage() {
     metroName = metro ? [metro.name, metro.st].filter(Boolean).join(", ") : null;
   }
 
+  const [followerCount, followingCount] = await Promise.all([
+    getFollowerCount(serviceClient, "participant", participant.id),
+    getFollowingCount(serviceClient, participant.id),
+  ]);
+
   const displayName =
     participant.preferred_name ||
     `${participant.first_name} ${participant.last_name}`;
@@ -92,6 +98,8 @@ export default async function ProfilePage() {
         aiToolFamiliarity: participant.ai_tool_familiarity,
       }}
       options={grouped}
+      followerCount={followerCount}
+      followingCount={followingCount}
       enrollments={(enrollments ?? []).map((e) => {
         const cycle = e.cycles as unknown as Record<string, unknown>;
         return {

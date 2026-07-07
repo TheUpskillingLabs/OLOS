@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MapPin } from "lucide-react";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getFollowedTargetKeys } from "@/lib/follows/queries";
 import DirectoryGrid from "./directory-grid";
 import UpdatesFeed from "./updates-feed";
 
@@ -32,10 +33,28 @@ export interface DirectoryMember {
   metroName: string | null;
 }
 
+export interface DirectoryEntity {
+  id: number;
+  kind: "pod" | "project";
+  name: string;
+  tagline: string | null;
+  status: string;
+  logo_url: string | null;
+}
+
 export default async function DirectoryPage() {
   const service = createServiceClient();
+  const auth = await createClient();
+  const {
+    data: { user },
+  } = await auth.auth.getUser();
 
-  const [{ data: rows, error: rowsErr }, { data: metros }] = await Promise.all([
+  const [
+    { data: rows, error: rowsErr },
+    { data: metros },
+    { data: podRows },
+    { data: projectRows },
+  ] = await Promise.all([
     service
       .from("participants")
       .select(DISPLAY_COLUMNS)
@@ -45,6 +64,18 @@ export default async function DirectoryPage() {
       .eq("is_staff", false)
       .order("created_at", { ascending: false }),
     service.from("metros").select("slug, name, st"),
+    // Directory inclusion is opt-in per entity (00060). Read a fixed display
+    // allowlist via the service client — same posture as the participants read.
+    service
+      .from("pods")
+      .select("id, name, tagline, status, logo_url")
+      .eq("directory_visible", true)
+      .order("name"),
+    service
+      .from("projects")
+      .select("id, name, tagline, status, logo_url")
+      .eq("directory_visible", true)
+      .order("name"),
   ]);
 
   // Surface a failed read instead of silently rendering an empty directory — a
@@ -52,6 +83,18 @@ export default async function DirectoryPage() {
   // members." Logs to the server (Vercel), never to the client.
   if (rowsErr) {
     console.error("[directory] participants query failed:", rowsErr.message);
+  }
+
+  // The viewer's follow-set powers the Following filter + card state. One query;
+  // reads only the viewer's own rows.
+  let followedKeys: string[] = [];
+  if (user) {
+    const { data: p } = await service
+      .from("participants")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (p?.id) followedKeys = [...(await getFollowedTargetKeys(service, p.id))];
   }
 
   const metroBySlug = new Map<string, string>();
@@ -73,6 +116,24 @@ export default async function DirectoryPage() {
     metroName: m.metro_slug ? (metroBySlug.get(m.metro_slug) ?? null) : null,
   }));
 
+  const pods: DirectoryEntity[] = (podRows ?? []).map((p) => ({
+    id: p.id,
+    kind: "pod",
+    name: p.name || `Pod ${p.id}`,
+    tagline: p.tagline ?? null,
+    status: p.status,
+    logo_url: p.logo_url ?? null,
+  }));
+
+  const projects: DirectoryEntity[] = (projectRows ?? []).map((p) => ({
+    id: p.id,
+    kind: "project",
+    name: p.name || `Project ${p.id}`,
+    tagline: p.tagline ?? null,
+    status: p.status,
+    logo_url: p.logo_url ?? null,
+  }));
+
   return (
     <div className="mx-auto max-w-6xl space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -89,7 +150,12 @@ export default async function DirectoryPage() {
         </Link>
       </header>
 
-      <DirectoryGrid members={members} />
+      <DirectoryGrid
+        members={members}
+        pods={pods}
+        projects={projects}
+        followedKeys={followedKeys}
+      />
 
       <UpdatesFeed />
     </div>

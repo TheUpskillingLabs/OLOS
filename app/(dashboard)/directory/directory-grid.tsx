@@ -2,43 +2,72 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { StatusBadge } from "@/app/components/ui";
 import { ROLE_INTENT_LABELS } from "../profile/member-profile-view";
-import type { DirectoryMember } from "./page";
+import type { DirectoryMember, DirectoryEntity } from "./page";
 
 /**
- * The member directory grid — chip filter (All / Builders / Mentors /
- * Volunteers, from role_intents) + a name/metro search box, modeled on
- * participants-global-table + metro-search. Cards are `.card.tappable` teasers
- * (the same shape as the Luma event/resource cards): a square media thumbnail
- * on top, then the body. Whole card links to /u/[handle].
+ * The directory grid — People / Pods / Projects tabs (chips), a name/tagline
+ * search box, the People role filter, and a "Following" toggle backed by the
+ * viewer's follow-set (resolved server-side, passed as "type:id" keys). All
+ * filtering is in-memory over the server-provided lists, as before. Cards are
+ * `.card.tappable` teasers linking to the profile / showcase page.
  */
 
-const FILTERS: { key: string; label: string; intent?: string }[] = [
+type Tab = "people" | "pods" | "projects";
+
+const ROLE_FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "cycle", label: "Builders", intent: "cycle" },
-  { key: "mentor", label: "Mentors", intent: "mentor" },
-  { key: "volunteer", label: "Volunteers", intent: "volunteer" },
+  { key: "cycle", label: "Builders" },
+  { key: "mentor", label: "Mentors" },
+  { key: "volunteer", label: "Volunteers" },
 ];
 
-// Placeholder gradients — reuse the teaser media gradients so a member without
-// a photo reads like the rest of the app's thumbnails. Picked deterministically
+// Placeholder gradients — reuse the teaser media gradients so an item without a
+// photo reads like the rest of the app's thumbnails. Picked deterministically
 // by id so the grid looks varied but stable across renders.
 const GRADS = ["m-teal", "m-forest", "m-navy"];
 
+const ENTITY_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
+  active: "active",
+  forming: "forming",
+  closed: "inactive",
+  inactive: "inactive",
+};
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "•";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function DirectoryGrid({
   members,
+  pods,
+  projects,
+  followedKeys,
 }: {
   members: DirectoryMember[];
+  pods: DirectoryEntity[];
+  projects: DirectoryEntity[];
+  followedKeys: string[];
 }) {
-  const [filter, setFilter] = useState("all");
+  const [tab, setTab] = useState<Tab>("people");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [followingOnly, setFollowingOnly] = useState(false);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+  const followed = useMemo(() => new Set(followedKeys), [followedKeys]);
+  const hasFollows = followedKeys.length > 0;
+  const q = search.trim().toLowerCase();
+
+  const filteredMembers = useMemo(() => {
     return members.filter((m) => {
-      const matchesFilter =
-        filter === "all" || (m.role_intents ?? []).includes(filter);
-      if (!matchesFilter) return false;
+      if (followingOnly && !followed.has(`participant:${m.id}`)) return false;
+      const matchesRole =
+        roleFilter === "all" || (m.role_intents ?? []).includes(roleFilter);
+      if (!matchesRole) return false;
       if (!q) return true;
       return (
         m.displayName.toLowerCase().includes(q) ||
@@ -47,49 +76,133 @@ export default function DirectoryGrid({
         (m.primary_expertise?.toLowerCase().includes(q) ?? false)
       );
     });
-  }, [members, filter, search]);
+  }, [members, roleFilter, q, followingOnly, followed]);
+
+  const filteredPods = useMemo(
+    () => filterEntities(pods, q, followingOnly, followed),
+    [pods, q, followingOnly, followed]
+  );
+  const filteredProjects = useMemo(
+    () => filterEntities(projects, q, followingOnly, followed),
+    [projects, q, followingOnly, followed]
+  );
+
+  const TABS: { key: Tab; label: string; count: number }[] = [
+    { key: "people", label: "People", count: members.length },
+    { key: "pods", label: "Pods", count: pods.length },
+    { key: "projects", label: "Projects", count: projects.length },
+  ];
+
+  const activeCount =
+    tab === "people"
+      ? filteredMembers.length
+      : tab === "pods"
+        ? filteredPods.length
+        : filteredProjects.length;
+  const noun = tab === "people" ? "member" : tab === "pods" ? "pod" : "project";
 
   return (
     <div>
+      {/* Tabs */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            className={`chip${tab === t.key ? " active" : ""}`}
+            aria-pressed={tab === t.key}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}{" "}
+            <span className="tabular-nums opacity-70">{t.count}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Controls */}
       <div className="mb-5 space-y-3">
         <input
           type="text"
-          placeholder="Search by name, city, or expertise…"
+          placeholder={
+            tab === "people"
+              ? "Search by name, city, or expertise…"
+              : "Search by name or tagline…"
+          }
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Search the directory"
           className="w-full max-w-md rounded-card border border-ink/10 bg-white px-3.5 py-2.5 text-base text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150"
         />
         <div className="flex flex-wrap items-center gap-2">
-          {FILTERS.map((f) => (
+          {tab === "people" &&
+            ROLE_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                className={`chip${roleFilter === f.key ? " active" : ""}`}
+                aria-pressed={roleFilter === f.key}
+                onClick={() => setRoleFilter(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
+          {hasFollows && (
             <button
-              key={f.key}
-              className={`chip${filter === f.key ? " active" : ""}`}
-              aria-pressed={filter === f.key}
-              onClick={() => setFilter(f.key)}
+              className={`chip${followingOnly ? " active" : ""}`}
+              aria-pressed={followingOnly}
+              onClick={() => setFollowingOnly((v) => !v)}
             >
-              {f.label}
+              Following
             </button>
-          ))}
+          )}
           <span className="ml-1 text-sm text-meta tabular-nums">
-            {filtered.length} {filtered.length === 1 ? "member" : "members"}
+            {activeCount} {activeCount === 1 ? noun : `${noun}s`}
           </span>
         </div>
       </div>
 
       {/* Grid */}
-      {filtered.length === 0 ? (
-        <div className="rounded-card border border-dashed border-meta-soft p-10 text-center">
-          <p className="t-small">No members match your search.</p>
-        </div>
+      {tab === "people" ? (
+        filteredMembers.length === 0 ? (
+          <Empty label="members" />
+        ) : (
+          <div className="cards dense all">
+            {filteredMembers.map((m) => (
+              <MemberCard key={m.id} member={m} />
+            ))}
+          </div>
+        )
+      ) : (tab === "pods" ? filteredPods : filteredProjects).length === 0 ? (
+        <Empty label={tab} />
       ) : (
         <div className="cards dense all">
-          {filtered.map((m) => (
-            <MemberCard key={m.id} member={m} />
+          {(tab === "pods" ? filteredPods : filteredProjects).map((e) => (
+            <EntityCard key={`${e.kind}:${e.id}`} entity={e} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function filterEntities(
+  list: DirectoryEntity[],
+  q: string,
+  followingOnly: boolean,
+  followed: Set<string>
+) {
+  return list.filter((e) => {
+    if (followingOnly && !followed.has(`${e.kind}:${e.id}`)) return false;
+    if (!q) return true;
+    return (
+      e.name.toLowerCase().includes(q) ||
+      (e.tagline?.toLowerCase().includes(q) ?? false)
+    );
+  });
+}
+
+function Empty({ label }: { label: string }) {
+  return (
+    <div className="rounded-card border border-dashed border-meta-soft p-10 text-center">
+      <p className="t-small">No {label} match your search.</p>
     </div>
   );
 }
@@ -130,11 +243,6 @@ function MemberCard({ member: m }: { member: DirectoryMember }) {
   );
 }
 
-/**
- * Square member thumbnail — the Luma teaser `MediaFrame` treatment: a cover
- * photo when there's a profile image, otherwise a brand-gradient tile with the
- * member's initials as the placeholder.
- */
 function MemberThumb({ member: m }: { member: DirectoryMember }) {
   if (m.profile_image_url) {
     const src = /^https?:\/\//.test(m.profile_image_url)
@@ -166,6 +274,59 @@ function MemberThumb({ member: m }: { member: DirectoryMember }) {
       <span className="text-3xl font-bold tracking-tight text-white/95">
         {m.firstInitial}
         {m.lastInitial}
+      </span>
+    </div>
+  );
+}
+
+function EntityCard({ entity: e }: { entity: DirectoryEntity }) {
+  const href = e.kind === "pod" ? `/pods/${e.id}` : `/projects/${e.id}`;
+  const variant = ENTITY_STATUS_VARIANT[e.status] ?? "inactive";
+  return (
+    <Link className="card tappable" href={href}>
+      <EntityThumb entity={e} />
+      <div className="card-body">
+        <div className="t-h4 truncate text-ink">{e.name}</div>
+        {e.tagline && (
+          <p className="mt-0.5 truncate text-sm font-medium text-teal-deep">
+            {e.tagline}
+          </p>
+        )}
+        <div className="mt-2">
+          <StatusBadge variant={variant}>{e.status}</StatusBadge>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function EntityThumb({ entity: e }: { entity: DirectoryEntity }) {
+  if (e.logo_url) {
+    return (
+      <div className="media sq">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={e.logo_url}
+          alt=""
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      </div>
+    );
+  }
+  const grad = GRADS[e.id % GRADS.length];
+  return (
+    <div
+      className={`media sq ${grad} flex items-center justify-center`}
+      aria-hidden
+    >
+      <span className="text-3xl font-bold tracking-tight text-white/95">
+        {initialsOf(e.name)}
       </span>
     </div>
   );

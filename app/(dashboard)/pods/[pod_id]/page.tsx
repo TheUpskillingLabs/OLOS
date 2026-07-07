@@ -4,6 +4,9 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod, can } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import ShowcaseHeader from "@/app/components/showcase/showcase-header";
+import { getEntityLinks } from "@/lib/showcase/links";
+import { isFollowing, getFollowerCount } from "@/lib/follows/queries";
 import PulseCheckDashboard from "./pulse-check-dashboard";
 
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -34,7 +37,7 @@ export default async function PodDetailPage({
   const { data: pod } = await supabase
     .from("pods")
     .select(
-      "id, name, status, cycle_id, problem_statement_id, problem_statements(statement_text)"
+      "id, name, status, cycle_id, problem_statement_id, tagline, description, logo_url, cover_url, github_repo_url, problem_statements(statement_text)"
     )
     .eq("id", parseInt(pod_id))
     .single();
@@ -130,25 +133,55 @@ export default async function PodDetailPage({
     });
   }
 
-  const podVariant = POD_STATUS_VARIANT[pod.status as PodStatus] ?? "inactive";
+  const participantId = userRoles?.participantId ?? null;
+  const activeMemberCount = (members ?? []).filter((m) => !m.inactive_at).length;
+  const canEditPage =
+    !!userRoles && (isAdmin(userRoles) || isModeratorForPod(userRoles, pod.id));
+
+  const [links, following, followerCount] = await Promise.all([
+    getEntityLinks(serviceClient, "pod", pod.id),
+    participantId
+      ? isFollowing(serviceClient, participantId, "pod", pod.id)
+      : Promise.resolve(false),
+    getFollowerCount(serviceClient, "pod", pod.id),
+  ]);
 
   return (
     <div>
-      <div className="mb-8">
-        <Link
-          href={`/cycles/${pod.cycle_id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          Back to cycle
-        </Link>
-        <h1 className="t-h1 mt-2 text-ink">
-          {pod.name || `Pod ${pod.id}`}
-        </h1>
-        <span className="mt-2 inline-block">
-          <StatusBadge variant={podVariant}>{pod.status}</StatusBadge>
-        </span>
-      </div>
+      <ShowcaseHeader
+        entityType="pod"
+        entityId={pod.id}
+        name={pod.name || `Pod ${pod.id}`}
+        tagline={pod.tagline ?? null}
+        status={pod.status}
+        logoUrl={pod.logo_url ?? null}
+        coverUrl={pod.cover_url ?? null}
+        memberCount={activeMemberCount}
+        githubRepoUrl={pod.github_repo_url ?? null}
+        links={links}
+        following={following}
+        followerCount={followerCount}
+        canEdit={canEditPage}
+        editHref={`/pods/${pod.id}/edit`}
+        breadcrumb={
+          <Link
+            href={`/cycles/${pod.cycle_id}`}
+            className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            Back to cycle
+          </Link>
+        }
+      />
+
+      {pod.description && (
+        <div className="mb-6 rounded-card border border-ink/10 bg-white p-5 shadow-card">
+          <h2 className="lbl mb-2">About</h2>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-charcoal">
+            {pod.description}
+          </p>
+        </div>
+      )}
 
       {ps?.statement_text && (
         <div className="mb-6 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card">

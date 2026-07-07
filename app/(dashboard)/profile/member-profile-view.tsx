@@ -61,6 +61,11 @@ export interface MemberProfileViewProps {
   enrollments?: MemberProfileEnrollment[];
   /** Rendered below the card — the member's shared Learning-Log updates. */
   updatesSlot?: React.ReactNode;
+  /** The follow button (visitor mode), composed by the page. */
+  followSlot?: React.ReactNode;
+  /** Follower / following tallies shown under the header (both modes). */
+  followerCount?: number;
+  followingCount?: number;
 }
 
 export default function MemberProfileView({
@@ -69,21 +74,25 @@ export default function MemberProfileView({
   options,
   enrollments,
   updatesSlot,
+  followSlot,
+  followerCount,
+  followingCount,
 }: MemberProfileViewProps) {
   const isOwner = mode === "owner";
   const grouped = options ?? {};
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* Visitor context bar — who you're looking at + the way back. */}
+      {/* Visitor context bar — who you're looking at, the way back, and follow. */}
       {!isOwner && (
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <Link
             href="/directory"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
           >
             <span aria-hidden>←</span> Back to the Directory
           </Link>
+          {followSlot}
         </div>
       )}
 
@@ -136,6 +145,19 @@ export default function MemberProfileView({
                 year: "numeric",
               })}
             </p>
+            {(followerCount != null || followingCount != null) && (
+              <p className="mt-1 text-xs text-meta tabular-nums">
+                <span className="font-semibold text-charcoal">
+                  {followerCount ?? 0}
+                </span>{" "}
+                {(followerCount ?? 0) === 1 ? "follower" : "followers"}
+                {" · "}
+                <span className="font-semibold text-charcoal">
+                  {followingCount ?? 0}
+                </span>{" "}
+                following
+              </p>
+            )}
             {member.roleIntents.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {member.roleIntents.map((r) => (

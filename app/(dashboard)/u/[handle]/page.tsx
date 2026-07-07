@@ -1,5 +1,12 @@
 import { notFound } from "next/navigation";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { resolveUserRoles } from "@/lib/auth/roles";
+import {
+  isFollowing,
+  getFollowerCount,
+  getFollowingCount,
+} from "@/lib/follows/queries";
+import FollowButton from "@/app/components/follow-button";
 import MemberProfileView from "../../profile/member-profile-view";
 import UpdatesFeed from "../../directory/updates-feed";
 
@@ -63,12 +70,43 @@ export default async function MemberProfilePage({
     .select("cycle_id, status, cycles(name)")
     .eq("participant_id", member.id);
 
+  // Resolve the viewer to render their follow state (no flash) and hide the
+  // button on their own profile. Follower/following counts come via the service
+  // client — a self-scoped RLS read would only see the viewer's own rows.
+  const auth = await createClient();
+  const {
+    data: { user },
+  } = await auth.auth.getUser();
+  const viewerRoles = user ? await resolveUserRoles(service, user.id) : null;
+  const viewerId = viewerRoles?.participantId ?? null;
+  const isSelf = viewerId === member.id;
+
+  const [following, followerCount, followingCount] = await Promise.all([
+    viewerId && !isSelf
+      ? isFollowing(service, viewerId, "participant", member.id)
+      : Promise.resolve(false),
+    getFollowerCount(service, "participant", member.id),
+    getFollowingCount(service, member.id),
+  ]);
+
   const displayName =
     member.preferred_name || `${member.first_name} ${member.last_name}`;
 
   return (
     <MemberProfileView
       mode="visitor"
+      followerCount={followerCount}
+      followingCount={followingCount}
+      followSlot={
+        viewerId && !isSelf ? (
+          <FollowButton
+            targetType="participant"
+            targetId={member.id}
+            initialFollowing={following}
+            initialCount={followerCount}
+          />
+        ) : null
+      }
       member={{
         id: member.id,
         handle: member.handle,
