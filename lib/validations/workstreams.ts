@@ -11,6 +11,22 @@ export const createWorkstreamSchema = z.object({
 
 export type CreateWorkstream = z.infer<typeof createWorkstreamSchema>;
 
+// PATCH /api/admin/workstreams/[workstream_id] — partial update. name mirrors
+// pods.name's VARCHAR(40) same as createWorkstreamSchema above (a run copies
+// the name verbatim at charter time; renaming afterward does not retroactively
+// rename existing run pods — see the route for details).
+export const updateWorkstreamSchema = z
+  .object({
+    name: z.string().min(1, "Workstream name is required").max(40).optional(),
+    description: z.string().nullable().optional(),
+    status: z.enum(["active", "dormant"]).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Nothing to update",
+  });
+
+export type UpdateWorkstream = z.infer<typeof updateWorkstreamSchema>;
+
 export const createRunSchema = z.object({
   cycle_id: z.number().int().positive(),
   copy_from_cycle_id: z.number().int().positive().optional(),

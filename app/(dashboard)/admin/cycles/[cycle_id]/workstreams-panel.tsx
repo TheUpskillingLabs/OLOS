@@ -11,6 +11,10 @@ import { StatusBadge } from "@/app/components/ui";
  * cycle's run (a `pods` row, `workstream_id` set) per workstream, optionally
  * copying a prior run's roster forward via
  * POST /api/admin/workstreams/[id]/runs.
+ *
+ * Creating, renaming, and archiving workstreams themselves (durable,
+ * cross-cycle entities) lives at /admin/org — see workstreams-directory.tsx
+ * — not here; this panel only charters a run for an existing workstream.
  */
 
 export type WorkstreamRun = { pod_id: number; name: string | null };
@@ -37,111 +41,16 @@ export default function WorkstreamsPanel({
   workstreams: WorkstreamAdminRow[];
   priorOrgCycles: PriorOrgCycleOption[];
 }) {
-  const router = useRouter();
-  const [formOpen, setFormOpen] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [creating, setCreating] = React.useState(false);
-  const [createError, setCreateError] = React.useState<string | null>(null);
-
-  async function createWorkstream(e: React.FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setCreateError(null);
-    try {
-      const res = await fetch("/api/admin/workstreams", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description: description || undefined }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setCreateError(
-          typeof data?.error === "string" ? data.error : "Failed to create workstream"
-        );
-        return;
-      }
-      setName("");
-      setDescription("");
-      setFormOpen(false);
-      router.refresh();
-    } finally {
-      setCreating(false);
-    }
-  }
-
   return (
     <div className="rounded-card border border-ink/10 bg-white p-4 shadow-card">
       <div className="mb-4 flex items-center justify-end">
-        {!formOpen && (
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="btn btn-teal px-3 py-1 text-xs"
-          >
-            + New workstream
-          </button>
-        )}
-      </div>
-
-      {formOpen && (
-        <form
-          onSubmit={createWorkstream}
-          className="mb-4 flex flex-wrap items-start gap-3 rounded-card border border-ink/10 bg-ink/[0.02] p-3"
+        <Link
+          href="/admin/org"
+          className="text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
         >
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-charcoal" htmlFor="ws-name">
-              Name
-            </label>
-            <input
-              id="ws-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={40}
-              placeholder="e.g. Programs & Events"
-              className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink placeholder:text-meta transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            />
-          </div>
-          <div className="flex flex-1 flex-col gap-1.5">
-            <label className="text-xs font-medium text-charcoal" htmlFor="ws-description">
-              Description (optional)
-            </label>
-            <input
-              id="ws-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What this workstream covers"
-              className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink placeholder:text-meta transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            />
-          </div>
-          <div className="flex items-center gap-2 pt-5">
-            <button
-              type="submit"
-              disabled={creating || !name.trim()}
-              className="btn btn-teal px-4 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {creating ? "Creating…" : "Create"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFormOpen(false);
-                setCreateError(null);
-                setName("");
-                setDescription("");
-              }}
-              className="text-sm text-meta transition-colors duration-150 hover:text-charcoal focus-visible:outline-none focus-visible:text-charcoal"
-            >
-              Cancel
-            </button>
-          </div>
-          {createError && (
-            <p role="alert" className="w-full text-xs text-red">
-              {createError}
-            </p>
-          )}
-        </form>
-      )}
+          Manage workstreams &rarr;
+        </Link>
+      </div>
 
       {workstreams.length === 0 ? (
         <p className="text-sm text-meta">No workstreams yet.</p>

@@ -9,14 +9,30 @@ import { createCycleSchema } from "@/lib/validations/cycles";
 
 type FormData = z.infer<typeof createCycleSchema>;
 
-export default function CreateCycleForm() {
+/**
+ * fixedMode: when set, this form is scoped to a single cycle track — the
+ * Type select is hidden, `mode` is pinned in both the RHF defaults and the
+ * POST body, and (for "org") the copy retitles to the organization-cycle
+ * language used on /admin/org. Absent (the default /admin cycles list use),
+ * behavior is unchanged: both cycle types selectable via the Type select.
+ */
+export default function CreateCycleForm({
+  fixedMode,
+}: {
+  fixedMode?: "open" | "org";
+} = {}) {
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
 
   const form = useForm<FormData>({
     resolver: zodResolver(createCycleSchema),
-    defaultValues: { name: "", start_date: "", end_date: "", mode: "open" },
+    defaultValues: {
+      name: "",
+      start_date: "",
+      end_date: "",
+      mode: fixedMode ?? "open",
+    },
   });
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = form;
 
@@ -27,6 +43,7 @@ export default function CreateCycleForm() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...data,
+        ...(fixedMode ? { mode: fixedMode } : {}),
         start_date: new Date(data.start_date).toISOString(),
         end_date: new Date(data.end_date).toISOString(),
       }),
@@ -47,7 +64,7 @@ export default function CreateCycleForm() {
         onClick={() => setOpen(true)}
         className="btn btn-teal inline-flex items-center gap-1.5 px-4 py-2 text-sm"
       >
-        + New cycle
+        {fixedMode === "org" ? "+ New org cycle" : "+ New cycle"}
       </button>
     );
   }
@@ -59,7 +76,7 @@ export default function CreateCycleForm() {
         className="rounded-card border border-ink/10 bg-white p-4 shadow-card"
       >
         <h2 className="mb-3 text-sm font-semibold tracking-tight text-ink">
-          New cycle
+          {fixedMode === "org" ? "New organization cycle" : "New cycle"}
         </h2>
         <div className="flex flex-wrap items-start gap-3">
           <div className="flex flex-col gap-1.5">
@@ -104,22 +121,24 @@ export default function CreateCycleForm() {
               <p className="text-xs text-red">{errors.end_date.message}</p>
             )}
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-charcoal" htmlFor="cycle-mode">
-              Type
-            </label>
-            <select
-              id="cycle-mode"
-              {...register("mode")}
-              className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            >
-              <option value="open">Participant cycle</option>
-              <option value="org">Organization cycle</option>
-            </select>
-            {errors.mode && (
-              <p className="text-xs text-red">{errors.mode.message}</p>
-            )}
-          </div>
+          {!fixedMode && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-charcoal" htmlFor="cycle-mode">
+                Type
+              </label>
+              <select
+                id="cycle-mode"
+                {...register("mode")}
+                className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+              >
+                <option value="open">Participant cycle</option>
+                <option value="org">Organization cycle</option>
+              </select>
+              {errors.mode && (
+                <p className="text-xs text-red">{errors.mode.message}</p>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-2 pt-5">
             <button
               type="submit"
