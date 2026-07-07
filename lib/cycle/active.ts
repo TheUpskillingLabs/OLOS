@@ -70,6 +70,11 @@ export async function getOrgCycle(
 ): Promise<CycleRow | null> {
   // The running HQ/Core-Contributor cycle. Safe as `.maybeSingle()` under
   // the one_active_org_cycle partial unique index (migration 00060).
+  // No call sites yet: the pages that need "the active org cycle" already
+  // hold the full cycles list and filter it inline (app/(dashboard)/cycles/page.tsx,
+  // the admin cycle workspace) rather than issue an extra query for a row
+  // they already have — deliberate, not drift. This helper is for API paths
+  // that resolve a cycle without already holding that list.
   const { data } = await supabase
     .from("cycles")
     .select(CYCLE_COLUMNS)

@@ -6,6 +6,7 @@ import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { charterProjectSchema } from "@/lib/validations/workstreams";
 import { createServiceClient } from "@/lib/supabase/server";
+import { one } from "@/lib/supabase/embed";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // Chartering org projects — the voting path (solution_proposals ballot) is
@@ -33,7 +34,9 @@ export const POST = withAuth(
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
 
-    const cycleMode = (pod.cycles as unknown as { mode: string } | null)?.mode;
+    const cycleMode = one(
+      pod.cycles as { mode: string } | { mode: string }[] | null
+    )?.mode;
     if (cycleMode !== "org" || !pod.workstream_id) {
       return NextResponse.json(
         { error: "Projects are chartered only in organization workstreams" },
@@ -93,24 +96,5 @@ export const POST = withAuth(
     }
 
     return NextResponse.json({ project_id: project.id, dris }, { status: 201 });
-  }
-);
-
-export const GET = withAuth(
-  async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const podId = parseIntParam(params.pod_id, "pod_id");
-    if (podId instanceof NextResponse) return podId;
-
-    const { data, error } = await auth.supabase
-      .from("projects")
-      .select("id, name, status")
-      .eq("pod_id", podId)
-      .order("created_at");
-
-    if (error) {
-      return dbError(error, "pod-projects-list");
-    }
-
-    return NextResponse.json(data || []);
   }
 );

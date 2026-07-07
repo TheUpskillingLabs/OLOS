@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { one } from "@/lib/supabase/embed";
 import type {
   DirectoryData,
   DirectoryPerson,
@@ -77,12 +78,6 @@ function rollupMemberships(
     if (entry.avatars.length < 3) entry.avatars.push(toAvatar(participant));
   }
   return byKey;
-}
-
-/** Supabase embeds come back as object-or-array; normalize to one-or-null. */
-function one<T>(value: T | T[] | null | undefined): T | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
 }
 
 export async function fetchDirectoryData(): Promise<DirectoryData> {

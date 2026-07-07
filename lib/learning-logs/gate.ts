@@ -4,6 +4,10 @@ import {
   type GateCycleInput,
   type PendingGate,
 } from "@/lib/learning-logs/gate-logic";
+import {
+  eligibleLogCycles,
+  type EligibleLogCycle,
+} from "@/lib/learning-logs/eligible";
 
 /* The weekly Learning Log gate (owner decision: "the weekly cadence has
    teeth" — firm, instant to clear, never shaming).
@@ -46,29 +50,24 @@ const INACTIVE: LogGateState = {
 };
 
 export async function learningLogGate(
-  participantId: number
+  participantId: number,
+  // Callers that already fetched eligibleLogCycles this request (e.g. the
+  // learning-logs POST route, which reads the gate before AND after the
+  // write) can pass it in to skip a redundant cycles+enrollments round
+  // trip — the enrolled-cycle set doesn't change from filing a log, only
+  // the per-cycle log counts do, so it's safe to reuse across gateBefore /
+  // gateAfter. Omit it and this fetches its own, as before.
+  precomputedEligibleCycles?: EligibleLogCycle[]
 ): Promise<LogGateState> {
   const supabase = createServiceClient();
 
-  // Every currently active cycle, across modes — 00060 means more than one
-  // row can legitimately come back (the participant cycle and the org
-  // cycle), so this can no longer be .maybeSingle().
-  const { data: cycles } = await supabase
-    .from("cycles")
-    .select("id, name, mode")
-    .eq("status", "active");
-  if (!cycles || cycles.length === 0) return INACTIVE;
-
-  const cycleIds = cycles.map((c) => c.id);
-
-  const { data: enrollments } = await supabase
-    .from("cycle_enrollments")
-    .select("cycle_id")
-    .eq("participant_id", participantId)
-    .eq("status", "active")
-    .in("cycle_id", cycleIds);
-  const enrolledCycleIds = new Set((enrollments ?? []).map((e) => e.cycle_id));
-  const enrolledCycles = cycles.filter((c) => enrolledCycleIds.has(c.id));
+  // Every currently active cycle, across modes, the member is actively
+  // enrolled in — 00060 means more than one can legitimately come back (the
+  // participant cycle and the org cycle). The single definition lives in
+  // lib/learning-logs/eligible.ts so gate.ts, the learning-logs route, and
+  // the dashboard never drift on what "eligible" means.
+  const enrolledCycles =
+    precomputedEligibleCycles ?? (await eligibleLogCycles(participantId));
   if (enrolledCycles.length === 0) return INACTIVE;
 
   const { data: configs } = await supabase

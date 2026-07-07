@@ -64,6 +64,26 @@ export const POST = withAdminAuth(
       );
     }
 
+    // Validate the copy source *before* creating the run pod, so a bad
+    // copy_from_cycle_id fails the whole request instead of leaving behind
+    // an orphan, roster-less run that a retry then collides with (23505).
+    let sourceRun: { id: number } | null = null;
+    if (copy_from_cycle_id) {
+      const { data } = await client
+        .from("pods")
+        .select("id")
+        .eq("workstream_id", workstreamId)
+        .eq("cycle_id", copy_from_cycle_id)
+        .maybeSingle();
+      if (!data) {
+        return NextResponse.json(
+          { error: "No run found for this workstream in the source cycle" },
+          { status: 404 }
+        );
+      }
+      sourceRun = data;
+    }
+
     const { data: run, error: runError } = await client
       .from("pods")
       .insert({
@@ -90,20 +110,7 @@ export const POST = withAdminAuth(
     let copiedMembers = 0;
     let copiedModerators = 0;
 
-    if (copy_from_cycle_id) {
-      const { data: sourceRun } = await client
-        .from("pods")
-        .select("id")
-        .eq("workstream_id", workstreamId)
-        .eq("cycle_id", copy_from_cycle_id)
-        .maybeSingle();
-      if (!sourceRun) {
-        return NextResponse.json(
-          { error: "No run found for this workstream in the source cycle" },
-          { status: 404 }
-        );
-      }
-
+    if (sourceRun) {
       const { data: sourceMembers } = await client
         .from("pod_memberships")
         .select("participant_id")
@@ -141,15 +148,21 @@ export const POST = withAdminAuth(
       }
 
       // Give the reconciler a cycle_enrollments row to activate for every
-      // copied member (same upsert pattern as fulfillInvitation,
-      // lib/auth/invitations.ts:100-106).
-      for (const participant_id of memberIds) {
-        await client
+      // copied member — one batched upsert (same pattern already used
+      // below for pod_memberships / moderator_assignments) instead of a
+      // sequential per-member round trip.
+      if (memberIds.length > 0) {
+        const { error: enrollError } = await client
           .from("cycle_enrollments")
           .upsert(
-            { participant_id, cycle_id, status: "active" },
+            memberIds.map((participant_id) => ({
+              participant_id,
+              cycle_id,
+              status: "active",
+            })),
             { onConflict: "participant_id,cycle_id" }
           );
+        if (enrollError) return dbError(enrollError);
       }
 
       await reconcilePodMembers(podId);

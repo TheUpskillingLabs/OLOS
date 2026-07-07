@@ -5,8 +5,8 @@ import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { moderatorAssignmentSchema } from "@/lib/validations/pods";
-import { createServiceClient } from "@/lib/supabase/server";
-import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
+import { ensureActivePodMembership } from "@/lib/enrollment/reconciler";
+import { one } from "@/lib/supabase/embed";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
@@ -67,9 +67,19 @@ export const POST = withAdminAuth(
     if (isErrorResponse(body)) return body;
     const { participant_id, cycle_id } = body;
 
+    // The pod's own cycle_id is authoritative — a client-supplied mismatch
+    // would otherwise write a moderator_assignments row for a cycle the pod
+    // doesn't belong to.
+    if (cycle_id !== pod.cycle_id) {
+      return NextResponse.json(
+        { error: "cycle_id does not match the pod's cycle" },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await auth.supabase
       .from("moderator_assignments")
-      .insert({ participant_id, pod_id: podId, cycle_id })
+      .insert({ participant_id, pod_id: podId, cycle_id: pod.cycle_id })
       .select("id, participant_id, pod_id, assigned_at")
       .single();
 
@@ -80,42 +90,11 @@ export const POST = withAdminAuth(
     // Org co-leads are members of their workstream (docs/ORG_CYCLES.md);
     // participant-cycle poderators are deliberately NOT auto-membered — a
     // poderator shepherds a pod they don't sit in.
-    const cycleMode = (pod.cycles as unknown as { mode: string } | null)?.mode;
+    const cycleMode = one(pod.cycles as { mode: string } | { mode: string }[] | null)?.mode;
     if (cycleMode === "org") {
-      const serviceClient = createServiceClient();
-
-      // Ensure an active membership, mirroring the reactivation pattern in
-      // app/api/pods/[pod_id]/register/route.ts.
-      const { data: existingMembership } = await serviceClient
-        .from("pod_memberships")
-        .select("id, inactive_at")
-        .eq("pod_id", podId)
-        .eq("participant_id", participant_id)
-        .maybeSingle();
-
-      if (existingMembership) {
-        if (existingMembership.inactive_at !== null) {
-          await serviceClient
-            .from("pod_memberships")
-            .update({ inactive_at: null })
-            .eq("id", existingMembership.id);
-        }
-      } else {
-        await serviceClient
-          .from("pod_memberships")
-          .insert({ participant_id, pod_id: podId });
-      }
-
-      await serviceClient
-        .from("cycle_enrollments")
-        .upsert(
-          { participant_id, cycle_id: pod.cycle_id, status: "active" },
-          { onConflict: "participant_id,cycle_id" }
-        );
-
-      // Load-bearing: promotes the enrollment to 'active' now that an active
-      // pod_memberships row exists (lib/enrollment/reconciler.ts).
-      await reconcileEnrollmentActivation(participant_id, pod.cycle_id);
+      // Single path an org co-lead/member joins a workstream through
+      // (lib/enrollment/reconciler.ts).
+      await ensureActivePodMembership(participant_id, podId, pod.cycle_id);
     }
 
     return NextResponse.json(

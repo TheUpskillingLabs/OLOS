@@ -7,6 +7,7 @@ import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { createInvitationSchema } from "@/lib/validations/invitations";
 import { ROLE_PRESETS } from "@/lib/auth/permissions";
 import { createServiceClient } from "@/lib/supabase/server";
+import { one } from "@/lib/supabase/embed";
 
 export const GET = withAdminAuth(
   async (_request: NextRequest, _auth: AuthenticatedRequest) => {
@@ -34,6 +35,44 @@ export const POST = withAdminAuth(
       return NextResponse.json({ error: "pod_role requires a pod" }, { status: 400 });
     }
 
+    const serviceClient = createServiceClient();
+
+    // pod_role/mode validation: a pod_role only makes sense on an org-mode
+    // pod (co-lead/member are org workstream concepts), and an org-mode pod
+    // always needs a pod_role — a moderator-assignment-only invite on an
+    // org pod would otherwise create a phantom co-lead with no membership
+    // or enrollment (fulfillInvitation, lib/auth/invitations.ts).
+    // Participant-cycle pods keep the legacy poderator-only invite; direct
+    // participant membership on those pods must keep going through the
+    // registration paths that enforce windows/pod_limit.
+    if (pod_id) {
+      const { data: podRow } = await serviceClient
+        .from("pods")
+        .select("id, cycles (mode)")
+        .eq("id", pod_id)
+        .maybeSingle();
+
+      if (!podRow) {
+        return NextResponse.json({ error: "Pod not found" }, { status: 404 });
+      }
+
+      const podCycleMode = one(podRow.cycles as { mode: string } | { mode: string }[] | null)?.mode;
+
+      if (pod_role && podCycleMode !== "org") {
+        return NextResponse.json(
+          { error: "Co-lead/member roles apply only to organization workstreams." },
+          { status: 400 }
+        );
+      }
+
+      if (!pod_role && podCycleMode === "org") {
+        return NextResponse.json(
+          { error: "Organization workstream invites need a pod role (co-lead or member)." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Build final permissions list
     let finalPerms: string[] = [];
     if (role_preset && ROLE_PRESETS[role_preset]) {
@@ -52,8 +91,6 @@ export const POST = withAdminAuth(
         { status: 403 }
       );
     }
-
-    const serviceClient = createServiceClient();
 
     // Block exact duplicates: same email + same cycle + same role preset, pending and not expired
     let duplicateQuery = serviceClient

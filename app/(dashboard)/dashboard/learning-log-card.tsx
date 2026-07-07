@@ -91,6 +91,7 @@ export default function LearningLogCard({
   milestone = null,
   journal = false,
   logCycles = [],
+  pendingCycleIds = [],
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
@@ -105,6 +106,12 @@ export default function LearningLogCard({
       at once). More than one renders a "Log for" picker; the chosen
       cycle_id always rides along on save, even with exactly one. */
   logCycles?: { id: number; name: string; mode: string }[];
+  /** The gate's pending (armed + unmet) cycle ids — a locked member's
+      "Log for" picker should default to one of THESE, not blindly to the
+      open cycle, or a member whose only pending window is the org cycle
+      saves against the open cycle by default and stays locked with a
+      success message. */
+  pendingCycleIds?: number[];
 }) {
   const pf = milestone?.prefill ?? null;
   const [clarity, setClarity] = useState(pf?.clarity ?? 3);
@@ -117,16 +124,25 @@ export default function LearningLogCard({
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [justSaved, setJustSaved] = useState<null | { cleared: boolean }>(null);
+  const [justSaved, setJustSaved] = useState<null | {
+    cleared: boolean;
+    stillDue: string | null;
+  }>(null);
   const [recent, setRecent] = useState<RecentLog[]>([]);
   const [count, setCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  // Defaults to the open (participant) cycle when there's a choice — the
-  // legacy single-cycle behavior a dual-enrolled member expects by default.
+  // Default: whichever eligible cycle is actually pending the gate (a
+  // locked member should log against the cycle that's locking them, not
+  // silently save against the open cycle and stay locked). Falls back to
+  // the open (participant) cycle — the legacy single-cycle behavior a
+  // dual-enrolled, non-locked member expects by default — then the first.
   const [selectedCycleId, setSelectedCycleId] = useState<number | null>(() => {
     if (logCycles.length === 0) return null;
-    return (logCycles.find((c) => c.mode === "open") ?? logCycles[0]).id;
+    const pending = logCycles.find((c) => pendingCycleIds.includes(c.id));
+    return (
+      pending ?? logCycles.find((c) => c.mode === "open") ?? logCycles[0]
+    ).id;
   });
   const selectedCycle =
     logCycles.find((c) => c.id === selectedCycleId) ?? null;
@@ -234,7 +250,17 @@ export default function LearningLogCard({
         return;
       }
       const data = await res.json();
-      setJustSaved({ cleared: !!data.gate_cleared });
+      // Name the still-pending cycle when the save didn't fully clear the
+      // gate — a dual-enrolled member logging one cycle's window while
+      // another stays due shouldn't read a bare "Logged ✓" with no hint
+      // they're still locked.
+      const stillPendingIds = pendingCycleIds.filter(
+        (id) => id !== selectedCycleId
+      );
+      const stillDue = !data.gate_cleared
+        ? (logCycles.find((c) => c.id === stillPendingIds[0])?.name ?? null)
+        : null;
+      setJustSaved({ cleared: !!data.gate_cleared, stillDue });
       // The form resets in place — log as often as you like.
       setClarity(3);
       setAlignment(3);
@@ -318,6 +344,7 @@ export default function LearningLogCard({
           role="status"
         >
           Logged ✓{justSaved.cleared ? " — you’re back in ✓" : ""}
+          {justSaved.stillDue && ` · Still due: ${justSaved.stillDue}`}
         </div>
       )}
 

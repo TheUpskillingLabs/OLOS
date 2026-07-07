@@ -5,12 +5,18 @@
 `workstreams`, the `project_roles`/`project_subscriptions` IC ladder,
 `invitations.pod_role`), the mode-aware read path (`getOrgCycle` alongside
 `getOperatingCycle`/`getRecruitingCycle`), the per-cycle Learning Log gate,
-and the entities described below. **The UI is reused, not rebuilt** — a
-workstream run is an ordinary pod, so it renders in the existing
-Poderator/pod dashboard as-is; org-specific nav copy and a dedicated
-Workstream surface are not built yet. **Design-only, not yet built:** the
-IC fork endpoint/UI, the quarterly roll-forward mechanism, and the
-governance questions in *§7*.
+the manual quarterly roll-forward primitives (`POST /api/cycles` +
+`POST /api/admin/workstreams/[id]/runs`, with roster-copy), and the
+entities described below. **The UI is reused, not rebuilt** — a workstream
+run is an ordinary pod, so it renders in the existing Poderator/pod
+dashboard as-is. It picks up org-flavored **labeling** on the way
+(`lib/cycle/labels.ts`'s `podNoun`/`moderatorNoun` render "Workstream" /
+"Co-lead" instead of "Pod" / "Poderator" wherever a page already reads
+`cycle.mode`), and the member dashboard's "Your workstreams" section and
+the admin workstreams-panel are real, shipped surfaces — but there's no
+*dedicated* `/org`-flavored route, and the nav persona still says
+"Poderator" for a co-lead (see §6). **Design-only, not yet built:** the IC
+fork endpoint/UI and the governance questions in *§7*.
 
 **Companion:** [`SECTOR_MODEL.md`](SECTOR_MODEL.md) — this doc is a
 **sibling**, not a restatement. Everything below assumes you've read that
@@ -126,13 +132,17 @@ enforced twice:
    registration) stay closed for org cycles even if a call site forgets
    the explicit guard.
 
-**Quarterly rollover** is designed as: create the next quarter's org
-cycle, then create a run (`pods` row) per **active** workstream, with an
-option to copy the prior run's co-lead/contributor roster forward rather
-than starting empty. **Not built this slice** — there is no roll-forward
-endpoint or UI yet; rollover today is a manual, one-off admin action using
-the same primitives (`POST /api/cycles`, then `POST` a pod per
-workstream).
+**Quarterly rollover:** create the next quarter's org cycle
+(`POST /api/cycles`), then, per **active** workstream, create its run with
+an option to copy the prior run's co-lead/contributor roster forward
+rather than starting empty
+(`POST /api/admin/workstreams/[workstream_id]/runs`, `copy_from_cycle_id`
+— surfaced in the admin cycle workspace's workstreams panel as a "Copy
+roster from…" dropdown next to "Create run"). Both endpoints exist and are
+wired to UI this slice. What's **still** a manual, one-off admin action:
+nothing automatically creates next quarter's org cycle or fires the
+per-workstream run creation on a schedule — an admin does both steps by
+hand, once per quarter, workstream by workstream.
 
 ## 6. What is deliberately NOT done in this slice
 
@@ -155,12 +165,19 @@ workstream).
 - **No fork endpoint or UI.** `projects.forked_from_project_id` is
   provenance-only this slice — a column to point at, nothing reads or
   writes it yet outside manual/service-role use.
-- **No co-lead persona or nav copy.** The dashboard nav still says
-  "Poderator" everywhere, including for org-cycle runs. The Poderator
-  dashboard UI is reused unmodified — a workstream run renders exactly
-  like a participant pod because it *is* one.
-- **No roll-forward endpoint or UI.** See §5 — the quarterly-rollover
-  mechanism above is designed, not implemented.
+- **No dedicated co-lead nav persona.** Page copy that already knows the
+  cycle's mode does render "Workstream"/"Co-lead" via
+  [`lib/cycle/labels.ts`](../lib/cycle/labels.ts) (the pod page, the
+  project page's breadcrumb, the member dashboard's "Your workstreams"
+  section, the admin workstreams panel). What's **not** built is a
+  separate co-lead persona or a dedicated `/org` route family — the global
+  nav and the Poderator dashboard shell are reused unmodified, so anything
+  outside those already-mode-aware surfaces still says "Poderator." A
+  workstream run renders on the same `/pods/[pod_id]` route a participant
+  pod does, because it *is* one.
+- **No scheduled roll-forward.** See §5 — the run-creation-with-roster-copy
+  endpoint and its admin UI exist; nothing automates *invoking* them each
+  quarter, and nothing auto-creates the next org cycle.
 - **No B2B closed-track concurrency.** `SECTOR_MODEL.md` §10 already
   defers `mode='closed'` cycle concurrency; org cycles don't reopen that
   question, they just add a third mode alongside it.

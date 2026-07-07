@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod, can } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
 import { podNoun } from "@/lib/cycle/labels";
+import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "./pulse-check-dashboard";
 import CharterProjectForm from "./charter-project-form";
 
@@ -43,8 +44,9 @@ export default async function PodDetailPage({
 
   if (!pod) notFound();
 
-  const cycleRow = (pod.cycles as unknown) as { mode: string } | { mode: string }[] | null;
-  const mode = Array.isArray(cycleRow) ? cycleRow[0]?.mode : cycleRow?.mode;
+  const mode = one(
+    pod.cycles as { mode: string } | { mode: string }[] | null
+  )?.mode;
 
   const { data: members } = await supabase
     .from("pod_memberships")

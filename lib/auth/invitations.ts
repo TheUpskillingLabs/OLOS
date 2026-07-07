@@ -1,6 +1,9 @@
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
-import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
+import {
+  reconcileEnrollmentActivation,
+  ensureActivePodMembership,
+} from "@/lib/enrollment/reconciler";
 
 /**
  * Fulfill a pending invitation for a participant, driven by the invite_token
@@ -140,52 +143,16 @@ export async function fulfillInvitation(
       }
 
       if (podRole === "co_lead" || podRole === "member") {
-        // Ensure an active membership, mirroring the reactivation pattern in
-        // app/api/pods/[pod_id]/register/route.ts: reactivate a soft-deleted
-        // row if one exists, insert if none, no-op if already active.
-        const { data: existingMembership } = await serviceClient
-          .from("pod_memberships")
-          .select("id, inactive_at")
-          .eq("pod_id", invitation.pod_id)
-          .eq("participant_id", participantId)
-          .maybeSingle();
-
-        if (existingMembership) {
-          if (existingMembership.inactive_at !== null) {
-            await serviceClient
-              .from("pod_memberships")
-              .update({ inactive_at: null })
-              .eq("id", existingMembership.id);
-          }
-        } else {
-          await serviceClient
-            .from("pod_memberships")
-            .insert({ participant_id: participantId, pod_id: invitation.pod_id });
-        }
-
-        // A pod-only invite (pod_id set, cycle_id NULL) skipped the
-        // cycle_enrollments upsert above entirely, so there's no row for the
-        // reconciler to act on yet — seed one for the pod's own cycle. When
-        // invitation.cycle_id was set, the upsert above already ran (for
-        // that cycle_id, expected to match pod.cycle_id).
-        if (!invitation.cycle_id) {
-          await serviceClient
-            .from("cycle_enrollments")
-            .upsert(
-              { participant_id: participantId, cycle_id: pod.cycle_id, status: "active" },
-              { onConflict: "participant_id,cycle_id" }
-            );
-        }
-
-        // Load-bearing ordering: the reconcile above (if it ran) only
-        // promotes an enrollment to 'active' when an active pod_memberships
-        // row already exists — and the membership didn't exist yet at that
-        // point. Re-run it now that the membership is in place, or a
-        // co-lead/member invite would leave the enrollment 'inactive' with
-        // no active membership for a later reconcile to ever find (see
-        // lib/enrollment/reconciler.ts). Org run pods are created
-        // status='active' (migration 00060), so this resolves to 'active'.
-        await reconcileEnrollmentActivation(participantId, pod.cycle_id);
+        // Ensure an active pod membership and a matching cycle_enrollments
+        // row for the pod's *own* cycle — the single path an org co-lead/
+        // member joins a workstream through (lib/enrollment/reconciler.ts).
+        // Runs unconditionally, even when invitation.cycle_id was already
+        // set above to some other cycle_id: a co-lead/member always needs
+        // an active enrollment for pod.cycle_id specifically, since that's
+        // the cycle their membership and any per-cycle gates (learning-log,
+        // etc.) key off. A mismatched invitation.cycle_id must not leave
+        // this seeding skipped.
+        await ensureActivePodMembership(participantId, invitation.pod_id, pod.cycle_id);
       }
     }
   }

@@ -2,8 +2,10 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { isProjectDri } from "@/lib/auth/projects";
 import { StatusBadge } from "@/app/components/ui";
 import { podNoun } from "@/lib/cycle/labels";
+import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
 import FollowButton from "./follow-button";
 import ContributorsSection from "./contributors-section";
@@ -45,11 +47,9 @@ export default async function ProjectDetailPage({
 
   if (!project) notFound();
 
-  const cycleRow = (project.cycles as unknown) as
-    | { mode: string }
-    | { mode: string }[]
-    | null;
-  const mode = Array.isArray(cycleRow) ? cycleRow[0]?.mode : cycleRow?.mode;
+  const mode = one(
+    project.cycles as { mode: string } | { mode: string }[] | null
+  )?.mode;
 
   // Get pod info for breadcrumb
   const { data: pod } = await supabase
@@ -161,33 +161,51 @@ export default async function ProjectDetailPage({
     .select("id", { count: "exact", head: true })
     .eq("project_id", projectId);
 
-  const ownActiveDri = contributors.some(
-    (c) => c.role === "dri" && c.participant_id === userRoles?.participantId
-  );
-  const canManageContributors =
-    !!userRoles &&
-    (isAdmin(userRoles) ||
-      isModeratorForPod(userRoles, project.pod_id) ||
-      ownActiveDri);
+  // One DRI definition, shared with the POST route (lib/auth/projects).
+  const canManageContributors = userRoles
+    ? await isProjectDri(serviceClient, userRoles, projectId, project.pod_id)
+    : false;
 
-  // Enrolled-participant options for the add-contributor select — only fetch
-  // when the viewer can actually manage contributors.
+  // Add-contributor options: the cycle's enrollees, unioned with the
+  // project's followers (project_subscriptions) — org enrollees are
+  // invite-only staff, so followers are how a DRI reaches the ICs the
+  // follow feature is meant to recruit (docs/ORG_CYCLES.md §2). Deduped by
+  // participant_id; follower-only entries are suffixed so the DRI can tell
+  // them apart from enrollees. Only fetched when the viewer can manage.
   let participantOptions: { participant_id: number; name: string }[] = [];
   if (canManageContributors) {
-    const { data: enrollments } = await serviceClient
-      .from("cycle_enrollments")
-      .select(
-        "participant_id, participants(first_name, last_name, preferred_name)"
-      )
-      .eq("cycle_id", project.cycle_id);
+    const [{ data: enrollments }, { data: followerRows }] = await Promise.all([
+      serviceClient
+        .from("cycle_enrollments")
+        .select(
+          "participant_id, participants(first_name, last_name, preferred_name)"
+        )
+        .eq("cycle_id", project.cycle_id),
+      serviceClient
+        .from("project_subscriptions")
+        .select(
+          "participant_id, participants(first_name, last_name, preferred_name)"
+        )
+        .eq("project_id", projectId),
+    ]);
 
-    participantOptions = (enrollments ?? []).map((e) => {
-      const p = (e.participants as unknown) as Record<string, string> | null;
-      return {
-        participant_id: e.participant_id,
-        name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
-      };
-    });
+    const nameOf = (row: { participants: unknown }) => {
+      const p = (row.participants as unknown) as Record<string, string> | null;
+      return `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim();
+    };
+
+    const optionsByParticipant = new Map<number, string>();
+    for (const e of enrollments ?? []) {
+      optionsByParticipant.set(e.participant_id, nameOf(e));
+    }
+    for (const f of followerRows ?? []) {
+      if (optionsByParticipant.has(f.participant_id)) continue;
+      optionsByParticipant.set(f.participant_id, `${nameOf(f)} (follower)`);
+    }
+
+    participantOptions = [...optionsByParticipant.entries()].map(
+      ([participant_id, name]) => ({ participant_id, name })
+    );
   }
 
   const projectVariant =

@@ -98,7 +98,7 @@ export default function WorkstreamsPanel({
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={40}
-              placeholder="e.g. Moderator tooling"
+              placeholder="e.g. Programs & Events"
               className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink placeholder:text-meta transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
             />
           </div>

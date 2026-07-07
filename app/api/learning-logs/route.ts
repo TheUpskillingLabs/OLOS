@@ -10,6 +10,10 @@ import {
   sharedParagraph,
 } from "@/lib/validations/learning-logs";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import {
+  eligibleLogCycles,
+  type EligibleLogCycle,
+} from "@/lib/learning-logs/eligible";
 import { getCycleWeek } from "@/lib/cycle/week";
 import {
   milestoneKindForWeek,
@@ -31,37 +35,12 @@ import {
 // sent: a single eligible cycle is chosen automatically; several fall back
 // to the mode='open' one (the old single-cycle behavior); zero is a
 // standalone log (cycle_id NULL, unchanged).
-
-interface EligibleCycle {
-  id: number;
-  name: string;
-  mode: string;
-  start_date: string | null;
-  end_date: string | null;
-}
-
-async function resolveEligibleCycles(
-  service: ReturnType<typeof createServiceClient>,
-  participantId: number
-): Promise<EligibleCycle[]> {
-  const { data: activeCycles } = await service
-    .from("cycles")
-    .select("id, name, mode, start_date, end_date")
-    .eq("status", "active");
-  if (!activeCycles || activeCycles.length === 0) return [];
-
-  const { data: enrollments } = await service
-    .from("cycle_enrollments")
-    .select("cycle_id")
-    .eq("participant_id", participantId)
-    .eq("status", "active")
-    .in(
-      "cycle_id",
-      activeCycles.map((c) => c.id)
-    );
-  const enrolledIds = new Set((enrollments ?? []).map((e) => e.cycle_id));
-  return activeCycles.filter((c) => enrolledIds.has(c.id));
-}
+//
+// Eligibility itself (active cycle ∩ active enrollment) is the shared
+// lib/learning-logs/eligible.ts definition — gate.ts and the dashboard use
+// the same one. This route also needs the chosen cycle's start/end dates
+// for milestone-week math, which eligibleLogCycles doesn't carry, so those
+// are fetched separately, scoped to the single chosen cycle.
 
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
@@ -76,18 +55,24 @@ export const POST = withAuth(
     const guard = await requireCompleteProfile(auth.supabase, participantId);
     if (guard) return guard;
 
+    // Eligibility is computed once and reused for both gate reads below —
+    // filing a log never changes the enrolled-cycle set, only the per-cycle
+    // counts, so gateBefore and gateAfter can share it instead of each
+    // re-querying cycles + cycle_enrollments (was 3 round trips: the route's
+    // own resolution plus one inside each gate call; now 1).
+    const eligibleCycles = await eligibleLogCycles(participantId);
+
     // Read the gate BEFORE the write: "cleared" means "you were locked and
     // now you're not" — never a false "you're back in ✓" for members who
     // were never locked.
-    const gateBefore = await learningLogGate(participantId);
+    const gateBefore = await learningLogGate(participantId, eligibleCycles);
 
     const body = await parseBody(request, learningLogSchema);
     if (isErrorResponse(body)) return body;
 
     const service = createServiceClient();
-    const eligibleCycles = await resolveEligibleCycles(service, participantId);
 
-    let chosenCycle: EligibleCycle | null = null;
+    let chosenCycle: EligibleLogCycle | null = null;
     if (body.cycle_id != null) {
       chosenCycle = eligibleCycles.find((c) => c.id === body.cycle_id) ?? null;
       if (!chosenCycle) {
@@ -109,19 +94,32 @@ export const POST = withAuth(
     }
 
     let kind: "weekly" | MilestoneKind = "weekly";
-    if (chosenCycle) {
+    // Milestone weeks are participant-cycle semantics — cycle_config's
+    // milestone_mid_week/milestone_final_week frame the OPEN cohort's
+    // formation timeline. Org cycles have no such framing (the UI never
+    // shows milestone copy for an org save), so an org log is always
+    // 'weekly' — otherwise an org cycle's own week 6/12 would masquerade as
+    // a phantom milestone evaluation.
+    if (chosenCycle && chosenCycle.mode === "open") {
       // Milestone weeks are admin-configurable (cycle_config, 00047); if the
       // chosen cycle's current week matches one, this log is that evaluation.
-      const { data: cfg } = await service
-        .from("cycle_config")
-        .select("milestone_mid_week, milestone_final_week")
-        .eq("cycle_id", chosenCycle.id)
-        .maybeSingle();
-      if (cfg && chosenCycle.start_date && chosenCycle.end_date) {
+      const [{ data: cfg }, { data: cycleDates }] = await Promise.all([
+        service
+          .from("cycle_config")
+          .select("milestone_mid_week, milestone_final_week")
+          .eq("cycle_id", chosenCycle.id)
+          .maybeSingle(),
+        service
+          .from("cycles")
+          .select("start_date, end_date")
+          .eq("id", chosenCycle.id)
+          .maybeSingle(),
+      ]);
+      if (cfg && cycleDates?.start_date && cycleDates?.end_date) {
         const week = getCycleWeek(
           new Date(),
-          new Date(chosenCycle.start_date),
-          new Date(chosenCycle.end_date)
+          new Date(cycleDates.start_date),
+          new Date(cycleDates.end_date)
         );
         kind = milestoneKindForWeek(week, cfg) ?? "weekly";
       }
@@ -170,8 +168,9 @@ export const POST = withAuth(
     // log is attributed to (lib/learning-logs/gate-logic.ts), so a
     // dual-enrolled member with another still-pending cycle stays locked —
     // "cleared" means every previously-pending cycle is now met, not just
-    // "a log exists".
-    const gateAfter = await learningLogGate(participantId);
+    // "a log exists". Reuses the same eligibleCycles fetched above — the
+    // write doesn't touch cycle_enrollments.
+    const gateAfter = await learningLogGate(participantId, eligibleCycles);
 
     return NextResponse.json(
       {

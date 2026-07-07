@@ -6,6 +6,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { createCycleSchema } from "@/lib/validations/cycles";
 import { createServiceClient } from "@/lib/supabase/server";
+import { resolveHqSectorId } from "@/lib/cycle/org-sector";
 
 export const GET = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest) => {
@@ -44,12 +45,8 @@ export const POST = withAdminAuth(
     let sector_id = bodySectorId;
     if (mode === "org" && !sector_id) {
       const serviceClient = createServiceClient();
-      const { data: hqSector } = await serviceClient
-        .from("sectors")
-        .select("id")
-        .eq("slug", "the-upskilling-labs-hq")
-        .maybeSingle();
-      if (!hqSector) {
+      const hqSectorId = await resolveHqSectorId(serviceClient);
+      if (!hqSectorId) {
         return NextResponse.json(
           {
             error:
@@ -58,7 +55,7 @@ export const POST = withAdminAuth(
           { status: 500 }
         );
       }
-      sector_id = hqSector.id;
+      sector_id = hqSectorId;
     }
 
     // Create cycle

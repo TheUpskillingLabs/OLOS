@@ -9,52 +9,9 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // The IC ladder for a project (project_roles / project_subscriptions,
-// migration 00060 / docs/ORG_CYCLES.md §2, §5). GET is public-read (the
-// ladder is public); POST is gated to the project's DRIs + admins.
-
-export const GET = withAuth(
-  async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
-    const projectId = parseIntParam(params.project_id, "project_id");
-    if (projectId instanceof NextResponse) return projectId;
-
-    const { data: roleRows, error } = await auth.supabase
-      .from("project_roles")
-      .select(`
-        participant_id, role, created_at,
-        participants (first_name, last_name, preferred_name)
-      `)
-      .eq("project_id", projectId)
-      .is("removed_at", null)
-      .order("created_at");
-
-    if (error) {
-      return dbError(error, "project-contributors-list");
-    }
-
-    const contributors = (roleRows || []).map((r) => {
-      const p = (r.participants as unknown) as Record<string, unknown>;
-      return {
-        participant_id: r.participant_id,
-        name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
-        role: r.role,
-        created_at: r.created_at,
-      };
-    });
-
-    // Aggregate follower count only — project_subscriptions RLS restricts
-    // row-level reads to self + staff, but the total on a public project
-    // page is a deliberate exception (same posture as public vote tallies).
-    const { count: followerCount } = await createServiceClient()
-      .from("project_subscriptions")
-      .select("id", { count: "exact", head: true })
-      .eq("project_id", projectId);
-
-    return NextResponse.json({
-      contributors,
-      follower_count: followerCount ?? 0,
-    });
-  }
-);
+// migration 00060 / docs/ORG_CYCLES.md §2, §5). The project page reads the
+// ladder server-side directly; this route is POST-only (add a contributor,
+// gated to the project's DRIs + admins) plus DELETE (see [participant_id]).
 
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {

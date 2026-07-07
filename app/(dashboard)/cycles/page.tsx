@@ -42,22 +42,27 @@ export default async function CyclesPage() {
 
   const otherCycles = cycles?.filter((c) => c.id !== activeCycle?.id) ?? [];
   // Org cycles run alongside the participant track and get their own section
-  // (invite-only — never a "Register" CTA), so they're excluded from the
-  // generic upcoming/past lists below.
+  // (invite-only — never a "Register" CTA), so the active/upcoming ones are
+  // excluded from the generic upcoming/past lists below.
   const orgCycles = otherCycles.filter((c) => c.mode === "org");
   const activeOrgCycle = orgCycles.find((c) => c.status === "active") ?? null;
   const upcomingOrgCycle =
     orgCycles.find((c) => c.status === "upcoming") ?? null;
-  const nonOrgCycles = otherCycles.filter((c) => c.mode !== "org");
-  // An upcoming cohort is open for registration — surface it as its own
-  // "Register" section, never buried under "Past cycles".
-  const upcomingCycles = nonOrgCycles.filter((c) => c.status === "upcoming");
-  const pastCycles = [
-    ...nonOrgCycles.filter((c) => c.status !== "upcoming"),
-    ...orgCycles.filter(
-      (c) => c.status !== "active" && c.status !== "upcoming"
-    ),
-  ];
+  // An upcoming (non-org) cohort is open for registration — surface it as
+  // its own "Register" section, never buried under "Past cycles".
+  const upcomingCycles = otherCycles.filter(
+    (c) => c.mode !== "org" && c.status === "upcoming"
+  );
+  // Everything else, in the query's original start_date-descending order —
+  // a single filter over `otherCycles` rather than two mode-partitioned
+  // filters concatenated, so an archived org cycle sorts alongside past
+  // participant cycles instead of always trailing after them.
+  const pastCycles = otherCycles.filter((c) => {
+    if (c.id === activeOrgCycle?.id || c.id === upcomingOrgCycle?.id) {
+      return false;
+    }
+    return !(c.mode !== "org" && c.status === "upcoming");
+  });
 
   return (
     <div>

@@ -195,8 +195,8 @@ export default async function AdminCycleDetailPage({
   }));
 
   // Formation-tab workstreams roster — org cycles only (docs/ORG_CYCLES.md
-  // §2/§5). Mirrors GET /api/admin/workstreams, scoped to this cycle's runs,
-  // plus prior org cycles for the copy-roster dropdown.
+  // §2/§5): the workstream list scoped to this cycle's runs, plus prior org
+  // cycles for the copy-roster dropdown.
   let workstreamRows: WorkstreamAdminRow[] = [];
   let priorOrgCycles: PriorOrgCycleOption[] = [];
   if (cycle.mode === "org") {

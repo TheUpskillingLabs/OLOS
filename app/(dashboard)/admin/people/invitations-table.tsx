@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -44,7 +44,7 @@ export default function InvitationsTable({
 }: {
   invitations: Invitation[];
   cycles: { id: number; name: string }[];
-  pods: { id: number; name: string; cycle_name: string }[];
+  pods: { id: number; name: string; cycle_name: string; mode: string | null }[];
   canManageRoles: boolean;
 }) {
   const [invitations, setInvitations] = useState(initialInvitations);
@@ -57,9 +57,28 @@ export default function InvitationsTable({
     resolver: zodResolver(inviteFormSchema),
     defaultValues: { email: "", role_preset: "", cycle_id: "", pod_id: "", pod_role: "" },
   });
-  const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = form;
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors, isSubmitting } } = form;
 
   const podId = watch("pod_id");
+  const pod_role = watch("pod_role");
+  const selectedPod = podId ? pods.find((p) => p.id === parseInt(podId)) : undefined;
+  const isOrgPod = selectedPod?.mode === "org";
+
+  // Org-mode pods require a pod_role ('co_lead' or 'member'; "Poderator
+  // only" isn't a valid invite there — see POST /api/invitations). Keep the
+  // form's pod_role in sync as the pod selection changes: default to
+  // 'member' when an org pod is picked, and clear it entirely for
+  // participant pods so pod_role is never sent on those invites.
+  useEffect(() => {
+    if (isOrgPod) {
+      if (pod_role !== "co_lead" && pod_role !== "member") {
+        setValue("pod_role", "member");
+      }
+    } else if (pod_role) {
+      setValue("pod_role", "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOrgPod]);
 
   const filtered = invitations.filter(
     (i) => statusFilter === "all" || i.status === statusFilter
@@ -201,11 +220,16 @@ export default function InvitationsTable({
                 ))}
               </select>
             </div>
-            {podId && (
+            {/* Org-mode pods require a pod_role (co-lead/member); the
+                "Poderator only" option doesn't apply there, so it's dropped
+                and the select defaults to 'member' (see the useEffect
+                above). Participant-cycle pods keep the legacy
+                poderator-only invite, so the select is hidden entirely and
+                pod_role is never sent. */}
+            {podId && isOrgPod && (
               <div>
                 <label className="text-xs font-medium text-charcoal">Pod role</label>
                 <select {...register("pod_role")} className={inputClass}>
-                  <option value="">Poderator only</option>
                   <option value="co_lead">Co-lead (workstream)</option>
                   <option value="member">Member (workstream)</option>
                 </select>
