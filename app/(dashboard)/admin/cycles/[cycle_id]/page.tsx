@@ -4,22 +4,17 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { StatCard, StatusBadge } from "@/app/components/ui";
+import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
 import CycleStatusForm from "./cycle-status-form";
 import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
+import { CycleDetailsForm } from "./cycle-details-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
 import AssignModeratorButton from "./assign-moderator-button";
 import TestingControls from "./testing-controls";
 
-type CycleStatus = "active" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
-
-const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
-  active: "active",
-  closed: "inactive",
-  draft: "draft",
-};
 
 const POD_STATUS_VARIANT: Record<
   PodStatus,
@@ -70,7 +65,7 @@ export default async function AdminCycleDetailPage({
   const [{ data: cycle }, { data: config }] = await Promise.all([
     serviceClient
       .from("cycles")
-      .select("id, name, start_date, end_date, status")
+      .select("id, name, start_date, end_date, status, description, what_you_build")
       .eq("id", cycleId)
       .single(),
     serviceClient
@@ -200,12 +195,8 @@ export default async function AdminCycleDetailPage({
           <h1 className="t-h1 text-ink">
             {cycle.name}
           </h1>
-          <StatusBadge
-            variant={
-              CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive"
-            }
-          >
-            {cycle.status}
+          <StatusBadge variant={cycleStatusVariant(cycle.status)}>
+            {cycleStatusLabel(cycle.status)}
           </StatusBadge>
         </div>
         <p className="mt-1 text-sm text-meta tabular-nums">
@@ -231,6 +222,22 @@ export default async function AdminCycleDetailPage({
             Cycle Status
           </h2>
           <CycleStatusForm cycleId={cycle.id} currentStatus={cycle.status} />
+        </section>
+
+        <hr className="border-ink/10" />
+
+        {/* About / information page */}
+        <section>
+          <h2 className="mb-1 t-h3 text-ink">Information page</h2>
+          <p className="mb-4 text-sm text-meta">
+            Public-facing copy for this cycle&rsquo;s info page ({`/c/${cycle.id}`}).
+          </p>
+          <CycleDetailsForm
+            cycleId={cycle.id}
+            name={cycle.name}
+            description={cycle.description}
+            whatYouBuild={cycle.what_you_build}
+          />
         </section>
 
         <hr className="border-ink/10" />

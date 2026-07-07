@@ -29,13 +29,18 @@ export default function SolutionBallot({
 
   useEffect(() => {
     if (!selectedPodId) return;
-    setLoading(true);
-    setAllocations({});
-    setError("");
-    setSubmitted(false);
-    setAlreadyVoted(false);
+    let cancelled = false;
 
+    // State resets and fetch both live inside the async body so no setState
+    // runs synchronously in the effect body (lint fix), and so the
+    // already-voted state can be hydrated from the server on load (audit fix)
+    // rather than only surfacing after a full submit + 409.
     (async () => {
+      setLoading(true);
+      setAllocations({});
+      setError("");
+      setSubmitted(false);
+      setAlreadyVoted(false);
       try {
         const [proposalsRes, votesRes] = await Promise.all([
           fetch(`/api/pods/${selectedPodId}/solution-proposals`),
@@ -43,26 +48,22 @@ export default function SolutionBallot({
         ]);
         const proposalData = await proposalsRes.json();
         const voteData = await votesRes.json();
+        if (cancelled) return;
 
         if (Array.isArray(proposalData)) setProposals(proposalData);
-
-        // If the GET returns the per-voter breakdown for admins, we don't use
-        // it here — blind voting hides tallies regardless. But we DO need to
-        // know whether the current user has already submitted a ballot in
-        // this pod. The cleanest signal is to POST and let the server return
-        // 409 — but that's a destructive probe. Instead, we look at the
-        // tallies: if there are any votes at all and the budget is zero we
-        // could be done, but that's noisy. Defer the "already voted" check
-        // to submit time and surface the 409 cleanly.
-        if (voteData && Array.isArray(voteData.tallies)) {
-          // Intentional no-op: we don't surface tallies during voting.
-        }
+        // Blind voting still hides tallies; we only read whether THIS voter has
+        // already submitted, so we can show the completed state immediately.
+        if (voteData?.has_voted) setAlreadyVoted(true);
       } catch {
-        setError("Failed to load proposals.");
+        if (!cancelled) setError("Failed to load proposals.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedPodId]);
 
   function bump(proposalId: number, delta: number) {

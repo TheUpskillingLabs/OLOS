@@ -32,6 +32,23 @@ export const POST = withAuth(
       return NextResponse.json({ error: "You must be an active participant" }, { status: 403 });
     }
 
+    // The target statement must belong to THIS cycle. Only an FK to
+    // problem_statements(id) exists, so without this a voter could inject
+    // votes against another cycle's statement and pollute this cycle's tally
+    // (audit fix: cross-cycle vote injection).
+    const { data: targetStatement } = await auth.supabase
+      .from("problem_statements")
+      .select("cycle_id")
+      .eq("id", problem_statement_id)
+      .maybeSingle();
+
+    if (!targetStatement || targetStatement.cycle_id !== cycle_id) {
+      return NextResponse.json(
+        { error: "That problem statement is not part of this cycle." },
+        { status: 400 }
+      );
+    }
+
     // Determine budget
     const { data: submission } = await auth.supabase
       .from("problem_statements")

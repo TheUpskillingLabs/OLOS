@@ -201,12 +201,19 @@ export function FlowScreen({
     }
   }, [step, answers, gateOpen]);
 
+  const submittingRef = useRef(false);
   const advance = useCallback(async () => {
+    // Re-entrancy guard: the last-step Enter-key handlers gate only on
+    // validity, so a fast double-Enter could fire onComplete twice and create
+    // duplicate ceremony writes (audit fix).
+    if (submittingRef.current) return;
     if (isLast) {
+      submittingRef.current = true;
       setServerError("");
       setSubmitting(true);
       const err = await onComplete(answers);
       if (err) {
+        submittingRef.current = false;
         setServerError(err);
         setSubmitting(false);
       }

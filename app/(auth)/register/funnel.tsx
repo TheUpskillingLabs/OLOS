@@ -206,9 +206,10 @@ export default function RegistrationFunnel({
         return null;
       }
       // Role branch: the cycle is the commitment, and its seam is the
-      // threshold ceremony — never a silent chain into more questions.
-      if (roles.includes("cycle") && json.active_cycle_id) {
-        router.push(`/cycles/${json.active_cycle_id}/join?from=signup`);
+      // threshold ceremony — never a silent chain into more questions. Route to
+      // the cycle currently open for registration (may be `upcoming`).
+      if (roles.includes("cycle") && json.registration_cycle_id) {
+        router.push(`/cycles/${json.registration_cycle_id}/join?from=signup`);
       } else {
         router.push("/dashboard");
       }

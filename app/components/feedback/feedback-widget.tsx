@@ -141,6 +141,21 @@ export default function FeedbackWidget() {
         const payload = await res.json().catch(() => null);
         throw new Error(payload?.error ?? "Something went wrong. Please try again.");
       }
+      // Attachments are uploaded best-effort: the note can succeed while some
+      // (or all) screenshots fail. Surface that instead of claiming everything
+      // went through (audit fix).
+      const okPayload = await res.json().catch(() => null);
+      const sent = attachments.length;
+      const saved = okPayload?.attachments_saved ?? sent;
+      if (sent > 0 && saved < sent) {
+        setError(
+          `Your note was sent, but ${sent - saved} of ${sent} screenshot${
+            sent - saved === 1 ? "" : "s"
+          } couldn't be uploaded. You can reply with them another way.`
+        );
+        setSubmitting(false);
+        return;
+      }
       setDone(true);
       // Auto-close shortly after the success confirmation.
       setTimeout(() => close(), 1600);

@@ -6,7 +6,8 @@ type WindowField =
   | "pod_registration"
   | "solution_proposal"
   | "solution_voting"
-  | "project_registration";
+  | "project_registration"
+  | "registration";
 
 const WINDOW_MESSAGES: Record<WindowField, string> = {
   problem_statement: "Problem statement submission is not currently open.",
@@ -15,6 +16,7 @@ const WINDOW_MESSAGES: Record<WindowField, string> = {
   solution_proposal: "Solution proposal submission is not currently open.",
   solution_voting: "Solution voting is not currently open.",
   project_registration: "Project registration is not currently open.",
+  registration: "Registration for this cycle is not currently open.",
 };
 
 export async function checkWindow(

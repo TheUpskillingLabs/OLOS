@@ -1,9 +1,11 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
+import { escapeEmailForIlike } from "@/lib/auth/email";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { shortRegistrationSchema } from "@/lib/validations/short-registration";
+import { getRegistrationCycle } from "@/lib/cycles/registration";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
 import {
   registrationConfirmationHtml,
@@ -40,11 +42,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Case-insensitive dedup check
+  // Case-insensitive dedup check. escapeEmailForIlike neutralizes `_` and `%`
+  // so a legitimate address like `a_b@example.com` isn't matched against an
+  // unrelated participant by ILIKE wildcard semantics (audit: false
+  // "already registered" dead-end).
   const { data: existing } = await supabase
     .from("participants")
     .select("id")
-    .ilike("email", email)
+    .ilike("email", escapeEmailForIlike(email))
     .maybeSingle();
 
   if (existing) {
@@ -101,34 +106,13 @@ export async function POST(request: NextRequest) {
   // window is currently open. If the cycle is active but registration has already
   // closed (or hasn't yet opened), fall back to the no-CTA variant so we don't
   // send users to a dead end.
-  let emailCycleName: string | null = null;
-  let emailCycleJoinUrl: string | null = null;
-
-  const { data: activeCycle } = await supabase
-    .from("cycles")
-    .select("id, name")
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (activeCycle) {
-    const { data: config } = await supabase
-      .from("cycle_config")
-      .select("pod_registration_open, pod_registration_close")
-      .eq("cycle_id", activeCycle.id)
-      .maybeSingle();
-
-    const now = new Date();
-    const isOpen =
-      !!config?.pod_registration_open &&
-      !!config?.pod_registration_close &&
-      now >= new Date(config.pod_registration_open) &&
-      now <= new Date(config.pod_registration_close);
-
-    if (isOpen) {
-      emailCycleName = activeCycle.name;
-      emailCycleJoinUrl = `${appUrl}/cycles/${activeCycle.id}/join`;
-    }
-  }
+  // CTA points at the cycle currently open for registration (may be `upcoming`),
+  // linking to its public info page. No open registration cycle → no-CTA variant.
+  const registrationCycle = await getRegistrationCycle(supabase);
+  const emailCycleName = registrationCycle?.name ?? null;
+  const emailCycleJoinUrl = registrationCycle
+    ? `${appUrl}/c/${registrationCycle.id}`
+    : null;
 
   try {
     const resend = getResendClient();

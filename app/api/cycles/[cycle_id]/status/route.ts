@@ -7,8 +7,10 @@ import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { updateCycleStatusSchema } from "@/lib/validations/cycles";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft: ["active"],
-  active: ["closed"],
+  draft: ["upcoming", "active"],
+  upcoming: ["active"],
+  active: ["closing", "closed"],
+  closing: ["closed"],
 };
 
 export const PATCH = withAdminAuth(

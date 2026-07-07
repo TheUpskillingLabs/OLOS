@@ -5,6 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleInterestSchema } from "@/lib/validations/cycle-interest";
+import { isCycleOpenForRegistration } from "@/lib/cycles/registration";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -26,7 +27,8 @@ export const POST = withAuth(
 
     const supabase = createServiceClient();
 
-    // Verify cycle is active
+    // Accept interest when the cycle is active OR its registration window is
+    // open (an `upcoming` cycle taking sign-ups before it starts).
     const { data: cycle } = await supabase
       .from("cycles")
       .select("id, status")
@@ -36,7 +38,10 @@ export const POST = withAuth(
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
-    if (cycle.status !== "active") {
+    const acceptingInterest =
+      cycle.status === "active" ||
+      (await isCycleOpenForRegistration(supabase, cycleId));
+    if (!acceptingInterest) {
       return NextResponse.json(
         { error: "This cycle is not currently accepting interest" },
         { status: 400 }

@@ -44,7 +44,7 @@ export async function proxy(request: NextRequest) {
 
     // Redirect unauthenticated users to login (except public routes and API routes)
     // API routes handle their own auth via withAuth/withAdminAuth wrappers
-    const publicPaths = ["/login", "/api/", "/register"];
+    const publicPaths = ["/login", "/api/", "/register", "/c/"];
     const isPublicPath = publicPaths.some((path) =>
       request.nextUrl.pathname.startsWith(path)
     );

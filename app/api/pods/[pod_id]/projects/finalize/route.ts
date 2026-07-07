@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { createServiceClient } from "@/lib/supabase/server";
 import { isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { generateName } from "@/lib/llm/names";
 import { parseIntParam } from "@/lib/api/params";
@@ -36,6 +37,21 @@ export const POST = withAuth(
       return NextResponse.json({ error: "Cycle config not found" }, { status: 500 });
     }
 
+    // Idempotency guard: like voting finalize, this appends projects with no
+    // unique constraint, so a retry/double-click would duplicate them. If this
+    // pod already has projects, treat it as already finalized (audit fix).
+    const { count: existingProjectCount } = await auth.supabase
+      .from("projects")
+      .select("id", { count: "exact", head: true })
+      .eq("pod_id", podId);
+
+    if ((existingProjectCount ?? 0) > 0) {
+      return NextResponse.json(
+        { error: "Projects have already been finalized for this pod." },
+        { status: 409 }
+      );
+    }
+
     // W2-001 shortlist cap: min(max_projects, floor(active_enrollments / project_min)).
     // Active enrollments is cycle-wide (not just this pod) per the AC.
     const { count: participantCount } = await auth.supabase
@@ -63,16 +79,25 @@ export const POST = withAuth(
         (tallyMap[v.solution_proposal_id] || 0) + v.vote_count;
     }
 
-    // Get proposals for text and tiebreaking
+    // Get proposals for text and tiebreaking. Submissions store their pitch in
+    // proposal_data (proposal_text is legacy and typically null for
+    // UI-submitted proposals), so seed the name generator from
+    // proposal_data.description first and fall back through other fields
+    // (audit fix: blank/garbage generated names).
     const proposalIds = Object.keys(tallyMap).map(Number);
     const { data: proposals } = await auth.supabase
       .from("solution_proposals")
-      .select("id, proposal_text, created_at")
+      .select("id, proposal_text, proposal_data, created_at")
       .in("id", proposalIds.length > 0 ? proposalIds : [0]);
 
     const propMap: Record<number, { text: string; createdAt: string }> = {};
     for (const p of proposals || []) {
-      propMap[p.id] = { text: p.proposal_text, createdAt: p.created_at };
+      const pd = (p.proposal_data ?? null) as
+        | { description?: string; summary?: string; title?: string; name?: string }
+        | null;
+      const text =
+        pd?.description || pd?.summary || pd?.title || pd?.name || p.proposal_text || "";
+      propMap[p.id] = { text, createdAt: p.created_at };
     }
 
     const ranked = Object.entries(tallyMap)
@@ -114,8 +139,14 @@ export const POST = withAuth(
       status: "forming",
     }));
 
+    // Insert via the service client: authorization is already enforced above
+    // (admin or the pod's moderator), and the projects_insert RLS policy
+    // requires is_admin_or_owner(), which a moderator is not — so a moderator
+    // finalize on the user client would silently insert 0 rows (audit fix,
+    // same RLS pattern as the naming/activation routes).
+    const serviceClient = createServiceClient();
     const { data: insertedProjects } = insertRows.length
-      ? await auth.supabase.from("projects").insert(insertRows).select()
+      ? await serviceClient.from("projects").insert(insertRows).select()
       : { data: [] };
 
     const projects = (insertedProjects || []).map((project, i) => ({

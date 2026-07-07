@@ -29,6 +29,8 @@ type Config = {
   solution_voting_close: string | null;
   project_registration_open: string | null;
   project_registration_close: string | null;
+  registration_open: string | null;
+  registration_close: string | null;
 };
 
 function toLocal(iso: string | null): string {
@@ -44,6 +46,11 @@ function fromLocal(val: string): string | null {
 // ─── Schedule form ────────────────────────────────────────────────────────────
 
 const PHASES = [
+  {
+    label: "Cycle Registration",
+    open: "registration_open",
+    close: "registration_close",
+  },
   {
     label: "Problem Statement",
     open: "problem_statement_open",

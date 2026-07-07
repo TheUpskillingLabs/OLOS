@@ -47,6 +47,8 @@ erDiagram
         timestamp start_date
         timestamp end_date
         varchar status
+        text description
+        text what_you_build
     }
 
     cycle_config {
@@ -74,6 +76,8 @@ erDiagram
         timestamp solution_voting_close
         timestamp project_registration_open
         timestamp project_registration_close
+        timestamp registration_open
+        timestamp registration_close
         timestamp updated_at
     }
 

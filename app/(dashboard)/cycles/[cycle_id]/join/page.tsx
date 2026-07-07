@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { isCycleOpenForRegistration } from "@/lib/cycles/registration";
 import CycleCeremony from "./ceremony";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
@@ -37,11 +38,20 @@ export default async function JoinCyclePage({
 
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, status")
+    .select("id, name, status, start_date")
     .eq("id", cycleId)
     .single();
 
-  if (!cycle || cycle.status !== "active") redirect("/cycles");
+  if (!cycle) redirect("/cycles");
+
+  // Joinable when active OR the registration window is open (an `upcoming`
+  // cycle taking sign-ups before it starts).
+  const joinable =
+    cycle.status === "active" ||
+    (await isCycleOpenForRegistration(serviceClient, cycleId));
+  if (!joinable) redirect("/cycles");
+
+  const notYetStarted = cycle.status !== "active";
 
   // Already signed → the ceremony opens on the confirmation, not the pitch.
   const { data: agreement } = await serviceClient
@@ -76,6 +86,8 @@ export default async function JoinCyclePage({
       alreadySigned={!!agreement}
       signedAt={agreement?.signed_at ?? null}
       podRegistrationOpen={podRegistrationOpen}
+      notYetStarted={notYetStarted}
+      startDate={cycle.start_date}
     />
   );
 }

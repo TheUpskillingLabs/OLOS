@@ -2,15 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { cycleStatusLabel } from "@/lib/cycles/status";
 
-const NEXT_STATUS: Record<string, string | null> = {
-  draft: "active",
-  active: "closed",
-  closed: null,
+// Valid forward transitions — must mirror VALID_TRANSITIONS in
+// app/api/cycles/[cycle_id]/status/route.ts. `upcoming` is the state a cycle
+// sits in while it takes registrations before it goes `active`.
+const VALID_NEXT: Record<string, string[]> = {
+  draft: ["upcoming", "active"],
+  upcoming: ["active"],
+  active: ["closing", "closed"],
+  closing: ["closed"],
 };
 
 const BUTTON_LABELS: Record<string, string> = {
+  upcoming: "Mark Upcoming",
   active: "Activate Cycle",
+  closing: "Begin Closing",
   closed: "Close Cycle",
 };
 
@@ -21,21 +28,20 @@ export default function CycleStatusForm({
   cycleId: number;
   currentStatus: string;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const nextStatus = NEXT_STATUS[currentStatus] ?? null;
+  const nextStatuses = VALID_NEXT[currentStatus] ?? [];
 
-  async function advance() {
-    if (!nextStatus) return;
+  async function advance(nextStatus: string) {
     if (
       !confirm(
-        `Advance cycle status to "${nextStatus}"? ${nextStatus === "closed" ? "This cannot be undone." : ""}`
+        `Change cycle status to "${nextStatus}"? ${nextStatus === "closed" ? "This cannot be undone." : ""}`
       )
     )
       return;
 
-    setLoading(true);
+    setLoading(nextStatus);
     setError(null);
 
     const res = await fetch(`/api/cycles/${cycleId}/status`, {
@@ -44,7 +50,7 @@ export default function CycleStatusForm({
       body: JSON.stringify({ status: nextStatus }),
     });
 
-    setLoading(false);
+    setLoading(null);
     if (res.ok) {
       router.refresh();
     } else {
@@ -53,38 +59,35 @@ export default function CycleStatusForm({
     }
   }
 
+  const statusClass =
+    currentStatus === "active"
+      ? "active"
+      : currentStatus === "closed" || currentStatus === "archived"
+        ? ""
+        : "soon";
+
   return (
     <div className="flex flex-wrap items-center gap-4">
       <span className="text-sm text-charcoal">
-        Current status:{" "}
-        <span
-          className={`status ${
-            currentStatus === "active"
-              ? "active"
-              : currentStatus === "closed"
-                ? ""
-                : "soon"
-          }`}
-        >
-          {currentStatus}
-        </span>
+        Current status: <span className={`status ${statusClass}`}>{cycleStatusLabel(currentStatus)}</span>
       </span>
 
-      {nextStatus ? (
-        <button
-          onClick={advance}
-          disabled={loading}
-          className={`btn px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
-            nextStatus === "closed"
-              ? "btn-red"
-              : "btn-teal"
-          }`}
-        >
-          {loading ? "Updating…" : BUTTON_LABELS[nextStatus]}
-        </button>
+      {nextStatuses.length > 0 ? (
+        nextStatuses.map((s) => (
+          <button
+            key={s}
+            onClick={() => advance(s)}
+            disabled={loading !== null}
+            className={`btn px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
+              s === "closed" ? "btn-red" : "btn-teal"
+            }`}
+          >
+            {loading === s ? "Updating…" : BUTTON_LABELS[s]}
+          </button>
+        ))
       ) : (
         <span className="text-sm text-meta">
-          Cycle is closed — no further transitions.
+          No further transitions from this status.
         </span>
       )}
 

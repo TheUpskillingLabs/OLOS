@@ -71,11 +71,20 @@ export const POST = withAdminAuth(
       duplicateQuery = duplicateQuery.is("role_preset", null);
     }
 
+    // Include pod_id in the duplicate key: two invites that differ only by pod
+    // (e.g. moderating pod A vs pod B in the same cycle) are genuinely distinct
+    // and must both be allowed (audit fix).
+    if (pod_id) {
+      duplicateQuery = duplicateQuery.eq("pod_id", pod_id);
+    } else {
+      duplicateQuery = duplicateQuery.is("pod_id", null);
+    }
+
     const { data: existing } = await duplicateQuery.maybeSingle();
 
     if (existing) {
       return NextResponse.json(
-        { error: "A pending invitation already exists for this email with the same cycle and role" },
+        { error: "A pending invitation already exists for this email with the same cycle, role, and pod" },
         { status: 409 }
       );
     }

@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { createServiceClient } from "@/lib/supabase/server";
 import { checkWindow } from "@/lib/auth/windows";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
@@ -121,13 +122,23 @@ export const POST = withAuth(
       return dbError(error);
     }
 
-    // Check if project should activate
+    // Check if project should activate. The projects_update RLS policy
+    // requires is_admin_or_owner(), which a self-registering participant is
+    // not — so this flip must run on the service client or it silently
+    // matches 0 rows and the project stays 'forming' forever (audit fix,
+    // mirrors pods/[pod_id]/register).
     const newCount = (count || 0) + 1;
     if (config && newCount >= config.project_min && project.status === "forming") {
-      await auth.supabase
+      const serviceClient = createServiceClient();
+      const { error: activationError } = await serviceClient
         .from("projects")
         .update({ status: "active", updated_at: new Date().toISOString() })
-        .eq("id", projectId);
+        .eq("id", projectId)
+        .eq("status", "forming");
+      if (activationError) {
+        // Non-fatal: the registration itself succeeded. Surface for logs.
+        console.error("[project-register] activation flip failed", activationError);
+      }
     }
 
     return NextResponse.json(

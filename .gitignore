@@ -75,3 +75,6 @@ scripts/dev/
 
 # superpowers skill runner (local tooling, not project source)
 .superpowers/
+
+# personal Claude Code settings (not team config)
+.claude/settings.local.json

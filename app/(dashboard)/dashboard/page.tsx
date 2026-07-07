@@ -3,16 +3,14 @@ import { redirect } from "next/navigation";
 import { Activity, ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StatusBadge, EmptyState } from "@/app/components/ui";
+import {
+  cycleStatusVariant,
+  cycleStatusLabel,
+  isPastCycle,
+} from "@/lib/cycles/status";
+import { getRegistrationCycle } from "@/lib/cycles/registration";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
-
-type CycleStatus = "active" | "closed" | "draft";
-
-const STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
-  active: "active",
-  closed: "inactive",
-  draft: "draft",
-};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -65,6 +63,23 @@ export default async function DashboardPage() {
     myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
   }
 
+  // The cycle currently open for registration (may be `upcoming`, e.g. Civics &
+  // Elections) and the user's standing in it — the clearest next step for a new
+  // member who isn't yet engaged in the active cycle.
+  const registrationCycle = await getRegistrationCycle(serviceClient);
+  const showRegistration =
+    !!registrationCycle && registrationCycle.id !== activeCycle?.id;
+  let registrationEnrollment: { id: number; status: string } | null = null;
+  if (showRegistration && registrationCycle) {
+    const { data } = await serviceClient
+      .from("cycle_enrollments")
+      .select("id, status")
+      .eq("participant_id", participant.id)
+      .eq("cycle_id", registrationCycle.id)
+      .maybeSingle();
+    registrationEnrollment = data;
+  }
+
   // Determine pod registration window status
   let podWindowOpen = false;
   if (activeCycleConfig) {
@@ -101,6 +116,54 @@ export default async function DashboardPage() {
     } else {
       state = "interest_submitted_window_closed";
     }
+  }
+
+  // A new member's clearest next step is the cycle open for registration (e.g.
+  // Civics & Elections) — feature it instead of an active cycle they're not in,
+  // or a bare "no cycle" empty state.
+  if (
+    (state === "no_enrollment" || state === "no_cycle") &&
+    showRegistration &&
+    registrationCycle
+  ) {
+    const enrolled = !!registrationEnrollment;
+    const startLong = new Date(registrationCycle.start_date).toLocaleDateString(
+      "en-US",
+      { month: "long", day: "numeric", year: "numeric" }
+    );
+    return (
+      <div>
+        <h1 className="t-h1 mb-8 text-ink">Welcome, {displayName}.</h1>
+        <Link
+          href={
+            enrolled
+              ? `/cycles/${registrationCycle.id}`
+              : `/cycles/${registrationCycle.id}/join`
+          }
+          className="group flex items-center justify-between rounded-card border border-teal/30 bg-white p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        >
+          <div>
+            <div className="lbl lbl-teal mb-2">
+              {enrolled ? "You're registered" : "Registration open"}
+            </div>
+            <h2 className="t-h3 text-ink">{registrationCycle.name}</h2>
+            <p className="mt-1 text-sm text-meta">Starts {startLong}</p>
+            <p className="mt-3 text-sm text-meta">
+              {enrolled
+                ? "You're all set — we'll email you when the first steps open."
+                : "Register to join this cycle."}
+            </p>
+          </div>
+          <span className="inline-flex flex-shrink-0 items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
+            {enrolled ? "View cycle" : `Register`}
+            <ArrowRight
+              className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              aria-hidden
+            />
+          </span>
+        </Link>
+      </div>
+    );
   }
 
   // Empty state: no enrollment — minimal page with just welcome + hero card
@@ -165,6 +228,40 @@ export default async function DashboardPage() {
         Welcome back, {displayName}
       </h1>
 
+      {/* Registration open for an upcoming cycle — light wayfinding */}
+      {showRegistration && registrationCycle && (
+        <Link
+          href={
+            registrationEnrollment
+              ? `/cycles/${registrationCycle.id}`
+              : `/cycles/${registrationCycle.id}/join`
+          }
+          className="group mb-6 flex items-center justify-between rounded-card border border-teal/30 bg-teal/[0.06] p-4 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        >
+          <div>
+            <span className="font-semibold tracking-tight text-ink">
+              {registrationEnrollment
+                ? `You're registered for ${registrationCycle.name}`
+                : `Registration is open for ${registrationCycle.name}`}
+            </span>
+            <p className="text-sm text-meta">
+              Starts{" "}
+              {new Date(registrationCycle.start_date).toLocaleDateString(
+                "en-US",
+                { month: "long", day: "numeric", year: "numeric" }
+              )}
+            </p>
+          </div>
+          <span className="inline-flex flex-shrink-0 items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
+            {registrationEnrollment ? "View cycle" : "Register"}
+            <ArrowRight
+              className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              aria-hidden
+            />
+          </span>
+        </Link>
+      )}
+
       {/* Phase timeline for active cycle */}
       {activeCycle && activeCycleConfig && (
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
@@ -214,7 +311,7 @@ export default async function DashboardPage() {
                   day: "numeric",
                 })
               : "soon"}
-            . We'll let you know when it's time to choose your pods.
+            . We&rsquo;ll let you know when it&rsquo;s time to choose your pods.
           </p>
         </div>
       )}
@@ -264,35 +361,33 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Past cycles */}
-      {otherCycles.length > 0 && (
+      {/* Past cycles — genuinely finished only */}
+      {otherCycles.filter((c) => isPastCycle(c.status)).length > 0 && (
         <details className="mb-8">
           <summary className="lbl mb-4 cursor-pointer hover:text-charcoal">
             Past cycles
           </summary>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {otherCycles.map((cycle) => {
-              const variant =
-                STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
-              return (
+            {otherCycles
+              .filter((c) => isPastCycle(c.status))
+              .map((cycle) => (
                 <Link
                   key={cycle.id}
                   href={`/cycles/${cycle.id}`}
                   className="rounded-card border border-ink/10 bg-white p-6 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="t-h4 text-ink">
-                      {cycle.name}
-                    </h3>
-                    <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
+                    <h3 className="t-h4 text-ink">{cycle.name}</h3>
+                    <StatusBadge variant={cycleStatusVariant(cycle.status)}>
+                      {cycleStatusLabel(cycle.status)}
+                    </StatusBadge>
                   </div>
                   <p className="mt-2 text-sm text-meta">
                     {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
                     {new Date(cycle.end_date).toLocaleDateString()}
                   </p>
                 </Link>
-              );
-            })}
+              ))}
           </div>
         </details>
       )}

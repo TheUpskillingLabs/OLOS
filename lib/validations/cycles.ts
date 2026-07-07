@@ -7,6 +7,13 @@ export const createCycleSchema = z.object({
   end_date: z.string().min(1, "End date is required"),
 });
 
+// Cycle "About" / information-page content (admin-authored, optional).
+export const updateCycleDetailsSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(5000).nullable().optional(),
+  what_you_build: z.string().max(5000).nullable().optional(),
+});
+
 export const updateCycleConfigSchema = z.object({
   submitter_votes: z.number().int().min(0).optional(),
   non_submitter_votes: z.number().int().min(0).optional(),
@@ -29,10 +36,16 @@ export const updateCycleConfigSchema = z.object({
   solution_voting_close: z.string().nullable().optional(),
   project_registration_open: z.string().nullable().optional(),
   project_registration_close: z.string().nullable().optional(),
+  registration_open: z.string().nullable().optional(),
+  registration_close: z.string().nullable().optional(),
 });
 
 export const updateCycleStatusSchema = z.object({
-  status: z.enum(["draft", "active", "closed"], {
-    message: 'status must be one of: "draft", "active", "closed"',
-  }),
+  status: z.enum(
+    ["draft", "upcoming", "active", "closing", "archived", "closed"],
+    {
+      message:
+        'status must be one of: "draft", "upcoming", "active", "closing", "archived", "closed"',
+    }
+  ),
 });
