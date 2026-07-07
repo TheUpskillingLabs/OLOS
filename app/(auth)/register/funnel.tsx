@@ -22,10 +22,10 @@ import {
      FLOWS('signup')   → SIGNUP_STEPS on the shared flow engine
    All user-facing copy is owner-approved — change it in the prototype first.
 
-   Post-signup role branching: picking "Join a Cycle" routes into the cycle
-   registration ceremony (the threshold — flows never silently chain; the
-   ceremony IS the seam). Everything else lands on the dashboard; mentor and
-   volunteer flows arrive with their stages.
+   Post-signup routing: every new member lands on the dashboard, whatever
+   intents they picked. The dashboard is the home base where the next steps
+   surface — the recruiting-cycle join CTA, the setup checklist, the Learning
+   Log — so the intents shape what a member sees there, not where they land.
    ════════════════════════════════════════════════════════════════════════ */
 
 /* The Participant Agreement — the single agreement everyone accepts to join,
@@ -218,13 +218,11 @@ export default function RegistrationFunnel({
         setStage("already");
         return null;
       }
-      // Role branch: the cycle is the commitment, and its seam is the
-      // threshold ceremony — never a silent chain into more questions.
-      if (roles.includes("cycle") && json.active_cycle_id) {
-        router.push(`/cycles/${json.active_cycle_id}/join?from=signup`);
-      } else {
-        router.push("/dashboard");
-      }
+      // Every new member lands on the dashboard, whatever intents they picked.
+      // The next steps (join the recruiting cycle, finish the setup checklist,
+      // start a Learning Log) surface there — no intent silently chains into
+      // another flow.
+      router.push("/dashboard");
       return null;
     }
     return json?.error || "Registration failed — try again.";
