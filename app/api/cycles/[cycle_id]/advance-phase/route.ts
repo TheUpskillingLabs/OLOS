@@ -3,6 +3,7 @@ import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { can } from "@/lib/auth/roles";
 import { createServiceClient } from "@/lib/supabase/server";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 
 const PHASE_SEQUENCE = [
   "problem_statement",
@@ -36,6 +37,16 @@ export const POST = withAdminAuth(
     }
 
     const serviceClient = createServiceClient();
+
+    // Phase fast-forward steps formation windows and can force-activate a
+    // draft — both meaningless (and corrupting) for org cycles, which have
+    // no cycle_config formation windows and are never force-activated.
+    const orgRejection = await rejectOrgCycle(
+      serviceClient,
+      cycleId,
+      "Advance-phase applies only to participant cycles."
+    );
+    if (orgRejection) return orgRejection;
 
     // Fetch cycle config
     const { data: config, error: configError } = await serviceClient

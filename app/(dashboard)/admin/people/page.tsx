@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth/guards";
 import { can } from "@/lib/auth/roles";
+import { one } from "@/lib/supabase/embed";
 import PeopleWorkspace, { type PeopleTab } from "./people-workspace";
 import PeopleTable from "./people-table";
 import InvitationsTable from "./invitations-table";
@@ -76,18 +77,19 @@ export default async function AdminPeoplePage({
   const [{ data: invitations }, { data: cycles }, { data: pods }] = await Promise.all([
     serviceClient
       .from("invitations")
-      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, status, created_at, expires_at, accepted_at, email_sent_at, cycles (name)")
+      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, pod_role, status, created_at, expires_at, accepted_at, email_sent_at, cycles (name)")
       .order("created_at", { ascending: false }),
     serviceClient.from("cycles").select("id, name, status").order("start_date", { ascending: false }),
-    serviceClient.from("pods").select("id, name, cycle_id, cycles (name)").order("created_at", { ascending: false }),
+    serviceClient.from("pods").select("id, name, cycle_id, cycles (name, mode)").order("created_at", { ascending: false }),
   ]);
 
   const podOptions = (pods ?? []).map((p) => {
-    const cycle = (p.cycles as unknown) as { name: string } | null;
+    const cycle = one(p.cycles as { name: string; mode: string } | { name: string; mode: string }[] | null);
     return {
       id: p.id,
       name: p.name ?? `Pod ${p.id}`,
       cycle_name: cycle?.name ?? "",
+      mode: cycle?.mode ?? null,
     };
   });
 
@@ -102,6 +104,7 @@ export default async function AdminPeoplePage({
       cycle_id: inv.cycle_id,
       cycle_name: cycle?.name ?? null,
       pod_id: inv.pod_id,
+      pod_role: inv.pod_role,
       status: inv.status,
       created_at: inv.created_at,
       expires_at: inv.expires_at,

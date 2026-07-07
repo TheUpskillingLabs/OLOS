@@ -10,6 +10,10 @@ import {
   sharedParagraph,
 } from "@/lib/validations/learning-logs";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import {
+  eligibleLogCycles,
+  type EligibleLogCycle,
+} from "@/lib/learning-logs/eligible";
 import { getCycleWeek } from "@/lib/cycle/week";
 import {
   milestoneKindForWeek,
@@ -22,11 +26,21 @@ import {
 // profile_updates with learning_log_id provenance — the only write path
 // into the member-updates feed (no composer, owner decision).
 //
-// cycle_id and kind are derived server-side (never trusted from the client):
-// the active enrollment decides the cycle (NULL = standalone reflection); kind
-// is the milestone variant when the current cycle week matches an admin-set
-// milestone week (cycle_config.milestone_mid_week/final_week), else 'weekly'.
-// Any log clears the weekly gate — the response says so ("You're back in ✓").
+// kind is always derived server-side. cycle_id used to be too — the single
+// active enrollment decided it — but org cycles (migration 00060) mean a
+// member can hold an active enrollment in more than one active cycle at
+// once (dual-enrolled staff file one log per cycle). The client MAY send
+// cycle_id as a hint in the body; it's validated here against the member's
+// own active enrollments in active cycles, never trusted as-is. With none
+// sent: a single eligible cycle is chosen automatically; several fall back
+// to the mode='open' one (the old single-cycle behavior); zero is a
+// standalone log (cycle_id NULL, unchanged).
+//
+// Eligibility itself (active cycle ∩ active enrollment) is the shared
+// lib/learning-logs/eligible.ts definition — gate.ts and the dashboard use
+// the same one. This route also needs the chosen cycle's start/end dates
+// for milestone-week math, which eligibleLogCycles doesn't carry, so those
+// are fetched separately, scoped to the single chosen cycle.
 
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
@@ -41,50 +55,73 @@ export const POST = withAuth(
     const guard = await requireCompleteProfile(auth.supabase, participantId);
     if (guard) return guard;
 
-    // Read the gate BEFORE the write: a saved log always satisfies the
-    // current window, so "cleared" means "you were locked and now you're
-    // not" — never a false "you're back in ✓" for members who were never
-    // locked.
-    const gateBefore = await learningLogGate(participantId);
+    // Eligibility is computed once and reused for both gate reads below —
+    // filing a log never changes the enrolled-cycle set, only the per-cycle
+    // counts, so gateBefore and gateAfter can share it instead of each
+    // re-querying cycles + cycle_enrollments (was 3 round trips: the route's
+    // own resolution plus one inside each gate call; now 1).
+    const eligibleCycles = await eligibleLogCycles(participantId);
+
+    // Read the gate BEFORE the write: "cleared" means "you were locked and
+    // now you're not" — never a false "you're back in ✓" for members who
+    // were never locked.
+    const gateBefore = await learningLogGate(participantId, eligibleCycles);
 
     const body = await parseBody(request, learningLogSchema);
     if (isErrorResponse(body)) return body;
 
-    // Derive the cycle from the member's active enrollment in the active
-    // cycle — never trusted from the client.
     const service = createServiceClient();
-    const { data: activeCycle } = await service
-      .from("cycles")
-      .select("id, start_date, end_date")
-      .eq("status", "active")
-      .maybeSingle();
-    let cycleId: number | null = null;
+
+    let chosenCycle: EligibleLogCycle | null = null;
+    if (body.cycle_id != null) {
+      chosenCycle = eligibleCycles.find((c) => c.id === body.cycle_id) ?? null;
+      if (!chosenCycle) {
+        return NextResponse.json(
+          {
+            error:
+              "cycle_id must be one of your active enrollments in an active cycle",
+          },
+          { status: 400 }
+        );
+      }
+    } else if (eligibleCycles.length === 1) {
+      chosenCycle = eligibleCycles[0];
+    } else if (eligibleCycles.length > 1) {
+      // Legacy single-cycle behavior when the client doesn't say which one:
+      // prefer the participant cycle over the org cycle.
+      chosenCycle =
+        eligibleCycles.find((c) => c.mode === "open") ?? eligibleCycles[0];
+    }
+
     let kind: "weekly" | MilestoneKind = "weekly";
-    if (activeCycle) {
-      const { data: enrollment } = await service
-        .from("cycle_enrollments")
-        .select("id")
-        .eq("participant_id", participantId)
-        .eq("cycle_id", activeCycle.id)
-        .eq("status", "active")
-        .maybeSingle();
-      if (enrollment) {
-        cycleId = activeCycle.id;
-        // Milestone weeks are admin-configurable (cycle_config, 00047); if the
-        // current cycle week is one of them, this log is that evaluation.
-        const { data: cfg } = await service
+    // Milestone weeks are participant-cycle semantics — cycle_config's
+    // milestone_mid_week/milestone_final_week frame the OPEN cohort's
+    // formation timeline. Org cycles have no such framing (the UI never
+    // shows milestone copy for an org save), so an org log is always
+    // 'weekly' — otherwise an org cycle's own week 6/12 would masquerade as
+    // a phantom milestone evaluation.
+    if (chosenCycle && chosenCycle.mode === "open") {
+      // Milestone weeks are admin-configurable (cycle_config, 00047); if the
+      // chosen cycle's current week matches one, this log is that evaluation.
+      const [{ data: cfg }, { data: cycleDates }] = await Promise.all([
+        service
           .from("cycle_config")
           .select("milestone_mid_week, milestone_final_week")
-          .eq("cycle_id", activeCycle.id)
-          .maybeSingle();
-        if (cfg && activeCycle.start_date && activeCycle.end_date) {
-          const week = getCycleWeek(
-            new Date(),
-            new Date(activeCycle.start_date),
-            new Date(activeCycle.end_date)
-          );
-          kind = milestoneKindForWeek(week, cfg) ?? "weekly";
-        }
+          .eq("cycle_id", chosenCycle.id)
+          .maybeSingle(),
+        service
+          .from("cycles")
+          .select("start_date, end_date")
+          .eq("id", chosenCycle.id)
+          .maybeSingle(),
+      ]);
+      if (cfg && cycleDates?.start_date && cycleDates?.end_date) {
+        const week = getCycleWeek(
+          new Date(),
+          new Date(cycleDates.start_date),
+          new Date(cycleDates.end_date)
+        );
+        kind = milestoneKindForWeek(week, cfg) ?? "weekly";
       }
     }
 
@@ -92,7 +129,7 @@ export const POST = withAuth(
       .from("learning_logs")
       .insert({
         participant_id: participantId,
-        cycle_id: cycleId,
+        cycle_id: chosenCycle?.id ?? null,
         kind,
         clarity: body.clarity,
         alignment: body.alignment,
@@ -127,8 +164,20 @@ export const POST = withAuth(
       }
     }
 
+    // Read the gate AFTER the write too: saving only clears the cycle this
+    // log is attributed to (lib/learning-logs/gate-logic.ts), so a
+    // dual-enrolled member with another still-pending cycle stays locked —
+    // "cleared" means every previously-pending cycle is now met, not just
+    // "a log exists". Reuses the same eligibleCycles fetched above — the
+    // write doesn't touch cycle_enrollments.
+    const gateAfter = await learningLogGate(participantId, eligibleCycles);
+
     return NextResponse.json(
-      { saved: true, shared, gate_cleared: gateBefore.active },
+      {
+        saved: true,
+        shared,
+        gate_cleared: gateBefore.active && !gateAfter.active,
+      },
       { status: 201 }
     );
   }
@@ -147,7 +196,7 @@ export const GET = withAuth(
     const { data: logs, count } = await auth.supabase
       .from("learning_logs")
       .select(
-        "id, kind, clarity, alignment, is_blocked, accomplished, exploring, next_focus, share_publicly, created_at",
+        "id, cycle_id, kind, clarity, alignment, is_blocked, accomplished, exploring, next_focus, share_publicly, created_at",
         { count: "exact" }
       )
       .eq("participant_id", participantId)

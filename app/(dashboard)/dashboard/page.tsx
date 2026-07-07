@@ -18,6 +18,8 @@ import UpNext, { type TodoCard } from "./up-next";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
+import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -39,12 +41,13 @@ export default async function DashboardPage() {
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
     serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline").eq("auth_user_id", user.id).maybeSingle(),
-    serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
+    serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status, mode").order("start_date", { ascending: false }),
   ]);
 
   if (!participant) redirect("/register");
 
-  const activeCycle = cycles?.find((c) => c.status === "active") ?? null;
+  const activeCycle =
+    cycles?.find((c) => c.status === "active" && c.mode === "open") ?? null;
 
   // The cohort a not-yet-enrolled member registers for: the newest cycle open
   // for pre-registration (`upcoming`), if any. Mirrors getRecruitingCycle
@@ -53,54 +56,127 @@ export default async function DashboardPage() {
   // to as well, or a member who signed up for the upcoming cohort lands here
   // with no path to it. `cycles` is ordered start_date desc → the first match
   // is the newest upcoming.
-  const upcomingCycle = cycles?.find((c) => c.status === "upcoming") ?? null;
+  const upcomingCycle =
+    cycles?.find((c) => c.status === "upcoming" && c.mode === "open") ?? null;
+
+  // The org cycle running alongside the participant cycle (docs/ORG_CYCLES.md)
+  // — a workstream's quarterly run reuses the same pods/cycles machinery,
+  // just scoped to mode 'org'. At most one is active at a time today.
+  const orgCycle =
+    cycles?.find((c) => c.status === "active" && c.mode === "org") ?? null;
 
   type PodMembership = { id: number; pod_id: number; pods: { id: number; name: string; status: string } };
-  let activeCycleConfig = null;
-  let enrollment = null;
-  let myPods: PodMembership[] = [];
+  type WorkstreamMembership = {
+    id: number;
+    pod_id: number;
+    pods: { id: number; name: string; status: string; workstream_id: number | null };
+  };
 
-  let hasAgreement = false;
-  let logCount = 0;
-
-  if (activeCycle) {
-    const [configResult, enrollmentResult, membershipResult, agreementResult, logResult] =
-      await Promise.all([
-        serviceClient
+  // The activeCycle detail queries and the org-cycle enrollment lookup are
+  // independent of each other (different cycle ids, no shared dependency) —
+  // one Promise.all instead of two sequential blocks. Each leg is a no-op
+  // resolved value when its cycle doesn't exist, so the shape stays uniform.
+  const [
+    configResult,
+    enrollmentResult,
+    membershipResult,
+    agreementResult,
+    logResult,
+    orgEnrollmentResult,
+  ] = await Promise.all([
+    activeCycle
+      ? serviceClient
           .from("cycle_config")
           .select(
             "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit, milestone_mid_week, milestone_final_week"
           )
           .eq("cycle_id", activeCycle.id)
-          .single(),
-        serviceClient
+          .single()
+      : Promise.resolve({ data: null }),
+    activeCycle
+      ? serviceClient
           .from("cycle_enrollments")
           .select("id, status")
           .eq("participant_id", participant.id)
           .eq("cycle_id", activeCycle.id)
-          .maybeSingle(),
-        serviceClient
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    activeCycle
+      ? serviceClient
           .from("pod_memberships")
           .select("id, pod_id, pods!inner(id, name, status)")
           .eq("participant_id", participant.id)
           .eq("pods.cycle_id", activeCycle.id)
-          .is("inactive_at", null),
-        serviceClient
+          .is("inactive_at", null)
+      : Promise.resolve({ data: null }),
+    activeCycle
+      ? serviceClient
           .from("cycle_agreements")
           .select("id", { head: true, count: "exact" })
           .eq("participant_id", participant.id)
-          .eq("cycle_id", activeCycle.id),
-        serviceClient
+          .eq("cycle_id", activeCycle.id)
+      : Promise.resolve({ count: 0 }),
+    activeCycle
+      ? serviceClient
           .from("learning_logs")
           .select("id", { head: true, count: "exact" })
-          .eq("participant_id", participant.id),
+          .eq("participant_id", participant.id)
+      : Promise.resolve({ count: 0 }),
+    orgCycle
+      ? serviceClient
+          .from("cycle_enrollments")
+          .select("id, status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", orgCycle.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const activeCycleConfig = configResult.data;
+  const enrollment = enrollmentResult.data;
+  const myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
+  const hasAgreement = (agreementResult.count ?? 0) > 0;
+  const logCount = logResult.count ?? 0;
+  // The org cycle's workstream runs — mirrors the participant-cycle pod query
+  // above, scoped to orgCycle and gated on an active enrollment in it (org
+  // cycles are invite-only, so an enrollment row here means staff was
+  // deliberately added).
+  const orgEnrollment: { id: number; status: string } | null =
+    orgEnrollmentResult.data;
+  const orgActive = orgEnrollment?.status === "active";
+
+  let myWorkstreams: WorkstreamMembership[] = [];
+  let coLeadPodIds = new Set<number>();
+
+  if (orgCycle && orgActive) {
+    // moderator_assignments carries its own cycle_id (SCHEMA.md), so this no
+    // longer needs to wait on the membership query's pod_id list — both run
+    // together instead of sequentially.
+    const [{ data: workstreamMemberships }, { data: modAssignments }] =
+      await Promise.all([
+        serviceClient
+          .from("pod_memberships")
+          .select("id, pod_id, pods!inner(id, name, status, workstream_id)")
+          .eq("participant_id", participant.id)
+          .eq("pods.cycle_id", orgCycle.id)
+          .is("inactive_at", null),
+        serviceClient
+          .from("moderator_assignments")
+          .select("pod_id")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", orgCycle.id)
+          .is("removed_at", null),
       ]);
-    activeCycleConfig = configResult.data;
-    enrollment = enrollmentResult.data;
-    myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
-    hasAgreement = (agreementResult.count ?? 0) > 0;
-    logCount = logResult.count ?? 0;
+    myWorkstreams =
+      (workstreamMemberships as unknown as WorkstreamMembership[]) ?? [];
+    coLeadPodIds = new Set((modAssignments ?? []).map((m) => m.pod_id));
   }
+
+  // The single definition of "cycles this member can log against"
+  // (lib/learning-logs/eligible.ts) — feeds the Learning Log's "Log for"
+  // picker (dual-enrolled staff log against either) and agrees with the
+  // gate's own resolution, so a mode='closed' active-cycle enrollment (or
+  // any future mode) is never gated here but ungateable there.
+  const logCycles = await eligibleLogCycles(participant.id);
 
   // Has the member already signed the upcoming cohort's Open Cycle Agreement?
   // Drives the "Register" checklist row + the pre-registration confirmation so
@@ -154,7 +230,9 @@ export default async function DashboardPage() {
     | "active";
 
   // The weekly Learning Log gate (fixed window — lib/learning-logs/gate.ts).
-  const logGate = await learningLogGate(participant.id);
+  // logCycles is the same eligibleLogCycles() result the gate would compute
+  // internally, so pass it through instead of a redundant round trip.
+  const logGate = await learningLogGate(participant.id, logCycles);
 
   // Milestone weeks reframe the weekly log as an evaluation, prefilled from the
   // member's own record. Weeks are admin-configurable (cycle_config, 00047).
@@ -237,6 +315,8 @@ export default async function DashboardPage() {
         gateActive={!journal && logGate.active}
         milestone={journal ? null : milestoneCtx}
         journal={journal}
+        logCycles={logCycles}
+        pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
       />
     </section>
   );
@@ -360,9 +440,60 @@ export default async function DashboardPage() {
     </div>
   );
 
+  // Your workstreams — the org cycle's runs the member co-leads or
+  // participates in (docs/ORG_CYCLES.md). Same pods machinery as the
+  // participant-cycle pod section, "Workstream"/"Co-lead" framing on this
+  // org-cycle surface. Extracted so the org-only early-return states below
+  // can render it too: an org-only member (active org enrollment, no
+  // open-cycle enrollment) was previously invisible here — their fetched
+  // myWorkstreams never rendered because those states returned early before
+  // reaching this section.
+  const workstreamsSection = myWorkstreams.length > 0 && (
+    <section className="mb-8">
+      <div className="mb-4">
+        <div className="lbl lbl-teal mb-1.5">{podNoun(orgCycle?.mode, true)}</div>
+        <h2 className="t-h3 text-ink">
+          Your {podNoun(orgCycle?.mode, myWorkstreams.length > 1)}
+        </h2>
+      </div>
+      <div
+        className={
+          myWorkstreams.length === 1 ? "grid gap-4" : "grid gap-4 sm:grid-cols-2"
+        }
+      >
+        {myWorkstreams.map((membership) => {
+          const pod = membership.pods;
+          return (
+            <Link
+              key={membership.id}
+              href={`/pods/${pod.id}`}
+              className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="t-h4 text-ink">{pod.name}</h3>
+                {coLeadPodIds.has(pod.id) && (
+                  <StatusBadge variant="active">
+                    {moderatorNoun(orgCycle?.mode)}
+                  </StatusBadge>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+
   // Empty state: no enrollment — the onboarding checklist leads, then the join
   // CTA. When the next cohort is open for pre-registration, the CTA points at
   // it (that's where signup routed the member), not the closing active cycle.
+  //
+  // An org-only member (active org enrollment, no open-cycle enrollment)
+  // still hits this branch — they genuinely aren't in the participant
+  // cohort, so the onboarding copy/CTA stays — but they ARE an active cycle
+  // member elsewhere: the log section must use their full eligibility
+  // (gate + logCycles), not forced journal mode, and their workstreams must
+  // render, or the org gate locks them out of the whole app with no banner.
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
@@ -379,13 +510,15 @@ export default async function DashboardPage() {
             ? preRegisteredCard(upcomingCycle)
             : joinCycleCard(upcomingCycle, true)
           : joinCycleCard(activeCycle, false)}
-        <div className="mt-8">{logSectionFor(true)}</div>
+        {workstreamsSection}
+        <div className="mt-8">{logSectionFor(!orgActive)}</div>
       </div>
     );
   }
 
   // Empty state: no active cycle. If the next cohort is already open for
   // registration, lead with its join CTA instead of the "nothing running" note.
+  // Same org-only carve-out as above.
   if (state === "no_cycle") {
     return (
       <div>
@@ -414,7 +547,8 @@ export default async function DashboardPage() {
             description="Check back soon for the next Build Cycle."
           />
         )}
-        <div className="mt-8">{logSectionFor(true)}</div>
+        {workstreamsSection}
+        <div className="mt-8">{logSectionFor(!orgActive)}</div>
       </div>
     );
   }
@@ -513,8 +647,11 @@ export default async function DashboardPage() {
           {/* The Learning Log — a personal journaling practice on Home (Phase
               1; replaces the pulse-check CTA). Active cycle members get the
               weekly ritual + gate + pod health check; everyone else journals
-              (journal mode). The gate banner + lock apply only inside a cycle. */}
-          {logSectionFor(!inActiveCycle)}
+              (journal mode). The gate banner + lock apply only inside a
+              cycle — an org-only member (orgActive) is an active cycle
+              member too, so journal mode is wrong for them even in the
+              interest-submitted states below. */}
+          {logSectionFor(!inActiveCycle && !orgActive)}
 
           {/* Interest submitted, pod window not yet open */}
           {state === "interest_submitted_window_closed" && activeCycleConfig && (
@@ -589,6 +726,10 @@ export default async function DashboardPage() {
               </div>
             </section>
           )}
+
+          {/* Your workstreams — extracted above so the org-only early-return
+              states can render it too. */}
+          {workstreamsSection}
         </div>
 
         {/* Right rail — durable utilities */}

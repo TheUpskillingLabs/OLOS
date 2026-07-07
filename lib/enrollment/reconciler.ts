@@ -126,6 +126,61 @@ export async function reconcileEnrollmentActivation(
 }
 
 /**
+ * Ensures a participant holds an active pod_memberships row for `podId`
+ * (reactivating a soft-deleted row, inserting a fresh one, or no-op'ing if
+ * already active), then upserts an active cycle_enrollments row for
+ * `cycleId` and re-runs the reconciler so the enrollment status reflects
+ * the membership that now exists.
+ *
+ * This is the single path an org co-lead/member joins a workstream
+ * through — every call site that grants org pod membership (invitation
+ * acceptance, admin-assigned org co-lead) should route through here rather
+ * than re-implementing the reactivate/insert/no-op branch inline.
+ *
+ * Ordering is load-bearing: the membership row must exist before the final
+ * reconcile call, since reconcileEnrollmentActivation only promotes an
+ * enrollment to 'active' by looking at pod_memberships as it stands right
+ * now — it does not know about a membership this same request is about to
+ * create.
+ */
+export async function ensureActivePodMembership(
+  participantId: number,
+  podId: number,
+  cycleId: number
+): Promise<void> {
+  const client = createServiceClient();
+
+  const { data: existingMembership } = await client
+    .from("pod_memberships")
+    .select("id, inactive_at")
+    .eq("pod_id", podId)
+    .eq("participant_id", participantId)
+    .maybeSingle();
+
+  if (existingMembership) {
+    if (existingMembership.inactive_at !== null) {
+      await client
+        .from("pod_memberships")
+        .update({ inactive_at: null })
+        .eq("id", existingMembership.id);
+    }
+  } else {
+    await client
+      .from("pod_memberships")
+      .insert({ participant_id: participantId, pod_id: podId });
+  }
+
+  await client
+    .from("cycle_enrollments")
+    .upsert(
+      { participant_id: participantId, cycle_id: cycleId, status: "active" },
+      { onConflict: "participant_id,cycle_id" }
+    );
+
+  await reconcileEnrollmentActivation(participantId, cycleId);
+}
+
+/**
  * Convenience: reconcile every active member of a pod for that pod's cycle.
  * Used by callers that just promoted a pod from forming -> active and need
  * every member's enrollment status to follow.

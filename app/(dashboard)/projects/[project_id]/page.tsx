@@ -2,8 +2,13 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { isProjectDri } from "@/lib/auth/projects";
 import { StatusBadge } from "@/app/components/ui";
+import { podNoun } from "@/lib/cycle/labels";
+import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
+import FollowButton from "./follow-button";
+import ContributorsSection from "./contributors-section";
 
 type ProjectStatus = "active" | "forming" | "closed" | "inactive";
 
@@ -34,11 +39,17 @@ export default async function ProjectDetailPage({
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, name, status, pod_id, cycle_id, solution_proposal_id")
+    .select(
+      "id, name, status, pod_id, cycle_id, solution_proposal_id, cycles(mode)"
+    )
     .eq("id", projectId)
     .single();
 
   if (!project) notFound();
+
+  const mode = one(
+    project.cycles as { mode: string } | { mode: string }[] | null
+  )?.mode;
 
   // Get pod info for breadcrumb
   const { data: pod } = await supabase
@@ -113,6 +124,90 @@ export default async function ProjectDetailPage({
     });
   }
 
+  // Active project_roles (DRI/contributor ladder) with participant names.
+  const { data: projectRoleRows } = await serviceClient
+    .from("project_roles")
+    .select(
+      "participant_id, role, created_at, participants(first_name, last_name, preferred_name)"
+    )
+    .eq("project_id", projectId)
+    .is("removed_at", null)
+    .order("created_at");
+
+  const contributors = (projectRoleRows ?? []).map((r) => {
+    const p = (r.participants as unknown) as Record<string, string> | null;
+    return {
+      participant_id: r.participant_id,
+      name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
+      role: r.role as "dri" | "contributor",
+      created_at: r.created_at,
+    };
+  });
+
+  // Viewer's own follow state — self-read RLS covers this via the anon client.
+  let following = false;
+  if (userRoles?.participantId) {
+    const { data: subscription } = await supabase
+      .from("project_subscriptions")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("participant_id", userRoles.participantId)
+      .maybeSingle();
+    following = !!subscription;
+  }
+
+  const { count: followerCount } = await serviceClient
+    .from("project_subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId);
+
+  // One DRI definition, shared with the POST route (lib/auth/projects).
+  const canManageContributors = userRoles
+    ? await isProjectDri(serviceClient, userRoles, projectId, project.pod_id)
+    : false;
+
+  // Add-contributor options: the cycle's enrollees, unioned with the
+  // project's followers (project_subscriptions) — org enrollees are
+  // invite-only staff, so followers are how a DRI reaches the ICs the
+  // follow feature is meant to recruit (docs/ORG_CYCLES.md §2). Deduped by
+  // participant_id; follower-only entries are suffixed so the DRI can tell
+  // them apart from enrollees. Only fetched when the viewer can manage.
+  let participantOptions: { participant_id: number; name: string }[] = [];
+  if (canManageContributors) {
+    const [{ data: enrollments }, { data: followerRows }] = await Promise.all([
+      serviceClient
+        .from("cycle_enrollments")
+        .select(
+          "participant_id, participants(first_name, last_name, preferred_name)"
+        )
+        .eq("cycle_id", project.cycle_id),
+      serviceClient
+        .from("project_subscriptions")
+        .select(
+          "participant_id, participants(first_name, last_name, preferred_name)"
+        )
+        .eq("project_id", projectId),
+    ]);
+
+    const nameOf = (row: { participants: unknown }) => {
+      const p = (row.participants as unknown) as Record<string, string> | null;
+      return `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim();
+    };
+
+    const optionsByParticipant = new Map<number, string>();
+    for (const e of enrollments ?? []) {
+      optionsByParticipant.set(e.participant_id, nameOf(e));
+    }
+    for (const f of followerRows ?? []) {
+      if (optionsByParticipant.has(f.participant_id)) continue;
+      optionsByParticipant.set(f.participant_id, `${nameOf(f)} (follower)`);
+    }
+
+    participantOptions = [...optionsByParticipant.entries()].map(
+      ([participant_id, name]) => ({ participant_id, name })
+    );
+  }
+
   const projectVariant =
     PROJECT_STATUS_VARIANT[project.status as ProjectStatus] ?? "inactive";
 
@@ -136,20 +231,27 @@ export default async function ProjectDetailPage({
             href={`/pods/${project.pod_id}`}
             className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
           >
-            {pod?.name || `Pod ${project.pod_id}`}
+            {pod?.name || `${podNoun(mode)} ${project.pod_id}`}
           </Link>
         </nav>
-        <h1 className="t-h1 mt-2 text-ink">
-          {project.name || `Project ${project.id}`}
-        </h1>
-        <span className="mt-2 inline-block">
-          <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
-        </span>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="t-h1 text-ink">
+              {project.name || `Project ${project.id}`}
+            </h1>
+            <span className="mt-2 inline-block">
+              <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
+            </span>
+          </div>
+          {userRoles?.participantId != null && (
+            <FollowButton projectId={project.id} following={following} />
+          )}
+        </div>
       </div>
 
       <div className="mb-8">
         <h2 className="t-h3 mb-3 text-ink">
-          Members ({activeMembers.length})
+          {mode === "org" ? "Core team" : "Members"} ({activeMembers.length})
         </h2>
         <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
@@ -196,6 +298,16 @@ export default async function ProjectDetailPage({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="mb-8">
+        <ContributorsSection
+          projectId={project.id}
+          contributors={contributors}
+          followerCount={followerCount ?? 0}
+          canManage={canManageContributors}
+          participantOptions={participantOptions}
+        />
       </div>
 
       {canViewDashboard && (

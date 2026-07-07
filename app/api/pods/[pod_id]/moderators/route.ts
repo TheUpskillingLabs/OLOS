@@ -5,6 +5,8 @@ import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { moderatorAssignmentSchema } from "@/lib/validations/pods";
+import { ensureActivePodMembership } from "@/lib/enrollment/reconciler";
+import { one } from "@/lib/supabase/embed";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
@@ -48,18 +50,51 @@ export const POST = withAdminAuth(
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
 
+    // Fetch the pod up front — today's route trusted the body's cycle_id
+    // without ever checking the pod exists. Validating here also gives us
+    // cycles.mode, needed for the org co-lead branch below.
+    const { data: pod } = await auth.supabase
+      .from("pods")
+      .select("id, cycle_id, cycles (mode)")
+      .eq("id", podId)
+      .maybeSingle();
+
+    if (!pod) {
+      return NextResponse.json({ error: "Pod not found" }, { status: 404 });
+    }
+
     const body = await parseBody(request, moderatorAssignmentSchema);
     if (isErrorResponse(body)) return body;
     const { participant_id, cycle_id } = body;
 
+    // The pod's own cycle_id is authoritative — a client-supplied mismatch
+    // would otherwise write a moderator_assignments row for a cycle the pod
+    // doesn't belong to.
+    if (cycle_id !== pod.cycle_id) {
+      return NextResponse.json(
+        { error: "cycle_id does not match the pod's cycle" },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await auth.supabase
       .from("moderator_assignments")
-      .insert({ participant_id, pod_id: podId, cycle_id })
+      .insert({ participant_id, pod_id: podId, cycle_id: pod.cycle_id })
       .select("id, participant_id, pod_id, assigned_at")
       .single();
 
     if (error) {
       return dbError(error);
+    }
+
+    // Org co-leads are members of their workstream (docs/ORG_CYCLES.md);
+    // participant-cycle poderators are deliberately NOT auto-membered — a
+    // poderator shepherds a pod they don't sit in.
+    const cycleMode = one(pod.cycles as { mode: string } | { mode: string }[] | null)?.mode;
+    if (cycleMode === "org") {
+      // Single path an org co-lead/member joins a workstream through
+      // (lib/enrollment/reconciler.ts).
+      await ensureActivePodMembership(participant_id, podId, pod.cycle_id);
     }
 
     return NextResponse.json(

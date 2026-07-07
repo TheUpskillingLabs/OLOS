@@ -2,9 +2,15 @@ import { z } from "zod";
 
 /* The Learning Log write shape (backend doc §6; migration 00040).
    Three parts: health check (clarity/alignment 1–5 + blocked), scaffolded
-   reflection (three prompts), share toggle. cycle_id and kind are derived
-   server-side — never trusted from the client. Strict + versioned per
-   DATA_ARCHITECTURE §2 principle 3. */
+   reflection (three prompts), share toggle. kind is always derived
+   server-side — never trusted from the client.
+
+   cycle_id is an OPTIONAL client hint (migration 00060 / org cycles: a
+   member can hold an active enrollment in more than one active cycle at
+   once, so the server can no longer always infer a single one). When
+   present it's validated server-side against the member's own active
+   enrollments in active cycles (app/api/learning-logs/route.ts) — never
+   trusted as-is. Strict + versioned per DATA_ARCHITECTURE §2 principle 3. */
 
 const scale = (field: string) =>
   z
@@ -39,6 +45,7 @@ export const learningLogSchema = z
       .optional()
       .nullable(),
     share_publicly: z.boolean().default(false),
+    cycle_id: z.number().int().positive().optional().nullable(),
   })
   .strict();
 

@@ -3,11 +3,19 @@ import { withAdminAuth } from "@/lib/auth/middleware";
 import { generateName } from "@/lib/llm/names";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 
 export const POST = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
+
+    const orgRejection = await rejectOrgCycle(
+      auth.supabase,
+      cycleId,
+      "Organization cycles don't form pods by voting — create workstream runs instead."
+    );
+    if (orgRejection) return orgRejection;
 
     // Get cycle config
     const { data: config } = await auth.supabase

@@ -112,13 +112,17 @@ export async function GET(request: NextRequest) {
 
   const outcomes: Outcome[] = [];
 
-  // Active cycles with their config (pod_registration_close + threshold)
+  // Active cycles with their config (pod_registration_close + threshold).
+  // mode='open' only — org cycles have no pod_registration window and no
+  // pulse rows, so the ladders below are structurally inert for them, but
+  // scoping here means the warning/revocation emails can never reach staff.
   const { data: cycles } = await supabase
     .from("cycles")
     .select(
       "id, cycle_config(pod_registration_close, at_risk_consecutive_misses)"
     )
-    .eq("status", "active");
+    .eq("status", "active")
+    .eq("mode", "open");
 
   for (const cycle of cycles ?? []) {
     const cycleId = cycle.id;

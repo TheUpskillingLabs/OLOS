@@ -5,6 +5,10 @@ export const createCycleSchema = z.object({
   slug: z.string().max(200).optional(),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
+  // 'closed' (B2B) deliberately not creatable here — SECTOR_MODEL.md §10
+  // defers that track. Defaults to 'open' at the route.
+  mode: z.enum(["open", "org"]).optional(),
+  sector_id: z.number().int().positive().optional(),
 });
 
 export const updateCycleConfigSchema = z.object({
