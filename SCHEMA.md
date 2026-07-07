@@ -572,7 +572,7 @@ erDiagram
         bigint id PK
         int field_survey_id FK
         int participant_id FK "NULL for anonymous"
-        text observation
+        text observation "nullable since 00060"
         text_array standpoint
         smallint salience "1-5, nullable"
         text prior_attempts
@@ -590,13 +590,44 @@ erDiagram
         timestamptz created_at
     }
 
+    survey_questions {
+        bigint id PK
+        int field_survey_id FK
+        int position
+        varchar question_key UK "per survey"
+        varchar question_type "short_text/long_text/single_select/multi_select/scale/yes_no/consent/contact"
+        text prompt
+        text help
+        text placeholder
+        boolean required
+        jsonb config "options/labels/agreement/fields"
+        varchar response_column "nullable back-pointer"
+        boolean is_system
+        boolean active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    survey_response_answers {
+        bigint id PK
+        bigint response_id FK
+        bigint question_id FK
+        jsonb value "string/number/string[]"
+        timestamptz created_at
+    }
+
     cycles ||--o{ field_surveys : "runs"
     sectors ||--o{ field_surveys : "homes"
     field_surveys ||--o{ survey_responses : "collects"
+    field_surveys ||--o{ survey_questions : "defines"
     participants ||--o{ survey_responses : "submits"
+    survey_responses ||--o{ survey_response_answers : "answers"
+    survey_questions ||--o{ survey_response_answers : "answered by"
 ```
 
 **`field_surveys` / `survey_responses` (migration `00053`):** the field-survey intake (`docs/SENSEMAKING_FLOW.md` §3). `field_surveys` is the instrument — one row per sector/cycle problem domain, seeded idempotently for Civics & Elections (`share_slug='civics'`, `status='open'`). The public page `/survey/[slug]` renders it (the survey-specific `about` lede from the row; the "what is the Labs / where do insights go" copy is boilerplate in the page). `survey_responses` is the observation bedrock: `observation` is the required evidence body every future `extract` derives from; `standpoint[]` feeds the coverage/diversity signal (never a credibility weight — `ORTELIUS_NORTHSTAR.md` §6); `salience`, `prior_attempts` (archaeology), and the contact fields are optional. Two distinct consents: `consent_participation` (required, gates submit) and `contactable` (optional). The **nullable `participant_id`** is the load-bearing anonymous public path; `mentor_interest` is a recruiting side-channel. **Ortelius groundwork columns land day one:** `source_url` (the evidence-producer gap, `ORTELIUS §5` gap #6), `consent_version`, `moderation_status`, and `schema_version` (gap #12 — versioned from day one). Every response is retained; curation is a later temporal overlay, never a delete (owner decision 2026-07-05). RLS: `field_surveys` anon-SELECT-`open`-only (mirrors spotlights/events); `survey_responses` has **no public policy** — all writes go through the service-role `POST /api/surveys/[slug]/responses` (member session binds `participant_id`; anonymous path is per-IP throttled via `lib/api/rate-limit.ts`, `moderation_status='pending'`), and reads stay service-role until a consented atlas surface ships.
+
+**`survey_questions` / `survey_response_answers` (migration `00060`):** the question builder makes the instrument data-driven. `survey_questions` holds the ordered questions a cycle admin authors (`question_type`, `prompt`, per-type `config` JSONB — options, scale labels, consent agreement, contact fields); the public flow renders them via `questionsToFlowSteps` (`survey-flow.tsx`) instead of a hardcoded list, and the write route resolves answers against them. `survey_responses` stays the **submission envelope** (unchanged): a `response_column` back-pointer on a question routes its answer into the legacy typed column (`observation`, `standpoint`, `salience`, `mentor_interest`, `consent_participation`, and the contact fan-out to `submitter_*`), so the seeded Civics questions keep old rows valid and render identically — `observation` is now nullable (`00060`) only so a survey without an observation question can still insert. Custom (non-`response_column`) questions store one `survey_response_answers` row each (`value` JSONB). `is_system` questions (the seeded 7) are locked in the builder — type, `response_column`, and options can't change, and they can't be deleted — because downstream readers (CSV export, future Ortelius extraction of `observation`) and the coverage signal depend on them. RLS: `survey_questions` anon-SELECT only for an `open` survey; `survey_response_answers` service-role only (mirrors `survey_responses`). CSV export (`GET /api/surveys/[slug]/export`, admin + assigned poderator) pivots one column per question across both storage sources.
 
 ---
 
@@ -634,4 +665,6 @@ erDiagram
 | `spotlights` | Public Content | Upskiller Spotlights + their submission pipeline (public /stories) |
 | `field_surveys` | Data Sensemaker | The field-survey instrument — one row per sector/cycle problem domain (public `/survey/[slug]`) |
 | `survey_responses` | Data Sensemaker | Field observations — the evidence bedrock; anon-capable, the first Ortelius provenance node |
+| `survey_questions` | Data Sensemaker | Builder-defined survey questions (data-driven flow); system questions back-point to legacy response columns |
+| `survey_response_answers` | Data Sensemaker | Generic per-question answers for custom (non-system) questions |
 | `testers` | Testing | Email-keyed tester grant — survives the tester's full self-reset |

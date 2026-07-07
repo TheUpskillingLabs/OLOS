@@ -7,102 +7,88 @@ import {
   type FlowStep,
   type FlowAnswers,
 } from "@/app/components/flow/flow-screen";
-import { STANDPOINTS } from "@/lib/validations/survey-response";
+import type { SurveyQuestion } from "@/lib/content/surveys";
 
 /* The field survey as a one-question-at-a-time flow (SENSEMAKING_FLOW.md §3),
    on the shared FlowScreen engine — the same shell as registration + the cycle
    ceremony. Full-bleed (the (survey) group has no nav/footer). A branded welcome
-   cover → the questions → a ✓ confirmation that invites the visitor to join.
-   Posts the identical payload to /api/surveys/[slug]/responses — the collection
-   UX changed, the contract did not. */
+   cover → the questions → a ✓ confirmation.
 
-type Standpoint = (typeof STANDPOINTS)[number];
+   Since the question builder (migration 00060) the questions are data-driven:
+   the server passes the survey's `survey_questions` rows and `questionsToFlowSteps`
+   maps each to a FlowStep. The flow posts the raw answer map to
+   /api/surveys/[slug]/responses, which resolves it against the same questions. */
 
-const STANDPOINT_LABELS: Record<Standpoint, string> = {
-  work_in_field: "I work in this field",
-  affected: "I've been personally affected by it",
-  tried_to_fix: "I've tried to fix something like this before",
-  research: "I research or study this area",
-  pay_attention: "I just pay close attention",
-  other: "Other",
-};
+/** Map a builder-defined question to the flow engine's FlowStep shape. Also
+    used by the admin builder's live preview. */
+export function questionsToFlowSteps(questions: SurveyQuestion[]): FlowStep[] {
+  return questions.map(questionToFlowStep);
+}
 
-const SALIENCE_LOW = "I noticed it in passing";
-const SALIENCE_HIGH = "This is something I think about a lot";
-
-function surveySteps(domain: string): FlowStep[] {
-  const d = domain.toLowerCase();
-  return [
-    {
-      id: "observation",
-      type: "textarea",
-      q: `What are you observing in the field of ${d}?`,
-      help: "What feels stuck, broken, or missing — a problem that keeps coming back no matter what people try? A sentence is fine. So is a page.",
-      ph: "Just tell us what you see.",
-    },
-    {
-      id: "experience",
-      type: "multiselect",
-      q: "What's your experience with this?",
-      help: "Optional — pick any that apply. It helps us weigh who's speaking.",
-      options: STANDPOINTS.map((s) => ({ v: s, label: STANDPOINT_LABELS[s] })),
-    },
-    {
-      id: "salience",
-      type: "scale",
-      q: "How much does this matter to you personally?",
-      help: "Optional.",
-      optional: true,
-      lowLabel: SALIENCE_LOW,
-      highLabel: SALIENCE_HIGH,
-    },
-    {
-      id: "prior_attempts",
-      type: "textarea",
-      required: false,
-      q: "Has anyone tried to address this before?",
-      help: "Even if it didn't work — especially if it didn't work. What happened? Optional.",
-      ph: "What was tried, and how it went…",
-    },
-    {
-      id: "contact",
-      type: "fields",
-      q: "Want to stay in touch?",
-      help: "Optional. Share these only if you're open to program participants following up on your observation — your info goes only to those who use it. Leave blank to stay anonymous.",
-      fields: [
-        { id: "name", label: "Your name", ph: "e.g. Priya Shah", required: false, half: true },
-        { id: "email", label: "Email", ph: "you@example.com", required: false, half: true },
-        { id: "phone", label: "Phone (optional)", ph: "If you prefer a call or text", required: false },
-      ],
-    },
-    {
-      id: "mentor",
-      type: "choice",
-      q: `Interested in mentoring in the ${domain} Build Cycle?`,
-      help: "Mentors guide a pod through the cycle. Say yes and add your name + email above so we can reach you.",
-      options: [
-        { v: "yes", label: "Yes, I'm interested" },
-        { v: "no", label: "Not right now" },
-      ],
-    },
-    {
-      id: "consent",
-      type: "consent",
-      q: "One last thing",
-      agreementTitle: "How your observation is used",
-      agreement: [
-        {
-          h: `What you're contributing to`,
-          p: `The Upskilling Labs collects field observations to choose the problems its next ${domain} Build Cycle takes on. Your observation joins an open, participant-built insights repository; everything Upskillers produce from it is open-source.`,
-        },
-        {
-          h: "Voluntary and anonymous",
-          p: "Submitting is voluntary, and your observation is anonymous unless you shared contact details. You can share as little or as much as you like.",
-        },
-      ],
-      text: "I have read and understood the above. I consent to my submission being used by The Upskilling Labs in the development of public projects and shared with program participants for research and project-development purposes.",
-    },
-  ];
+function questionToFlowStep(q: SurveyQuestion): FlowStep {
+  const help = q.help ?? undefined;
+  switch (q.question_type) {
+    case "short_text":
+      return { id: q.question_key, type: "text", q: q.prompt, help, ph: q.placeholder ?? undefined, required: q.required };
+    case "long_text":
+      return { id: q.question_key, type: "textarea", q: q.prompt, help, ph: q.placeholder ?? undefined, required: q.required };
+    case "single_select":
+      return { id: q.question_key, type: "choice", q: q.prompt, help, options: q.config.options ?? [] };
+    case "yes_no":
+      return {
+        id: q.question_key,
+        type: "choice",
+        q: q.prompt,
+        help,
+        options: q.config.options ?? [
+          { v: "yes", label: "Yes" },
+          { v: "no", label: "No" },
+        ],
+      };
+    case "multi_select":
+      return {
+        id: q.question_key,
+        type: "multiselect",
+        q: q.prompt,
+        help,
+        options: q.config.options ?? [],
+        min: q.required ? Math.max(1, q.config.min ?? 1) : q.config.min ?? 0,
+      };
+    case "scale":
+      return {
+        id: q.question_key,
+        type: "scale",
+        q: q.prompt,
+        help,
+        lowLabel: q.config.lowLabel ?? "",
+        highLabel: q.config.highLabel ?? "",
+        optional: !q.required,
+      };
+    case "consent":
+      return {
+        id: q.question_key,
+        type: "consent",
+        q: q.prompt,
+        agreementTitle: q.config.agreementTitle ?? "",
+        agreement: q.config.agreement ?? [],
+        references: q.config.references,
+        text: q.config.text ?? "",
+      };
+    case "contact":
+      return {
+        id: q.question_key,
+        type: "fields",
+        q: q.prompt,
+        help,
+        fields: (q.config.fields ?? []).map((f) => ({
+          id: f.id,
+          label: f.label,
+          ph: f.ph ?? "",
+          required: false,
+          half: f.half,
+        })),
+      };
+  }
 }
 
 export default function SurveyFlow({
@@ -111,43 +97,27 @@ export default function SurveyFlow({
   about,
   responseCount,
   responseGoal,
+  questions,
+  isMember = false,
 }: {
   slug: string;
   domain: string;
   about: string | null;
   responseCount: number;
   responseGoal: number;
+  questions: SurveyQuestion[];
+  isMember?: boolean;
 }) {
   const [stage, setStage] = useState<"landing" | "flow" | "done">("landing");
   // Bumping this remounts FlowScreen with a fresh answer set ("Share another").
   const [runKey, setRunKey] = useState(0);
-  const steps = useMemo(() => surveySteps(domain), [domain]);
+  const steps = useMemo(() => questionsToFlowSteps(questions), [questions]);
 
   const submit = async (answers: FlowAnswers): Promise<string | null> => {
-    const name = String(answers.name ?? "").trim();
-    const email = String(answers.email ?? "").trim();
-    const phone = String(answers.phone ?? "").trim();
-    const standpoint = Array.isArray(answers.experience) ? answers.experience : [];
-    const salience =
-      typeof answers.salience === "string" && answers.salience
-        ? Number(answers.salience)
-        : null;
-
     const res = await fetch(`/api/surveys/${slug}/responses`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        observation: String(answers.observation ?? "").trim(),
-        consent_participation: true, // the gated final step guarantees this
-        standpoint,
-        salience,
-        prior_attempts: String(answers.prior_attempts ?? "").trim(),
-        contactable: Boolean(name || email || phone),
-        mentor_interest: answers.mentor === "yes",
-        submitter_name: name,
-        submitter_email: email,
-        submitter_phone: phone,
-      }),
+      body: JSON.stringify({ answers }),
     }).catch(() => null);
 
     const json = res ? await res.json().catch(() => null) : null;
@@ -174,6 +144,7 @@ export default function SurveyFlow({
     return (
       <Done
         domain={domain}
+        isMember={isMember}
         onAnother={() => {
           setRunKey((k) => k + 1);
           setStage("flow");
@@ -367,12 +338,16 @@ function GoalCounter({ count, goal }: { count: number; goal: number }) {
   );
 }
 
-/* ── Done — the ✓ confirmation + the invitation to join ── */
+/* ── Done — the ✓ confirmation. Anonymous visitors get the "Join The Labs"
+   invitation; signed-in members (arriving from the dashboard's first CTA) get
+   a route back to their portal and a nudge to distribute the survey. ── */
 function Done({
   domain,
+  isMember,
   onAnother,
 }: {
   domain: string;
+  isMember: boolean;
   onAnother: () => void;
 }) {
   return (
@@ -409,22 +384,30 @@ function Done({
 
           <div className="survey-join">
             <div className="lbl lbl-teal" style={{ marginBottom: 10 }}>
-              Your turn
+              {isMember ? "Keep it going" : "Your turn"}
             </div>
             <h2 className="t-h3" style={{ marginBottom: 8 }}>
-              Find your people. Build your edge.
+              {isMember
+                ? "Spread the survey through your field."
+                : "Find your people. Build your edge."}
             </h2>
             <p className="t-body text-meta" style={{ margin: 0 }}>
-              The Upskilling Labs is free to join and runs in the open. Get an
-              account and take part in the next Build Cycle — from understanding
-              a problem to shipping a real solution.
+              {isMember
+                ? "The strongest cycles start with the widest net. Share this survey with people close to the problem — the more field observations, the sharper the problems your cohort picks."
+                : "The Upskilling Labs is free to join and runs in the open. Get an account and take part in the next Build Cycle — from understanding a problem to shipping a real solution."}
             </p>
           </div>
         </div>
         <div className="actionbar light-bar">
-          <Link className="btn btn-teal btn-lg btn-block" href="/login">
-            Join The Labs →
-          </Link>
+          {isMember ? (
+            <Link className="btn btn-teal btn-lg btn-block" href="/dashboard">
+              Back to your dashboard →
+            </Link>
+          ) : (
+            <Link className="btn btn-teal btn-lg btn-block" href="/login">
+              Join The Labs →
+            </Link>
+          )}
           <button className="btn btn-link" onClick={onAnother}>
             Share another observation
           </button>

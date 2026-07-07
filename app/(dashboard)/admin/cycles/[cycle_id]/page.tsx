@@ -67,6 +67,12 @@ export default async function AdminCycleDetailPage({
 
   if (!cycle) notFound();
 
+  const { data: cycleSurveys } = await serviceClient
+    .from("field_surveys")
+    .select("id, title, share_slug, status")
+    .eq("cycle_id", cycleId)
+    .order("id", { ascending: false });
+
   const { data: enrollments } = await serviceClient
     .from("cycle_enrollments")
     .select(
@@ -229,6 +235,55 @@ export default async function AdminCycleDetailPage({
           Voting thresholds and pod / project limits.
         </p>
         <CycleParamsForm cycleId={cycle.id} config={config} />
+      </section>
+      <hr className="border-ink/10" />
+      <section>
+        <h2 className="mb-1 t-h3 text-ink">Field survey</h2>
+        <p className="mb-4 text-sm text-meta">
+          The cohort&apos;s opening activity — the observations that seed this
+          cycle&apos;s problems. Edit questions in the builder; export responses
+          from Results.
+        </p>
+        {cycleSurveys && cycleSurveys.length > 0 ? (
+          <ul className="flex flex-col gap-2">
+            {cycleSurveys.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-ink/10 bg-white px-4 py-3"
+              >
+                <span className="text-sm font-medium text-ink">
+                  {s.title}
+                  <span className="ml-2 text-xs text-meta">· {s.status}</span>
+                </span>
+                <span className="flex gap-4">
+                  <Link
+                    href={`/admin/surveys/${s.share_slug}`}
+                    className="text-sm font-semibold text-teal-deep hover:underline"
+                  >
+                    Edit questions
+                  </Link>
+                  <Link
+                    href={`/survey/${s.share_slug}/results`}
+                    className="text-sm font-semibold text-teal-deep hover:underline"
+                  >
+                    Results &amp; CSV
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-meta">
+            No survey linked to this cycle yet.{" "}
+            <Link
+              href="/admin/surveys"
+              className="font-semibold text-teal-deep hover:underline"
+            >
+              Create one
+            </Link>{" "}
+            and set its cycle to this one.
+          </p>
+        )}
       </section>
     </div>
   ) : (

@@ -20,6 +20,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { isAdmin, isModeratorForPod, type UserRoles } from "./roles";
 
 /**
@@ -37,4 +38,25 @@ export function requireModeratorForPod(
   if (isAdmin(user)) return null;
   if (isModeratorForPod(user, podId)) return null;
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+
+/**
+ * True if `user` is a poderator for any pod in `cycleId` (or an admin). Async
+ * because moderator assignments are pod-scoped — UserRoles only carries pod
+ * ids, so we resolve those pods' cycle here. Used to gate cycle-level survey
+ * results/CSV for the assigned poderator.
+ */
+export async function isModeratorForCycle(
+  user: UserRoles,
+  cycleId: number
+): Promise<boolean> {
+  if (isAdmin(user)) return true;
+  if (user.moderatorPodIds.length === 0) return false;
+  const supabase = createServiceClient();
+  const { count } = await supabase
+    .from("pods")
+    .select("id", { head: true, count: "exact" })
+    .in("id", user.moderatorPodIds)
+    .eq("cycle_id", cycleId);
+  return (count ?? 0) > 0;
 }

@@ -3,7 +3,11 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { hashIp, requestIp, windowStart } from "@/lib/api/rate-limit";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
-import { surveyResponseSchema } from "@/lib/validations/survey-response";
+import {
+  surveySubmissionSchema,
+  resolveSurveyResponse,
+} from "@/lib/validations/survey-response";
+import { getFieldSurveyQuestions } from "@/lib/content/surveys";
 
 // Field-survey observation intake (SENSEMAKING_FLOW.md §3) — the public,
 // account-free submission that replaces the Civics & Elections Google Form.
@@ -83,27 +87,52 @@ export async function POST(
     }
   }
 
-  const body = await parseBody(request, surveyResponseSchema);
+  const body = await parseBody(request, surveySubmissionSchema);
   if (isErrorResponse(body)) return body;
 
-  const email = body.submitter_email ? body.submitter_email.toLowerCase() : null;
-  const { error } = await supabase.from("survey_responses").insert({
-    field_survey_id: survey.id,
-    participant_id: participantId,
-    observation: body.observation,
-    standpoint: body.standpoint ?? [],
-    salience: body.salience ?? null,
-    prior_attempts: body.prior_attempts || null,
-    consent_participation: body.consent_participation,
-    consent_version: survey.consent_version,
-    contactable: body.contactable ?? false,
-    submitter_name: body.submitter_name || null,
-    submitter_email: email,
-    submitter_phone: body.submitter_phone || null,
-    mentor_interest: body.mentor_interest ?? false,
-    ip_hash: ipHash,
-  });
-  if (error) return dbError(error, "survey-response");
+  // Resolve the generic answer map against the survey's questions: system
+  // questions coerce into their typed column, contact fans out to submitter_*,
+  // custom questions become answer rows. The consent gate lives here now (a
+  // required consent question must be true) — replacing the old z.literal(true).
+  const questions = await getFieldSurveyQuestions(survey.id);
+  const { envelope, answerRows, error: resolveError } = resolveSurveyResponse(
+    questions,
+    body.answers
+  );
+  if (resolveError) {
+    return NextResponse.json({ error: resolveError }, { status: 400 });
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("survey_responses")
+    .insert({
+      field_survey_id: survey.id,
+      participant_id: participantId,
+      consent_version: survey.consent_version,
+      ip_hash: ipHash,
+      ...envelope,
+    })
+    .select("id")
+    .single();
+  if (error || !inserted) return dbError(error, "survey-response");
+
+  if (answerRows.length > 0) {
+    const { error: answersError } = await supabase
+      .from("survey_response_answers")
+      .insert(
+        answerRows.map((a) => ({
+          response_id: inserted.id,
+          question_id: a.question_id,
+          value: a.value,
+        }))
+      );
+    // No client transaction in supabase-js: compensate by removing the
+    // envelope row so a submission is never half-written.
+    if (answersError) {
+      await supabase.from("survey_responses").delete().eq("id", inserted.id);
+      return dbError(answersError, "survey-response-answers");
+    }
+  }
 
   return NextResponse.json({ submitted: true }, { status: 201 });
 }

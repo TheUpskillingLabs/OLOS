@@ -9,6 +9,7 @@ import { getRollup } from "@/lib/moderator/rollup";
 import { getCrossPodInsights } from "@/lib/moderator/cross-pod-insights";
 import { CrossPodInsightsSection } from "./cross-pod-insights-section";
 import { getUiState } from "@/lib/moderator/ui-state";
+import { getFieldSurveyForCycle } from "@/lib/content/surveys";
 import OrientationCard from "./orientation-card";
 import { Switcher } from "./switcher";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
@@ -87,6 +88,17 @@ export default async function ModeratorPage({
   const podIds = cards.map((c) => c.id);
   const cycleIds = Array.from(new Set(cards.map((c) => c.cycle_id)));
 
+  // Field-survey results for the poderator's cycle(s) — the sensemaking raw
+  // material + CSV export sit one click from the pods they shepherd.
+  const surveyLinks = (
+    await Promise.all(
+      cycleIds.map(async (cid) => {
+        const s = await getFieldSurveyForCycle(cid, null);
+        return s ? { slug: s.share_slug, title: s.title } : null;
+      })
+    )
+  ).filter((x): x is { slug: string; title: string } => x !== null);
+
   const [rollup, crossPodFourWeeks, crossPodFullCycle, aiPromptRow] =
     showAggregates
       ? await Promise.all([
@@ -137,6 +149,26 @@ export default async function ModeratorPage({
 
       <OrientationCard tooltipSeen={uiState.tooltip_seen ?? []} />
 
+      {surveyLinks.length > 0 && (
+        <div className="mb-8 rounded-card border border-teal/20 bg-teal/[0.04] p-5">
+          <div className="lbl lbl-teal mb-1.5">Field survey</div>
+          <p className="mb-3 text-sm text-charcoal">
+            The field observations that seed this cycle&apos;s problems — review
+            responses and export the CSV for the Triangulator.
+          </p>
+          <div className="flex flex-col gap-2">
+            {surveyLinks.map((s) => (
+              <Link
+                key={s.slug}
+                href={`/survey/${s.slug}/results`}
+                className="text-sm font-semibold text-teal-deep hover:underline"
+              >
+                {s.title} — view results &rarr;
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {cards.length === 0 ? (
         <EmptyState

@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import {
   getOpenFieldSurvey,
   getFieldSurveyResponseCount,
+  getFieldSurveyQuestions,
   RESPONSE_GOAL,
 } from "@/lib/content/surveys";
+import { createClient } from "@/lib/supabase/server";
 import SurveyFlow from "./survey-flow";
 
 /* The public field survey (SENSEMAKING_FLOW.md §3) — account-free, anonymous by
@@ -38,7 +40,22 @@ export default async function SurveyPage({
   const survey = await getOpenFieldSurvey(slug);
   if (!survey) notFound();
 
-  const responseCount = await getFieldSurveyResponseCount(survey.id);
+  const [responseCount, questions] = await Promise.all([
+    getFieldSurveyResponseCount(survey.id),
+    getFieldSurveyQuestions(survey.id),
+  ]);
+  // An open survey with no questions is misconfigured — the flow needs at least
+  // one step. Treat it as not-yet-available rather than crashing the engine.
+  if (questions.length === 0) notFound();
+
+  // Signed-in members reach this from the dashboard's first-CTA card. When the
+  // submission is done they should return to their portal, not be pitched
+  // "Join The Labs" like an anonymous visitor.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isMember = !!user;
 
   return (
     <SurveyFlow
@@ -47,6 +64,8 @@ export default async function SurveyPage({
       about={survey.about}
       responseCount={responseCount}
       responseGoal={RESPONSE_GOAL}
+      questions={questions}
+      isMember={isMember}
     />
   );
 }
