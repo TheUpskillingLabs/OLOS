@@ -104,11 +104,12 @@ export default async function LandingPage() {
       })
     : null;
 
-  // Fill the events section to capacity — a dozen cards — sampled round-robin
-  // across upcoming months so one busy month can't monopolize the section
-  // (getEvents() is start_at ASC, so each month bucket stays soonest-first).
-  // If upcoming events run short, top up with the most recent past ones.
-  const LANDING_EVENT_CAP = 12;
+  // Fill the events preview to one row — six cards — sampled round-robin across
+  // upcoming months so one busy month can't monopolize the row (getEvents() is
+  // start_at ASC, so each month bucket stays soonest-first). If upcoming events
+  // run short, top up with the most recent past ones. The rest wait behind
+  // "All events →".
+  const LANDING_EVENT_CAP = 6;
   const now = new Date();
   const upcoming = events.filter(
     (e) => new Date(e.end_at ?? e.start_at) >= now
@@ -333,9 +334,7 @@ export default async function LandingPage() {
             seeHref="/events"
             seeLabel="All events →"
           />
-          {/* `.all` lifts the landing six-card cap — this section runs at
-              full capacity (LANDING_EVENT_CAP) across months. */}
-          <div className="cards dense all">
+          <div className="cards dense fit">
             {landingEvents.map((e) => (
               <EventTeaser key={e.slug} event={e} />
             ))}
