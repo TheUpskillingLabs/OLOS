@@ -17,9 +17,11 @@ import CycleCommitments from "./cycle-commitments";
 import UpNext, { type TodoCard } from "./up-next";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
+import ShareSurveyButton from "./share-survey-button";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
+import { getFieldSurveyForCycle, type FieldSurvey } from "@/lib/content/surveys";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -41,7 +43,7 @@ export default async function DashboardPage() {
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
     serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline").eq("auth_user_id", user.id).maybeSingle(),
-    serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status, mode").order("start_date", { ascending: false }),
+    serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode").order("start_date", { ascending: false }),
   ]);
 
   if (!participant) redirect("/register");
@@ -342,7 +344,40 @@ export default async function DashboardPage() {
       ? preRegisteredUpcoming
       : hasAgreement || enrollment?.status === "active";
 
+  // The field survey is the cohort's opening activity and the member's first
+  // CTA (SENSEMAKING_FLOW §2, Stage 0–1). Surface the survey tied to the cohort
+  // the member is engaged with (its cycle, else its sector commons). The
+  // checklist row flips to done once they've contributed an observation.
+  const surveyCohort = registerCycle;
+  let fieldSurvey: FieldSurvey | null = null;
+  let surveyContributed = false;
+  if (surveyCohort) {
+    fieldSurvey = await getFieldSurveyForCycle(
+      surveyCohort.id,
+      surveyCohort.sector_id ?? null
+    );
+    if (fieldSurvey) {
+      const { count } = await serviceClient
+        .from("survey_responses")
+        .select("id", { head: true, count: "exact" })
+        .eq("participant_id", participant.id)
+        .eq("field_survey_id", fieldSurvey.id);
+      surveyContributed = (count ?? 0) > 0;
+    }
+  }
+
   const checklistItems: ChecklistItem[] = [
+    ...(fieldSurvey
+      ? [
+          {
+            key: "survey",
+            label: "Share your field observations",
+            done: surveyContributed,
+            href: `/survey/${fieldSurvey.share_slug}`,
+            cta: "Open",
+          },
+        ]
+      : []),
     {
       key: "profile",
       label: "Complete your profile",
@@ -382,6 +417,39 @@ export default async function DashboardPage() {
         ]
       : []),
   ];
+
+  // The prominent first-CTA card — the visual lead for the cohort's opening
+  // activity. Renders above the setup checklist in every state where the cohort
+  // has an open survey; pairs "contribute" with "share" (Stage 1 = Distribute).
+  const fieldSurveyCard = (survey: FieldSurvey) => (
+    <section className="mb-6 rounded-card border border-teal/30 bg-white p-6 shadow-card">
+      <div className="lbl lbl-teal mb-2">Start here · Field survey</div>
+      <h2 className="t-h3 text-ink">{survey.title}</h2>
+      <p className="mt-2 max-w-2xl text-sm text-meta">
+        Every Build Cycle starts in the field. Add what you&apos;re seeing, then
+        share the survey with people close to the problem — your observations
+        shape the problems this cohort takes on.
+      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Link
+          href={`/survey/${survey.share_slug}`}
+          className="inline-flex items-center gap-1.5 rounded-card bg-teal-deep px-4 py-2 text-sm font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        >
+          {surveyContributed
+            ? "Add another observation"
+            : "Contribute an observation"}
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </Link>
+        <ShareSurveyButton slug={survey.share_slug} title={survey.title} />
+      </div>
+      <Link
+        href={`/survey/${survey.share_slug}/results`}
+        className="mt-3 inline-block text-sm font-semibold text-teal-deep hover:underline"
+      >
+        See what the cohort is finding &rarr;
+      </Link>
+    </section>
+  );
 
   // Join / pre-register CTA card for the onboarding empty states, pointed at
   // the cohort the member should register for. For an upcoming cohort the copy
@@ -504,6 +572,7 @@ export default async function DashboardPage() {
           greeting={`Welcome, ${displayName}`}
           lede="You're almost in — here's how to get set up."
         />
+        {fieldSurvey && fieldSurveyCard(fieldSurvey)}
         <SetupChecklist items={checklistItems} />
         {upcomingCycle
           ? preRegisteredUpcoming
@@ -533,6 +602,7 @@ export default async function DashboardPage() {
               : "Here's your home base at The Labs. The next Build Cycle will show up right here."
           }
         />
+        {fieldSurvey && fieldSurveyCard(fieldSurvey)}
         {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
         {upcomingCycle ? (
           preRegisteredUpcoming ? (
@@ -641,6 +711,9 @@ export default async function DashboardPage() {
           the light system). Collapses to a single column below 768px. */}
       <div className="dash">
         <div>
+          {/* The field survey is the cohort's opening activity — the first CTA. */}
+          {fieldSurvey && fieldSurveyCard(fieldSurvey)}
+
           {/* Setup leads for a new member; collapses to a strip once done. */}
           {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
 

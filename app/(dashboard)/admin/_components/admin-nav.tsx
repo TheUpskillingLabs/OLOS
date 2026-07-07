@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   Users,
   FileText,
+  ClipboardList,
   Database,
   type LucideIcon,
 } from "lucide-react";
@@ -52,6 +53,12 @@ const BASE_ITEMS: NavItem[] = [
     label: "Content",
     Icon: FileText,
     match: (p) => p.startsWith("/admin/content") || p.startsWith("/admin/stories"),
+  },
+  {
+    href: "/admin/surveys",
+    label: "Surveys",
+    Icon: ClipboardList,
+    match: (p) => p.startsWith("/admin/surveys"),
   },
 ];
 
