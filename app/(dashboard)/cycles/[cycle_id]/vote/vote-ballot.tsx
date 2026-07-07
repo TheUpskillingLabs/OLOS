@@ -29,18 +29,24 @@ interface Tally {
 
 export default function VoteBallot({
   cycleId,
+  budget: initialBudget,
+  votesUsed,
   submitterBudget,
   nonSubmitterBudget,
 }: {
   cycleId: number;
+  /** The viewer's resolved budget (submitter vs non-submitter), from the server. */
+  budget: number;
+  /** Votes the viewer has already cast this cycle, from the server. */
+  votesUsed: number;
   submitterBudget: number;
   nonSubmitterBudget: number;
 }) {
   const [statements, setStatements] = useState<ProblemStatement[]>([]);
   const [tallies, setTallies] = useState<Tally[]>([]);
   const [pendingVotes, setPendingVotes] = useState<Record<number, number>>({});
-  const [totalUsed, setTotalUsed] = useState(0);
-  const [budget, setBudget] = useState(nonSubmitterBudget);
+  const [totalUsed, setTotalUsed] = useState(votesUsed);
+  const [budget, setBudget] = useState(initialBudget);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [successId, setSuccessId] = useState<number | null>(null);
@@ -51,11 +57,15 @@ export default function VoteBallot({
     Promise.all([
       fetch(`/api/problem-statements/${cycleId}`).then((r) => r.json()),
       fetch(`/api/votes/${cycleId}`).then((r) => r.json()),
-    ]).then(([stmts, voteData]) => {
-      if (Array.isArray(stmts)) setStatements(stmts);
-      if (voteData?.tallies) setTallies(voteData.tallies);
-      setLoading(false);
-    });
+    ])
+      .then(([stmts, voteData]) => {
+        if (Array.isArray(stmts)) setStatements(stmts);
+        if (voteData?.tallies) setTallies(voteData.tallies);
+      })
+      .catch(() =>
+        setError("Couldn't load the proposals. Refresh to try again.")
+      )
+      .finally(() => setLoading(false));
   }, [cycleId]);
 
   function getTallyFor(stmtId: number): number {
@@ -138,7 +148,7 @@ export default function VoteBallot({
     return (
       <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
         <p className="text-sm text-meta">
-          No problem statements have been submitted yet.
+          {error || "No problem statements have been submitted yet."}
         </p>
       </div>
     );
@@ -155,7 +165,10 @@ export default function VoteBallot({
           <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-teal-deep">
             {remaining}
           </p>
-          <p className="text-xs text-meta tabular-nums">votes remaining</p>
+          <p className="text-xs text-meta tabular-nums">
+            {remaining === 0 ? "all votes allocated" : "votes remaining"}
+          </p>
+          <p className="mt-1 text-xs text-meta">Each vote counts as you cast it.</p>
         </div>
         <div className="text-right text-xs text-meta tabular-nums">
           <p>Submitters get {submitterBudget} votes</p>

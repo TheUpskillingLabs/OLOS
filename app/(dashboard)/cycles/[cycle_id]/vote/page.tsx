@@ -37,6 +37,45 @@ export default async function VotePage({
     now >= new Date(config.voting_open) &&
     now <= new Date(config.voting_close);
 
+  // Resolve the member's real budget + votes already cast, so the ballot starts
+  // correct (submitters get the larger budget) and survives a reload — the
+  // client can't infer submitter status or prior spend on its own.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let isSubmitter = false;
+  let votesUsed = 0;
+  if (user) {
+    const { data: participant } = await serviceClient
+      .from("participants")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    if (participant) {
+      const [{ data: ownStmt }, { data: myVotes }] = await Promise.all([
+        serviceClient
+          .from("problem_statements")
+          .select("id")
+          .eq("cycle_id", cycleId)
+          .eq("participant_id", participant.id)
+          .maybeSingle(),
+        serviceClient
+          .from("votes")
+          .select("vote_count")
+          .eq("cycle_id", cycleId)
+          .eq("voter_id", participant.id),
+      ]);
+      isSubmitter = !!ownStmt;
+      votesUsed = (myVotes ?? []).reduce(
+        (sum, v) => sum + (v.vote_count ?? 0),
+        0
+      );
+    }
+  }
+  const budget = isSubmitter
+    ? config?.submitter_votes ?? 0
+    : config?.non_submitter_votes ?? 0;
+
   return (
     <div>
       <div className="mb-8">
@@ -58,6 +97,8 @@ export default async function VotePage({
       {isOpen ? (
         <VoteBallot
           cycleId={cycleId}
+          budget={budget}
+          votesUsed={votesUsed}
           submitterBudget={config?.submitter_votes ?? 0}
           nonSubmitterBudget={config?.non_submitter_votes ?? 0}
         />

@@ -42,6 +42,7 @@ export default async function SolutionVotePage({
 
   let myPods: { id: number; name: string | null }[] = [];
   let hasSubmitted = false;
+  let hasVoted = false;
 
   if (user) {
     const { data: participant } = await supabase
@@ -73,6 +74,17 @@ export default async function SolutionVotePage({
         .eq("participant_id", participant.id)
         .maybeSingle();
       hasSubmitted = !!ownProposal;
+
+      // Already voted? Short-circuit to the confirmation so a returning voter
+      // isn't told "ballot already submitted" only after re-allocating it.
+      const { data: existingVote } = await supabase
+        .from("project_votes")
+        .select("id")
+        .eq("cycle_id", cycleId)
+        .eq("voter_id", participant.id)
+        .limit(1)
+        .maybeSingle();
+      hasVoted = !!existingVote;
     }
   }
 
@@ -122,6 +134,16 @@ export default async function SolutionVotePage({
             You didn&apos;t submit a project, so you&apos;re not eligible to
             vote in this phase. You can still register for one of the
             shortlisted projects when registration opens.
+          </p>
+        </div>
+      ) : hasVoted ? (
+        <div className="rounded-card border border-teal/30 bg-teal/10 p-6 shadow-card">
+          <p className="font-semibold tracking-tight text-ink">
+            Your ballot is in.
+          </p>
+          <p className="mt-2 text-sm text-charcoal">
+            You&apos;ve submitted your project votes for this cycle. Results are
+            tallied when voting closes.
           </p>
         </div>
       ) : (
