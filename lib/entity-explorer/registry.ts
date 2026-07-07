@@ -100,12 +100,17 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     key: "votes",
     label: "Votes",
     table: "votes",
-    columns: ["id", "voter_id", "problem_statement_id", "vote_count", "created_at"],
+    // NOTE: voter_id is deliberately NOT displayed and NOT FK-resolved. The UX
+    // constitution (docs/audit/DESIGN_INTENT.md) requires vote data stay
+    // "aggregate only, never per-voter attribution" — so the console shows the
+    // ballot (statement + count) but never who cast it. The column still exists
+    // in the DB; a participant's own "Votes cast" 360 relation reaches it via
+    // voter_id directly.
+    columns: ["id", "problem_statement_id", "vote_count", "created_at"],
     labelField: "id",
     cycleScoped: true,
     softDelete: null,
     foreignKeys: [
-      { column: "voter_id", target: "participants" },
       { column: "problem_statement_id", target: "problem_statements" },
       { column: "cycle_id", target: "cycles" },
     ],
@@ -193,12 +198,13 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     key: "project_votes",
     label: "Project votes",
     table: "project_votes",
-    columns: ["id", "voter_id", "solution_proposal_id", "vote_count", "created_at"],
+    // NOTE: voter_id omitted (display + FK) — same aggregate-only rule as `votes`
+    // above (DESIGN_INTENT.md: "never per-voter attribution").
+    columns: ["id", "solution_proposal_id", "vote_count", "created_at"],
     labelField: "id",
     cycleScoped: true,
     softDelete: null,
     foreignKeys: [
-      { column: "voter_id", target: "participants" },
       { column: "solution_proposal_id", target: "solution_proposals" },
       { column: "cycle_id", target: "cycles" },
     ],

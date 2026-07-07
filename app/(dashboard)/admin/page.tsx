@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/guards";
-import { StatusBadge } from "@/app/components/ui";
+import { StatusBadge, DataTable } from "@/app/components/ui";
 // The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
 // as the route; removing the feature = delete this block + the two folders.
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
@@ -8,6 +8,14 @@ import CreateCycleForm from "./cycles/create-cycle-form";
 import SyncEventsButton from "./sync-events-button";
 
 type CycleStatus = "active" | "closed" | "draft";
+
+type CycleListRow = {
+  id: number;
+  name: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+};
 
 const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
   active: "active",
@@ -78,75 +86,63 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
-        <table className="w-full text-sm">
-          <thead className="bg-ink/[0.02]">
-            <tr>
-              <th className="lbl px-4 py-3 text-left">
-                Cycle
-              </th>
-              <th className="lbl px-4 py-3 text-left">
-                Status
-              </th>
-              <th className="lbl px-4 py-3 text-left">
-                Dates
-              </th>
-              <th className="lbl px-4 py-3 text-left">
-                Participants
-              </th>
-              <th className="lbl px-4 py-3 text-right" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ink/10">
-            {(cycles ?? []).map((cycle) => {
-              const counts = countsByCycle.get(cycle.id) ?? {
-                total: 0,
-                active: 0,
-              };
-              const variant =
-                CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
-              return (
-                <tr
-                  key={cycle.id}
-                  className="transition-colors duration-150 hover:bg-ink/[0.02]"
-                >
-                  <td className="px-4 py-3 font-medium text-ink">
-                    {cycle.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
-                  </td>
-                  <td className="px-4 py-3 text-meta tabular-nums">
-                    {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                    {new Date(cycle.end_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-meta tabular-nums">
-                    {counts.active} active / {counts.total} enrolled
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/admin/cycles/${cycle.id}`}
-                      className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
-                    >
-                      Manage &rarr;
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-            {(!cycles || cycles.length === 0) && (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-4 py-8 text-sm text-meta"
-                >
-                  No cycles yet. Create one to get started.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable<CycleListRow>
+        rows={(cycles ?? []) as CycleListRow[]}
+        rowKey={(cycle) => cycle.id}
+        empty="No cycles yet. Create one to get started."
+        columns={[
+          {
+            key: "cycle",
+            header: "Cycle",
+            className: "font-medium text-ink",
+            cell: (cycle) => cycle.name,
+          },
+          {
+            key: "status",
+            header: "Status",
+            cell: (cycle) => (
+              <StatusBadge
+                variant={CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive"}
+              >
+                {cycle.status}
+              </StatusBadge>
+            ),
+          },
+          {
+            key: "dates",
+            header: "Dates",
+            className: "text-meta tabular-nums",
+            cell: (cycle) => (
+              <>
+                {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
+                {new Date(cycle.end_date).toLocaleDateString()}
+              </>
+            ),
+          },
+          {
+            key: "participants",
+            header: "Participants",
+            className: "text-meta tabular-nums",
+            cell: (cycle) => {
+              const counts = countsByCycle.get(cycle.id) ?? { total: 0, active: 0 };
+              return `${counts.active} active / ${counts.total} enrolled`;
+            },
+          },
+          {
+            key: "actions",
+            header: "",
+            align: "right",
+            cell: (cycle) => (
+              <Link
+                href={`/admin/cycles/${cycle.id}`}
+                className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+              >
+                Manage &rarr;
+              </Link>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

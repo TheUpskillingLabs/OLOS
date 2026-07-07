@@ -3,15 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { roleBadgeClass } from "@/lib/auth/role-colors";
 import type { ParticipantRow } from "./page";
-
-const ROLE_COLORS: Record<string, string> = {
-  owner: "bg-ink/10 text-ink",
-  admin: "bg-teal/10 text-teal-deep",
-  developer: "bg-forest/10 text-forest",
-  moderator: "bg-navy/10 text-navy",
-  observer: "bg-ink/[0.04] text-meta",
-};
 
 interface Props {
   participants: ParticipantRow[];
@@ -178,9 +171,7 @@ export default function ParticipantsTable({ participants, cycleId }: Props) {
                       {p.roles.map((role) => (
                         <span
                           key={role}
-                          className={`inline-flex items-center rounded-sm px-2.5 py-0.5 text-xs font-medium ${
-                            ROLE_COLORS[role] ?? "bg-ink/[0.04] text-meta"
-                          }`}
+                          className={`inline-flex items-center rounded-sm px-2.5 py-0.5 text-xs font-medium ${roleBadgeClass(role)}`}
                         >
                           {role}
                         </span>
