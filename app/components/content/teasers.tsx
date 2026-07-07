@@ -58,14 +58,14 @@ export function EventTeaser({
   corner?: ReactNode;
 }) {
   return (
-    <Link className="card tappable event-card" href={`/events/${e.slug}`}>
-      <MediaFrame
-        img={e.img}
-        grad={e.grad}
-        tag={e.kind}
-        square
-        corner={corner}
-      />
+    <Link
+      className={`card tappable event-card${corner ? " has-save" : ""}`}
+      href={`/events/${e.slug}`}
+    >
+      <MediaFrame img={e.img} grad={e.grad} tag={e.kind} square />
+      {/* Save button lives at the card level (not inside the thumbnail) so it can
+          pin to the card's top-right on mobile, where the thumbnail is only 1/4 wide. */}
+      {corner}
       <div className="card-body">
         <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
         <div className="t-h4 card-title" style={{ margin: "6px 0 4px" }}>
