@@ -92,7 +92,8 @@ export default function PodJoinSection({
           {single ? "Choose your pod" : "Choose your pods"}
         </h2>
         <p className="mt-1 text-sm text-meta">
-          No pods are available for registration yet.
+          Pods are being formed from the winning problem statements — check back
+          soon.
         </p>
       </div>
     );

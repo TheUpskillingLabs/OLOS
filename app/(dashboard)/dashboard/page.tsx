@@ -2,11 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { StatusBadge, EmptyState } from "@/app/components/ui";
+import { StatusBadge, EmptyState, AlertBanner } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
+import CycleJourney from "./cycle-journey";
 import PodJoinSection from "./pod-join-section";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
 import { getCycleWeek } from "@/lib/cycle/week";
+import {
+  resolveCycleTimeline,
+  type CycleConfigPhaseColumns,
+} from "@/lib/cycle/phases";
 import {
   milestoneKindForWeek,
   milestoneLabel,
@@ -62,10 +67,17 @@ export default async function DashboardPage() {
 
   let hasAgreement = false;
   let logCount = 0;
+  let podsExist = false;
 
   if (activeCycle) {
-    const [configResult, enrollmentResult, membershipResult, agreementResult, logResult] =
-      await Promise.all([
+    const [
+      configResult,
+      enrollmentResult,
+      membershipResult,
+      agreementResult,
+      logResult,
+      podsResult,
+    ] = await Promise.all([
         serviceClient
           .from("cycle_config")
           .select(
@@ -94,12 +106,21 @@ export default async function DashboardPage() {
           .from("learning_logs")
           .select("id", { head: true, count: "exact" })
           .eq("participant_id", participant.id),
+        // Do any pods exist yet for this cycle? Pods are only created when an
+        // admin finalizes problem-statement voting — before that, "join a pod"
+        // is not a real action no matter what the window says.
+        serviceClient
+          .from("pods")
+          .select("id", { head: true, count: "exact" })
+          .eq("cycle_id", activeCycle.id)
+          .in("status", ["forming", "active"]),
       ]);
     activeCycleConfig = configResult.data;
     enrollment = enrollmentResult.data;
     myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
     hasAgreement = (agreementResult.count ?? 0) > 0;
     logCount = logResult.count ?? 0;
+    podsExist = (podsResult.count ?? 0) > 0;
   }
 
   // Has the member already signed the upcoming cohort's Open Cycle Agreement?
@@ -116,16 +137,20 @@ export default async function DashboardPage() {
     preRegisteredUpcoming = (count ?? 0) > 0;
   }
 
-  // Determine pod registration window status
-  let podWindowOpen = false;
-  if (activeCycleConfig) {
-    const now = new Date();
-    const open = activeCycleConfig.pod_registration_open;
-    const close = activeCycleConfig.pod_registration_close;
-    if (open && close) {
-      podWindowOpen = now >= new Date(open) && now <= new Date(close);
-    }
-  }
+  // Canonical phase timeline (lib/cycle/phases.ts) — one source for the journey,
+  // the enrollment state machine, and the Up-Next cards.
+  const timeline = activeCycleConfig
+    ? resolveCycleTimeline(activeCycleConfig as unknown as CycleConfigPhaseColumns)
+    : null;
+  const podWindowOpen =
+    timeline?.phases.find((p) => p.field === "pod_registration")?.state === "open";
+  const cycleWeek = activeCycle
+    ? getCycleWeek(
+        new Date(),
+        new Date(activeCycle.start_date),
+        new Date(activeCycle.end_date)
+      )
+    : -1;
 
   // "Past cycles" = finished cohorts only (closed/archived); the upcoming
   // recruiting cohort and drafts don't belong in an archive (SECTOR_MODEL Phase A).
@@ -281,17 +306,12 @@ export default async function DashboardPage() {
           },
         ]
       : []),
-    // Pod + Learning Log steps belong to the running cohort — an upcoming
-    // cohort has no pods yet — so these stay tied to the active cycle.
+    // The Learning Log is available from day one, so it's a real checklist item.
+    // Phase actions (join a pod, propose, vote…) are deliberately NOT here: they
+    // surface via the cycle journey + Up Next only when their window is open and
+    // the action actually exists — never as a stale checklist nag.
     ...(activeCycle
       ? [
-          {
-            key: "pod",
-            label: "Join a pod",
-            done: myPods.length > 0,
-            href: `/cycles/${activeCycle.id}/register-pods`,
-            cta: "Choose",
-          },
           {
             key: "log",
             label: "Save your first Learning Log",
@@ -422,47 +442,37 @@ export default async function DashboardPage() {
   // Engaged state: user has a cycle_enrollments row — full dashboard chrome.
   // (checklistItems is built above the early returns so it renders in every state.)
 
-  // "Up next" — the cycle actions whose window is open right now, as
-  // dismissible cards (the rail shows timing; this gives the button).
-  const cfg = (activeCycleConfig ?? {}) as Record<string, string | null>;
-  const nowMs = new Date().getTime();
-  const windowClose = (k: string): Date | null => {
-    const o = cfg[`${k}_open`];
-    const c = cfg[`${k}_close`];
-    if (!o || !c) return null;
-    return nowMs >= new Date(o).getTime() && nowMs <= new Date(c).getTime()
-      ? new Date(c)
-      : null;
-  };
-  const WINDOW_TODOS = [
-    { k: "problem_statement", title: "Submit a problem statement", cta: "Propose", sub: "propose" },
-    { k: "voting", title: "Vote on problem statements", cta: "Vote", sub: "vote" },
-    { k: "pod_registration", title: "Register for a pod", cta: "Choose pod", sub: "register-pods" },
-    { k: "solution_proposal", title: "Submit your solution proposal", cta: "Propose", sub: "solutions" },
-    { k: "solution_voting", title: "Cast your solution ballot", cta: "Vote", sub: "solution-vote" },
-    { k: "project_registration", title: "Register for a project", cta: "Register", sub: "register-projects" },
-  ];
-  const upNextTodos: TodoCard[] = activeCycle
-    ? WINDOW_TODOS.flatMap((w) => {
-        const close = windowClose(w.k);
-        if (!close) return [];
-        return [
-          {
-            id: w.k,
-            title: w.title,
-            detail: `Open now — closes ${close.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
-            href: `/cycles/${activeCycle.id}/${w.sub}`,
-            cta: w.cta,
-          },
-        ];
-      })
-    : [];
+  // "Up next" — the cycle actions whose window is open right now, as dismissible
+  // cards (the journey shows the full roadmap; this gives the button). Pod
+  // selection only appears once pods actually exist.
+  const upNextTodos: TodoCard[] =
+    activeCycle && timeline
+      ? timeline.phases
+          .filter((p) => p.state === "open")
+          .filter((p) => p.field !== "pod_registration" || podsExist)
+          .map((p) => ({
+            id: p.field,
+            title: p.action,
+            detail: `Open now — closes ${
+              p.closeAt
+                ? new Date(p.closeAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "soon"
+            }`,
+            href: `/cycles/${activeCycle.id}/${p.route}`,
+            cta: p.cta,
+          }))
+      : [];
 
   // Hero copy + at-a-glance stats — the identity band adapts to the state.
   const heroLede = logGate.active
     ? "Your weekly Learning Log is due — save it below and everything unlocks."
     : state === "interest_submitted_window_open"
-      ? "You're on the list. Choose your pod below to lock in your spot."
+      ? podsExist
+        ? "You're on the list. Choose your pod below to lock in your spot."
+        : "You're on the list. Pods are forming now — you'll choose yours here soon."
       : state === "interest_submitted_window_closed"
         ? "You're in. We'll open the next step soon — here's where things stand."
         : "Here's what's happening in your cycle right now.";
@@ -485,6 +495,7 @@ export default async function DashboardPage() {
     (state === "interest_submitted_window_open" || state === "active") &&
     activeCycle &&
     podWindowOpen &&
+    podsExist &&
     myPods.length < podLimit;
 
   return (
@@ -507,6 +518,17 @@ export default async function DashboardPage() {
           the light system). Collapses to a single column below 768px. */}
       <div className="dash">
         <div>
+          {/* Where you are in the cycle — the six-stage roadmap, so the member
+              always knows the current step and what opens next. */}
+          {activeCycle && timeline && (
+            <CycleJourney
+              cycleId={activeCycle.id}
+              timeline={timeline}
+              week={cycleWeek}
+              podsReady={podsExist}
+            />
+          )}
+
           {/* Setup leads for a new member; collapses to a strip once done. */}
           {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
 
@@ -516,23 +538,15 @@ export default async function DashboardPage() {
               (journal mode). The gate banner + lock apply only inside a cycle. */}
           {logSectionFor(!inActiveCycle)}
 
-          {/* Interest submitted, pod window not yet open */}
-          {state === "interest_submitted_window_closed" && activeCycleConfig && (
-            <div className="mb-8 rounded-card border border-ink/10 bg-white p-5 shadow-card">
-              <h2 className="t-h3 text-ink">Interest submitted</h2>
-              <p className="mt-1 text-sm text-meta">
-                Pod registration opens{" "}
-                {activeCycleConfig.pod_registration_open
-                  ? new Date(
-                      activeCycleConfig.pod_registration_open
-                    ).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "soon"}
-                . We&apos;ll let you know when it&apos;s time to choose your
-                pods.
-              </p>
+          {/* Pod window open but no pods exist yet — say so plainly instead of
+              showing an empty chooser. (The between-phase "opens {date}" case is
+              already covered by the cycle journey above.) */}
+          {activeCycle && podWindowOpen && !podsExist && (
+            <div className="mb-8">
+              <AlertBanner variant="info" title="Pods are forming">
+                Pods are being created from the winning problem statements. Pod
+                selection opens here as soon as they&apos;re ready.
+              </AlertBanner>
             </div>
           )}
 
