@@ -4,10 +4,14 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/app/components/ui";
 import CyclePhaseIndicator from "./cycle-phase-indicator";
 
-type CycleStatus = "active" | "closed" | "draft";
+type CycleStatus = "active" | "upcoming" | "closed" | "draft";
 
-const STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
+const STATUS_VARIANT: Record<
+  CycleStatus,
+  "active" | "forming" | "inactive" | "draft"
+> = {
   active: "active",
+  upcoming: "forming", // anticipatory (teal), never the grey "inactive" fallback
   closed: "inactive",
   draft: "draft",
 };
@@ -36,6 +40,10 @@ export default async function CyclesPage() {
   }
 
   const otherCycles = cycles?.filter((c) => c.id !== activeCycle?.id) ?? [];
+  // An upcoming cohort is open for registration — surface it as its own
+  // "Register" section, never buried under "Past cycles".
+  const upcomingCycles = otherCycles.filter((c) => c.status === "upcoming");
+  const pastCycles = otherCycles.filter((c) => c.status !== "upcoming");
 
   return (
     <div>
@@ -97,14 +105,50 @@ export default async function CyclesPage() {
         </Link>
       )}
 
-      {/* Past / other cycles */}
-      {otherCycles.length > 0 && (
+      {/* Upcoming — open for registration. The CTA goes to the registration
+          ceremony (/join), not the read-only info view. */}
+      {upcomingCycles.length > 0 && (
+        <>
+          <h2 className="lbl mb-4">Open for registration</h2>
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {upcomingCycles.map((cycle) => (
+              <Link
+                key={cycle.id}
+                href={`/cycles/${cycle.id}/join`}
+                className="group rounded-card border border-teal/30 bg-teal/10 p-6 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="t-h4 text-ink">{cycle.name}</h3>
+                  <StatusBadge variant={STATUS_VARIANT.upcoming}>
+                    {cycle.status}
+                  </StatusBadge>
+                </div>
+                <p className="mt-2 text-sm text-meta">
+                  Starts {new Date(cycle.start_date).toLocaleDateString()}
+                </p>
+                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
+                  Register
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Past / other cycles — closed, archived, draft (never upcoming) */}
+      {pastCycles.length > 0 && (
         <>
           <h2 className="lbl mb-4">
-            {activeCycle ? "Past cycles" : "Build cycles"}
+            {activeCycle || upcomingCycles.length > 0
+              ? "Past cycles"
+              : "Build cycles"}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {otherCycles.map((cycle) => {
+            {pastCycles.map((cycle) => {
               const variant =
                 STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
               return (

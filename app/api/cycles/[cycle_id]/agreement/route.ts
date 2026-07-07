@@ -33,7 +33,10 @@ export const POST = withAuth(
 
     const supabase = createServiceClient();
 
-    // Verify cycle is active
+    // Registration is open for the running cohort ('active') and the next one
+    // ('upcoming') — the upcoming cohort pre-registers before kickoff. The
+    // enrollment written below is 'inactive' either way; activation stays with
+    // reconcileEnrollmentActivation (§3.7).
     const { data: cycle } = await supabase
       .from("cycles")
       .select("id, status")
@@ -43,7 +46,7 @@ export const POST = withAuth(
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
-    if (cycle.status !== "active") {
+    if (cycle.status !== "active" && cycle.status !== "upcoming") {
       return NextResponse.json(
         { error: "This cycle is not currently accepting registrations" },
         { status: 400 }

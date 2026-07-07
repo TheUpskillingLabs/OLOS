@@ -41,7 +41,13 @@ export default async function JoinCyclePage({
     .eq("id", cycleId)
     .single();
 
-  if (!cycle || cycle.status !== "active") redirect("/cycles");
+  // Registration is open for the running cohort ('active') AND the next cohort
+  // ('upcoming') — the Civics wave pre-registers before kickoff. The agreement
+  // route writes an 'inactive' enrollment either way; the reconciler activates
+  // it when the cycle starts. Anything else (draft/closed/archived) has no
+  // registration ceremony.
+  if (!cycle || (cycle.status !== "active" && cycle.status !== "upcoming"))
+    redirect("/cycles");
 
   // Already signed → the ceremony opens on the confirmation, not the pitch.
   const { data: agreement } = await serviceClient

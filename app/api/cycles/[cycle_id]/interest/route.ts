@@ -26,7 +26,9 @@ export const POST = withAuth(
 
     const supabase = createServiceClient();
 
-    // Verify cycle is active
+    // Open for the running cohort ('active') and the next one ('upcoming') —
+    // the upcoming cohort collects interest pre-kickoff. The enrollment written
+    // below stays 'inactive' until the reconciler activates it.
     const { data: cycle } = await supabase
       .from("cycles")
       .select("id, status")
@@ -36,7 +38,7 @@ export const POST = withAuth(
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
-    if (cycle.status !== "active") {
+    if (cycle.status !== "active" && cycle.status !== "upcoming") {
       return NextResponse.json(
         { error: "This cycle is not currently accepting interest" },
         { status: 400 }

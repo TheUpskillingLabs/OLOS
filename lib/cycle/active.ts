@@ -38,10 +38,17 @@ export async function getOperatingCycle(
 export async function getRecruitingCycle(
   supabase: SupabaseClient
 ): Promise<CycleRow | null> {
+  // The newest cohort open for registration: the most recent `upcoming` cycle
+  // (by start date). Ordered + limited rather than assuming a single upcoming
+  // row, so the banner still resolves (to the newest) if more than one is ever
+  // open, instead of erroring and blanking. Falls back to the running `active`
+  // cohort when nothing is upcoming.
   const { data: upcoming } = await supabase
     .from("cycles")
     .select(CYCLE_COLUMNS)
     .eq("status", "upcoming")
+    .order("start_date", { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (upcoming) return upcoming as CycleRow;
   return getOperatingCycle(supabase);
