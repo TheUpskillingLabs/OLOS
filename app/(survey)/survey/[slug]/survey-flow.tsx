@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import Orb from "@/app/components/chrome/orb";
 import {
   FlowScreen,
   type FlowStep,
@@ -218,9 +217,13 @@ function Landing({
     <div className="flex min-h-screen flex-col">
       {/* Attention — full-bleed hero */}
       <section className="s-cover grain on-dark landing-hero">
-        <span className="landing-orb" aria-hidden>
-          <Orb />
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="landing-orb"
+          src="/assets/orb-mark.png"
+          alt=""
+          aria-hidden
+        />
         <div className="landing-scrim" aria-hidden />
         <div className="container landing-hero-inner">
           <div className="landing-col">
@@ -377,9 +380,21 @@ function Done({
       <div className="sheet">
         <div className="topbar" />
         <div className="vscroll pad" style={{ paddingTop: 8 }}>
-          <div className="media m-teal" style={{ marginBottom: 24 }}>
+          <div className="media" style={{ marginBottom: 24 }}>
             <span className="m-tag">Received ✓</span>
-            <Orb />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/assets/orb-mark.png"
+              alt=""
+              aria-hidden
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
           </div>
           <div className="lbl lbl-teal" style={{ marginBottom: 14 }}>
             Thank you
