@@ -132,7 +132,12 @@ export default async function DashboardLayout({
         isTest={!!participant?.is_test}
       />
       <main className="app-main container w-full flex-1 py-8">{children}</main>
-      <TabBar initials={initials} avatarUrl={avatarUrl} hasEnrollment={hasEnrollment} />
+      <TabBar
+        initials={initials}
+        avatarUrl={avatarUrl}
+        hasEnrollment={hasEnrollment}
+        logDue={logGate.active}
+      />
       <FeedbackWidget />
     </div>
   );

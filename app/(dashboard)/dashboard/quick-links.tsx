@@ -5,9 +5,19 @@ import Link from "next/link";
    A calm list of teal links divided by hairlines — LinkedIn's right rail in
    the light system. */
 
-export default function QuickLinks({ cycleId }: { cycleId?: number }) {
+export default function QuickLinks({
+  cycleId,
+  logDue = false,
+}: {
+  cycleId?: number;
+  /** While the log gate is active, in-app routes bounce to Home — don't offer
+      "Your cycle" as a link that just round-trips. */
+  logDue?: boolean;
+}) {
   const links: { label: string; href: string; external?: boolean }[] = [
-    { label: "Your cycle", href: cycleId ? `/cycles/${cycleId}` : "/cycles" },
+    ...(logDue
+      ? []
+      : [{ label: "Your cycle", href: cycleId ? `/cycles/${cycleId}` : "/cycles" }]),
     { label: "Browse events", href: "/events" },
     { label: "Browse the library", href: "/library" },
     { label: "Find your local lab", href: "/local-labs" },

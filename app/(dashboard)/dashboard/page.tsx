@@ -572,7 +572,7 @@ export default async function DashboardPage() {
         <aside className="flex flex-col gap-6">
           {/* Your commitments — the dated anchor events + .ics, always findable */}
           <CycleCommitments />
-          <QuickLinks cycleId={activeCycle?.id} />
+          <QuickLinks cycleId={activeCycle?.id} logDue={logGate.active} />
 
           {/* Past cycles — a compact archive, tucked away */}
           {otherCycles.length > 0 && (

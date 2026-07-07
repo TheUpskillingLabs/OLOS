@@ -40,10 +40,13 @@ export default function TabBar({
   initials,
   avatarUrl,
   hasEnrollment,
+  logDue = false,
 }: {
   initials: string;
   avatarUrl: string | null;
   hasEnrollment: boolean;
+  /** Weekly Learning Log is due — mirror the desktop nav's "Log due" pip. */
+  logDue?: boolean;
 }) {
   const pathname = usePathname() || "";
   if (pathname.startsWith("/admin") || pathname.startsWith("/moderator")) {
@@ -55,8 +58,16 @@ export default function TabBar({
   return (
     <nav className="tabbar">
       <Link className={`tab${active("/dashboard")}`} id="tab-home" href="/dashboard">
-        {HOME_SVG}
-        <span>Home</span>
+        <span className="relative inline-flex">
+          {HOME_SVG}
+          {logDue && (
+            <span
+              className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red ring-2 ring-white"
+              aria-hidden
+            />
+          )}
+        </span>
+        <span>Home{logDue ? <span className="sr-only"> — Learning Log due</span> : null}</span>
       </Link>
       {hasEnrollment && (
         <Link className={`tab${active("/cycles")}`} id="tab-cycle" href="/cycles">

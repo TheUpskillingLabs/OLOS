@@ -131,6 +131,7 @@ export default function AppNav({
           showPods={showPods}
           persona={persona}
           isTest={isTest}
+          logDue={logDue}
         />
       </div>
     </header>
@@ -150,6 +151,7 @@ function AvatarMenu({
   showPods,
   persona,
   isTest,
+  logDue,
 }: {
   initials: string;
   avatarUrl: string | null;
@@ -159,6 +161,7 @@ function AvatarMenu({
   showPods: boolean;
   persona: "admin" | "poderator" | null;
   isTest: boolean;
+  logDue: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
@@ -315,9 +318,22 @@ function AvatarMenu({
                 View as
               </div>
               {radio(persona === null, "Upskiller", "/dashboard")}
-              {(isModerator || showPods) &&
-                radio(persona === "poderator", "Poderator", "/moderator")}
-              {isAdmin && radio(persona === "admin", "Admin", "/admin")}
+              {logDue ? (
+                // The log gate bounces /moderator + /admin back to Home; don't
+                // offer persona switches that would silently do nothing.
+                <div
+                  className="menu-item"
+                  style={{ color: "var(--meta)", cursor: "default" }}
+                >
+                  Finish your Learning Log to switch views
+                </div>
+              ) : (
+                <>
+                  {(isModerator || showPods) &&
+                    radio(persona === "poderator", "Poderator", "/moderator")}
+                  {isAdmin && radio(persona === "admin", "Admin", "/admin")}
+                </>
+              )}
             </>
           )}
           <div className="menu-rule" />
