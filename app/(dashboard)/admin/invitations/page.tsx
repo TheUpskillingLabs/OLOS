@@ -1,20 +1,11 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin, can } from "@/lib/auth/roles";
+import { can } from "@/lib/auth/roles";
+import { requireAdmin } from "@/lib/auth/guards";
 import InvitationsTable from "./invitations-table";
 
 export default async function AdminInvitationsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  const { userRoles, serviceClient } = await requireAdmin();
 
   // Fetch invitations
   const { data: invitations } = await serviceClient

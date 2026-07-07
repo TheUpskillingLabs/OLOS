@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { requireAdmin } from "@/lib/auth/guards";
 import { StatusBadge } from "@/app/components/ui";
 // The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
 // as the route; removing the feature = delete this block + the two folders.
@@ -18,21 +16,12 @@ const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft">
 };
 
 export default async function AdminPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { serviceClient } = await requireAdmin();
 
-  const serviceClient = createServiceClient();
-
-  const [userRoles, { data: cycles }, { data: enrollmentRows }] = await Promise.all([
-    resolveUserRoles(serviceClient, user.id),
+  const [{ data: cycles }, { data: enrollmentRows }] = await Promise.all([
     serviceClient.from("cycles").select("id, name, start_date, end_date, status").order("start_date", { ascending: false }),
     serviceClient.from("cycle_enrollments").select("cycle_id, status"),
   ]);
-
-  if (!isAdmin(userRoles)) redirect("/cycles");
 
   const countsByCycle = new Map<number, { total: number; active: number }>();
   for (const e of enrollmentRows || []) {

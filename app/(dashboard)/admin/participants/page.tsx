@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { requireAdmin } from "@/lib/auth/guards";
 import ParticipantsGlobalTable from "./participants-global-table";
 
 export type GlobalParticipant = {
@@ -19,20 +17,12 @@ export type GlobalParticipant = {
 };
 
 export default async function AdminParticipantsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { serviceClient } = await requireAdmin();
 
-  const serviceClient = createServiceClient();
-
-  const [userRoles, { data: participants }] = await Promise.all([
-    resolveUserRoles(serviceClient, user.id),
-    serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, created_at, is_test").order("created_at", { ascending: false }),
-  ]);
-
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  const { data: participants } = await serviceClient
+    .from("participants")
+    .select("id, first_name, last_name, preferred_name, email, created_at, is_test")
+    .order("created_at", { ascending: false });
 
   const participantIds = participants?.map((p) => p.id) ?? [];
 

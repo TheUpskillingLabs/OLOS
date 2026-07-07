@@ -4,14 +4,12 @@
 // RLS, so this gate is the only protection — DESIGN.md §8). Fetches the base row
 // plus every reverse relation and renders the 360. Read-only.
 
-import { notFound, redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/guards";
 import { fetchEntityDetail } from "@/lib/entity-explorer/fetch";
 import { getEntityConfig } from "@/lib/entity-explorer/registry";
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import { Breadcrumbs } from "../../breadcrumbs";
-import { EnvBanner } from "../../env-banner";
 import { EntityDetail } from "../../entity-detail";
 
 export default async function ExploreDetailPage({
@@ -25,15 +23,7 @@ export default async function ExploreDetailPage({
   const { entity: entityParam, id: idParam } = await params;
 
   // ── Auth: admin only (sole guard over service-role reads). ──
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  const { serviceClient } = await requireAdmin();
 
   // ── Validate entity + id; unknown entity or non-numeric id → 404. ──
   const config = getEntityConfig(entityParam);
@@ -47,8 +37,6 @@ export default async function ExploreDetailPage({
 
   return (
     <div>
-      <EnvBanner />
-
       <Breadcrumbs
         items={[
           { label: "Admin", href: "/admin" },

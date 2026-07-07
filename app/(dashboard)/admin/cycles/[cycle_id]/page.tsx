@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/guards";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import CycleStatusForm from "./cycle-status-form";
 import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
@@ -55,15 +54,7 @@ export default async function AdminCycleDetailPage({
   params: Promise<{ cycle_id: string }>;
 }) {
   const { cycle_id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  const { serviceClient } = await requireAdmin();
 
   const cycleId = parseInt(cycle_id);
 
