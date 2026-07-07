@@ -571,6 +571,9 @@ button:focus-visible {
      event covers are 1:1 natively, so synced images render uncropped). */
   .media.sq, .cards.dense .media.sq { aspect-ratio: 1 / 1; }
   .cards.dense .t-h4 { font-size: 15px; line-height: 20px; }
+  /* Positioning context so the save button (a direct child of the event card,
+     not the thumbnail) can pin to the card's top-right corner. */
+  .card.event-card { position: relative; }
   /* Event teasers go horizontal on phones — square thumbnail (1/4 width) on
      the left, the vertically-stacked info on the right. `align-items:
      flex-start` keeps the media at its 1:1 aspect ratio instead of stretching. */
@@ -581,6 +584,12 @@ button:focus-visible {
        already carries the event's details, so drop it in this compact layout */
     .card.event-card .media .m-tag { display: none; }
     .card.event-card .card-body { flex: 1; min-width: 0; }
+    /* each info row is limited to a single line (ellipsis) in the compact layout */
+    .card.event-card .card-body .lbl,
+    .card.event-card .card-body .t-small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card.event-card .card-title { -webkit-line-clamp: 1; }
+    /* reserve room on the right for the save button pinned to the card's top-right */
+    .card.event-card.has-save .card-body { padding-right: 46px; }
   }
   @media (min-width: 700px) { .cards.dense { grid-template-columns: repeat(2, 1fr); } }
   @media (min-width: 768px) {

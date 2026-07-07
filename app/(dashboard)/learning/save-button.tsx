@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-/* The heart on a Learning card (onboarding-proto's toggleHeart). It sits inside
+/* The bookmark on a Learning card (onboarding-proto's toggleHeart). It sits inside
    the teaser's <Link>, so the click must NOT navigate — preventDefault +
    stopPropagation keep the save local. Optimistic: flip on click, reconcile
    from the server, roll back on failure. Toggle endpoint: POST /api/saved. */
@@ -78,7 +78,7 @@ export default function SaveButton({
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
+        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
       </svg>
     </button>
   );

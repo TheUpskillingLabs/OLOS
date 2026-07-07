@@ -153,8 +153,8 @@ export default async function LearningPage() {
         ) : (
           <div className="lcard" style={{ padding: 40 }}>
             <p className="t-body text-meta">
-              Nothing saved yet. Tap the heart on any session or guide to keep it
-              here.
+              Nothing saved yet. Tap the bookmark on any session or guide to keep
+              it here.
             </p>
           </div>
         )}
