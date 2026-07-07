@@ -29,6 +29,7 @@ export type PodCard = {
   status: string;
   cycle_id: number;
   cycle_name: string | null;
+  cycle_mode: string | null;
   phase_num: number | null;
   phase_display_name: string | null;
   phase_open_at: string | null;
@@ -81,7 +82,7 @@ export async function getPodsForUser(
   // Pods + cycle metadata.
   const { data: podRows } = await supabase
     .from("pods")
-    .select("id, name, status, cycle_id, cycles (id, name)")
+    .select("id, name, status, cycle_id, cycles (id, name, mode)")
     .in("id", podIds);
 
   if (!podRows || podRows.length === 0) return [];
@@ -154,8 +155,9 @@ export async function getPodsForUser(
       memberIds.length
     );
 
-    const cycleName =
-      (pod.cycles as unknown as { name: string } | null)?.name ?? null;
+    const cycle = pod.cycles as unknown as { name: string; mode: string | null } | null;
+    const cycleName = cycle?.name ?? null;
+    const cycleMode = cycle?.mode ?? null;
 
     return {
       id: pod.id as number,
@@ -163,6 +165,7 @@ export async function getPodsForUser(
       status: pod.status as string,
       cycle_id: pod.cycle_id as number,
       cycle_name: cycleName,
+      cycle_mode: cycleMode,
       phase_num: phase?.num ?? null,
       phase_display_name: phase?.displayName ?? null,
       phase_open_at: phase?.openAt ?? null,

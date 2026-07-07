@@ -12,6 +12,7 @@ import { getUiState } from "@/lib/moderator/ui-state";
 import OrientationCard from "./orientation-card";
 import { Switcher } from "./switcher";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
+import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 
 /**
  * All pods view (PRD §7.10).
@@ -79,16 +80,30 @@ export default async function ModeratorPage({
     }
   }
 
+  // P-7 / B-1: partition cards into participant pods vs. org workstream
+  // runs. Sort order within each subset is preserved — `cards` is already
+  // sorted (non-zero missing first, then alphabetical) and `.filter()`
+  // keeps relative order.
+  const participantCards = cards.filter((c) => c.cycle_mode !== "org");
+  const orgCards = cards.filter((c) => c.cycle_mode === "org");
+  const hasParticipantCards = participantCards.length > 0;
+  const hasOrgCards = orgCards.length > 0;
+  const sectioned = hasParticipantCards && hasOrgCards;
+  const allOrg = hasOrgCards && !hasParticipantCards;
+
   // Single-pod poderators don't see the All pods aggregates (PRD §7.10).
   // Admins always see the full view because their assignment count is
   // effectively unbounded.
-  const showAggregates = admin || cards.length > 1;
+  const showAggregates = admin || participantCards.length > 1;
 
-  const podIds = cards.map((c) => c.id);
-  const cycleIds = Array.from(new Set(cards.map((c) => c.cycle_id)));
+  // Rollup + cross-pod insights are pulse-health aggregates — workstreams
+  // don't run pulse checks, so scope both to the participant-pod subset
+  // (PRD-admin-org-separation §5, P-7/B-1).
+  const podIds = participantCards.map((c) => c.id);
+  const cycleIds = Array.from(new Set(participantCards.map((c) => c.cycle_id)));
 
   const [rollup, crossPodFourWeeks, crossPodFullCycle, aiPromptRow] =
-    showAggregates
+    showAggregates && podIds.length > 0
       ? await Promise.all([
           getRollup(serviceClient, { podIds }),
           getCrossPodInsights(serviceClient, podIds, "4w"),
@@ -113,6 +128,27 @@ export default async function ModeratorPage({
   }));
   const showAllPodsEntry = admin || cards.length > 1;
 
+  // P-7 / B-1: admins with both kinds present get the combined heading;
+  // a non-admin whose cards are entirely org runs gets workstream/co-lead
+  // framing instead of "pod" copy.
+  const heading = admin
+    ? sectioned
+      ? "All pods & workstreams"
+      : "All pods"
+    : allOrg
+      ? "My workstreams"
+      : "My pods";
+
+  const subtitle = admin
+    ? "Pod health across cycles. Click a card to open the per-pod dashboard."
+    : allOrg
+      ? cards.length === 1
+        ? `Your assigned workstream — you're the ${moderatorNoun(cards[0].cycle_mode).toLowerCase()}. Click to open the dashboard.`
+        : `Workstream health across your assignments as ${moderatorNoun(orgCards[0].cycle_mode).toLowerCase()}. Click a card to open the dashboard.`
+      : cards.length === 1
+        ? "Your assigned pod. Click to open the per-pod dashboard."
+        : "Pod health across your assignments. Click a card to open the per-pod dashboard.";
+
   return (
     <div>
       {(showAllPodsEntry || cards.length > 0) && (
@@ -125,14 +161,10 @@ export default async function ModeratorPage({
         </div>
       )}
       <h1 className="t-h1 mb-2 text-ink">
-        {admin ? "All pods" : "My pods"}
+        {heading}
       </h1>
       <p className="mb-8 text-sm text-charcoal">
-        {admin
-          ? "Pod health across cycles. Click a card to open the per-pod dashboard."
-          : cards.length === 1
-            ? "Your assigned pod. Click to open the per-pod dashboard."
-            : "Pod health across your assignments. Click a card to open the per-pod dashboard."}
+        {subtitle}
       </p>
 
       <OrientationCard tooltipSeen={uiState.tooltip_seen ?? []} />
@@ -150,11 +182,24 @@ export default async function ModeratorPage({
         />
       ) : (
         <div className="space-y-8">
-          <PodCardGrid cards={cards} />
+          {sectioned ? (
+            <>
+              <section>
+                <h2 className="t-h3 mb-3 text-ink">Pods</h2>
+                <PodCardGrid cards={participantCards} />
+              </section>
+              <section>
+                <h2 className="t-h3 mb-3 text-ink">Workstreams</h2>
+                <PodCardGrid cards={orgCards} />
+              </section>
+            </>
+          ) : (
+            <PodCardGrid cards={cards} />
+          )}
           {rollup && (
             <RollupBlock
               rollup={rollup}
-              podCount={cards.length}
+              podCount={participantCards.length}
             />
           )}
           {crossPodFourWeeks && crossPodFullCycle && (
@@ -224,10 +269,10 @@ function PodSummaryCard({ card }: { card: PodCard }) {
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="lbl mb-1.5">
-            Pod
+            {podNoun(card.cycle_mode)}
           </div>
           <div className="truncate text-base font-semibold text-ink">
-            {card.name ?? `Pod ${card.id}`}
+            {card.name ?? `${podNoun(card.cycle_mode)} ${card.id}`}
           </div>
         </div>
         <StatusBadge variant={statusVariant} withDot>

@@ -17,6 +17,7 @@ import { getUiState } from "@/lib/moderator/ui-state";
 import { PodContentTabs } from "./pod-content-tabs";
 import PodSquadSections from "./pod-squad-sections";
 import PodMilestoneLogs from "./pod-milestone-logs";
+import { podNoun } from "@/lib/cycle/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ export default async function ModeratorPodPage({
         <AtRiskSection
           members={atRiskMembers}
           podId={detail.id}
-          podName={detail.name ?? `Pod ${detail.id}`}
+          podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
           threshold={detail.at_risk_threshold}
         />
       )}
@@ -133,8 +134,9 @@ export default async function ModeratorPodPage({
       <PodContentTabs
         members={detail.members}
         podId={detail.id}
-        podName={detail.name ?? `Pod ${detail.id}`}
+        podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
         initialTab={initialTab}
+        mode={detail.cycle_mode}
       />
     </div>
   );
@@ -184,14 +186,15 @@ const TREND_COLOR: Record<Trend, string> = {
 
 function StatusHeader({ detail }: { detail: PodDetail }) {
   const statusVariant = POD_STATUS_VARIANT[detail.status] ?? "inactive";
+  const noun = podNoun(detail.cycle_mode);
   return (
     <header>
       <div className="lbl mb-1.5">
-        {detail.cycle_name ? `${detail.cycle_name} · Pod` : "Pod"}
+        {detail.cycle_name ? `${detail.cycle_name} · ${noun}` : noun}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="t-h1 text-ink">
-          {detail.name ?? `Pod ${detail.id}`}
+          {detail.name ?? `${noun} ${detail.id}`}
         </h1>
         <StatusBadge variant={statusVariant} withDot>
           {detail.status}

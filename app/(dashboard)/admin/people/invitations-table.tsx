@@ -24,6 +24,7 @@ type Invitation = {
   role_preset: string | null;
   cycle_id: number | null;
   cycle_name: string | null;
+  cycle_mode?: string | null;
   pod_id: number | null;
   pod_role?: string | null;
   status: string;
@@ -43,7 +44,7 @@ export default function InvitationsTable({
   canManageRoles,
 }: {
   invitations: Invitation[];
-  cycles: { id: number; name: string }[];
+  cycles: { id: number; name: string; mode: string | null }[];
   pods: { id: number; name: string; cycle_name: string; mode: string | null }[];
   canManageRoles: boolean;
 }) {
@@ -52,6 +53,14 @@ export default function InvitationsTable({
   const [serverError, setServerError] = useState<string | null>(null);
   const [sending, setSending] = useState<number | null>(null);
   const [sendError, setSendError] = useState<{ id: number; message: string } | null>(null);
+
+  // P-3/P-4: split the Cycle and Pod pickers into participant/organization
+  // optgroups so Priya can't attach a participant invite to the org's
+  // internal cycle (or vice versa) before she even reaches pod_role.
+  const participantCycles = cycles.filter((c) => c.mode !== "org");
+  const orgCycles = cycles.filter((c) => c.mode === "org");
+  const participantPods = pods.filter((p) => p.mode !== "org");
+  const orgPods = pods.filter((p) => p.mode === "org");
 
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteFormSchema),
@@ -110,15 +119,16 @@ export default function InvitationsTable({
     const sendRes = await fetch(`/api/invitations/${json.id}/send`, { method: "POST" });
     const sendData = await sendRes.json();
 
-    const cycleName = data.cycle_id
-      ? cycles.find((c) => c.id === parseInt(data.cycle_id!))?.name ?? null
-      : null;
+    const selectedCycle = data.cycle_id
+      ? cycles.find((c) => c.id === parseInt(data.cycle_id!))
+      : undefined;
 
     setInvitations((prev) => [
       {
         ...json,
         permissions: json.permissions ?? [],
-        cycle_name: cycleName,
+        cycle_name: selectedCycle?.name ?? null,
+        cycle_mode: selectedCycle?.mode ?? null,
         email_sent_at: sendRes.ok ? sendData.email_sent_at : null,
       },
       ...prev,
@@ -199,11 +209,24 @@ export default function InvitationsTable({
               <label className="text-xs font-medium text-charcoal">Cycle</label>
               <select {...register("cycle_id")} className={inputClass}>
                 <option value="">None</option>
-                {cycles.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {participantCycles.length > 0 && (
+                  <optgroup label="Participant cycles">
+                    {participantCycles.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {orgCycles.length > 0 && (
+                  <optgroup label="Organization cycles">
+                    {orgCycles.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
             {/* Moderator invites need a pod; org workstream invites
@@ -213,11 +236,24 @@ export default function InvitationsTable({
               <label className="text-xs font-medium text-charcoal">Pod</label>
               <select {...register("pod_id")} className={inputClass}>
                 <option value="">None</option>
-                {pods.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.cycle_name})
-                  </option>
-                ))}
+                {participantPods.length > 0 && (
+                  <optgroup label="Pods (participant cycles)">
+                    {participantPods.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.cycle_name})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {orgPods.length > 0 && (
+                  <optgroup label="Workstream runs (organization)">
+                    {orgPods.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.cycle_name})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
             {/* Org-mode pods require a pod_role (co-lead/member); the
@@ -335,7 +371,14 @@ export default function InvitationsTable({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-meta">{inv.cycle_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-meta">
+                    {inv.cycle_name ?? "—"}
+                    {inv.cycle_mode === "org" && (
+                      <span className="ml-1.5 inline-flex items-center rounded-sm bg-ink/[0.04] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-meta">
+                        org
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`status ${

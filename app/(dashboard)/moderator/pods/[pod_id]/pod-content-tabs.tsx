@@ -17,6 +17,11 @@ import { persistUiState } from "../../switcher";
  * Initial tab comes from the server (read from moderator_ui_state.last_pod_tab).
  * Every tab change persists via PUT /api/moderator/ui-state so the next
  * visit lands on the same tab.
+ *
+ * B-5: org workstream runs don't file pulse checks, so the "Recent
+ * pulses" tab is hidden on `mode === "org"`. A persisted `recent_pulses`
+ * initial tab from before a pod's cycle mode mattered (or a stale
+ * cross-cycle read) falls back to the members tab.
  */
 
 const TABS: { value: PodTab; label: string }[] = [
@@ -29,13 +34,19 @@ export function PodContentTabs({
   podId,
   podName,
   initialTab,
+  mode,
 }: {
   members: RosterRow[];
   podId: number;
   podName: string;
   initialTab: PodTab;
+  mode?: string | null;
 }) {
-  const [tab, setTab] = React.useState<PodTab>(initialTab);
+  const isOrg = mode === "org";
+  const tabs = isOrg ? TABS.filter((t) => t.value !== "recent_pulses") : TABS;
+  const [tab, setTab] = React.useState<PodTab>(
+    isOrg && initialTab === "recent_pulses" ? "members" : initialTab
+  );
 
   const onSelect = (next: PodTab) => {
     if (next === tab) return;
@@ -46,7 +57,7 @@ export function PodContentTabs({
   return (
     <section>
       <div className="mb-3 flex items-center gap-1 border-b border-ink/10">
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active = t.value === tab;
           return (
             <button
@@ -67,7 +78,7 @@ export function PodContentTabs({
       {tab === "members" && (
         <RosterTable members={members} podId={podId} podName={podName} />
       )}
-      {tab === "recent_pulses" && <RecentPulsesFeed podId={podId} />}
+      {tab === "recent_pulses" && !isOrg && <RecentPulsesFeed podId={podId} />}
     </section>
   );
 }

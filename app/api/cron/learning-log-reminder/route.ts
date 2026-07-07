@@ -13,6 +13,13 @@ import {
 // after the Friday arm — so a locked member gets ONE nudge per window,
 // not a daily drip. The gate itself does the enforcing; the email just
 // tells them where the door is.
+//
+// Org cycles (migration 00060) mean a member can be dual-enrolled and
+// have more than one cycle due at once. Two passes: first collect every
+// due cycle name per participant (still checking each cycle's own
+// "already logged" state independently — a log against cycle A never
+// suppresses a real reminder for cycle B); then send exactly ONE email
+// per participant naming all of their due cycles (B-4).
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const SEND_DELAY_MS = 200;
@@ -45,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   const { data: cycles } = await supabase
     .from("cycles")
-    .select("id, cycle_config(log_due_at, log_gate_paused)")
+    .select("id, name, cycle_config(log_due_at, log_gate_paused)")
     .eq("status", "active");
 
   // Cycles whose window is armed, unpaused, and younger than 24h.
@@ -69,7 +76,15 @@ export async function GET(request: NextRequest) {
   const dashboardUrl = `${appUrl}/dashboard`;
   const resend = getResendClient();
   const outcomes: Outcome[] = [];
-  const seen = new Set<number>();
+
+  // Pass 1 — collect every due cycle name per participant. The
+  // "already logged" check stays scoped to each cycle's own window, so a
+  // log cleared against cycle A never suppresses a still-due reminder for
+  // cycle B.
+  const dueByParticipant = new Map<
+    number,
+    { email: string; cycleNames: string[] }
+  >();
 
   for (const cycle of dueCycles) {
     const config = Array.isArray(cycle.cycle_config)
@@ -88,11 +103,9 @@ export async function GET(request: NextRequest) {
         ? enrollment.participants[0]
         : enrollment.participants;
       if (!participant?.email) continue;
-      if (seen.has(participant.id)) continue;
 
-      // Already logged for THIS cycle's window → no email needed for this
-      // cycle. Cycle-scoped so a log cleared against cycle A never suppresses
-      // a still-due reminder for cycle B (org + participant dual enrollment).
+      // Already logged for THIS cycle's window → no reminder for this
+      // cycle.
       const { count } = await supabase
         .from("learning_logs")
         .select("id", { count: "exact", head: true })
@@ -101,47 +114,53 @@ export async function GET(request: NextRequest) {
         .gte("created_at", dueAt);
       if ((count ?? 0) > 0) continue;
 
-      // Mark seen only once a send is actually decided — never before the
-      // per-cycle check above — so a participant with two due cycles still
-      // gets exactly one email (for whichever cycle needs it first), instead
-      // of an earlier cycle's "already logged" skip silently starving a
-      // later cycle's real reminder.
-      seen.add(participant.id);
-
-      try {
-        const { error: sendError } = await resend.emails.send({
-          from: FROM_EMAIL,
-          to: participant.email,
-          subject: logReminderSubject(),
-          html: logReminderEmailHtml({ dashboardUrl }),
-          text: logReminderEmailText({ dashboardUrl }),
-        });
-        if (sendError) {
-          console.error(
-            `[learning-log-reminder] send failed participant_id=${participant.id} error=${sendError.message ?? String(sendError)}`
-          );
-          outcomes.push({
-            participant_id: participant.id,
-            status: "error",
-            error: sendError.message ?? String(sendError),
-          });
-        } else {
-          outcomes.push({ participant_id: participant.id, status: "sent" });
-        }
-      } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        console.error(
-          `[learning-log-reminder] exception participant_id=${participant.id} error=${message}`
-        );
-        outcomes.push({
-          participant_id: participant.id,
-          status: "error",
-          error: message,
+      const existing = dueByParticipant.get(participant.id);
+      if (existing) {
+        existing.cycleNames.push(cycle.name);
+      } else {
+        dueByParticipant.set(participant.id, {
+          email: participant.email,
+          cycleNames: [cycle.name],
         });
       }
-
-      await new Promise((r) => setTimeout(r, SEND_DELAY_MS));
     }
+  }
+
+  // Pass 2 — one email per participant, naming every cycle collected above.
+  for (const [participantId, due] of dueByParticipant) {
+    try {
+      const { error: sendError } = await resend.emails.send({
+        from: FROM_EMAIL,
+        to: due.email,
+        subject: logReminderSubject(due.cycleNames),
+        html: logReminderEmailHtml({ dashboardUrl, cycleNames: due.cycleNames }),
+        text: logReminderEmailText({ dashboardUrl, cycleNames: due.cycleNames }),
+      });
+      if (sendError) {
+        console.error(
+          `[learning-log-reminder] send failed participant_id=${participantId} error=${sendError.message ?? String(sendError)}`
+        );
+        outcomes.push({
+          participant_id: participantId,
+          status: "error",
+          error: sendError.message ?? String(sendError),
+        });
+      } else {
+        outcomes.push({ participant_id: participantId, status: "sent" });
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error(
+        `[learning-log-reminder] exception participant_id=${participantId} error=${message}`
+      );
+      outcomes.push({
+        participant_id: participantId,
+        status: "error",
+        error: message,
+      });
+    }
+
+    await new Promise((r) => setTimeout(r, SEND_DELAY_MS));
   }
 
   return NextResponse.json({
