@@ -754,12 +754,6 @@ button:focus-visible {
   .metro-search input:focus { outline: none; border-color: var(--teal); box-shadow: var(--shadow-lg); }
   .metro-search input::placeholder { color: var(--meta-soft); }
 
-  /* ── signed-out upsell band ── */
-  .upsell { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: var(--ink); color: var(--od1); padding: 12px var(--pad); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: 0 -8px 30px rgba(0, 20, 27, 0.25); }
-  .upsell p { font-size: 14px; font-weight: 600; color: #fff; }
-  .upsell .t-small { color: var(--od2); }
-  .has-upsell { padding-bottom: 76px; }
-
   /* ── content-page footer ── */
   .pgfoot { background: var(--ink); color: var(--od2); margin-top: 64px; }
   .pgfoot-inner { max-width: var(--maxw); margin: 0 auto; padding: 40px var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; }

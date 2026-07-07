@@ -12,9 +12,9 @@ OLOS supports peer-driven learning cycles, volunteer and mentor coordination, an
 
 You must have a valid Google Account to sign in. You are responsible for maintaining the confidentiality of your account and for all activity that occurs under it. You agree to provide accurate information during registration.
 
-## 3. Volunteer and Participant Agreements
+## 3. One Agreement for Every Role
 
-Participation in specific roles (volunteer, mentor) may require you to separately accept a Volunteer Participation Agreement, Volunteer Guidelines, or Volunteer Mentor Agreement. Those documents govern the specific terms of volunteer or mentor engagement and are incorporated by reference where applicable.
+Everyone joins The Upskilling Labs through the same registration and accepts the same Participant Agreement — whether you take part as a learner, mentor, organizer, or builder. That agreement incorporates these Terms, our Privacy Policy, and our Code of Conduct, and they apply to all members equally, regardless of role. The only additional agreement is the Build Cycle agreement you accept if and when you join a specific cycle.
 
 ## 4. Acceptable Use
 

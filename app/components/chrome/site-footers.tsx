@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { DONATE_URL } from "@/lib/donate";
 
 /* The two public footers, ported from onboarding-proto:
    - PgFoot: the compact content-page footer (chrome.js footerHTML)
    - OsFooter: the open-source footer on the landing (index.html)
-   - UpsellBand: the signed-out fixed band on content pages */
+
+   Legal, contact, and get-involved pages are now hosted on-site (app/(public)/…)
+   and linked here first — Privacy/Terms/Code of Conduct point to internal routes,
+   and Donate routes through the on-site /donate landing (which carries the
+   external every.org give button). */
 
 export function PgFoot() {
   return (
@@ -20,24 +23,18 @@ export function PgFoot() {
           <Link href="/library">Library</Link> ·{" "}
           <Link href="/stories">Stories</Link> ·{" "}
           <Link href="/local-labs">Cities</Link> ·{" "}
-          <a href={DONATE_URL} target="_blank" rel="noopener">
-            Donate
-          </a>
+          <Link href="/get-involved">Get Involved</Link> ·{" "}
+          <Link href="/team">The Team</Link> ·{" "}
+          <Link href="/donate">Donate</Link> ·{" "}
+          <Link href="/contact">Contact</Link>
+        </span>
+        <span>
+          <Link href="/privacy">Privacy</Link> ·{" "}
+          <Link href="/terms">Terms</Link> ·{" "}
+          <Link href="/code-of-conduct">Code of Conduct</Link>
         </span>
       </div>
     </footer>
-  );
-}
-
-export function UpsellBand() {
-  return (
-    <div className="upsell">
-      <p>Find your people. Build your edge.</p>
-      <span className="t-small">Free to join · run in the open</span>
-      <Link className="btn btn-red btn-sm" href="/login">
-        Create account
-      </Link>
-    </div>
   );
 }
 
@@ -59,14 +56,9 @@ export function OsFooter() {
               A commons for upskilling — learn by doing, in the open. Projects,
               playbooks, and lessons, built like open source.
             </p>
-            <a
-              className="btn btn-ghost-teal btn-sm"
-              href={DONATE_URL}
-              target="_blank"
-              rel="noopener"
-            >
+            <Link className="btn btn-ghost-teal btn-sm" href="/donate">
               Support The Labs
-            </a>
+            </Link>
           </div>
           <div className="foot-col">
             <div className="lbl">Explore</div>
@@ -79,8 +71,10 @@ export function OsFooter() {
           <div className="foot-col">
             <div className="lbl">Community</div>
             <Link className="foot-link" href="/about">About</Link>
+            <Link className="foot-link" href="/team">The Team</Link>
+            <Link className="foot-link" href="/get-involved">Get Involved</Link>
+            <Link className="foot-link" href="/contact">Contact</Link>
             <Link className="foot-link" href="/login">Become a member</Link>
-            <Link className="foot-link" href="/login">Log in</Link>
           </div>
           <div className="foot-col">
             <div className="lbl">Open source</div>
@@ -114,20 +108,9 @@ export function OsFooter() {
         <div className="foot-bottom">
           <span>© 2026 The Upskilling Labs, Inc.</span>
           <span className="foot-legal">
-            <a
-              href="https://github.com/TheUpskillingLabs/OLOS/blob/main/docs/legal/PRIVACY_POLICY.md"
-              target="_blank"
-              rel="noopener"
-            >
-              Privacy
-            </a>
-            <a
-              href="https://github.com/TheUpskillingLabs/OLOS/blob/main/docs/legal/TERMS_OF_SERVICE.md"
-              target="_blank"
-              rel="noopener"
-            >
-              Terms
-            </a>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/code-of-conduct">Code of Conduct</Link>
           </span>
           <span>MIT code · CC BY 4.0 content · Built in the open</span>
         </div>

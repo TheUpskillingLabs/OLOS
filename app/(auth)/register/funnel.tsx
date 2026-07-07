@@ -28,16 +28,24 @@ import {
    volunteer flows arrive with their stages.
    ════════════════════════════════════════════════════════════════════════ */
 
-/* The Participant Agreement — rendered in full (not just referenced) on the
-   consent step, behind the scroll-gate. Plain language on purpose. */
+/* The Participant Agreement — the single agreement everyone accepts to join,
+   regardless of role. Rendered in full (a plain-language summary) on the consent
+   step, behind the scroll-gate; it incorporates the canonical Terms, Privacy
+   Policy, and Code of Conduct linked at the end of the gated region.
+   NOTE: owner-approved copy — mirror any change in the onboarding-proto prototype,
+   and treat the version bump as a legal-review item (see funnel-registration.ts). */
 const PARTICIPANT_AGREEMENT: { h: string; p: string }[] = [
   {
     h: "Who this is between",
-    p: "You and The Upskilling Labs, a community R&D lab. This covers your member account; registering for a Build Cycle adds its own agreement later.",
+    p: "You and The Upskilling Labs, a community R&D lab. Everyone joins through the same registration and accepts this same agreement — whether you take part as a learner, mentor, organizer, or builder. It covers your member account; joining a Build Cycle adds its own agreement later.",
+  },
+  {
+    h: "The full terms",
+    p: "This is a plain-language summary. Our Terms of Service, Privacy Policy, and Code of Conduct — linked below — are part of this agreement and govern in full. They apply to every member equally, regardless of role.",
   },
   {
     h: "Be someone people can build with",
-    p: "Real name, honest work, no harassment. The Labs runs on mutual reliance — treat members, mentors, and hosts accordingly.",
+    p: "Real name, honest work, no harassment. The Labs runs on mutual reliance — treat members, mentors, and hosts accordingly. Our Code of Conduct sets this out in full.",
   },
   {
     h: "Your profile is members-only",
@@ -129,7 +137,12 @@ function signupSteps(email: string): FlowStep[] {
       q: "One last thing",
       agreementTitle: "The Participant Agreement",
       agreement: PARTICIPANT_AGREEMENT,
-      text: "I agree to the Participant Agreement and consent to receive updates from The Upskilling Labs.",
+      references: [
+        { label: "Terms of Service", href: "/terms" },
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Code of Conduct", href: "/code-of-conduct" },
+      ],
+      text: "I agree to the Participant Agreement — including the Terms of Service, Privacy Policy, and Code of Conduct — and consent to receive updates from The Upskilling Labs.",
     },
   ];
 }
