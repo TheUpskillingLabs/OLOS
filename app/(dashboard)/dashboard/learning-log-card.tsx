@@ -90,6 +90,7 @@ export default function LearningLogCard({
   gateActive,
   milestone = null,
   journal = false,
+  logCycles = [],
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
@@ -99,6 +100,11 @@ export default function LearningLogCard({
       personal diary — no pod health check, no gate, timeless prompts. The
       practice is theirs from account creation; the cycle only adds cadence. */
   journal?: boolean;
+  /** Every active cycle this member is actively enrolled in (org cycles:
+      dual-enrolled staff can hold both a participant and an org enrollment
+      at once). More than one renders a "Log for" picker; the chosen
+      cycle_id always rides along on save, even with exactly one. */
+  logCycles?: { id: number; name: string; mode: string }[];
 }) {
   const pf = milestone?.prefill ?? null;
   const [clarity, setClarity] = useState(pf?.clarity ?? 3);
@@ -116,6 +122,22 @@ export default function LearningLogCard({
   const [count, setCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  // Defaults to the open (participant) cycle when there's a choice — the
+  // legacy single-cycle behavior a dual-enrolled member expects by default.
+  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(() => {
+    if (logCycles.length === 0) return null;
+    return (logCycles.find((c) => c.mode === "open") ?? logCycles[0]).id;
+  });
+  const selectedCycle =
+    logCycles.find((c) => c.id === selectedCycleId) ?? null;
+
+  // Milestone framing describes the participant (open) cycle's record; a
+  // dual-enrolled member logging against a different cycle gets the plain
+  // weekly framing for that save instead.
+  const activeMilestone =
+    milestone && (!selectedCycle || selectedCycle.mode === "open")
+      ? milestone
+      : null;
 
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
@@ -166,8 +188,8 @@ export default function LearningLogCard({
     .join(" ");
 
   // Milestone weeks reframe the same three prompts as an evaluation.
-  const isFinal = milestone?.kind === "milestone_13";
-  const promptLabels: [string, string, string] = milestone
+  const isFinal = activeMilestone?.kind === "milestone_13";
+  const promptLabels: [string, string, string] = activeMilestone
     ? [
         "Looking back over the cycle, what have you built or figured out?",
         "Where are you now — what are you still working through?",
@@ -203,6 +225,7 @@ export default function LearningLogCard({
           exploring: exploring || null,
           next_focus: nextFocus || null,
           share_publicly: share,
+          cycle_id: selectedCycleId,
         }),
       });
       if (!res.ok) {
@@ -243,10 +266,10 @@ export default function LearningLogCard({
       <div className="flex items-baseline justify-between">
         <div>
           <p className="lbl">
-            {journal ? "Journal" : milestone ? "Milestone" : "Weekly ritual"}
+            {journal ? "Journal" : activeMilestone ? "Milestone" : "Weekly ritual"}
           </p>
           <h2 className="t-h3 text-ink">
-            {milestone ? milestone.label : "Learning Log"}
+            {activeMilestone ? activeMilestone.label : "Learning Log"}
           </h2>
         </div>
         {count > 0 && (
@@ -256,12 +279,29 @@ export default function LearningLogCard({
         )}
       </div>
 
-      {milestone && (
+      {activeMilestone && (
         <p className="mt-2 text-sm text-charcoal">
           An evaluation inside the practice — the same Learning Log, prefilled
           from your own logs so you review your record instead of a blank page.
           Never a grade.
         </p>
+      )}
+
+      {logCycles.length > 1 && (
+        <label className="mt-4 block">
+          <span className="text-sm font-semibold text-ink">Log for</span>
+          <select
+            value={selectedCycleId ?? ""}
+            onChange={(e) => setSelectedCycleId(Number(e.target.value))}
+            className="mt-1 w-full rounded-card border border-ink/15 bg-white p-2.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+          >
+            {logCycles.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
 
       {journal && (
@@ -380,7 +420,7 @@ export default function LearningLogCard({
         disabled={busy}
         className="btn btn-teal mt-5"
       >
-        {busy ? "Saving…" : milestone ? "Save review" : "Save log"}
+        {busy ? "Saving…" : activeMilestone ? "Save review" : "Save log"}
       </button>
 
       {/* Your record — every past entry, readable in place (review, don't

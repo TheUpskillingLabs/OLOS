@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod, can } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import { podNoun } from "@/lib/cycle/labels";
 import PulseCheckDashboard from "./pulse-check-dashboard";
 
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -34,12 +35,15 @@ export default async function PodDetailPage({
   const { data: pod } = await supabase
     .from("pods")
     .select(
-      "id, name, status, cycle_id, problem_statement_id, problem_statements(statement_text)"
+      "id, name, status, cycle_id, workstream_id, problem_statement_id, problem_statements(statement_text), cycles(mode)"
     )
     .eq("id", parseInt(pod_id))
     .single();
 
   if (!pod) notFound();
+
+  const cycleRow = (pod.cycles as unknown) as { mode: string } | { mode: string }[] | null;
+  const mode = Array.isArray(cycleRow) ? cycleRow[0]?.mode : cycleRow?.mode;
 
   const { data: members } = await supabase
     .from("pod_memberships")
@@ -143,8 +147,13 @@ export default async function PodDetailPage({
           Back to cycle
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
-          {pod.name || `Pod ${pod.id}`}
+          {pod.name || `${podNoun(mode)} ${pod.id}`}
         </h1>
+        {mode === "org" && (
+          <p className="mt-1 text-sm text-meta">
+            An organization workstream &mdash; part of the org cycle.
+          </p>
+        )}
         <span className="mt-2 inline-block">
           <StatusBadge variant={podVariant}>{pod.status}</StatusBadge>
         </span>

@@ -41,10 +41,23 @@ export default async function CyclesPage() {
   }
 
   const otherCycles = cycles?.filter((c) => c.id !== activeCycle?.id) ?? [];
+  // Org cycles run alongside the participant track and get their own section
+  // (invite-only — never a "Register" CTA), so they're excluded from the
+  // generic upcoming/past lists below.
+  const orgCycles = otherCycles.filter((c) => c.mode === "org");
+  const activeOrgCycle = orgCycles.find((c) => c.status === "active") ?? null;
+  const upcomingOrgCycle =
+    orgCycles.find((c) => c.status === "upcoming") ?? null;
+  const nonOrgCycles = otherCycles.filter((c) => c.mode !== "org");
   // An upcoming cohort is open for registration — surface it as its own
   // "Register" section, never buried under "Past cycles".
-  const upcomingCycles = otherCycles.filter((c) => c.status === "upcoming");
-  const pastCycles = otherCycles.filter((c) => c.status !== "upcoming");
+  const upcomingCycles = nonOrgCycles.filter((c) => c.status === "upcoming");
+  const pastCycles = [
+    ...nonOrgCycles.filter((c) => c.status !== "upcoming"),
+    ...orgCycles.filter(
+      (c) => c.status !== "active" && c.status !== "upcoming"
+    ),
+  ];
 
   return (
     <div>
@@ -104,6 +117,54 @@ export default async function CyclesPage() {
             />
           </span>
         </Link>
+      )}
+
+      {/* Organization cycle — the workstream track running alongside the
+          participant cycle. Plain white card styling keeps the participant
+          active-cycle card above as the visual hero. */}
+      {(activeOrgCycle || upcomingOrgCycle) && (
+        <div className="mb-8">
+          <h2 className="lbl mb-4">Organization cycle</h2>
+          {activeOrgCycle && (
+            <Link
+              href={`/cycles/${activeOrgCycle.id}`}
+              className="group mb-3 flex items-center justify-between rounded-card border border-ink/10 bg-white p-5 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            >
+              <div>
+                <h3 className="t-h3 text-ink">{activeOrgCycle.name}</h3>
+                <p className="mt-0.5 text-sm text-meta">
+                  {new Date(activeOrgCycle.start_date).toLocaleDateString()}{" "}
+                  &ndash;{" "}
+                  {new Date(activeOrgCycle.end_date).toLocaleDateString()}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
+                View cycle
+                <ArrowRight
+                  className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+                  aria-hidden
+                />
+              </span>
+            </Link>
+          )}
+          {upcomingOrgCycle && (
+            <Link
+              href={`/cycles/${upcomingOrgCycle.id}`}
+              className="flex items-center justify-between rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            >
+              <div>
+                <h3 className="t-h4 text-ink">{upcomingOrgCycle.name}</h3>
+                <p className="mt-1 text-sm text-meta">
+                  Starts{" "}
+                  {new Date(upcomingOrgCycle.start_date).toLocaleDateString()}
+                </p>
+              </div>
+              <StatusBadge variant={STATUS_VARIANT.upcoming}>
+                {upcomingOrgCycle.status}
+              </StatusBadge>
+            </Link>
+          )}
+        </div>
       )}
 
       {/* Upcoming — open for registration. The CTA goes to the registration

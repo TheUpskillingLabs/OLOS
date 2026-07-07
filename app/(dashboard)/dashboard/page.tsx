@@ -18,6 +18,7 @@ import UpNext, { type TodoCard } from "./up-next";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -56,6 +57,12 @@ export default async function DashboardPage() {
   // is the newest upcoming.
   const upcomingCycle =
     cycles?.find((c) => c.status === "upcoming" && c.mode === "open") ?? null;
+
+  // The org cycle running alongside the participant cycle (docs/ORG_CYCLES.md)
+  // — a workstream's quarterly run reuses the same pods/cycles machinery,
+  // just scoped to mode 'org'. At most one is active at a time today.
+  const orgCycle =
+    cycles?.find((c) => c.status === "active" && c.mode === "org") ?? null;
 
   type PodMembership = { id: number; pod_id: number; pods: { id: number; name: string; status: string } };
   let activeCycleConfig = null;
@@ -102,6 +109,67 @@ export default async function DashboardPage() {
     myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
     hasAgreement = (agreementResult.count ?? 0) > 0;
     logCount = logResult.count ?? 0;
+  }
+
+  // The org cycle's workstream runs — mirrors the participant-cycle pod query
+  // above, scoped to orgCycle and gated on an active enrollment in it (org
+  // cycles are invite-only, so an enrollment row here means staff was
+  // deliberately added).
+  type WorkstreamMembership = {
+    id: number;
+    pod_id: number;
+    pods: { id: number; name: string; status: string; workstream_id: number | null };
+  };
+  let orgEnrollment: { id: number; status: string } | null = null;
+  let myWorkstreams: WorkstreamMembership[] = [];
+  let coLeadPodIds = new Set<number>();
+
+  if (orgCycle) {
+    const { data: orgEnrollmentData } = await serviceClient
+      .from("cycle_enrollments")
+      .select("id, status")
+      .eq("participant_id", participant.id)
+      .eq("cycle_id", orgCycle.id)
+      .maybeSingle();
+    orgEnrollment = orgEnrollmentData;
+
+    if (orgEnrollment?.status === "active") {
+      const { data: workstreamMemberships } = await serviceClient
+        .from("pod_memberships")
+        .select("id, pod_id, pods!inner(id, name, status, workstream_id)")
+        .eq("participant_id", participant.id)
+        .eq("pods.cycle_id", orgCycle.id)
+        .is("inactive_at", null);
+      myWorkstreams =
+        (workstreamMemberships as unknown as WorkstreamMembership[]) ?? [];
+
+      if (myWorkstreams.length > 0) {
+        const { data: modAssignments } = await serviceClient
+          .from("moderator_assignments")
+          .select("pod_id")
+          .eq("participant_id", participant.id)
+          .in(
+            "pod_id",
+            myWorkstreams.map((m) => m.pod_id)
+          )
+          .is("removed_at", null);
+        coLeadPodIds = new Set((modAssignments ?? []).map((m) => m.pod_id));
+      }
+    }
+  }
+
+  // Every active cycle this member is actively enrolled in — feeds the
+  // Learning Log's "Log for" picker (dual-enrolled staff log against either).
+  const logCycles: { id: number; name: string; mode: string }[] = [];
+  if (activeCycle && enrollment?.status === "active") {
+    logCycles.push({
+      id: activeCycle.id,
+      name: activeCycle.name,
+      mode: activeCycle.mode,
+    });
+  }
+  if (orgCycle && orgEnrollment?.status === "active") {
+    logCycles.push({ id: orgCycle.id, name: orgCycle.name, mode: orgCycle.mode });
   }
 
   // Has the member already signed the upcoming cohort's Open Cycle Agreement?
@@ -239,6 +307,7 @@ export default async function DashboardPage() {
         gateActive={!journal && logGate.active}
         milestone={journal ? null : milestoneCtx}
         journal={journal}
+        logCycles={logCycles}
       />
     </section>
   );
@@ -584,6 +653,49 @@ export default async function DashboardPage() {
                       <div className="flex items-start justify-between gap-3">
                         <h3 className="t-h4 text-ink">{pod.name}</h3>
                         <StatusBadge variant={variant}>{pod.status}</StatusBadge>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Your workstreams — the org cycle's runs the member co-leads or
+              participates in (docs/ORG_CYCLES.md). Same pods machinery as
+              above, "Workstream"/"Co-lead" framing on this org-cycle surface. */}
+          {myWorkstreams.length > 0 && (
+            <section className="mb-8">
+              <div className="mb-4">
+                <div className="lbl lbl-teal mb-1.5">
+                  {podNoun(orgCycle?.mode, true)}
+                </div>
+                <h2 className="t-h3 text-ink">
+                  Your {podNoun(orgCycle?.mode, myWorkstreams.length > 1)}
+                </h2>
+              </div>
+              <div
+                className={
+                  myWorkstreams.length === 1
+                    ? "grid gap-4"
+                    : "grid gap-4 sm:grid-cols-2"
+                }
+              >
+                {myWorkstreams.map((membership) => {
+                  const pod = membership.pods;
+                  return (
+                    <Link
+                      key={membership.id}
+                      href={`/pods/${pod.id}`}
+                      className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="t-h4 text-ink">{pod.name}</h3>
+                        {coLeadPodIds.has(pod.id) && (
+                          <StatusBadge variant="active">
+                            {moderatorNoun(orgCycle?.mode)}
+                          </StatusBadge>
+                        )}
                       </div>
                     </Link>
                   );
