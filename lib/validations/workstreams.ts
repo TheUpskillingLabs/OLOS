@@ -17,3 +17,33 @@ export const createRunSchema = z.object({
 });
 
 export type CreateRun = z.infer<typeof createRunSchema>;
+
+// Promote a participant onto a project's IC ladder (project_roles,
+// migration 00060) — POST /api/projects/[project_id]/contributors.
+export const addContributorSchema = z.object({
+  participant_id: z.number().int().positive(),
+  role: z.enum(["contributor", "dri"]).default("contributor"),
+});
+
+export type AddContributor = z.infer<typeof addContributorSchema>;
+
+// Charter an org project directly onto a workstream run's pod — no
+// solution_proposals ballot (docs/ORG_CYCLES.md §2) —
+// POST /api/pods/[pod_id]/projects. github_repo_url mirrors pods.name's
+// VARCHAR(255) column and is optional (empty string allowed from a form).
+export const charterProjectSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Project name is required")
+    .max(40, "Project name must be 40 characters or fewer"),
+  github_repo_url: z
+    .string()
+    .trim()
+    .url("Must be a valid URL")
+    .max(255, "URL must be 255 characters or fewer")
+    .optional()
+    .or(z.literal("")),
+});
+
+export type CharterProject = z.infer<typeof charterProjectSchema>;

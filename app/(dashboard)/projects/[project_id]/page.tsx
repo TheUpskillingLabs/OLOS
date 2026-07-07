@@ -3,7 +3,10 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import { podNoun } from "@/lib/cycle/labels";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
+import FollowButton from "./follow-button";
+import ContributorsSection from "./contributors-section";
 
 type ProjectStatus = "active" | "forming" | "closed" | "inactive";
 
@@ -34,11 +37,19 @@ export default async function ProjectDetailPage({
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, name, status, pod_id, cycle_id, solution_proposal_id")
+    .select(
+      "id, name, status, pod_id, cycle_id, solution_proposal_id, cycles(mode)"
+    )
     .eq("id", projectId)
     .single();
 
   if (!project) notFound();
+
+  const cycleRow = (project.cycles as unknown) as
+    | { mode: string }
+    | { mode: string }[]
+    | null;
+  const mode = Array.isArray(cycleRow) ? cycleRow[0]?.mode : cycleRow?.mode;
 
   // Get pod info for breadcrumb
   const { data: pod } = await supabase
@@ -113,6 +124,72 @@ export default async function ProjectDetailPage({
     });
   }
 
+  // Active project_roles (DRI/contributor ladder) with participant names.
+  const { data: projectRoleRows } = await serviceClient
+    .from("project_roles")
+    .select(
+      "participant_id, role, created_at, participants(first_name, last_name, preferred_name)"
+    )
+    .eq("project_id", projectId)
+    .is("removed_at", null)
+    .order("created_at");
+
+  const contributors = (projectRoleRows ?? []).map((r) => {
+    const p = (r.participants as unknown) as Record<string, string> | null;
+    return {
+      participant_id: r.participant_id,
+      name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
+      role: r.role as "dri" | "contributor",
+      created_at: r.created_at,
+    };
+  });
+
+  // Viewer's own follow state — self-read RLS covers this via the anon client.
+  let following = false;
+  if (userRoles?.participantId) {
+    const { data: subscription } = await supabase
+      .from("project_subscriptions")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("participant_id", userRoles.participantId)
+      .maybeSingle();
+    following = !!subscription;
+  }
+
+  const { count: followerCount } = await serviceClient
+    .from("project_subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId);
+
+  const ownActiveDri = contributors.some(
+    (c) => c.role === "dri" && c.participant_id === userRoles?.participantId
+  );
+  const canManageContributors =
+    !!userRoles &&
+    (isAdmin(userRoles) ||
+      isModeratorForPod(userRoles, project.pod_id) ||
+      ownActiveDri);
+
+  // Enrolled-participant options for the add-contributor select — only fetch
+  // when the viewer can actually manage contributors.
+  let participantOptions: { participant_id: number; name: string }[] = [];
+  if (canManageContributors) {
+    const { data: enrollments } = await serviceClient
+      .from("cycle_enrollments")
+      .select(
+        "participant_id, participants(first_name, last_name, preferred_name)"
+      )
+      .eq("cycle_id", project.cycle_id);
+
+    participantOptions = (enrollments ?? []).map((e) => {
+      const p = (e.participants as unknown) as Record<string, string> | null;
+      return {
+        participant_id: e.participant_id,
+        name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
+      };
+    });
+  }
+
   const projectVariant =
     PROJECT_STATUS_VARIANT[project.status as ProjectStatus] ?? "inactive";
 
@@ -136,20 +213,27 @@ export default async function ProjectDetailPage({
             href={`/pods/${project.pod_id}`}
             className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
           >
-            {pod?.name || `Pod ${project.pod_id}`}
+            {pod?.name || `${podNoun(mode)} ${project.pod_id}`}
           </Link>
         </nav>
-        <h1 className="t-h1 mt-2 text-ink">
-          {project.name || `Project ${project.id}`}
-        </h1>
-        <span className="mt-2 inline-block">
-          <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
-        </span>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="t-h1 text-ink">
+              {project.name || `Project ${project.id}`}
+            </h1>
+            <span className="mt-2 inline-block">
+              <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
+            </span>
+          </div>
+          {userRoles?.participantId != null && (
+            <FollowButton projectId={project.id} following={following} />
+          )}
+        </div>
       </div>
 
       <div className="mb-8">
         <h2 className="t-h3 mb-3 text-ink">
-          Members ({activeMembers.length})
+          {mode === "org" ? "Core team" : "Members"} ({activeMembers.length})
         </h2>
         <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
@@ -196,6 +280,16 @@ export default async function ProjectDetailPage({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="mb-8">
+        <ContributorsSection
+          projectId={project.id}
+          contributors={contributors}
+          followerCount={followerCount ?? 0}
+          canManage={canManageContributors}
+          participantOptions={participantOptions}
+        />
       </div>
 
       {canViewDashboard && (
