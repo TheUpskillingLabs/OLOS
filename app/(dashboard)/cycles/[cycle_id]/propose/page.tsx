@@ -69,10 +69,10 @@ export default async function ProposePage({
           Open cycle problem proposal
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-charcoal">
-          The Open Cycle accepts problem proposals year-round. At the start of
-          each cycle, active participants vote to shortlist the strongest
-          proposals. Shortlisted proposals open for registration. If a research
-          pod reaches the minimum number of registrants, it officially forms.
+          Propose a problem for the community to tackle this cycle. Participants
+          vote to shortlist the strongest proposals; shortlisted proposals open
+          for pod registration, and a pod forms once it reaches the minimum
+          number of registrants.
         </p>
         <p className="mt-2 text-sm font-medium text-charcoal">
           Take your time with Part 2 — it&rsquo;s the most important section.

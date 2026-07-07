@@ -193,9 +193,7 @@ export default async function PodDetailPage({
       )}
 
       <div className="mb-8">
-        <h2 className="t-h3 mb-3 text-ink">
-          Members ({members?.length || 0})
-        </h2>
+        <h2 className="t-h3 mb-3 text-ink">Members ({activeMemberCount})</h2>
         <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
@@ -212,7 +210,9 @@ export default async function PodDetailPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-ink/10">
-              {(members || []).map((m) => {
+              {(members || [])
+                .filter((m) => !m.inactive_at)
+                .map((m) => {
                 const p = (m.participants as unknown) as Record<string, string> | null;
                 return (
                   <tr

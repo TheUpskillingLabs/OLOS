@@ -188,7 +188,7 @@ export default async function ProjectDetailPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-ink/10">
-              {(memberships ?? []).map((m) => {
+              {activeMembers.map((m) => {
                 const p = (m.participants as unknown) as Record<
                   string,
                   string

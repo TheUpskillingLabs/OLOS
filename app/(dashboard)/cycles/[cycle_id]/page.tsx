@@ -12,11 +12,17 @@ import {
 } from "@/lib/cycle/phases";
 import { getCycleWeek } from "@/lib/cycle/week";
 
-type CycleStatus = "active" | "closed" | "draft";
+type CycleStatus = "active" | "upcoming" | "closing" | "archived" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
 
-const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
+const CYCLE_STATUS_VARIANT: Record<
+  CycleStatus,
+  "active" | "forming" | "inactive" | "draft"
+> = {
   active: "active",
+  upcoming: "forming",
+  closing: "active",
+  archived: "inactive",
   closed: "inactive",
   draft: "draft",
 };

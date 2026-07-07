@@ -29,6 +29,7 @@ export default function PodJoinSection({
     new Set(initialMyPodIds)
   );
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [actionPodId, setActionPodId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -39,9 +40,9 @@ export default function PodJoinSection({
           (p: Pod) => p.status === "forming" || p.status === "active"
         );
         setPods(activePods);
-        setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
   }, [cycleId]);
 
   const handleJoin = async (podId: number) => {
@@ -92,8 +93,9 @@ export default function PodJoinSection({
           {single ? "Choose your pod" : "Choose your pods"}
         </h2>
         <p className="mt-1 text-sm text-meta">
-          Pods are being formed from the winning problem statements — check back
-          soon.
+          {loadError
+            ? "We couldn't load the pods just now. Refresh to try again."
+            : "Pods are being formed from the winning problem statements — check back soon."}
         </p>
       </div>
     );

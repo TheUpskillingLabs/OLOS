@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getEvents, getResources } from "@/lib/content/queries";
@@ -86,9 +85,6 @@ export default async function LearningPage() {
             </div>
             <h2 className="t-h2">Drop into a session</h2>
           </div>
-          <Link className="see" href="/events">
-            Public page →
-          </Link>
         </div>
         {orderedEvents.length ? (
           <div className="cards dense all">
@@ -112,11 +108,6 @@ export default async function LearningPage() {
             </div>
             <h2 className="t-h2">Learn at your own pace</h2>
           </div>
-          {resources.length > 0 && (
-            <Link className="see" href="/library">
-              Public page →
-            </Link>
-          )}
         </div>
         {resources.length ? (
           <div className="cards dense all">

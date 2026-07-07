@@ -21,6 +21,7 @@ const ROLE_FILTERS: { key: string; label: string }[] = [
   { key: "cycle", label: "Builders" },
   { key: "mentor", label: "Mentors" },
   { key: "volunteer", label: "Volunteers" },
+  { key: "events", label: "Community" },
 ];
 
 // Placeholder gradients — reuse the teaser media gradients so an item without a
@@ -162,7 +163,10 @@ export default function DirectoryGrid({
       {/* Grid */}
       {tab === "people" ? (
         filteredMembers.length === 0 ? (
-          <Empty label="members" />
+          <Empty
+            label="members"
+            searching={q.length > 0 || followingOnly || roleFilter !== "all"}
+          />
         ) : (
           <div className="cards dense all">
             {filteredMembers.map((m) => (
@@ -171,7 +175,7 @@ export default function DirectoryGrid({
           </div>
         )
       ) : (tab === "pods" ? filteredPods : filteredProjects).length === 0 ? (
-        <Empty label={tab} />
+        <Empty label={tab} searching={q.length > 0 || followingOnly} />
       ) : (
         <div className="cards dense all">
           {(tab === "pods" ? filteredPods : filteredProjects).map((e) => (
@@ -199,18 +203,19 @@ function filterEntities(
   });
 }
 
-function Empty({ label }: { label: string }) {
+function Empty({ label, searching }: { label: string; searching: boolean }) {
   return (
     <div className="rounded-card border border-dashed border-meta-soft p-10 text-center">
-      <p className="t-small">No {label} match your search.</p>
+      <p className="t-small">
+        {searching ? `No ${label} match your search.` : `No ${label} yet.`}
+      </p>
     </div>
   );
 }
 
 function MemberCard({ member: m }: { member: DirectoryMember }) {
-  const href = m.handle ? `/u/${m.handle}` : "#";
-  return (
-    <Link className="card tappable" href={href}>
+  const body = (
+    <>
       <MemberThumb member={m} />
       <div className="card-body">
         <div className="t-h4 truncate text-ink">{m.displayName}</div>
@@ -239,6 +244,17 @@ function MemberCard({ member: m }: { member: DirectoryMember }) {
           </div>
         )}
       </div>
+    </>
+  );
+
+  // A member with no handle has no profile URL — render a non-link card rather
+  // than a dead href="#" that scroll-jumps to the top.
+  if (!m.handle) {
+    return <div className="card">{body}</div>;
+  }
+  return (
+    <Link className="card tappable" href={`/u/${m.handle}`}>
+      {body}
     </Link>
   );
 }

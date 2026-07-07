@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { StatusBadge, EmptyState } from "@/app/components/ui";
+import { StatusBadge, EmptyState, AlertBanner } from "@/app/components/ui";
 import CycleJourney from "@/app/components/cycle/cycle-journey";
 import PodJoinSection from "./pod-join-section";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
@@ -66,6 +66,7 @@ export default async function DashboardPage() {
   let hasAgreement = false;
   let logCount = 0;
   let podsExist = false;
+  let configError = false;
 
   if (activeCycle) {
     const [
@@ -114,6 +115,9 @@ export default async function DashboardPage() {
           .in("status", ["forming", "active"]),
       ]);
     activeCycleConfig = configResult.data;
+    // A failed config read otherwise wipes the whole cycle UI silently (no
+    // throw, so error.tsx never fires) — surface it instead.
+    configError = !!configResult.error && !configResult.data;
     enrollment = enrollmentResult.data;
     myPods = (membershipResult.data as unknown as PodMembership[]) ?? [];
     hasAgreement = (agreementResult.count ?? 0) > 0;
@@ -492,6 +496,15 @@ export default async function DashboardPage() {
           the light system). Collapses to a single column below 768px. */}
       <div className="dash">
         <div>
+          {configError && (
+            <div className="mb-8">
+              <AlertBanner variant="error" title="Couldn't load your cycle">
+                We hit a snag loading your cycle&apos;s schedule. Refresh to try
+                again.
+              </AlertBanner>
+            </div>
+          )}
+
           {/* Where you are in the cycle — the six-stage roadmap, so the member
               always knows the current step and what opens next. */}
           {activeCycle && timeline && (
