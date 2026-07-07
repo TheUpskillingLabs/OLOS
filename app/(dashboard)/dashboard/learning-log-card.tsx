@@ -90,6 +90,8 @@ export default function LearningLogCard({
   gateActive,
   milestone = null,
   journal = false,
+  logCycles = [],
+  pendingCycleIds = [],
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
@@ -99,6 +101,17 @@ export default function LearningLogCard({
       personal diary — no pod health check, no gate, timeless prompts. The
       practice is theirs from account creation; the cycle only adds cadence. */
   journal?: boolean;
+  /** Every active cycle this member is actively enrolled in (org cycles:
+      dual-enrolled staff can hold both a participant and an org enrollment
+      at once). More than one renders a "Log for" picker; the chosen
+      cycle_id always rides along on save, even with exactly one. */
+  logCycles?: { id: number; name: string; mode: string }[];
+  /** The gate's pending (armed + unmet) cycle ids — a locked member's
+      "Log for" picker should default to one of THESE, not blindly to the
+      open cycle, or a member whose only pending window is the org cycle
+      saves against the open cycle by default and stays locked with a
+      success message. */
+  pendingCycleIds?: number[];
 }) {
   const pf = milestone?.prefill ?? null;
   const [clarity, setClarity] = useState(pf?.clarity ?? 3);
@@ -111,11 +124,36 @@ export default function LearningLogCard({
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [justSaved, setJustSaved] = useState<null | { cleared: boolean }>(null);
+  const [justSaved, setJustSaved] = useState<null | {
+    cleared: boolean;
+    stillDue: string | null;
+  }>(null);
   const [recent, setRecent] = useState<RecentLog[]>([]);
   const [count, setCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  // Default: whichever eligible cycle is actually pending the gate (a
+  // locked member should log against the cycle that's locking them, not
+  // silently save against the open cycle and stay locked). Falls back to
+  // the open (participant) cycle — the legacy single-cycle behavior a
+  // dual-enrolled, non-locked member expects by default — then the first.
+  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(() => {
+    if (logCycles.length === 0) return null;
+    const pending = logCycles.find((c) => pendingCycleIds.includes(c.id));
+    return (
+      pending ?? logCycles.find((c) => c.mode === "open") ?? logCycles[0]
+    ).id;
+  });
+  const selectedCycle =
+    logCycles.find((c) => c.id === selectedCycleId) ?? null;
+
+  // Milestone framing describes the participant (open) cycle's record; a
+  // dual-enrolled member logging against a different cycle gets the plain
+  // weekly framing for that save instead.
+  const activeMilestone =
+    milestone && (!selectedCycle || selectedCycle.mode === "open")
+      ? milestone
+      : null;
 
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
@@ -166,8 +204,8 @@ export default function LearningLogCard({
     .join(" ");
 
   // Milestone weeks reframe the same three prompts as an evaluation.
-  const isFinal = milestone?.kind === "milestone_13";
-  const promptLabels: [string, string, string] = milestone
+  const isFinal = activeMilestone?.kind === "milestone_13";
+  const promptLabels: [string, string, string] = activeMilestone
     ? [
         "Looking back over the cycle, what have you built or figured out?",
         "Where are you now — what are you still working through?",
@@ -203,6 +241,7 @@ export default function LearningLogCard({
           exploring: exploring || null,
           next_focus: nextFocus || null,
           share_publicly: share,
+          cycle_id: selectedCycleId,
         }),
       });
       if (!res.ok) {
@@ -211,7 +250,17 @@ export default function LearningLogCard({
         return;
       }
       const data = await res.json();
-      setJustSaved({ cleared: !!data.gate_cleared });
+      // Name the still-pending cycle when the save didn't fully clear the
+      // gate — a dual-enrolled member logging one cycle's window while
+      // another stays due shouldn't read a bare "Logged ✓" with no hint
+      // they're still locked.
+      const stillPendingIds = pendingCycleIds.filter(
+        (id) => id !== selectedCycleId
+      );
+      const stillDue = !data.gate_cleared
+        ? (logCycles.find((c) => c.id === stillPendingIds[0])?.name ?? null)
+        : null;
+      setJustSaved({ cleared: !!data.gate_cleared, stillDue });
       // The form resets in place — log as often as you like.
       setClarity(3);
       setAlignment(3);
@@ -243,10 +292,10 @@ export default function LearningLogCard({
       <div className="flex items-baseline justify-between">
         <div>
           <p className="lbl">
-            {journal ? "Journal" : milestone ? "Milestone" : "Weekly ritual"}
+            {journal ? "Journal" : activeMilestone ? "Milestone" : "Weekly ritual"}
           </p>
           <h2 className="t-h3 text-ink">
-            {milestone ? milestone.label : "Learning Log"}
+            {activeMilestone ? activeMilestone.label : "Learning Log"}
           </h2>
         </div>
         {count > 0 && (
@@ -256,12 +305,29 @@ export default function LearningLogCard({
         )}
       </div>
 
-      {milestone && (
+      {activeMilestone && (
         <p className="mt-2 text-sm text-charcoal">
           An evaluation inside the practice — the same Learning Log, prefilled
           from your own logs so you review your record instead of a blank page.
           Never a grade.
         </p>
+      )}
+
+      {logCycles.length > 1 && (
+        <label className="mt-4 block">
+          <span className="text-sm font-semibold text-ink">Log for</span>
+          <select
+            value={selectedCycleId ?? ""}
+            onChange={(e) => setSelectedCycleId(Number(e.target.value))}
+            className="mt-1 w-full rounded-card border border-ink/15 bg-white p-2.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+          >
+            {logCycles.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
 
       {journal && (
@@ -278,6 +344,7 @@ export default function LearningLogCard({
           role="status"
         >
           Logged ✓{justSaved.cleared ? " — you’re back in ✓" : ""}
+          {justSaved.stillDue && ` · Still due: ${justSaved.stillDue}`}
         </div>
       )}
 
@@ -380,7 +447,7 @@ export default function LearningLogCard({
         disabled={busy}
         className="btn btn-teal mt-5"
       >
-        {busy ? "Saving…" : milestone ? "Save review" : "Save log"}
+        {busy ? "Saving…" : activeMilestone ? "Save review" : "Save log"}
       </button>
 
       {/* Your record — every past entry, readable in place (review, don't

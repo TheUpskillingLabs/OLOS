@@ -16,7 +16,7 @@ export default function CreateCycleForm() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(createCycleSchema),
-    defaultValues: { name: "", start_date: "", end_date: "" },
+    defaultValues: { name: "", start_date: "", end_date: "", mode: "open" },
   });
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = form;
 
@@ -102,6 +102,22 @@ export default function CreateCycleForm() {
             />
             {errors.end_date && (
               <p className="text-xs text-red">{errors.end_date.message}</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-charcoal" htmlFor="cycle-mode">
+              Type
+            </label>
+            <select
+              id="cycle-mode"
+              {...register("mode")}
+              className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            >
+              <option value="open">Participant cycle</option>
+              <option value="org">Organization cycle</option>
+            </select>
+            {errors.mode && (
+              <p className="text-xs text-red">{errors.mode.message}</p>
             )}
           </div>
           <div className="flex items-center gap-2 pt-5">

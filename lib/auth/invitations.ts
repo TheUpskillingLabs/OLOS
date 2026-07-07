@@ -1,6 +1,9 @@
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
-import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
+import {
+  reconcileEnrollmentActivation,
+  ensureActivePodMembership,
+} from "@/lib/enrollment/reconciler";
 
 /**
  * Fulfill a pending invitation for a participant, driven by the invite_token
@@ -31,7 +34,7 @@ export async function fulfillInvitation(
   // Look up the invitation
   const { data: invitation } = await serviceClient
     .from("invitations")
-    .select("id, email, permissions, role_preset, cycle_id, pod_id")
+    .select("id, email, permissions, role_preset, cycle_id, pod_id, pod_role")
     .eq("token", inviteToken)
     .eq("status", "pending")
     .gt("expires_at", new Date().toISOString())
@@ -108,7 +111,14 @@ export async function fulfillInvitation(
     await reconcileEnrollmentActivation(participantId, invitation.cycle_id);
   }
 
-  // Create moderator assignment if pod specified
+  // Create moderator assignment / pod membership if pod specified.
+  // Behavior branches on pod_role (migration 00060 §6):
+  //   - null/undefined -> today's behavior, unchanged: moderator_assignments
+  //     only (legacy invites and participant-cycle poderator invites).
+  //   - 'co_lead' -> moderator_assignments (as today) AND an active
+  //     pod_memberships row — org co-leads sit in their workstream.
+  //   - 'member' -> pod_memberships only, no moderator assignment — org core
+  //     contributors.
   if (invitation.pod_id) {
     const { data: pod } = await serviceClient
       .from("pods")
@@ -117,16 +127,33 @@ export async function fulfillInvitation(
       .single();
 
     if (pod) {
-      await serviceClient
-        .from("moderator_assignments")
-        .upsert(
-          {
-            participant_id: participantId,
-            pod_id: invitation.pod_id,
-            cycle_id: pod.cycle_id,
-          },
-          { onConflict: "participant_id,pod_id,cycle_id", ignoreDuplicates: true }
-        );
+      const podRole = invitation.pod_role as "co_lead" | "member" | null;
+
+      if (!podRole || podRole === "co_lead") {
+        await serviceClient
+          .from("moderator_assignments")
+          .upsert(
+            {
+              participant_id: participantId,
+              pod_id: invitation.pod_id,
+              cycle_id: pod.cycle_id,
+            },
+            { onConflict: "participant_id,pod_id,cycle_id", ignoreDuplicates: true }
+          );
+      }
+
+      if (podRole === "co_lead" || podRole === "member") {
+        // Ensure an active pod membership and a matching cycle_enrollments
+        // row for the pod's *own* cycle — the single path an org co-lead/
+        // member joins a workstream through (lib/enrollment/reconciler.ts).
+        // Runs unconditionally, even when invitation.cycle_id was already
+        // set above to some other cycle_id: a co-lead/member always needs
+        // an active enrollment for pod.cycle_id specifically, since that's
+        // the cycle their membership and any per-cycle gates (learning-log,
+        // etc.) key off. A mismatched invitation.cycle_id must not leave
+        // this seeding skipped.
+        await ensureActivePodMembership(participantId, invitation.pod_id, pod.cycle_id);
+      }
     }
   }
 

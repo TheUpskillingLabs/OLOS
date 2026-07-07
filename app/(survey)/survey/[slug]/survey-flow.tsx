@@ -14,7 +14,7 @@ import type { SurveyQuestion } from "@/lib/content/surveys";
    ceremony. Full-bleed (the (survey) group has no nav/footer). A branded welcome
    cover → the questions → a ✓ confirmation.
 
-   Since the question builder (migration 00060) the questions are data-driven:
+   Since the question builder (migration 00061) the questions are data-driven:
    the server passes the survey's `survey_questions` rows and `questionsToFlowSteps`
    maps each to a FlowStep. The flow posts the raw answer map to
    /api/surveys/[slug]/responses, which resolves it against the same questions. */

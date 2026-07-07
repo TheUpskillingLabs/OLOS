@@ -4,6 +4,7 @@ import { checkWindow } from "@/lib/auth/windows";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 
 export const POST = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -25,6 +26,13 @@ export const POST = withAuth(
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
+
+    const orgRejection = await rejectOrgCycle(
+      auth.supabase,
+      project.cycle_id,
+      "Organization projects take contributors by invitation."
+    );
+    if (orgRejection) return orgRejection;
 
     // Check window
     const window = await checkWindow(auth.supabase, project.cycle_id, "project_registration");

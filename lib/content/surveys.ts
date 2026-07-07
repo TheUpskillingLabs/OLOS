@@ -103,7 +103,7 @@ export async function getFieldSurveyResponseCount(
   return count ?? 0;
 }
 
-// ── Field-survey questions (the builder-defined instrument, migration 00060) ──
+// ── Field-survey questions (the builder-defined instrument, migration 00061) ──
 
 export type SurveyQuestionType =
   | "short_text"

@@ -42,9 +42,11 @@ flowchart TD
 
 > `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default 6 / 12) are the admin-editable cycle weeks the mid/end-cycle milestone Learning Logs open on. They drive `learning_logs.kind` = `milestone_7` / `milestone_13` (opaque legacy IDs from the old 13-week model, surfaced in the UI as "Mid-cycle" / "End-cycle"); the API server-derives which `kind` to write from the current cycle week against these values, else `weekly`. `log_due_at` / `log_gate_paused` (migration `00040`) are the weekly-gate stamp + grace toggle.
 
-> **At most one `active` cycle at a time** — the `one_active_cycle` partial unique index (migration `00048`) enforces the house invariant every `.eq('status','active').maybeSingle()` read assumes (home, funnel, learning-log gate). The two cycle-activation paths (`/api/cycles/[id]/status`, `/api/cycles/[id]/advance-phase`) return a clear 409 instead of a raw unique-violation.
+> **At most one `active` cycle per mode** — originally a single global invariant (`one_active_cycle`, migration `00048`), rescoped per `cycles.mode` by migration `00060` once `mode='org'` landed: `one_active_open_cycle` / `one_upcoming_open_cycle` enforce ≤1 active + ≤1 upcoming among `mode='open'` cycles, and `one_active_org_cycle` / `one_upcoming_org_cycle` enforce the same ≤1/≤1 separately among `mode='org'` cycles — so the participant cycle and the org cycle can legitimately both be `status='active'` at once. `mode='closed'` (B2B) stays unconstrained — a deferred, possibly-parallel track (SECTOR_MODEL §10). Every `.eq('status','active').maybeSingle()` read must be mode-aware as a result; the two cycle-activation paths (`/api/cycles/[id]/status`, `/api/cycles/[id]/advance-phase`) return a clear 409 instead of a raw unique-violation.
 
-> **Sector model — Phase A (migration `00049`, `docs/SECTOR_MODEL.md`).** `sectors` is the durable, cross-cohort home for a theme's projects + field research (public commons; `status` active/dormant). A cycle is a *run under a sector*: `cycles.sector_id` FK + `cycles.mode` (`open`/`closed`). The lifecycle extends to **draft → upcoming → active → closing → archived** (`closed` kept as a legacy terminal), with a sibling `one_upcoming_cycle` partial unique index (≤1 `upcoming`). `cycle_enrollments.tier` (`member`/`contributor`) is the cohort authority tier; `projects.sector_id` + `projects.governance` (`cycle`→`sector` at graduation) give a project its durable home. Reads split via `lib/cycle/active.ts`: `getOperatingCycle()` (the `active` cohort) vs `getRecruitingCycle()` (the `upcoming` cohort, else active). Phases B–D (windows/tiers UI, graduation, living sector) are still design-only.
+> **Sector model — Phase A (migration `00049`, `docs/SECTOR_MODEL.md`).** `sectors` is the durable, cross-cohort home for a theme's projects + field research (public commons; `status` active/dormant). A cycle is a *run under a sector*: `cycles.sector_id` FK + `cycles.mode` (`open`/`closed`/`org` — `org` added by migration `00060`, see below). The lifecycle extends to **draft → upcoming → active → closing → archived** (`closed` kept as a legacy terminal), with a sibling `one_upcoming_cycle` partial unique index (≤1 `upcoming`) — since rescoped per mode by `00060` (previous paragraph). `cycle_enrollments.tier` (`member`/`contributor`) is the cohort authority tier; `projects.sector_id` + `projects.governance` (`cycle`→`sector` at graduation) give a project its durable home. Reads split via `lib/cycle/active.ts`: `getOperatingCycle()` (the `active` cohort) vs `getRecruitingCycle()` (the `upcoming` cohort, else active). Phases B–D (windows/tiers UI, graduation, living sector) are still design-only.
+
+> **Org cycles (migration `00060`, `docs/ORG_CYCLES.md`).** The org (HQ + Core Contributors) runs quarterly cycles on internal workstreams — `cycles.mode='org'`, dogfooding the participant cycle machinery instead of forking it — under a seeded `sectors` row (`slug='the-upskilling-labs-hq'`). `workstreams` is the durable, cross-cycle unit of internal work; each org cycle spins up a per-workstream "run", which is an ordinary `pods` row (`pods.workstream_id` FK, `problem_statement_id` now nullable — a run is chartered, not voted into existence from a ballot). Co-leads on a run are `moderator_assignments` + `pod_memberships`; core contributors are invite-only `pod_memberships` (`invitations.pod_role` — `co_lead` fulfills into `moderator_assignments` + `pod_memberships`, `member` into `pod_memberships` only; `NULL` = legacy poderator-only invite). Org *projects* are chartered by a run's co-leads rather than voted out of a `solution_proposals` ballot, so `projects.solution_proposal_id` is now nullable too; `projects.forked_from_project_id` is a fork-lineage pointer (no endpoint/UI yet). ICs join a project via `project_subscriptions` (self-serve follow) and, once promoted by a DRI, `project_roles` (`dri`/`contributor`) — the open-source-style ladder SECTOR_MODEL §5/§7 describes, reused for both org and participant projects.
 
 ```mermaid
 erDiagram
@@ -55,6 +57,8 @@ erDiagram
         timestamp start_date
         timestamp end_date
         varchar status
+        int sector_id FK "→ sectors(id) (00049)"
+        varchar mode "open/closed/org (00049; org added 00060)"
     }
 
     cycle_config {
@@ -274,7 +278,8 @@ erDiagram
     pods {
         int id PK
         int cycle_id FK
-        int problem_statement_id FK
+        int problem_statement_id FK "nullable — org workstream runs skip the ballot (00060)"
+        int workstream_id FK "nullable, → workstreams(id) (00060)"
         varchar name
         varchar status
         varchar slack_channel_id
@@ -365,7 +370,8 @@ erDiagram
         int id PK
         int cycle_id FK
         int pod_id FK
-        int solution_proposal_id FK
+        int solution_proposal_id FK "nullable — chartered org projects skip the ballot (00060)"
+        int forked_from_project_id FK "nullable, fork lineage only, → projects(id) (00060)"
         varchar name
         varchar status
         varchar slack_channel_id
@@ -415,6 +421,7 @@ erDiagram
         varchar role_preset
         int cycle_id FK
         int pod_id FK
+        varchar pod_role "nullable: co_lead/member (00060)"
         int invited_by FK
         varchar status
         timestamp created_at
@@ -430,6 +437,8 @@ erDiagram
 ```
 
 **Status values:** `pending` (sent, not yet accepted) · `accepted` (invitee logged in) · `expired` (link expired) · `revoked` (admin cancelled)
+
+**`pod_role` (migration `00060`):** nullable — `NULL` is the legacy poderator-only fulfillment path; `co_lead` fulfills an accepted invite into `moderator_assignments` + `pod_memberships` on the target pod, `member` into `pod_memberships` only. Used for org workstream run invites (co-leads, core contributors).
 
 **`email_sent_at`:** Timestamp of the last time the magic link email was sent via Resend. `NULL` means the link was created but only shared via copy-paste, never emailed.
 
@@ -572,7 +581,7 @@ erDiagram
         bigint id PK
         int field_survey_id FK
         int participant_id FK "NULL for anonymous"
-        text observation "nullable since 00060"
+        text observation "nullable since 00061"
         text_array standpoint
         smallint salience "1-5, nullable"
         text prior_attempts
@@ -627,7 +636,80 @@ erDiagram
 
 **`field_surveys` / `survey_responses` (migration `00053`):** the field-survey intake (`docs/SENSEMAKING_FLOW.md` §3). `field_surveys` is the instrument — one row per sector/cycle problem domain, seeded idempotently for Civics & Elections (`share_slug='civics'`, `status='open'`). The public page `/survey/[slug]` renders it (the survey-specific `about` lede from the row; the "what is the Labs / where do insights go" copy is boilerplate in the page). `survey_responses` is the observation bedrock: `observation` is the required evidence body every future `extract` derives from; `standpoint[]` feeds the coverage/diversity signal (never a credibility weight — `ORTELIUS_NORTHSTAR.md` §6); `salience`, `prior_attempts` (archaeology), and the contact fields are optional. Two distinct consents: `consent_participation` (required, gates submit) and `contactable` (optional). The **nullable `participant_id`** is the load-bearing anonymous public path; `mentor_interest` is a recruiting side-channel. **Ortelius groundwork columns land day one:** `source_url` (the evidence-producer gap, `ORTELIUS §5` gap #6), `consent_version`, `moderation_status`, and `schema_version` (gap #12 — versioned from day one). Every response is retained; curation is a later temporal overlay, never a delete (owner decision 2026-07-05). RLS: `field_surveys` anon-SELECT-`open`-only (mirrors spotlights/events); `survey_responses` has **no public policy** — all writes go through the service-role `POST /api/surveys/[slug]/responses` (member session binds `participant_id`; anonymous path is per-IP throttled via `lib/api/rate-limit.ts`, `moderation_status='pending'`), and reads stay service-role until a consented atlas surface ships.
 
-**`survey_questions` / `survey_response_answers` (migration `00060`):** the question builder makes the instrument data-driven. `survey_questions` holds the ordered questions a cycle admin authors (`question_type`, `prompt`, per-type `config` JSONB — options, scale labels, consent agreement, contact fields); the public flow renders them via `questionsToFlowSteps` (`survey-flow.tsx`) instead of a hardcoded list, and the write route resolves answers against them. `survey_responses` stays the **submission envelope** (unchanged): a `response_column` back-pointer on a question routes its answer into the legacy typed column (`observation`, `standpoint`, `salience`, `mentor_interest`, `consent_participation`, and the contact fan-out to `submitter_*`), so the seeded Civics questions keep old rows valid and render identically — `observation` is now nullable (`00060`) only so a survey without an observation question can still insert. Custom (non-`response_column`) questions store one `survey_response_answers` row each (`value` JSONB). `is_system` questions (the seeded 7) are locked in the builder — type, `response_column`, and options can't change, and they can't be deleted — because downstream readers (CSV export, future Ortelius extraction of `observation`) and the coverage signal depend on them. RLS: `survey_questions` anon-SELECT only for an `open` survey; `survey_response_answers` service-role only (mirrors `survey_responses`). CSV export (`GET /api/surveys/[slug]/export`, admin + assigned poderator) pivots one column per question across both storage sources.
+**`survey_questions` / `survey_response_answers` (migration `00061`):** the question builder makes the instrument data-driven. `survey_questions` holds the ordered questions a cycle admin authors (`question_type`, `prompt`, per-type `config` JSONB — options, scale labels, consent agreement, contact fields); the public flow renders them via `questionsToFlowSteps` (`survey-flow.tsx`) instead of a hardcoded list, and the write route resolves answers against them. `survey_responses` stays the **submission envelope** (unchanged): a `response_column` back-pointer on a question routes its answer into the legacy typed column (`observation`, `standpoint`, `salience`, `mentor_interest`, `consent_participation`, and the contact fan-out to `submitter_*`), so the seeded Civics questions keep old rows valid and render identically — `observation` is now nullable (`00061`) only so a survey without an observation question can still insert. Custom (non-`response_column`) questions store one `survey_response_answers` row each (`value` JSONB). `is_system` questions (the seeded 7) are locked in the builder — type, `response_column`, and options can't change, and they can't be deleted — because downstream readers (CSV export, future Ortelius extraction of `observation`) and the coverage signal depend on them. RLS: `survey_questions` anon-SELECT only for an `open` survey; `survey_response_answers` service-role only (mirrors `survey_responses`). CSV export (`GET /api/surveys/[slug]/export`, admin + assigned poderator) pivots one column per question across both storage sources.
+
+---
+
+## ERD — Org Cycles & Workstreams
+
+The org (HQ + Core Contributors) runs quarterly cycles on internal workstreams — `docs/ORG_CYCLES.md`, `docs/SECTOR_MODEL.md` §7/§10. `workstreams` is the durable, cross-cycle unit of work; a quarter's org cycle spins up a per-workstream "run" as an ordinary `pods` row (`workstream_id` FK). ICs join a project via a self-serve subscription, then a promoted role.
+
+```mermaid
+erDiagram
+    sectors {
+        int id PK
+        varchar slug UK
+    }
+
+    workstreams {
+        int id PK
+        int sector_id FK
+        varchar name
+        varchar slug UK
+        text description
+        varchar status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    pods {
+        int id PK
+        int workstream_id FK "nullable"
+        int problem_statement_id FK "nullable"
+    }
+
+    participants {
+        int id PK
+        varchar email UK
+    }
+
+    projects {
+        int id PK
+        int solution_proposal_id FK "nullable"
+        int forked_from_project_id FK "nullable"
+    }
+
+    project_roles {
+        int id PK
+        int participant_id FK
+        int project_id FK
+        varchar role
+        int invited_by FK
+        timestamptz created_at
+        timestamptz removed_at
+    }
+
+    project_subscriptions {
+        int id PK
+        int participant_id FK
+        int project_id FK
+        timestamptz created_at
+    }
+
+    sectors ||--o{ workstreams : "homes"
+    workstreams ||--o{ pods : "runs (per cycle)"
+    projects ||--o{ projects : "forked from"
+    participants ||--o{ project_roles : "holds"
+    projects ||--o{ project_roles : "grants"
+    participants ||--o{ project_subscriptions : "follows"
+    projects ||--o{ project_subscriptions : "followed by"
+```
+
+**`workstreams` (migration `00060`):** the durable, cross-cycle unit of internal org work (e.g. "Moderator tooling"), homed under the seeded `sectors` row `slug='the-upskilling-labs-hq'`. `status` `active`/`dormant` — only `active` workstreams get a run spun up when an org cycle starts. RLS: public SELECT (same posture as `sectors`); no write policies — service-role only.
+
+**Workstream runs:** a run is not a new table — it's a `pods` row for the org cycle with `workstream_id` set. `one_run_per_workstream_per_cycle` (partial unique on `pods(workstream_id, cycle_id) WHERE workstream_id IS NOT NULL`) caps it at one run per workstream per cycle. `pods.problem_statement_id` is nullable as of `00060` because a run is chartered by the workstream, not voted into existence from a problem-statement ballot. Co-leads on a run are `moderator_assignments` + `pod_memberships`; core contributors are invite-only `pod_memberships` (see `invitations.pod_role` above).
+
+**`project_roles` / `project_subscriptions` (migration `00060`):** the open-source-style IC ladder (SECTOR_MODEL §5/§7), shared by org and participant projects alike. A participant self-serve follows a project via `project_subscriptions` (`UNIQUE(participant_id, project_id)`); a DRI promotes a subscriber (or anyone) into an active `project_roles` row (`dri`/`contributor`, `invited_by` provenance). `one_active_project_role` caps a person to one *active* role per project at a time (`removed_at IS NULL`) — re-adding after removal is a new row, preserving history. `projects.solution_proposal_id` is nullable as of `00060` (chartered org projects skip the voting ballot); `projects.forked_from_project_id` is a fork-lineage pointer only, no endpoint/UI yet. RLS: `project_roles` is public SELECT (the ladder is public) with service-role-only writes (DRI check enforced in app code); `project_subscriptions` mirrors `saved_items` — self SELECT/INSERT/DELETE via `current_participant_id()`, plus staff SELECT via `can_write_cycles()`.
 
 ---
 
@@ -668,3 +750,6 @@ erDiagram
 | `survey_questions` | Data Sensemaker | Builder-defined survey questions (data-driven flow); system questions back-point to legacy response columns |
 | `survey_response_answers` | Data Sensemaker | Generic per-question answers for custom (non-system) questions |
 | `testers` | Testing | Email-keyed tester grant — survives the tester's full self-reset |
+| `workstreams` | Org Cycles | Durable, cross-cycle unit of internal org work; runs are `pods` rows (`workstream_id`) |
+| `project_roles` | Org Cycles | Promoted IC role on a project (`dri`/`contributor`), one active per person per project |
+| `project_subscriptions` | Org Cycles | Self-serve follow of a project (the IC ladder's entry point) |

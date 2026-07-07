@@ -244,6 +244,9 @@ New / changed (details finalized at build time):
 4. **Cohort naming** — convention for a run under a sector ("Energy & Climate —
    Summer '26"?), and how existing cycles backfill onto sectors.
 5. **DRI removal** — DRIs can invite DRIs; can a DRI be *removed*, and by whom?
+6. **Org-internal track** — the org-internal cycle layer now exists as a
+   sibling consumer of the same primitives (sectors, cycles, pods,
+   projects) — see `docs/ORG_CYCLES.md` (`mode='org'`, migration `00060`).
 
 ## 11. Decisions locked (owner, 2026-07)
 

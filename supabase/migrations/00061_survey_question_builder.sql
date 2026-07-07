@@ -1,5 +1,5 @@
--- 00060_survey_question_builder.sql
--- The full question builder for field surveys — extends 00053. Until now the
+-- 00061_survey_question_builder.sql
+-- The full question builder for field surveys — extends 00053 (00060 is org cycles). Until now the
 -- instrument's 7 questions were hardcoded in the public flow
 -- (app/(survey)/survey/[slug]/survey-flow.tsx). This makes questions
 -- data-driven so cycle admins can author/edit/reorder them, while the seeded

@@ -89,15 +89,24 @@ export async function GET(request: NextRequest) {
         : enrollment.participants;
       if (!participant?.email) continue;
       if (seen.has(participant.id)) continue;
-      seen.add(participant.id);
 
-      // Already logged this window → no email.
+      // Already logged for THIS cycle's window → no email needed for this
+      // cycle. Cycle-scoped so a log cleared against cycle A never suppresses
+      // a still-due reminder for cycle B (org + participant dual enrollment).
       const { count } = await supabase
         .from("learning_logs")
         .select("id", { count: "exact", head: true })
         .eq("participant_id", participant.id)
+        .eq("cycle_id", cycle.id)
         .gte("created_at", dueAt);
       if ((count ?? 0) > 0) continue;
+
+      // Mark seen only once a send is actually decided — never before the
+      // per-cycle check above — so a participant with two due cycles still
+      // gets exactly one email (for whichever cycle needs it first), instead
+      // of an earlier cycle's "already logged" skip silently starving a
+      // later cycle's real reminder.
+      seen.add(participant.id);
 
       try {
         const { error: sendError } = await resend.emails.send({

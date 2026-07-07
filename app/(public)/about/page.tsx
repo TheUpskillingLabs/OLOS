@@ -1,10 +1,10 @@
 import Link from "next/link";
 
-/* The public About page — recomposed on the editorial "standards-manual" grid
-   (ref: 1976 NASA Graphics Standards Manual, Column Five, The Futur): a document
-   bar, a balanced header, then numbered sections with a red index, a heavy rule,
-   the content column and a right rail. Copy is from the generator (the design
-   source of truth). */
+/* The public About page — composed on the editorial "standards-manual" grid
+   (ref: 1976 NASA Graphics Standards Manual, Column Five, The Futur) as a stack
+   of ROWS: each section's eyebrow + heading share the head row; body, lists,
+   cards and pulled quotes flow in the rows beneath, in equal same-hierarchy
+   columns. Copy is from the generator (the design source of truth). */
 
 // The (public) layout reads request cookies for the auth-aware nav —
 // always rendered per request, never prerendered at build.
@@ -35,13 +35,13 @@ const BUILT: [string, string][] = [
 ];
 
 const HAPPENS = [
-  "investigate a real problem",
-  "interview the people living it",
-  "prototype an idea",
-  "work alongside people outside your field",
-  "experiment with emerging technology",
-  "present your work publicly",
-  "discover strengths you didn’t know you had",
+  "Investigate a real problem",
+  "Interview the people living it",
+  "Prototype an idea",
+  "Work alongside people outside your field",
+  "Experiment with emerging technology",
+  "Present your work publicly",
+  "Discover strengths you didn’t know you had",
 ];
 
 const MINDSET = [
@@ -53,97 +53,76 @@ const MINDSET = [
   "comfortable learning in public",
 ];
 
-// A numbered "standards-manual" section (ref: 1976 NASA Graphics Standards
-// Manual): a red index number over its label in the left column, heading + body
-// in the content column, an optional pulled quote in the right rail, all divided
-// by a heavy rule. See .ed-* in globals.css.
+// The section eyebrow — sits in column 1, baseline-aligned to the heading.
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="ed-eyebrow">
+      <div className="lbl lbl-teal">{children}</div>
+    </div>
+  );
+}
+
+// A numbered/ruled section: eyebrow + heading on the head row; the caller
+// supplies the content rows (`.ed-cols` …) that flow beneath.
 function Sec({
-  num,
   label,
   heading,
   children,
-  aside,
 }: {
-  // A numeral only where a real sequence exists (steps, phases) — never on plain
-  // content sections, where it would imply an order that isn't there.
-  num?: string;
   label: string;
-  heading?: string;
+  heading: string;
   children: React.ReactNode;
-  aside?: React.ReactNode;
 }) {
   return (
-    <section>
+    <section className="ed-sec">
       <hr className="ed-rule" />
-      <div className="ed-grid">
-        <div className="ed-index">
-          {num && <span className="ed-num">{num}</span>}
-          <div className="lbl lbl-teal">{label}</div>
-        </div>
-        <div className="ed-main">
-          {heading && (
-            <h2 className="t-h2" style={{ marginBottom: 18 }}>
-              {heading}
-            </h2>
-          )}
-          {children}
-        </div>
-        {aside && <div className="ed-aside">{aside}</div>}
-      </div>
+      <Eyebrow>{label}</Eyebrow>
+      <h2 className="ed-heading t-h2">{heading}</h2>
+      {children}
     </section>
   );
 }
 
-// A quote pulled into the right rail — a teal rule over the line.
-function RailQuote({ children }: { children: React.ReactNode }) {
+// A quote pulled to its own row (never beside the heading).
+function Pull({ children }: { children: React.ReactNode }) {
   return (
-    <p
-      style={{
-        fontSize: 20,
-        fontWeight: 600,
-        lineHeight: "27px",
-        letterSpacing: "-.02em",
-        borderTop: "2px solid var(--teal)",
-        paddingTop: 14,
-      }}
-    >
-      {children}
-    </p>
+    <div className="ed-cols">
+      <p className="ed-pull">{children}</p>
+    </div>
   );
 }
 
 export default function AboutPage() {
   return (
     <>
-      {/* ── Editorial header ── */}
+      {/* ── Header: eyebrow + headline (head row), standfirst (row beneath) ── */}
       <section className="grain on-dark" style={{ background: "var(--ink)" }}>
-        <div className="container" style={{ paddingTop: 88, paddingBottom: 88 }}>
-          <div className="ed-grid">
-            <div className="ed-index">
-              <div className="lbl lbl-teal">About</div>
-            </div>
-            <div className="ed-main">
-              <h1 className="t-h1">
-                We believe people are capable of far more than they’ve been given
-                the opportunity to prove.
-              </h1>
-            </div>
-            <div className="ed-aside ed-drop">
-              <p className="t-lede" style={{ color: "var(--od2)" }}>
-                The world has changed. Knowledge is everywhere. AI is transforming
-                how work gets done. Careers are becoming less predictable, more
-                interdisciplinary, and more self-directed.
-              </p>
-              <p className="t-lede" style={{ marginTop: 14, color: "var(--od2)" }}>
-                The challenge isn’t keeping up with information. It’s becoming the
-                kind of person who can make sense of change.
-              </p>
-              <p
-                className="t-lede"
-                style={{ marginTop: 14, color: "var(--od1)", fontWeight: 600 }}
-              >
-                That’s why The Upskilling Labs exists.
-              </p>
+        <div className="container" style={{ paddingTop: 96, paddingBottom: 96 }}>
+          <div className="ed-sec">
+            <Eyebrow>About</Eyebrow>
+            <h1 className="ed-heading t-h1">
+              We believe people are capable of far more than they’ve been given
+              the opportunity to prove.
+            </h1>
+            <div className="ed-cols">
+              <div>
+                <p className="t-lede ed-text" style={{ color: "var(--od2)" }}>
+                  The world has changed. Knowledge is everywhere. AI is
+                  transforming how work gets done. Careers are becoming less
+                  predictable, more interdisciplinary, and more self-directed.
+                </p>
+                <p className="t-lede ed-text" style={{ marginTop: 16, color: "var(--od2)" }}>
+                  The challenge isn’t keeping up with information. It’s becoming
+                  the kind of person who can make sense of change — and help shape
+                  what comes next.
+                </p>
+                <p
+                  className="t-lede ed-text"
+                  style={{ marginTop: 16, color: "var(--od1)", fontWeight: 600 }}
+                >
+                  That’s why The Upskilling Labs exists.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -152,129 +131,128 @@ export default function AboutPage() {
       {/* ── Body ── */}
       <div className="container" style={{ paddingTop: 88, paddingBottom: 56 }}>
         <div className="ed-doc">
-          <Sec
-            label="Our perspective"
-            heading="The way we learn hasn’t kept pace with the world."
-            aside={<RailQuote>Learning that becomes capability.</RailQuote>}
-          >
-            <p className="t-lede ed-text" style={{ marginBottom: 16 }}>
-              Knowledge used to be the hard part. Now it’s everywhere, and AI is
-              putting expertise within anyone’s reach. The skills that matter change
-              faster every year.
-            </p>
-            <p className="t-body ed-text">
-              What work rewards now is different: curiosity, judgment, collaboration,
-              and the ability to adapt. The future belongs to people who keep growing
-              what they’re capable of.
-            </p>
+          <Sec label="Our perspective" heading="The way we learn hasn’t kept pace with the world.">
+            <div className="ed-cols">
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 16 }}>
+                  Knowledge used to be the hard part. Now it’s everywhere, and AI is
+                  putting expertise within anyone’s reach. The skills that matter
+                  change faster every year.
+                </p>
+                <p className="t-body ed-text">
+                  What work rewards now is different: curiosity, judgment,
+                  collaboration, and the ability to adapt. The future belongs to
+                  people who keep growing what they’re capable of.
+                </p>
+              </div>
+            </div>
+            <Pull>We don’t think the answer is more information. We think it’s learning that becomes capability.</Pull>
           </Sec>
 
-          <Sec
-            label="What we believe"
-            heading="Capability changes everything."
-          >
-            <p className="t-lede ed-text" style={{ marginBottom: 20 }}>
-              Principles, not programs:
-            </p>
-            <div className="ed-text">
+          <Sec label="What we believe" heading="Capability changes everything.">
+            <div className="ed-cols">
+              <p className="t-lede ed-text">Principles, not programs:</p>
+            </div>
+            <div className="ed-cols ed-cols-2">
               {BELIEFS.map((b) => (
-                <div className="kv" key={b}>
-                  <span className="t-body">{b}</span>
-                </div>
+                <p className="t-body" key={b}>
+                  {b}
+                </p>
               ))}
             </div>
           </Sec>
 
-          <Sec
-            label="What we built"
-            heading="So we built a different kind of place."
-          >
-            <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
-              The Upskilling Labs is a community built around a simple idea: learning
-              sticks when you use it. You learn, you practice, you build — together.
-              Born at DC Public Library in fall 2025, run in the open ever since.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
+          <Sec label="What we built" heading="So we built a different kind of place.">
+            <div className="ed-cols">
+              <p className="t-lede ed-text">
+                The Upskilling Labs is a community built around a simple idea:
+                learning sticks when you use it. You learn, you practice, you build
+                — together. Born at DC Public Library in fall 2025, run in the open
+                ever since.
+              </p>
+            </div>
+            <div className="ed-cols ed-cols-2">
               {BUILT.map(([t, b]) => (
-                <div className="lcard" style={{ padding: 20 }} key={t}>
+                <div key={t}>
                   <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
                     {t}
                   </div>
-                  <p className="t-small">{b}</p>
+                  <p className="t-body" style={{ color: "var(--slate)" }}>
+                    {b}
+                  </p>
                 </div>
               ))}
             </div>
           </Sec>
 
-          <Sec
-            label="What happens here"
-            heading="Transformation happens through practice."
-            aside={<RailQuote>You leave more capable than you arrived.</RailQuote>}
-          >
-            <p className="t-lede ed-text" style={{ marginBottom: 20 }}>
-              You might…
-            </p>
-            <div className="ed-text">
+          <Sec label="What happens here" heading="Transformation happens through practice.">
+            <div className="ed-cols">
+              <p className="t-lede ed-text">You might…</p>
+            </div>
+            <div className="ed-cols ed-cols-2">
               {HAPPENS.map((b) => (
-                <div className="kv" key={b}>
-                  <span className="t-body">{b}</span>
+                <p className="t-body" key={b}>
+                  {b}
+                </p>
+              ))}
+            </div>
+            <Pull>You leave more capable than you arrived.</Pull>
+          </Sec>
+
+          <Sec label="Who belongs here" heading="You don’t need to have it all figured out.">
+            <div className="ed-cols">
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 20 }}>
+                  Not credentials. Not a profession. A mindset. The people who thrive
+                  here are…
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+                  {MINDSET.map((t) => (
+                    <span className="chip" style={{ cursor: "default" }} key={t}>
+                      {t}
+                    </span>
+                  ))}
                 </div>
-              ))}
+                <p className="t-body ed-text" style={{ fontWeight: 600 }}>
+                  If you’re willing to grow, you belong here.
+                </p>
+              </div>
             </div>
           </Sec>
 
-          <Sec
-            label="Who belongs here"
-            heading="You don’t need to have it all figured out."
-          >
-            <p className="t-lede ed-text" style={{ marginBottom: 20 }}>
-              Not credentials. Not a profession. A mindset. The people who thrive here
-              are…
-            </p>
-            <div
-              style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}
-            >
-              {MINDSET.map((t) => (
-                <span className="chip" style={{ cursor: "default" }} key={t}>
-                  {t}
-                </span>
-              ))}
+          <Sec label="Looking forward" heading="We’re building for a future none of us can predict.">
+            <div className="ed-cols">
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 16 }}>
+                  The Labs isn’t preparing you for one job or one technology. It’s how
+                  you build the capacity to navigate change — this year’s, and every
+                  year after.
+                </p>
+                <p className="t-body ed-text">
+                  That’s the mission. Not preparing people for the future. Helping
+                  people become the kind of people who can help create it.
+                </p>
+              </div>
             </div>
-            <p className="t-body ed-text" style={{ fontWeight: 600 }}>
-              If you’re willing to grow, you belong here.
-            </p>
-          </Sec>
-
-          <Sec
-            label="Looking forward"
-            heading="We’re building for a future none of us can predict."
-          >
-            <p className="t-lede ed-text" style={{ marginBottom: 16 }}>
-              The Labs isn’t preparing you for one job or one technology. It’s how you
-              build the capacity to navigate change — this year’s, and every year
-              after.
-            </p>
-            <p className="t-body ed-text">
-              That’s the mission. Not preparing people for the future. Helping people
-              become the kind of people who can help create it.
-            </p>
           </Sec>
 
           <Sec label="Join" heading="This is just the beginning.">
-            <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
-              Whether you’re looking to challenge yourself, contribute to something
-              meaningful, meet extraordinary people, or simply become more capable
-              than you were yesterday, there’s a place for you here.
-            </p>
-            <div
-              style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}
-            >
-              <Link className="btn btn-red btn-lg" href="/build-cycles">
-                Explore how The Labs works
-              </Link>
-              <Link className="see" href="/login">
-                Ready now? Join The Labs →
-              </Link>
+            <div className="ed-cols">
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
+                  Whether you’re looking to challenge yourself, contribute to
+                  something meaningful, meet extraordinary people, or simply become
+                  more capable than you were yesterday, there’s a place for you here.
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
+                  <Link className="btn btn-red btn-lg" href="/build-cycles">
+                    Explore how The Labs works
+                  </Link>
+                  <Link className="see" href="/login">
+                    Ready now? Join The Labs →
+                  </Link>
+                </div>
+              </div>
             </div>
           </Sec>
         </div>

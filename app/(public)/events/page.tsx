@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import EventsAgenda from "@/app/components/content/events-agenda";
+import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { getEvents } from "@/lib/content/queries";
 
-/* The public events directory — month-grouped agenda over the generator's
-   directoryPage('events') shell: the section-head with the count eyebrow,
-   the lede, then the shared EventsAgenda island (upcoming first under month
-   headers, past in its own tab, filters + search, URL-synced). */
+/* The public events directory — the generator's directoryPage('events'),
+   recomposed on the editorial "standards-manual" grid: the dark header (count
+   eyebrow + headline own the head row, standfirst beneath), then the shared
+   EventsAgenda island (month-grouped upcoming first, past in its own tab,
+   filters + search, URL-synced). */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -27,24 +29,23 @@ export default async function EventsPage() {
   const nowMs = new Date().getTime();
 
   return (
-    <section className="section">
-      <div className="container">
-        <div className="section-head">
-          <div>
-            <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-              Events & workshops
-            </div>
-            <h1 className="t-h2">Drop into a session</h1>
-          </div>
+    <>
+      {/* ── Header: count eyebrow + headline (head row), standfirst (beneath) ── */}
+      <EditorialHeader
+        eyebrow={`Events & workshops · ${events.length}`}
+        title="Drop into a session"
+        standfirst="Free and public, every one. ✦ marks the cycle’s anchor events."
+      />
+
+      {/* ── Browse: the month-grouped agenda island, full-width ── */}
+      <section className="section">
+        <div className="container">
+          {/* The island reads useSearchParams — Suspense keeps Next happy. */}
+          <Suspense>
+            <EventsAgenda events={events} nowMs={nowMs} syncUrl />
+          </Suspense>
         </div>
-        <p className="t-small" style={{ marginTop: -10, marginBottom: 14 }}>
-          Free and public, every one. ✦ marks the cycle’s anchor events.
-        </p>
-        {/* The island reads useSearchParams — Suspense keeps Next happy. */}
-        <Suspense>
-          <EventsAgenda events={events} nowMs={nowMs} syncUrl />
-        </Suspense>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

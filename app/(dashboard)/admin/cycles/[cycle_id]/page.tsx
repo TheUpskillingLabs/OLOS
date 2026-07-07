@@ -11,7 +11,13 @@ import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
 import TestingControls from "./testing-controls";
 import PodsTable, { type PodAdminRow } from "./pods-table";
-import CycleWorkspaceTabs, { resolveInitialTab } from "./cycle-workspace-tabs";
+import WorkstreamsPanel, {
+  type WorkstreamAdminRow,
+  type PriorOrgCycleOption,
+} from "./workstreams-panel";
+import CycleWorkspaceTabs from "./cycle-workspace-tabs";
+import { resolveInitialTab } from "./cycle-tabs";
+import { podNoun } from "@/lib/cycle/labels";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -55,7 +61,7 @@ export default async function AdminCycleDetailPage({
   const [{ data: cycle }, { data: config }] = await Promise.all([
     serviceClient
       .from("cycles")
-      .select("id, name, start_date, end_date, status")
+      .select("id, name, start_date, end_date, status, mode")
       .eq("id", cycleId)
       .single(),
     serviceClient
@@ -195,6 +201,48 @@ export default async function AdminCycleDetailPage({
     moderators: moderatorsByPod[pod.id] ?? [],
   }));
 
+  // Formation-tab workstreams roster — org cycles only (docs/ORG_CYCLES.md
+  // §2/§5): the workstream list scoped to this cycle's runs, plus prior org
+  // cycles for the copy-roster dropdown.
+  let workstreamRows: WorkstreamAdminRow[] = [];
+  let priorOrgCycles: PriorOrgCycleOption[] = [];
+  if (cycle.mode === "org") {
+    const [{ data: workstreamsData }, { data: runPods }, { data: priorCycles }] =
+      await Promise.all([
+        serviceClient
+          .from("workstreams")
+          .select("id, name, description, status")
+          .order("name"),
+        serviceClient
+          .from("pods")
+          .select("id, name, workstream_id")
+          .eq("cycle_id", cycleId)
+          .not("workstream_id", "is", null),
+        serviceClient
+          .from("cycles")
+          .select("id, name")
+          .eq("mode", "org")
+          .neq("id", cycleId)
+          .order("start_date", { ascending: false }),
+      ]);
+
+    const runByWorkstream = new Map<number, { pod_id: number; name: string | null }>();
+    for (const run of runPods ?? []) {
+      if (run.workstream_id) {
+        runByWorkstream.set(run.workstream_id, { pod_id: run.id, name: run.name });
+      }
+    }
+
+    workstreamRows = (workstreamsData ?? []).map((w) => ({
+      id: w.id,
+      name: w.name,
+      description: w.description,
+      status: w.status,
+      run: runByWorkstream.get(w.id) ?? null,
+    }));
+    priorOrgCycles = priorCycles ?? [];
+  }
+
   const canTesting = can(userRoles, "testing:use");
   const initialTab = resolveInitialTab(tab, canTesting);
 
@@ -292,17 +340,35 @@ export default async function AdminCycleDetailPage({
 
   const formation = (
     <div className="space-y-10">
-      <section>
-        <h2 className="mb-1 t-h3 text-ink">Pod voting</h2>
-        <p className="mb-4 text-sm text-meta">
-          Finalize problem-statement voting to create pods. Uses AI to generate
-          pod names.
-        </p>
-        <FinalizeVotingButton cycleId={cycle.id} />
-      </section>
+      {cycle.mode === "org" ? (
+        <section>
+          <h2 className="mb-1 t-h3 text-ink">Workstreams</h2>
+          <p className="mb-4 text-sm text-meta">
+            Charter this cycle&rsquo;s runs from the org&rsquo;s durable
+            workstreams, optionally copying a prior run&rsquo;s roster
+            forward.
+          </p>
+          <WorkstreamsPanel
+            cycleId={cycle.id}
+            workstreams={workstreamRows}
+            priorOrgCycles={priorOrgCycles}
+          />
+        </section>
+      ) : (
+        <section>
+          <h2 className="mb-1 t-h3 text-ink">Pod voting</h2>
+          <p className="mb-4 text-sm text-meta">
+            Finalize problem-statement voting to create pods. Uses AI to
+            generate pod names.
+          </p>
+          <FinalizeVotingButton cycleId={cycle.id} />
+        </section>
+      )}
       <hr className="border-ink/10" />
       <section>
-        <h2 className="mb-4 t-h3 text-ink">Pods ({pods?.length ?? 0})</h2>
+        <h2 className="mb-4 t-h3 text-ink">
+          {podNoun(cycle.mode, true)} ({pods?.length ?? 0})
+        </h2>
         <PodsTable
           cycleId={cycle.id}
           pods={podAdminRows}
@@ -367,6 +433,9 @@ export default async function AdminCycleDetailPage({
           >
             {cycle.status}
           </StatusBadge>
+          {cycle.mode === "org" && (
+            <StatusBadge variant="forming">organization</StatusBadge>
+          )}
         </div>
         <p className="mt-1 text-sm text-meta tabular-nums">
           {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}

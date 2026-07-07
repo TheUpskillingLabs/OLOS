@@ -42,7 +42,7 @@ export default async function PulseCheckPage() {
     await Promise.all([
       service.from("participants").select("last_pulse_completed_at, created_at").eq("id", participantId).single(),
       service.from("option_lists").select("id, list_name, value, display_order").eq("active", true).in("list_name", ["ai_tools", "pulse_benefits"]).order("display_order"),
-      service.from("cycles").select("id, name").eq("status", "active"),
+      service.from("cycles").select("id, name").eq("status", "active").eq("mode", "open"),
       service.from("pulse_checks").select("id, scheduled_date, completed_at, cycle_id, survey_responses").eq("participant_id", participantId).not("completed_at", "is", null).order("completed_at", { ascending: false }).limit(20),
     ]);
 

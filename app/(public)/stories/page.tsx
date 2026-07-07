@@ -1,3 +1,4 @@
+import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 import StoriesClient from "./stories-client";
 
@@ -20,21 +21,12 @@ export default async function StoriesPage() {
 
   return (
     <>
-      {/* Dark hero (the generator's darkHero()) */}
-      <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
-        <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
-            The Upskilling Labs · community
-          </div>
-          <h1 className="t-h1" style={{ maxWidth: "20ch" }}>
-            Upskiller Spotlights
-          </h1>
-          <p className="t-lede" style={{ marginTop: 18, maxWidth: "54ch", color: "var(--od2)" }}>
-            Real people, real practice — what changes when you stop consuming education
-            and start building in the open.
-          </p>
-        </div>
-      </section>
+      {/* Header: eyebrow + headline (head row), standfirst (row beneath) */}
+      <EditorialHeader
+        eyebrow="The Upskilling Labs · community"
+        title="Upskiller Spotlights"
+        standfirst="Real people, real practice — what changes when you stop consuming education and start building in the open."
+      />
 
       <section className="section">
         <div className="container">
