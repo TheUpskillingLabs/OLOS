@@ -3,8 +3,8 @@ import { ChevronLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/guards";
 import type { Permission } from "@/lib/auth/permissions";
-import PermissionsEditor from "./permissions-editor";
-import AdminNameEditForm from "./admin-name-edit-form";
+import PermissionsEditor from "@/app/(dashboard)/admin/people/permissions-editor";
+import AdminNameEditForm from "@/app/(dashboard)/admin/people/admin-name-edit-form";
 
 export default async function ParticipantPermissionsPage({
   params,

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
   Users,
-  Mail,
   FileText,
   Database,
   type LucideIcon,
@@ -40,16 +39,13 @@ const BASE_ITEMS: NavItem[] = [
     match: (p) => p === "/admin" || p.startsWith("/admin/cycles"),
   },
   {
-    href: "/admin/participants",
-    label: "Participants",
+    href: "/admin/people",
+    label: "People & Access",
     Icon: Users,
-    match: (p) => p.startsWith("/admin/participants") || p.startsWith("/admin/people"),
-  },
-  {
-    href: "/admin/invitations",
-    label: "Invitations",
-    Icon: Mail,
-    match: (p) => p.startsWith("/admin/invitations"),
+    match: (p) =>
+      p.startsWith("/admin/people") ||
+      p.startsWith("/admin/participants") ||
+      p.startsWith("/admin/invitations"),
   },
   {
     href: "/admin/stories",
