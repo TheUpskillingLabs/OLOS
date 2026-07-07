@@ -13,7 +13,8 @@ impact; each is shippable alone.
 > mid/end-cycle milestone logs landed via PR #161), **Phase 2 done** (small profile tails deferred), Phases
 > 3–7 not started (Phase 3 nav partially advanced — Directory added). Per-phase progress
 > detail lives in **`docs/audit/PROGRESS.md`** — update it as phases land; keep this file as
-> the plan.
+> the plan. The social layer (directory, profiles, roles, activity feed) has a dedicated
+> audit + candidate workstreams in **`docs/audit/SOCIAL_LAYER_ANALYSIS.md`** (2026-07-07).
 
 ---
 
