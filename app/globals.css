@@ -309,7 +309,9 @@ dialog::backdrop {
   .see { cursor: pointer; }
   /* agenda month header — lighter than .section-head (a 2px ink rule repeated
      per month over-weights the hierarchy); hairline rule, ink weight. */
-  .month-head { font-weight: 600; font-size: 14px; line-height: 20px; letter-spacing: 0.01em; color: var(--ink); margin: 30px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+  .month-head { font-weight: 600; font-size: 14px; line-height: 20px; letter-spacing: 0.01em; color: var(--ink); margin: 26px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+  /* first month sits right under the toolbar — keep the fold tight */
+  .agenda > section:first-child .month-head { margin-top: 14px; }
 
   /* ── cards (teasers) ── */
   .card { background: var(--white); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.1, 1), box-shadow 0.2s; }
@@ -333,6 +335,10 @@ dialog::backdrop {
   .chip { flex-shrink: 0; padding: 9px 16px; border-radius: var(--r); border: 1px solid var(--rule); background: var(--white); font-size: 13px; font-weight: 600; color: var(--charcoal); cursor: pointer; white-space: nowrap; transition: all 0.14s; }
   .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
   .chip:active { transform: scale(0.97); }
+  /* segmented toggle (events agenda Upcoming/Past) — chip grammar, one container */
+  .seg { display: inline-flex; align-items: center; border: 1px solid var(--rule); border-radius: var(--r); background: var(--white); padding: 3px; gap: 2px; flex-shrink: 0; }
+  .seg button { border: none; background: none; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--charcoal); padding: 6px 12px; border-radius: calc(var(--r) - 4px); cursor: pointer; white-space: nowrap; transition: background 0.14s, color 0.14s; }
+  .seg button.active { background: var(--ink); color: #fff; }
 
   /* ── kv rows + status pills ── */
   .kv { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
