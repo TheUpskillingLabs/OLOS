@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { can } from "@/lib/auth/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 
 const PHASE_SEQUENCE = [
@@ -17,9 +18,18 @@ type Phase = (typeof PHASE_SEQUENCE)[number];
 export const POST = withAdminAuth(
   async (
     _request: NextRequest,
-    _auth: AuthenticatedRequest,
+    auth: AuthenticatedRequest,
     params: Record<string, string>
   ) => {
+    // Phase fast-forward is a testing tool — quarantined behind testing:use so
+    // it matches the permission-gated Dev tab (a plain admin can't step phases).
+    if (!can(auth.user, "testing:use")) {
+      return NextResponse.json(
+        { error: "Advancing phases requires the testing:use permission." },
+        { status: 403 }
+      );
+    }
+
     const cycleId = parseInt(params.cycle_id);
     if (isNaN(cycleId)) {
       return NextResponse.json({ error: "Invalid cycle ID" }, { status: 400 });
