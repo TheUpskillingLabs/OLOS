@@ -44,7 +44,7 @@ export function CycleInfo({
   const upcoming = cycle.status === "upcoming";
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="max-w-3xl">
       <div className="lbl lbl-teal mb-3">
         {STATUS_LABEL[cycle.status] ?? cycle.status}
       </div>

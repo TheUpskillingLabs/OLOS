@@ -27,7 +27,7 @@ export default async function StoriesPage() {
 
       {/* Dark hero (the generator's darkHero()) */}
       <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
-        <div className="container" style={{ maxWidth: 760, paddingTop: 56, paddingBottom: 56 }}>
+        <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
           <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
             The Upskilling Labs · community
           </div>

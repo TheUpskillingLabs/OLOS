@@ -33,7 +33,7 @@ export default async function PublicCyclePage({
     <>
       <main className="flex-1">
         <header className="border-b border-ink/10">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          <div className="flex items-center justify-between px-6 py-4">
             <span className="font-semibold tracking-tight text-ink">
               The Upskilling Labs
             </span>

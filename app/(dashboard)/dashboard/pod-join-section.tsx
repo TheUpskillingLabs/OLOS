@@ -111,7 +111,7 @@ export default function PodJoinSection({
           : `You can join up to ${podLimit} pods per cycle.`}
         {atCap && !single && " You've reached the limit."}
       </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="autogrid">
         {pods.map((pod) => {
           const isJoined = myPodIds.has(pod.id);
           const isActing = actionPodId === pod.id;

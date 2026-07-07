@@ -76,7 +76,7 @@ export default async function SolutionVotePage({
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="max-w-3xl">
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}

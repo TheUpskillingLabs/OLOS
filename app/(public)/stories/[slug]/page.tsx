@@ -115,7 +115,7 @@ export default async function SpotlightPage({
 
       {/* The full story */}
       {s.story.length > 0 && (
-        <div className="container" style={{ maxWidth: 720, paddingTop: 48, paddingBottom: 8 }}>
+        <div className="reading" style={{ paddingTop: 48, paddingBottom: 8 }}>
           {s.story.map((p, i) => (
             <p key={i} className="t-lede" style={{ marginBottom: 18, color: "var(--charcoal)" }}>
               {p}

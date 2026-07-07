@@ -86,7 +86,7 @@ export default async function SolutionsPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
