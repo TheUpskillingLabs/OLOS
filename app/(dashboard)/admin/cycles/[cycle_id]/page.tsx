@@ -15,7 +15,8 @@ import WorkstreamsPanel, {
   type WorkstreamAdminRow,
   type PriorOrgCycleOption,
 } from "./workstreams-panel";
-import CycleWorkspaceTabs, { resolveInitialTab } from "./cycle-workspace-tabs";
+import CycleWorkspaceTabs from "./cycle-workspace-tabs";
+import { resolveInitialTab } from "./cycle-tabs";
 import { podNoun } from "@/lib/cycle/labels";
 
 type CycleStatus = "active" | "closed" | "draft";
