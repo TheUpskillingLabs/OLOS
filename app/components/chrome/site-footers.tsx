@@ -3,7 +3,6 @@ import Link from "next/link";
 /* The two public footers, ported from onboarding-proto:
    - PgFoot: the compact content-page footer (chrome.js footerHTML)
    - OsFooter: the open-source footer on the landing (index.html)
-   - UpsellBand: the signed-out fixed band on content pages
 
    Legal, contact, and get-involved pages are now hosted on-site (app/(public)/…)
    and linked here first — Privacy/Terms/Code of Conduct point to internal routes,
@@ -36,18 +35,6 @@ export function PgFoot() {
         </span>
       </div>
     </footer>
-  );
-}
-
-export function UpsellBand() {
-  return (
-    <div className="upsell">
-      <p>Find your people. Build your edge.</p>
-      <span className="t-small">Free to join · run in the open</span>
-      <Link className="btn btn-red btn-sm" href="/login">
-        Create account
-      </Link>
-    </div>
   );
 }
 
