@@ -39,12 +39,13 @@ export default async function DashboardPage() {
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
     serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline").eq("auth_user_id", user.id).maybeSingle(),
-    serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status").order("start_date", { ascending: false }),
+    serviceClient.from("cycles").select("id, name, slug, start_date, end_date, status, mode").order("start_date", { ascending: false }),
   ]);
 
   if (!participant) redirect("/register");
 
-  const activeCycle = cycles?.find((c) => c.status === "active") ?? null;
+  const activeCycle =
+    cycles?.find((c) => c.status === "active" && c.mode === "open") ?? null;
 
   // The cohort a not-yet-enrolled member registers for: the newest cycle open
   // for pre-registration (`upcoming`), if any. Mirrors getRecruitingCycle
@@ -53,7 +54,8 @@ export default async function DashboardPage() {
   // to as well, or a member who signed up for the upcoming cohort lands here
   // with no path to it. `cycles` is ordered start_date desc → the first match
   // is the newest upcoming.
-  const upcomingCycle = cycles?.find((c) => c.status === "upcoming") ?? null;
+  const upcomingCycle =
+    cycles?.find((c) => c.status === "upcoming" && c.mode === "open") ?? null;
 
   type PodMembership = { id: number; pod_id: number; pods: { id: number; name: string; status: string } };
   let activeCycleConfig = null;

@@ -21,11 +21,12 @@ export default async function CyclesPage() {
 
   const { data: cycles } = await supabase
     .from("cycles")
-    .select("id, name, slug, start_date, end_date, status")
+    .select("id, name, slug, start_date, end_date, status, mode")
     .order("start_date", { ascending: false });
 
   // Fetch config for the active cycle to power the phase indicator
-  const activeCycle = cycles?.find((c) => c.status === "active") ?? null;
+  const activeCycle =
+    cycles?.find((c) => c.status === "active" && c.mode === "open") ?? null;
   let activeCycleConfig = null;
   if (activeCycle) {
     const serviceClient = createServiceClient();

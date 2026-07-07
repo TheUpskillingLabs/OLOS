@@ -27,7 +27,7 @@ export const PATCH = withAdminAuth(
     // Get current status
     const { data: cycle } = await auth.supabase
       .from("cycles")
-      .select("status")
+      .select("status, mode")
       .eq("id", cycleId)
       .single();
 
@@ -49,19 +49,24 @@ export const PATCH = withAdminAuth(
       );
     }
 
-    // At most one 'active' and one 'upcoming' cycle at a time (migrations
-    // 00048/00049). Reject a second one with a clear message instead of a raw
-    // unique-violation.
-    if (status === "active" || status === "upcoming") {
+    // At most one 'active' and one 'upcoming' cycle per mode (migrations
+    // 00048/00049/00060 — org cycles run alongside a participant cycle, not
+    // instead of it). Reject a second one within the same mode with a clear
+    // message instead of a raw unique-violation. 'closed' mode cycles are
+    // legacy pre-sector cohorts with no per-mode invariant yet — B2B
+    // concurrency is deferred, so the guard is skipped entirely for them.
+    if ((status === "active" || status === "upcoming") && cycle.mode !== "closed") {
       const { count } = await auth.supabase
         .from("cycles")
         .select("id", { count: "exact", head: true })
         .eq("status", status)
+        .eq("mode", cycle.mode)
         .neq("id", cycleId);
       if ((count ?? 0) > 0) {
+        const modeLabel = cycle.mode === "org" ? "organization" : "open";
         return NextResponse.json(
           {
-            error: `Another cycle is already ${status}. Only one ${status} cycle is allowed at a time.`,
+            error: `Another ${modeLabel} cycle is already ${status}. Only one ${status} cycle is allowed per mode at a time.`,
           },
           { status: 409 }
         );
