@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DocBar, EditorialHeader, EdSection } from "@/app/components/chrome/editorial";
+import { EditorialHeader, EdSection } from "@/app/components/chrome/editorial";
 import Orb from "@/app/components/chrome/orb";
 import {
   getSpotlight,
@@ -95,11 +95,6 @@ export default async function SpotlightPage({
 
   return (
     <>
-      <DocBar
-        trail={[["Home", "/"], ["Stories", "/stories"], [s.name, null]]}
-        tag="The Upskilling Labs"
-      />
-
       {/* Header: eyebrow + headline (head row); the hero photo and the
           attribution (name / role) flow in the rows beneath. */}
       <EditorialHeader eyebrow={tagLabel(s)} title={headline}>

@@ -1,11 +1,11 @@
 import { ResourceTeaser } from "@/app/components/content/teasers";
-import { DocBar, EditorialHeader } from "@/app/components/chrome/editorial";
+import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { getResources } from "@/lib/content/queries";
 
 /* The Learning Library directory — the prototype generator's
    directoryPage('library'), recomposed on the editorial "standards-manual"
-   grid: the document bar, the dark header (count eyebrow + headline own the head
-   row, standfirst beneath), then the full teaser grid full-width. */
+   grid: the dark header (count eyebrow + headline own the head row, standfirst
+   beneath), then the full teaser grid full-width. */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -23,8 +23,6 @@ export default async function LibraryPage() {
 
   return (
     <>
-      <DocBar trail={[["Home", "/"], ["Library", null]]} tag="The Upskilling Labs · Library" />
-
       {/* ── Header: count eyebrow + headline (head row), standfirst (beneath) ── */}
       <EditorialHeader
         eyebrow={resources.length ? `Learning Library · ${resources.length}` : "Learning Library"}

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getEvents, getResources } from "@/lib/content/queries";
 import { getSavedSlugs } from "@/lib/content/saved";
 import { EventTeaser, ResourceTeaser } from "@/app/components/content/teasers";
+import EventsAgenda from "@/app/components/content/events-agenda";
 import SaveButton from "./save-button";
 
 /* Learning — the signed-in catalog (onboarding-proto's panel-learning): the
@@ -40,12 +42,8 @@ export default async function LearningPage() {
     getSavedSlugs((participant as { id: number }).id),
   ]);
 
-  // Upcoming events first, then past as history.
-  const now = new Date();
-  const orderedEvents = [
-    ...events.filter((e) => new Date(e.start_at) >= now),
-    ...events.filter((e) => new Date(e.start_at) < now),
-  ];
+  // Server clock for the agenda's hydration-stable upcoming/past split.
+  const nowMs = new Date().getTime();
 
   const savedEvents = events.filter((e) => saved.events.has(e.slug));
   const savedResources = resources.filter((r) => saved.resources.has(r.slug));
@@ -53,6 +51,11 @@ export default async function LearningPage() {
 
   const eventCorner = (slug: string) => (
     <SaveButton itemType="event" slug={slug} initialSaved={saved.events.has(slug)} />
+  );
+  // slug → heart node, serializable into the EventsAgenda client island
+  // (a render prop can't cross the RSC boundary).
+  const eventCorners = Object.fromEntries(
+    events.map((e) => [e.slug, eventCorner(e.slug)])
   );
   const resourceCorner = (slug: string) => (
     <SaveButton itemType="resource" slug={slug} initialSaved={saved.resources.has(slug)} />
@@ -90,17 +93,9 @@ export default async function LearningPage() {
             Public page →
           </Link>
         </div>
-        {orderedEvents.length ? (
-          <div className="cards dense all">
-            {orderedEvents.map((e) => (
-              <EventTeaser key={e.slug} event={e} corner={eventCorner(e.slug)} />
-            ))}
-          </div>
-        ) : (
-          <div className="lcard" style={{ padding: 48 }}>
-            <div className="t-h3">No sessions scheduled yet</div>
-          </div>
-        )}
+        <Suspense>
+          <EventsAgenda events={events} nowMs={nowMs} corners={eventCorners} />
+        </Suspense>
       </section>
 
       {/* Library */}
@@ -153,8 +148,8 @@ export default async function LearningPage() {
         ) : (
           <div className="lcard" style={{ padding: 40 }}>
             <p className="t-body text-meta">
-              Nothing saved yet. Tap the heart on any session or guide to keep it
-              here.
+              Nothing saved yet. Tap the bookmark on any session or guide to keep
+              it here.
             </p>
           </div>
         )}

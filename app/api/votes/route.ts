@@ -6,6 +6,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { voteSchema } from "@/lib/validations/votes";
 import { requireCompleteProfile } from "@/lib/participants/placeholder";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -21,6 +22,9 @@ export const POST = withAuth(
 
     const guard = await requireCompleteProfile(auth.supabase, voter_id);
     if (guard) return guard;
+
+    const orgRejection = await rejectOrgCycle(auth.supabase, cycle_id);
+    if (orgRejection) return orgRejection;
 
     // Check window
     const window = await checkWindow(auth.supabase, cycle_id, "voting");

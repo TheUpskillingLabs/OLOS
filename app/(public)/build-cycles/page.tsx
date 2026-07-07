@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { DocBar, EditorialHeader, EdSection, EdRow } from "@/app/components/chrome/editorial";
+import { EditorialHeader, EdSection, EdRow } from "@/app/components/chrome/editorial";
 import { getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay } from "@/lib/content/format";
 
 /* The public Build Cycles page — recomposed on the editorial "standards-manual"
    grid (ref: 1976 NASA Graphics Standards Manual, Column Five, The Futur) as a
-   stack of ROWS: the document bar, the dark header (eyebrow + headline own the
+   stack of ROWS: the dark header (eyebrow + headline own the
    head row, standfirst + register CTA beneath), then body sections whose eyebrow
    + heading share the head row and whose content — the promise, the current
    cycle's anchor events, the three phases, the partner problems — flows in the
@@ -23,11 +23,6 @@ export const metadata = {
   description:
     "Three months from now, you’ll have built something real. Pick a problem, team up, and see it through — in the open.",
 };
-
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Build Cycles", null],
-];
 
 // The current cycle's public shape, inlined from the prototype's
 // cycles/data.js (CYCLE_PUBLIC + SITUATIONS). These constants move to the
@@ -90,8 +85,6 @@ export default async function BuildCyclesPage() {
 
   return (
     <>
-      <DocBar trail={TRAIL} tag="The Upskilling Labs · Build Cycles" />
-
       {/* ── Header: eyebrow + headline (head row); standfirst + register (beneath) ── */}
       <EditorialHeader
         eyebrow="Build Cycles · 4 a year"

@@ -9,6 +9,7 @@ import {
   reconcilePodMembers,
 } from "@/lib/enrollment/reconciler";
 import { requireCompleteProfile } from "@/lib/participants/placeholder";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -34,6 +35,13 @@ export const POST = withAuth(
     if (!pod) {
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
+
+    const orgRejection = await rejectOrgCycle(
+      auth.supabase,
+      pod.cycle_id,
+      "This is an organization workstream — membership is by invitation."
+    );
+    if (orgRejection) return orgRejection;
 
     if (!["forming", "active"].includes(pod.status)) {
       return NextResponse.json({ error: "Pod is not accepting registrations" }, { status: 400 });

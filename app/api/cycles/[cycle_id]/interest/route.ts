@@ -28,15 +28,22 @@ export const POST = withAuth(
 
     // Open for the running cohort ('active') and the next one ('upcoming') —
     // the upcoming cohort collects interest pre-kickoff. The enrollment written
-    // below stays 'inactive' until the reconciler activates it.
+    // below stays 'inactive' until the reconciler activates it. Org cycles
+    // (invite-only, docs/ORG_CYCLES.md) never accept self-serve interest.
     const { data: cycle } = await supabase
       .from("cycles")
-      .select("id, status")
+      .select("id, status, mode")
       .eq("id", cycleId)
-      .single();
+      .maybeSingle();
 
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
+    }
+    if (cycle.mode === "org") {
+      return NextResponse.json(
+        { error: "Organization cycles are invite-only." },
+        { status: 403 }
+      );
     }
     if (cycle.status !== "active" && cycle.status !== "upcoming") {
       return NextResponse.json(

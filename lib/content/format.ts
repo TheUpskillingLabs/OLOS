@@ -40,6 +40,24 @@ export function cityOf(locationName: string | null): string {
   return locationName; // unparseable → keep current behavior
 }
 
+const MONTH_FULL = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "2026-07" — stable month grouping key for the events agenda. */
+export function monthKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** "July 2026" — agenda month header. Always carries the year so labels are
+    now-independent (no SSR/client drift) and year-boundary months never merge. */
+export function fmtMonth(iso: string): string {
+  const d = new Date(iso);
+  return `${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export const CONTENT_TYPE_LABEL: Record<string, string> = {
   guide: "Guide",
   recording: "Recording",

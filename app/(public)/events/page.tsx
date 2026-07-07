@@ -1,12 +1,13 @@
-import { EventTeaser } from "@/app/components/content/teasers";
-import { DocBar, EditorialHeader } from "@/app/components/chrome/editorial";
+import { Suspense } from "react";
+import EventsAgenda from "@/app/components/content/events-agenda";
+import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { getEvents } from "@/lib/content/queries";
 
 /* The public events directory — the generator's directoryPage('events'),
-   recomposed on the editorial "standards-manual" grid: the document bar, the
-   dark header (count eyebrow + headline own the head row, standfirst beneath),
-   then the full teaser grid full-width. Copy ported byte-for-byte from
-   tools/generate.js. */
+   recomposed on the editorial "standards-manual" grid: the dark header (count
+   eyebrow + headline own the head row, standfirst beneath), then the shared
+   EventsAgenda island (month-grouped upcoming first, past in its own tab,
+   filters + search, URL-synced). */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -20,28 +21,29 @@ export const metadata = {
 };
 
 export default async function EventsPage() {
-  // getEvents() orders by start_at ascending — the generator's sort.
+  // getEvents() orders by start_at ascending — the agenda splits/groups it.
   const events = await getEvents();
+
+  // Server clock, passed down so the SSR and hydrated upcoming/past splits
+  // agree with the island's in-progress rule (end_at fallback start_at).
+  const nowMs = new Date().getTime();
 
   return (
     <>
-      <DocBar trail={[["Home", "/"], ["Events", null]]} tag="The Upskilling Labs · Events" />
-
       {/* ── Header: count eyebrow + headline (head row), standfirst (beneath) ── */}
       <EditorialHeader
         eyebrow={`Events & workshops · ${events.length}`}
         title="Drop into a session"
-        standfirst="Free and public, every one. ✦ marks the cycle’s six anchor events."
+        standfirst="Free and public, every one. ✦ marks the cycle’s anchor events."
       />
 
-      {/* ── Browse: the full teaser grid, full-width ── */}
+      {/* ── Browse: the month-grouped agenda island, full-width ── */}
       <section className="section">
         <div className="container">
-          <div className="cards dense all">
-            {events.map((e) => (
-              <EventTeaser key={e.slug} event={e} />
-            ))}
-          </div>
+          {/* The island reads useSearchParams — Suspense keeps Next happy. */}
+          <Suspense>
+            <EventsAgenda events={events} nowMs={nowMs} syncUrl />
+          </Suspense>
         </div>
       </section>
     </>

@@ -1,5 +1,5 @@
 import MetroSearch from "@/app/components/content/metro-search";
-import { DocBar, EditorialHeader } from "@/app/components/chrome/editorial";
+import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { getMetros } from "@/lib/content/queries";
 
 /* The Local labs (cities) directory — the prototype generator's
@@ -25,8 +25,6 @@ export default async function LabsPage() {
 
   return (
     <>
-      <DocBar trail={[["Home", "/"], ["Local labs", null]]} tag="The Upskilling Labs" />
-
       {/* ── Header: eyebrow + headline (head row), standfirst (row beneath) ── */}
       <EditorialHeader
         eyebrow="Local labs · library-hosted"

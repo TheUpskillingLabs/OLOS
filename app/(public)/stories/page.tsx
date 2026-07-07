@@ -1,4 +1,4 @@
-import { DocBar, EditorialHeader } from "@/app/components/chrome/editorial";
+import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 import StoriesClient from "./stories-client";
 
@@ -21,8 +21,6 @@ export default async function StoriesPage() {
 
   return (
     <>
-      <DocBar trail={[["Home", "/"], ["Stories", null]]} tag="The Upskilling Labs" />
-
       {/* Header: eyebrow + headline (head row), standfirst (row beneath) */}
       <EditorialHeader
         eyebrow="The Upskilling Labs · community"

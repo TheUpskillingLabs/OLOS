@@ -1,37 +1,8 @@
-import { Crumbs } from "@/app/components/content/teasers";
-
 /* Shared editorial "standards-manual" chrome (ref: 1976 NASA Graphics Standards
    Manual). The whole public content surface composes from these so every page
-   shares one grid: a document bar, a dark header whose eyebrow + heading own the
-   head row (standfirst drops beneath), and body sections whose content flows in
-   rows of equal same-hierarchy columns. See the .ed-* system in globals.css. */
-
-// The document bar — crumbs left, an identifier right, a heavy rule under.
-export function DocBar({
-  trail,
-  tag,
-}: {
-  trail: [string, string | null][];
-  tag?: string;
-}) {
-  return (
-    <div className="container" style={{ paddingTop: 22 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 16,
-          paddingBottom: 12,
-        }}
-      >
-        <Crumbs trail={trail} />
-        {tag && <span className="lbl">{tag}</span>}
-      </div>
-      <hr className="ed-rule" />
-    </div>
-  );
-}
+   shares one grid: a dark header whose eyebrow + heading own the head row
+   (standfirst drops beneath), and body sections whose content flows in rows of
+   equal same-hierarchy columns. See the .ed-* system in globals.css. */
 
 // The dark editorial header — eyebrow + heading on the head row, the standfirst
 // (and any extra rows) beneath. `title` may wrap (text-wrap: balance).

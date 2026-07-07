@@ -197,7 +197,8 @@ hitches a ride on Google OAuth.
    `invite_token={uuid}` to a `SameSite=Lax` cookie (1 hour TTL) and shows
    the "You've been invited" CTA.
 4. Invitee clicks "Sign in with Google". OAuth completes.
-5. Callback runs `fulfillInvitation()` in
+5. Callback runs `fulfillInvitation()` (extracted to
+   [`lib/auth/invitations.ts`](./invitations.ts)) from
    [`/api/auth/callback`](../../app/api/auth/callback/route.ts):
    - Read the cookie, clear it.
    - Match `invitations.token` AND `invitations.email == user.email` AND
@@ -207,9 +208,27 @@ hitches a ride on Google OAuth.
    - Upsert `user_roles` row for `owner` / `admin` / `developer` / `observer`
      presets (audit trail; `moderator` is *not* added here — moderator is
      derived from `moderator_assignments` rows).
-   - Upsert `cycle_enrollments` (status=active) when `cycle_id` set.
-   - Upsert `moderator_assignments` when `pod_id` set (queries the pod for
-     `cycle_id`).
+   - Upsert `cycle_enrollments` (status=active) when `cycle_id` set, then
+     reconcile.
+   - If `pod_id` is set, branch on `pod_role` (migration 00060 §6):
+     `NULL`/absent → legacy behavior, `moderator_assignments` only
+     (participant-cycle poderator invites; `POST /api/invitations` rejects
+     `NULL` pod_role on an org-mode pod, so this branch only fires for
+     participant-cycle pods). `'co_lead'` → `moderator_assignments`
+     **and** an active pod membership — org co-leads sit in their
+     workstream. `'member'` → pod membership only, no moderator
+     assignment — org core contributors.
+   - The `co_lead`/`member` membership path goes through
+     `ensureActivePodMembership()` in
+     [`lib/enrollment/reconciler.ts`](../enrollment/reconciler.ts): it
+     reactivates/inserts the `pod_memberships` row, seeds an active
+     `cycle_enrollments` row for the **pod's own** `cycle_id` (unconditionally
+     — even when the invitation's `cycle_id` pointed at a different cycle),
+     and only then re-runs the reconciler, since the reconciler only
+     promotes an enrollment by looking at pod memberships as they currently
+     stand. `app/api/pods/[pod_id]/moderators/route.ts` (admin-assigned org
+     co-lead) shares this same helper — it's the single path an org
+     co-lead/member joins a workstream through.
    - Mark invitation `accepted` + `accepted_at`.
 
 **Bulk-invite path** (the unbuilt §1.8 / Issue #46): `cycle_id`, `pod_id`,

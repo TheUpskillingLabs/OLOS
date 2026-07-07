@@ -4,7 +4,10 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod, can } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import { podNoun } from "@/lib/cycle/labels";
+import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "./pulse-check-dashboard";
+import CharterProjectForm from "./charter-project-form";
 
 type PodStatus = "active" | "forming" | "closed" | "inactive";
 
@@ -34,12 +37,16 @@ export default async function PodDetailPage({
   const { data: pod } = await supabase
     .from("pods")
     .select(
-      "id, name, status, cycle_id, problem_statement_id, problem_statements(statement_text)"
+      "id, name, status, cycle_id, workstream_id, problem_statement_id, problem_statements(statement_text), cycles(mode)"
     )
     .eq("id", parseInt(pod_id))
     .single();
 
   if (!pod) notFound();
+
+  const mode = one(
+    pod.cycles as { mode: string } | { mode: string }[] | null
+  )?.mode;
 
   const { data: members } = await supabase
     .from("pod_memberships")
@@ -69,6 +76,14 @@ export default async function PodDetailPage({
     (isAdmin(userRoles) ||
       isModeratorForPod(userRoles, pod.id) ||
       can(userRoles, "participants:read"));
+
+  // Org run pods (docs/ORG_CYCLES.md §2/§5) let their co-leads charter new
+  // projects directly on the pod, no solution-proposal ballot required.
+  const canCharter =
+    mode === "org" &&
+    pod.workstream_id != null &&
+    !!userRoles &&
+    (isAdmin(userRoles) || isModeratorForPod(userRoles, pod.id));
 
   // Fetch pulse check data for dashboard (using service client to bypass RLS)
   let pulseCheckData: {
@@ -143,8 +158,13 @@ export default async function PodDetailPage({
           Back to cycle
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
-          {pod.name || `Pod ${pod.id}`}
+          {pod.name || `${podNoun(mode)} ${pod.id}`}
         </h1>
+        {mode === "org" && (
+          <p className="mt-1 text-sm text-meta">
+            An organization workstream &mdash; part of the org cycle.
+          </p>
+        )}
         <span className="mt-2 inline-block">
           <StatusBadge variant={podVariant}>{pod.status}</StatusBadge>
         </span>
@@ -207,33 +227,40 @@ export default async function PodDetailPage({
         </div>
       </div>
 
-      {projects && projects.length > 0 && (
+      {((projects && projects.length > 0) || canCharter) && (
         <div className="mb-8">
           <h2 className="t-h3 mb-3 text-ink">
             Projects
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {projects.map((project) => {
-              const variant =
-                POD_STATUS_VARIANT[project.status as PodStatus] ?? "inactive";
-              return (
-                <Link
-                  key={project.id}
-                  href={`/projects/${project.id}`}
-                  className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold tracking-tight text-ink">
-                      {project.name || `Project ${project.id}`}
-                    </span>
-                    <StatusBadge variant={variant}>
-                      {project.status}
-                    </StatusBadge>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          {projects && projects.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {projects.map((project) => {
+                const variant =
+                  POD_STATUS_VARIANT[project.status as PodStatus] ?? "inactive";
+                return (
+                  <Link
+                    key={project.id}
+                    href={`/projects/${project.id}`}
+                    className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold tracking-tight text-ink">
+                        {project.name || `Project ${project.id}`}
+                      </span>
+                      <StatusBadge variant={variant}>
+                        {project.status}
+                      </StatusBadge>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {canCharter && (
+            <div className={projects && projects.length > 0 ? "mt-3" : ""}>
+              <CharterProjectForm podId={pod.id} />
+            </div>
+          )}
         </div>
       )}
 

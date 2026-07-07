@@ -12,11 +12,6 @@ export const metadata = {
     "The expectations for everyone who takes part in The Upskilling Labs community.",
 };
 
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Code of Conduct", null],
-];
-
 const h2 = { marginTop: 44, marginBottom: 12 } as const;
 const p = { marginBottom: 16 } as const;
 
@@ -38,7 +33,6 @@ export default function CodeOfConductPage() {
       eyebrow="Community"
       title="Code of Conduct"
       lede="The expectations for everyone who takes part — so the Labs stays a place where anyone can show up, contribute, and belong."
-      trail={TRAIL}
     >
       <p className="t-small" style={{ marginBottom: 28 }}>
         Effective date: July 6, 2026

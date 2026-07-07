@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Crumbs } from "@/app/components/content/teasers";
 
 /* The public About page — composed on the editorial "standards-manual" grid
    (ref: 1976 NASA Graphics Standards Manual, Column Five, The Futur) as a stack
@@ -16,11 +15,6 @@ export const metadata = {
   description:
     "We believe people are capable of far more than they’ve been given the opportunity to prove. That’s why The Upskilling Labs exists.",
 };
-
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["About", null],
-];
 
 const BELIEFS = [
   "People are more capable than they realize.",
@@ -101,23 +95,6 @@ function Pull({ children }: { children: React.ReactNode }) {
 export default function AboutPage() {
   return (
     <>
-      {/* Document bar */}
-      <div className="container" style={{ paddingTop: 22 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 16,
-            paddingBottom: 12,
-          }}
-        >
-          <Crumbs trail={TRAIL} />
-          <span className="lbl">The Upskilling Labs · About</span>
-        </div>
-        <hr className="ed-rule" />
-      </div>
-
       {/* ── Header: eyebrow + headline (head row), standfirst (row beneath) ── */}
       <section className="grain on-dark" style={{ background: "var(--ink)" }}>
         <div className="container" style={{ paddingTop: 96, paddingBottom: 96 }}>
