@@ -381,6 +381,16 @@ function LinksEditor({
   const used = new Set(links.map((l) => l.platform));
   const available = LINK_PLATFORMS.filter((p) => !used.has(p));
 
+  // The submitted platform must always be one that's actually rendered as an
+  // <option>. `platform` state can go stale (e.g. it starts on "github" but a
+  // github link already exists), and a controlled <select> whose value matches
+  // no option would still submit that stale value — silently overwriting the
+  // existing link via the (owner, platform) upsert. Derive the effective value
+  // so it can never drift out of `available`.
+  const selectedPlatform: LinkPlatform = available.includes(platform)
+    ? platform
+    : (available[0] ?? "other");
+
   async function add(e: React.FormEvent) {
     e.preventDefault();
     if (!url.trim()) return;
@@ -393,7 +403,7 @@ function LinksEditor({
         body: JSON.stringify({
           owner_type: entityType,
           owner_id: entityId,
-          platform,
+          platform: selectedPlatform,
           url: url.trim(),
           label: labelText.trim() || null,
         }),
@@ -404,12 +414,11 @@ function LinksEditor({
         return;
       }
       setLinks((prev) => [
-        ...prev.filter((l) => l.platform !== platform),
-        { platform, url: url.trim(), label: labelText.trim() || null },
+        ...prev.filter((l) => l.platform !== selectedPlatform),
+        { platform: selectedPlatform, url: url.trim(), label: labelText.trim() || null },
       ]);
       setUrl("");
       setLabelText("");
-      setPlatform(available.find((p) => p !== platform) ?? "other");
       router.refresh();
     } catch {
       setError("Could not add link. Try again.");
@@ -487,7 +496,7 @@ function LinksEditor({
             <Field label="Platform" htmlFor="link-platform">
               <Select
                 id="link-platform"
-                value={platform}
+                value={selectedPlatform}
                 onChange={(e) => setPlatform(e.target.value as LinkPlatform)}
               >
                 {available.map((p) => (
