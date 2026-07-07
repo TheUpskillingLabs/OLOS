@@ -1,4 +1,3 @@
-import { Crumbs } from "@/app/components/content/teasers";
 import MetroSearch from "@/app/components/content/metro-search";
 import { getMetros } from "@/lib/content/queries";
 
@@ -23,9 +22,6 @@ export default async function LabsPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Local labs", null]]} />
-      </div>
       <section className="section">
         <div className="container">
           <div className="section-head">

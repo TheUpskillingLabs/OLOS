@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Crumbs } from "@/app/components/content/teasers";
 
 /* The public About page — recomposed on the editorial "standards-manual" grid
    (ref: 1976 NASA Graphics Standards Manual, Column Five, The Futur): a document
@@ -16,11 +15,6 @@ export const metadata = {
   description:
     "We believe people are capable of far more than they’ve been given the opportunity to prove. That’s why The Upskilling Labs exists.",
 };
-
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["About", null],
-];
 
 const BELIEFS = [
   "People are more capable than they realize.",
@@ -121,23 +115,6 @@ function RailQuote({ children }: { children: React.ReactNode }) {
 export default function AboutPage() {
   return (
     <>
-      {/* Document bar — identifier left, section ref right, rule under */}
-      <div className="container" style={{ paddingTop: 22 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            gap: 16,
-            paddingBottom: 12,
-          }}
-        >
-          <Crumbs trail={TRAIL} />
-          <span className="lbl">The Upskilling Labs · About</span>
-        </div>
-        <hr className="ed-rule" style={{ marginBottom: 0 }} />
-      </div>
-
       {/* ── Editorial header ── */}
       <section className="grain on-dark" style={{ background: "var(--ink)" }}>
         <div className="container" style={{ paddingTop: 88, paddingBottom: 88 }}>

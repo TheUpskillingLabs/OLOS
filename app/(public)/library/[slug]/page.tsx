@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import {
-  Crumbs,
   MediaFrame,
   ResourceTeaser,
 } from "@/app/components/content/teasers";
@@ -65,9 +64,6 @@ export default async function ResourcePage({
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Library", "/library"], [r.title, null]]} />
-      </div>
       <div className="container">
         <div className="detail" style={{ marginTop: 16 }}>
           <div className="detail-main">

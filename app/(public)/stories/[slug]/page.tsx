@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Crumbs } from "@/app/components/content/teasers";
 import Orb from "@/app/components/chrome/orb";
 import {
   getSpotlight,
@@ -90,10 +89,6 @@ export default async function SpotlightPage({
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Stories", "/stories"], [s.name, null]]} />
-      </div>
-
       {/* On-brand dark hero */}
       <section className="grain on-dark" style={{ background: "var(--ink)" }}>
         <div className="container" style={{ paddingTop: 48, paddingBottom: 48 }}>

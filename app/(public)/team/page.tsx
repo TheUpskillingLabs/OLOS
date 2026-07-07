@@ -13,11 +13,6 @@ export const metadata = {
     "The people behind The Upskilling Labs — the National Capital Region leadership team, board, and advisors.",
 };
 
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["The Team", null],
-];
-
 // [name | null-if-open, role]
 const LEADERSHIP: [string | null, string][] = [
   ["Madhu Jalan", "Programs & Events Co-Lead"],
@@ -72,7 +67,6 @@ export default function TeamPage() {
       eyebrow="National Capital Region"
       title="Meet the team"
       lede="The people building The Upskilling Labs — in the open, alongside a community of volunteers."
-      trail={TRAIL}
     >
       <Group title="Leadership team" members={LEADERSHIP} />
       <Group title="Our board" members={BOARD} />

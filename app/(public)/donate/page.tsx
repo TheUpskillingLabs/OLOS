@@ -14,11 +14,6 @@ export const metadata = {
     "By giving today, you’re helping build a new institution for the future. The Upskilling Labs is a fiscally sponsored 501(c)(3) project of Superbloom Design.",
 };
 
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Donate", null],
-];
-
 const h2 = { marginTop: 44, marginBottom: 16 } as const;
 const p = { marginBottom: 16 } as const;
 
@@ -39,7 +34,6 @@ export default function DonatePage() {
       eyebrow="Support The Labs"
       title="Make an impact today"
       lede="By giving today, you’re helping build a new institution for the future. Your contributions directly support the work we do."
-      trail={TRAIL}
     >
       <a className="btn btn-red btn-lg" href={DONATE_URL} target="_blank" rel="noopener">
         Give now

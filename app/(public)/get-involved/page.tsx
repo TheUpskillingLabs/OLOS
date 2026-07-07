@@ -13,11 +13,6 @@ export const metadata = {
     "Everything the Labs does is made possible by volunteers. Mentor, help at an event, or help build the Labs itself.",
 };
 
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Get Involved", null],
-];
-
 const h2 = { marginTop: 44, marginBottom: 16 } as const;
 
 const TEAMS: [string, string][] = [
@@ -35,7 +30,6 @@ export default function GetInvolvedPage() {
       eyebrow="Volunteer with The Labs"
       title="Everything we do is made possible by volunteers."
       lede="Whether you’re sharing your expertise, showing up to support an event, or helping build the Labs from the ground up, there’s a place for you here."
-      trail={TRAIL}
     >
       <h2 className="t-h2" style={h2}>Join us for a day — or a build cycle</h2>
       <p className="t-body" style={{ marginBottom: 16 }}>

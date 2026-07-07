@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Crumbs } from "@/app/components/content/teasers";
 import { getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay } from "@/lib/content/format";
 
@@ -20,11 +19,6 @@ export const metadata = {
   description:
     "Three months from now, you’ll have built something real. Pick a problem, team up, and see it through — in the open.",
 };
-
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Build Cycles", null],
-];
 
 // The current cycle's public shape, inlined from the prototype's
 // cycles/data.js (CYCLE_PUBLIC + SITUATIONS). These constants move to the
@@ -95,10 +89,6 @@ export default async function BuildCyclesPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={TRAIL} />
-      </div>
-
       {/* ── Dark hero (the generator's darkHero()) ── */}
       <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
         <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
