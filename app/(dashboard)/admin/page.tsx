@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/guards";
 import { StatusBadge, DataTable } from "@/app/components/ui";
-// The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
-// as the route; removing the feature = delete this block + the two folders.
-import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import CreateCycleForm from "./cycles/create-cycle-form";
-import SyncEventsButton from "./sync-events-button";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -44,46 +40,12 @@ export default async function AdminPage() {
     <div>
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="t-h1 text-ink">
-            Admin
-          </h1>
+          <h1 className="t-h1 text-ink">Cycles</h1>
           <p className="mt-1 text-sm text-meta tabular-nums">
             {cycles?.length ?? 0} cycle{cycles?.length !== 1 ? "s" : ""} total
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/admin/invitations"
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            Invitations
-          </Link>
-          <Link
-            href="/admin/participants"
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            All participants
-          </Link>
-          <Link
-            href="/admin/stories"
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            Stories
-          </Link>
-          {ENTITY_EXPLORER_ENABLED && (
-            <Link
-              href="/admin/explore"
-              className="btn btn-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
-            >
-              Explore
-              <span className="rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-deep">
-                flag
-              </span>
-            </Link>
-          )}
-          <SyncEventsButton />
-          <CreateCycleForm />
-        </div>
+        <CreateCycleForm />
       </div>
 
       <DataTable<CycleListRow>

@@ -1,42 +1,7 @@
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { requireAdmin } from "@/lib/auth/guards";
-import StoriesAdmin, { type AdminSpotlight } from "./stories-admin";
+import { redirect } from "next/navigation";
 
-/* Admin review of Upskiller Spotlights — submissions land here (status
-   'submitted'); the Labs team enriches the editorial fields and publishes to
-   /stories. Same admin guard as the rest of /admin. */
-
-export const dynamic = "force-dynamic";
-
-export default async function AdminStoriesPage() {
-  const { serviceClient: service } = await requireAdmin();
-
-  const { data } = await service
-    .from("spotlights")
-    .select(
-      "id, slug, name, role, tag, tag_label, quote, story, grad, submitter_email, status, sort_order, created_at"
-    )
-    .order("created_at", { ascending: false });
-
-  const rows = (data as AdminSpotlight[]) ?? [];
-
-  return (
-    <div>
-      <div className="mb-8">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          Admin
-        </Link>
-        <h1 className="t-h1 mt-2 text-ink">Upskiller Spotlights</h1>
-        <p className="mt-1 text-sm text-meta">
-          Review submissions, edit the story, and publish to the public /stories page.
-        </p>
-      </div>
-      <StoriesAdmin initial={rows} />
-    </div>
-  );
+// Spotlights now live under the consolidated Content surface. Kept as a
+// redirect so existing links/bookmarks to /admin/stories still land.
+export default function AdminStoriesRedirect() {
+  redirect("/admin/content");
 }

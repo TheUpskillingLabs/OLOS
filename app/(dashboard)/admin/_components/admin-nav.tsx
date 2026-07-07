@@ -48,10 +48,10 @@ const BASE_ITEMS: NavItem[] = [
       p.startsWith("/admin/invitations"),
   },
   {
-    href: "/admin/stories",
+    href: "/admin/content",
     label: "Content",
     Icon: FileText,
-    match: (p) => p.startsWith("/admin/stories") || p.startsWith("/admin/content"),
+    match: (p) => p.startsWith("/admin/content") || p.startsWith("/admin/stories"),
   },
 ];
 
