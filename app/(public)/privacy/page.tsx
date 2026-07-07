@@ -12,11 +12,6 @@ export const metadata = {
     "How The Upskilling Labs collects, uses, and protects your information on the OLOS platform.",
 };
 
-const TRAIL: [string, string | null][] = [
-  ["Home", "/"],
-  ["Privacy Policy", null],
-];
-
 const h2 = { marginTop: 44, marginBottom: 12 } as const;
 const p = { marginBottom: 16 } as const;
 
@@ -26,7 +21,6 @@ export default function PrivacyPage() {
       eyebrow="Legal"
       title="Privacy Policy"
       lede="What we collect through OLOS, how we use it, and the choices you have."
-      trail={TRAIL}
     >
       <p className="t-small" style={{ marginBottom: 28 }}>
         Effective date: July 3, 2026
