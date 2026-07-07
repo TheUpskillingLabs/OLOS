@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
-import { createServiceClient } from "@/lib/supabase/server";
-import DirectoryGrid from "./directory-grid";
+import { fetchDirectoryData } from "@/lib/directory/data";
+import DirectorySearch from "./directory-search";
 import UpdatesFeed from "./updates-feed";
 
 /**
@@ -9,69 +10,21 @@ import UpdatesFeed from "./updates-feed";
  * (dashboard)/layout.tsx guard gates the whole route group, and the weekly
  * Learning-Log gate applies (locked members bounce Home).
  *
- * Security: we read the display-column allowlist via the SERVICE client — never
+ * LinkedIn-style search across the community's three entities — people, pods,
+ * and projects — with tabs, filters, and URL-shareable state. Data is fetched
+ * once here (lib/directory/data.ts); filtering and ranking are instant on the
+ * client.
+ *
+ * Security: we read display-column allowlists via the SERVICE client — never
  * a widened participants RLS. No PII column (email, phone, zip, dcpl_card,
- * notes, google_id) is selected. Test accounts are excluded.
+ * notes, google_id) is selected. Test/staff accounts are excluded everywhere,
+ * including pod/project member counts and avatar stacks.
  */
 
 export const dynamic = "force-dynamic";
 
-const DISPLAY_COLUMNS =
-  "id, handle, preferred_name, first_name, last_name, headline, primary_expertise, role_intents, profile_image_url, metro_slug, is_test";
-
-export interface DirectoryMember {
-  id: number;
-  handle: string | null;
-  displayName: string;
-  firstInitial: string;
-  lastInitial: string;
-  headline: string | null;
-  primary_expertise: string | null;
-  role_intents: string[];
-  profile_image_url: string | null;
-  metroName: string | null;
-}
-
 export default async function DirectoryPage() {
-  const service = createServiceClient();
-
-  const [{ data: rows, error: rowsErr }, { data: metros }] = await Promise.all([
-    service
-      .from("participants")
-      .select(DISPLAY_COLUMNS)
-      // Members only — internal (test + staff) accounts are hidden everywhere
-      // else in the app (the Poderator's visibleMembers()); match that here.
-      .eq("is_test", false)
-      .eq("is_staff", false)
-      .order("created_at", { ascending: false }),
-    service.from("metros").select("slug, name, st"),
-  ]);
-
-  // Surface a failed read instead of silently rendering an empty directory — a
-  // 400 (e.g. a drifted/renamed column) otherwise looks exactly like "no
-  // members." Logs to the server (Vercel), never to the client.
-  if (rowsErr) {
-    console.error("[directory] participants query failed:", rowsErr.message);
-  }
-
-  const metroBySlug = new Map<string, string>();
-  for (const m of metros ?? []) {
-    metroBySlug.set(m.slug, [m.name, m.st].filter(Boolean).join(", "));
-  }
-
-  const members: DirectoryMember[] = (rows ?? []).map((m) => ({
-    id: m.id,
-    handle: m.handle,
-    displayName:
-      m.preferred_name || `${m.first_name} ${m.last_name}`.trim() || "A member",
-    firstInitial: m.first_name?.[0] ?? "",
-    lastInitial: m.last_name?.[0] ?? "",
-    headline: m.headline ?? null,
-    primary_expertise: m.primary_expertise ?? null,
-    role_intents: m.role_intents ?? [],
-    profile_image_url: m.profile_image_url ?? null,
-    metroName: m.metro_slug ? (metroBySlug.get(m.metro_slug) ?? null) : null,
-  }));
+  const data = await fetchDirectoryData();
 
   return (
     <div className="space-y-10">
@@ -89,9 +42,10 @@ export default async function DirectoryPage() {
         </Link>
       </header>
 
-      <DirectoryGrid members={members} />
-
-      <UpdatesFeed />
+      {/* The island reads useSearchParams — Suspense keeps Next happy. */}
+      <Suspense>
+        <DirectorySearch data={data} updatesSlot={<UpdatesFeed />} />
+      </Suspense>
     </div>
   );
 }

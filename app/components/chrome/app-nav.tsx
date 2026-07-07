@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NavSearch from "./nav-search";
 
 /* The signed-in app bar — ported from onboarding-proto chrome.js (.sitenav.appnav).
    Design rules carried over (owner decisions):
@@ -75,7 +76,11 @@ export default function AppNav({
             </Link>
           </>
         ) : (
-          <nav className="nav-links appnav-links">
+          <>
+            {/* LinkedIn-style global search — logo, then search (owner rule:
+                the logo only ever sits on dark navy; the input matches). */}
+            <NavSearch />
+            <nav className="nav-links appnav-links">
             <Link
               className={`nav-link${isActive(pathname, "/dashboard") ? " active" : ""}`}
               id="nav-home"
@@ -120,7 +125,8 @@ export default function AppNav({
             >
               Directory
             </Link>
-          </nav>
+            </nav>
+          </>
         )}
         <AvatarMenu
           initials={initials}
