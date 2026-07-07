@@ -33,6 +33,57 @@ function seasonYear(dateStr: string | null): string | null {
   return `${seasons[Math.floor(((d.getMonth() + 1) % 12) / 3)]} ${d.getFullYear()}`;
 }
 
+/* A landing section head recomposed on the editorial grid: a heavy rule, then
+   the eyebrow in column 1 baseline-aligned to the heading (columns 2–5), with
+   the section's "see →" link trailing the heading at the grid's right edge. The
+   card grid / banner that follows is a full-width sibling OUTSIDE this row — the
+   `.ed-sec` grid only governs its own children, so the browse grids are
+   untouched. (The `.see` link keeps its old `.section-head .see` styling inline
+   now that it no longer sits inside a `.section-head`.) */
+function SectionHead({
+  eyebrow,
+  heading,
+  seeHref,
+  seeLabel,
+}: {
+  eyebrow: string;
+  heading: string;
+  seeHref?: string;
+  seeLabel?: string;
+}) {
+  return (
+    <div className="ed-sec" style={{ marginBottom: 24 }}>
+      <hr className="ed-rule" />
+      <div className="ed-eyebrow">
+        <div className="lbl lbl-teal">{eyebrow}</div>
+      </div>
+      <div
+        className="ed-heading"
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <h2 className="t-h2" style={{ margin: 0 }}>
+          {heading}
+        </h2>
+        {seeHref && seeLabel && (
+          <Link
+            className="see"
+            href={seeHref}
+            style={{ fontSize: 13, fontWeight: 600, color: "var(--teal-deep)", whiteSpace: "nowrap" }}
+          >
+            {seeLabel}
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* The public landing — onboarding-proto's view-landing: dark hero over
    photography, then browse-free sections (cycles · workshops · library ·
    labs) rendered from the content tables, ending in the open-source footer.
@@ -197,17 +248,12 @@ export default async function LandingPage() {
         id="sec-cycles"
       >
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Build Cycles · 4 a year
-              </div>
-              <h2 className="t-h2">Join a cohort, ship something real</h2>
-            </div>
-            <Link className="see" href="/build-cycles">
-              How cycles work →
-            </Link>
-          </div>
+          <SectionHead
+            eyebrow="Build Cycles · 4 a year"
+            heading="Join a cohort, ship something real"
+            seeHref="/build-cycles"
+            seeLabel="How cycles work →"
+          />
           {recruitingCycle ? (
             <div className="cycle-banner s-cover grain on-dark">
               <Orb />
@@ -268,17 +314,12 @@ export default async function LandingPage() {
       {/* ── Workshops ── */}
       <section className="section s-white" id="sec-workshops">
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Workshops &amp; sessions · weekly
-              </div>
-              <h2 className="t-h2">Drop into a session</h2>
-            </div>
-            <Link className="see" href="/events">
-              All events →
-            </Link>
-          </div>
+          <SectionHead
+            eyebrow="Workshops & sessions · weekly"
+            heading="Drop into a session"
+            seeHref="/events"
+            seeLabel="All events →"
+          />
           <div className="cards dense">
             {landingEvents.map((e) => (
               <EventTeaser key={e.slug} event={e} />
@@ -290,19 +331,12 @@ export default async function LandingPage() {
       {/* ── Learning Library ── */}
       <section className="section s-white" id="sec-library">
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Learning Library · on-demand
-              </div>
-              <h2 className="t-h2">Learn at your own pace</h2>
-            </div>
-            {landingResources.length > 0 && (
-              <Link className="see" href="/library">
-                Full library →
-              </Link>
-            )}
-          </div>
+          <SectionHead
+            eyebrow="Learning Library · on-demand"
+            heading="Learn at your own pace"
+            seeHref={landingResources.length > 0 ? "/library" : undefined}
+            seeLabel={landingResources.length > 0 ? "Full library →" : undefined}
+          />
           {landingResources.length ? (
             <div className="cards dense">
               {landingResources.map((r) => (
@@ -320,17 +354,12 @@ export default async function LandingPage() {
       {/* ── Local labs ── */}
       <section className="section s-white" id="sec-labs">
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Local labs
-              </div>
-              <h2 className="t-h2">Find your city</h2>
-            </div>
-            <Link className="see" href="/local-labs">
-              All cities →
-            </Link>
-          </div>
+          <SectionHead
+            eyebrow="Local labs"
+            heading="Find your city"
+            seeHref="/local-labs"
+            seeLabel="All cities →"
+          />
           <MetroSearch metros={metros} initial={landingLabs} />
         </div>
       </section>

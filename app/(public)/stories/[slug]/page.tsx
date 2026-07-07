@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Crumbs } from "@/app/components/content/teasers";
+import { DocBar, EditorialHeader, EdSection } from "@/app/components/chrome/editorial";
 import Orb from "@/app/components/chrome/orb";
 import {
   getSpotlight,
@@ -88,39 +88,57 @@ export default async function SpotlightPage({
     .filter((x) => x.slug && x.slug !== s.slug)
     .slice(0, 3);
 
+  // The spotlight's own voice leads: the pull-quote is the headline (falling
+  // back to the name), the tag is the eyebrow, and the photo + attribution
+  // (name / role) drop into the rows beneath — never sharing the heading's row.
+  const headline = s.quote ? `“${s.quote}”` : s.name;
+
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Stories", "/stories"], [s.name, null]]} />
-      </div>
+      <DocBar
+        trail={[["Home", "/"], ["Stories", "/stories"], [s.name, null]]}
+        tag="The Upskilling Labs"
+      />
 
-      {/* On-brand dark hero */}
-      <section className="grain on-dark" style={{ background: "var(--ink)" }}>
-        <div className="container" style={{ paddingTop: 48, paddingBottom: 48 }}>
-          <div className="spot-hero">
-            <HeroMedia s={s} />
+      {/* Header: eyebrow + headline (head row); the hero photo and the
+          attribution (name / role) flow in the rows beneath. */}
+      <EditorialHeader eyebrow={tagLabel(s)} title={headline}>
+        <div className="ed-cols">
+          <HeroMedia s={s} />
+        </div>
+        {(s.quote || s.role) && (
+          <div className="ed-cols">
             <div>
-              <span className="lbl lbl-teal">{tagLabel(s)}</span>
-              {s.quote && <p className="spot-hero-quote">&ldquo;{s.quote}&rdquo;</p>}
-              <div className="t-h3">{s.name}</div>
+              {s.quote && <div className="t-h3">{s.name}</div>}
               {s.role && (
-                <div className="lbl" style={{ marginTop: 6 }}>
+                <div className="lbl" style={{ marginTop: s.quote ? 6 : 0 }}>
                   {s.role}
                 </div>
               )}
             </div>
           </div>
-        </div>
-      </section>
+        )}
+      </EditorialHeader>
 
-      {/* The full story */}
+      {/* The full story — a readable narrative column in the content zone,
+          aligned under the headline (cols 2–5), labelled in column 1. */}
       {s.story.length > 0 && (
-        <div className="reading" style={{ paddingTop: 48, paddingBottom: 8 }}>
-          {s.story.map((p, i) => (
-            <p key={i} className="t-lede" style={{ marginBottom: 18, color: "var(--charcoal)" }}>
-              {p}
-            </p>
-          ))}
+        <div className="container" style={{ paddingTop: 72, paddingBottom: 40 }}>
+          <EdSection eyebrow="The story">
+            <div className="ed-cols">
+              <div className="ed-text">
+                {s.story.map((p, i) => (
+                  <p
+                    key={i}
+                    className={i === 0 ? "t-lede" : "t-body"}
+                    style={{ marginBottom: i === s.story.length - 1 ? 0 : 18 }}
+                  >
+                    {p}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </EdSection>
         </div>
       )}
 

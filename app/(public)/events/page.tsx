@@ -1,9 +1,12 @@
-import { Crumbs, EventTeaser } from "@/app/components/content/teasers";
+import { EventTeaser } from "@/app/components/content/teasers";
+import { DocBar, EditorialHeader } from "@/app/components/chrome/editorial";
 import { getEvents } from "@/lib/content/queries";
 
-/* The public events directory — the generator's directoryPage('events'):
-   crumbs, the section-head with the count eyebrow, the lede, and the full
-   teaser grid. Copy ported byte-for-byte from tools/generate.js. */
+/* The public events directory — the generator's directoryPage('events'),
+   recomposed on the editorial "standards-manual" grid: the document bar, the
+   dark header (count eyebrow + headline own the head row, standfirst beneath),
+   then the full teaser grid full-width. Copy ported byte-for-byte from
+   tools/generate.js. */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -22,22 +25,18 @@ export default async function EventsPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Events", null]]} />
-      </div>
+      <DocBar trail={[["Home", "/"], ["Events", null]]} tag="The Upskilling Labs · Events" />
+
+      {/* ── Header: count eyebrow + headline (head row), standfirst (beneath) ── */}
+      <EditorialHeader
+        eyebrow={`Events & workshops · ${events.length}`}
+        title="Drop into a session"
+        standfirst="Free and public, every one. ✦ marks the cycle’s six anchor events."
+      />
+
+      {/* ── Browse: the full teaser grid, full-width ── */}
       <section className="section">
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Events & workshops · {events.length}
-              </div>
-              <h1 className="t-h2">Drop into a session</h1>
-            </div>
-          </div>
-          <p className="t-lede" style={{ marginBottom: 28 }}>
-            Free and public, every one. ✦ marks the cycle’s six anchor events.
-          </p>
           <div className="cards dense all">
             {events.map((e) => (
               <EventTeaser key={e.slug} event={e} />

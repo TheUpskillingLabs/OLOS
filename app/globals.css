@@ -78,9 +78,6 @@
      The cap only bites on ultrawide — below it the shell + chrome fill the
      viewport edge-to-edge, gutters only. Was 1440. */
   --maxw: 1920px;
-  /* Readable measure for prose/forms — kept narrow but left-aligned to the
-     grid via .reading, so text never floats centered in the wide shell. */
-  --measure: 760px;
   --shadow: 0 1px 2px rgba(0, 20, 27, 0.05), 0 6px 20px rgba(0, 20, 27, 0.06);
   --shadow-lg: 0 12px 40px rgba(0, 20, 27, 0.16);
   --grain: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMjAnIGhlaWdodD0nMjIwJz48ZmlsdGVyIGlkPSduJz48ZmVUdXJidWxlbmNlIHR5cGU9J2ZyYWN0YWxOb2lzZScgYmFzZUZyZXF1ZW5jeT0nMC45JyBudW1PY3RhdmVzPScyJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PGZlQ29sb3JNYXRyaXggdmFsdWVzPScwIDAgMCAwIDEgIDAgMCAwIDAgMSAgMCAwIDAgMCAxICAwIDAgMCAwLjUgMCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNuKScgb3BhY2l0eT0nMC41NScvPjwvc3ZnPg==");
@@ -244,18 +241,6 @@ dialog::backdrop {
   /* ── layout: container, sections, section heads ──
      (.container is a top-level @utility near the top of this file — see there
      for why it can't live in @layer components.) ── */
-  /* A narrow reading column, kept at a readable measure but LEFT-aligned to the
-     same grid line as .container (the nav brand, the card rows) instead of
-     centering in the wide shell. A standalone drop-in for the old
-     `.container` + inline maxWidth: the left margin tracks the shell's gutter at
-     every width — a plain --pad until the shell caps at --maxw, then it follows
-     the centered shell's left edge on ultrawide. (Use inside .container? just
-     drop mx-auto on a max-w-* block instead — this rule is for the top level.) */
-  .reading {
-    max-width: var(--measure);
-    margin-left: max(var(--pad), (100% - var(--maxw)) / 2 + var(--pad));
-    margin-right: var(--pad);
-  }
 
   /* ── Editorial section — the standards-manual layout as a stack of ROWS on a
      FIVE-COLUMN desktop field (homage to the 1976 NASA Graphics Standards

@@ -1,11 +1,13 @@
-import { Crumbs } from "@/app/components/content/teasers";
 import MetroSearch from "@/app/components/content/metro-search";
+import { DocBar, EditorialHeader } from "@/app/components/chrome/editorial";
 import { getMetros } from "@/lib/content/queries";
 
 /* The Local labs (cities) directory — the prototype generator's
-   directoryPage('labs'): the search bar leads (owner ask, July 2026),
-   with every city — active lab first, waitlists by list size — shown
-   until typing starts. */
+   directoryPage('labs'), recomposed on the editorial "standards-manual" grid:
+   the document bar, the dark header (eyebrow + headline own the head row,
+   standfirst beneath), then the metro search + city grid full-width. The
+   search bar leads (owner ask, July 2026), with every city — active lab first,
+   waitlists by list size — shown until typing starts. */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -23,23 +25,18 @@ export default async function LabsPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Local labs", null]]} />
-      </div>
+      <DocBar trail={[["Home", "/"], ["Local labs", null]]} tag="The Upskilling Labs" />
+
+      {/* ── Header: eyebrow + headline (head row), standfirst (row beneath) ── */}
+      <EditorialHeader
+        eyebrow="Local labs · library-hosted"
+        title="Find your city"
+        standfirst="One lab is live. Every other city starts as a list of names. Find yours — or start it."
+      />
+
+      {/* ── Browse: the metro search + city grid, full-width ── */}
       <section className="section">
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Local labs · library-hosted
-              </div>
-              <h1 className="t-h2">Find your city</h1>
-            </div>
-          </div>
-          <p className="t-lede" style={{ marginBottom: 28 }}>
-            One lab is live. Every other city starts as a list of names. Find
-            yours — or start it.
-          </p>
           <MetroSearch metros={metros} initial={metros} />
         </div>
       </section>

@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { Crumbs } from "@/app/components/content/teasers";
+import { DocBar, EditorialHeader, EdSection, EdRow } from "@/app/components/chrome/editorial";
 import { getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay } from "@/lib/content/format";
 
-/* The public Build Cycles page — a faithful port of onboarding-proto's
-   tools/generate.js cyclesPage(): the dark hero, the four promise cards,
-   the current cycle (anchor events from the events table), the three
-   phases, the situations strip, and the register CTA. Copy is byte-for-byte
-   from the generator (the design source of truth). The past-projects block
-   waits for the Work layer. */
+/* The public Build Cycles page — recomposed on the editorial "standards-manual"
+   grid (ref: 1976 NASA Graphics Standards Manual, Column Five, The Futur) as a
+   stack of ROWS: the document bar, the dark header (eyebrow + headline own the
+   head row, standfirst + register CTA beneath), then body sections whose eyebrow
+   + heading share the head row and whose content — the promise, the current
+   cycle's anchor events, the three phases, the partner problems — flows in the
+   rows beneath. Copy is byte-for-byte from the generator (tools/generate.js
+   cyclesPage(), the design source of truth). The past-projects block waits for
+   the Work layer. */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -81,141 +84,154 @@ const PROMISES: [string, string][] = [
   ],
 ];
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
-      {children}
-    </div>
-  );
-}
-
 export default async function BuildCyclesPage() {
   const events = await getEvents();
   const anchors = events.filter((e) => e.anchor);
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={TRAIL} />
-      </div>
+      <DocBar trail={TRAIL} tag="The Upskilling Labs · Build Cycles" />
 
-      {/* ── Dark hero (the generator's darkHero()) ── */}
-      <section className="grain" style={{ background: "var(--ink)", color: "#fff" }}>
-        <div className="reading" style={{ paddingTop: 56, paddingBottom: 56 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
-            Build Cycles · 4 a year
-          </div>
-          <h1 className="t-h1" style={{ maxWidth: "22ch" }}>
-            Three months from now, you’ll have built something real.
-          </h1>
-          <p className="t-lede" style={{ marginTop: 18, maxWidth: "52ch", color: "var(--od2)" }}>
-            You’ll pick a problem that matters to you, team up, and see it through —
-            with mentors and a whole community behind you.
-          </p>
-          <div style={{ marginTop: 28 }}>
-            <Link className="btn btn-red btn-lg" href="/login">
-              Register for this cycle
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <div className="reading" style={{ paddingTop: 56, paddingBottom: 24 }}>
-        {/* ── The four promise cards ── */}
-        <div className="cards two" style={{ marginBottom: 56 }}>
-          {PROMISES.map(([t, b]) => (
-            <div className="lcard" style={{ padding: 22 }} key={t}>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                {t}
-              </div>
-              <p className="t-small">{b}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* ── The current cycle ── */}
-        <Eyebrow>The current cycle</Eyebrow>
-        <h2 className="t-h2" style={{ marginBottom: 16 }}>
-          {CYCLE.theme} · {CYCLE.name}
-        </h2>
-        <p className="t-lede" style={{ marginBottom: 24 }}>
-          {CYCLE.city} · Kickoff {fmtDay(CYCLE.kickoff)} · {CYCLE.weeks} weeks · An
-          Open Cycle — every project is open source.
-        </p>
-        <div className="lcard" style={{ padding: "22px 24px", marginBottom: 56 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-            The six anchor events
-          </div>
-          {anchors.map((e) => (
-            <div className="kv" key={e.slug}>
-              <span className="k lbl" style={{ width: 110 }}>
-                {fmtDate(e.start_at)}
-              </span>
-              <span className="t-body">
-                ✦{" "}
-                <Link href={`/events/${e.slug}`} style={{ color: "inherit" }}>
-                  {e.name}
-                </Link>
-                <span className="t-small" style={{ color: "var(--meta)" }}>
-                  {" "}
-                  · {e.location_name}
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* ── How it works ── */}
-        <Eyebrow>How it works</Eyebrow>
-        <h2 className="t-h2" style={{ marginBottom: 16 }}>
-          Three phases, one arc.
-        </h2>
-        <div className="cards two" style={{ marginBottom: 56 }}>
-          {PHASES.map((ph) => (
-            <div className="lcard" style={{ padding: 22 }} key={ph.title}>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                {ph.title} · {ph.when}
-              </div>
-              <p className="t-small">{ph.body}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* ── What this cycle is working on ── */}
-        <Eyebrow>What this cycle is working on</Eyebrow>
-        <h2 className="t-h2" style={{ marginBottom: 16 }}>
-          Real problems, brought by real partners.
-        </h2>
-        <div style={{ marginBottom: 56 }}>
-          {SITUATIONS.map((si) => (
-            <div className="kv" key={si.title}>
-              <span className="t-body">
-                {si.title}
-                <span className="t-small" style={{ color: "var(--meta)" }}>
-                  {" "}
-                  · Brought by {si.owner}
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Ready? ── */}
-        <h2 className="t-h2" style={{ marginBottom: 16 }}>
-          Ready?
-        </h2>
-        <p className="t-lede" style={{ marginBottom: 24 }}>
-          Registration takes a few minutes. The commitment is real, and so is what
-          you’ll build.
-        </p>
-        <Link className="btn btn-red btn-lg" href="/login">
-          Register for this cycle
-        </Link>
-        <p style={{ marginTop: 16, marginBottom: 32 }}>
-          <Link className="see" href="/events/kickoff-summit">
-            Just curious? Come to Kickoff →
+      {/* ── Header: eyebrow + headline (head row); standfirst + register (beneath) ── */}
+      <EditorialHeader
+        eyebrow="Build Cycles · 4 a year"
+        title="Three months from now, you’ll have built something real."
+        standfirst="You’ll pick a problem that matters to you, team up, and see it through — with mentors and a whole community behind you."
+      >
+        <div className="ed-cols">
+          <Link className="btn btn-red btn-lg" href="/login">
+            Register for this cycle
           </Link>
-        </p>
+        </div>
+      </EditorialHeader>
+
+      {/* ── Body ── */}
+      <div className="container" style={{ paddingTop: 88, paddingBottom: 56 }}>
+        <div className="ed-doc">
+          {/* The promise — the four cards, as same-hierarchy columns */}
+          <EdSection eyebrow="The promise" heading="Here’s the deal.">
+            <EdRow cols={2}>
+              {PROMISES.map(([t, b]) => (
+                <div key={t}>
+                  <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
+                    {t}
+                  </div>
+                  <p className="t-body ed-text" style={{ color: "var(--slate)" }}>
+                    {b}
+                  </p>
+                </div>
+              ))}
+            </EdRow>
+          </EdSection>
+
+          {/* The current cycle — theme + name head row; details and anchor events beneath */}
+          <EdSection
+            eyebrow="The current cycle"
+            heading={`${CYCLE.theme} · ${CYCLE.name}`}
+          >
+            <div className="ed-cols">
+              <p className="t-lede ed-text">
+                {CYCLE.city} · Kickoff {fmtDay(CYCLE.kickoff)} · {CYCLE.weeks} weeks
+                · An Open Cycle — every project is open source.
+              </p>
+            </div>
+            {anchors.length > 0 && (
+              <div className="ed-cols">
+              <div>
+                <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
+                  The six anchor events
+                </div>
+                {anchors.map((e) => (
+                  <div className="kv" key={e.slug}>
+                    <span className="k lbl" style={{ width: 110 }}>
+                      {fmtDate(e.start_at)}
+                    </span>
+                    <span className="t-body">
+                      ✦{" "}
+                      <Link href={`/events/${e.slug}`} style={{ color: "inherit" }}>
+                        {e.name}
+                      </Link>
+                      <span className="t-small" style={{ color: "var(--meta)" }}>
+                        {" "}
+                        · {e.location_name}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            )}
+          </EdSection>
+
+          {/* How it works — three phases, one arc: a genuine sequence, so numbered */}
+          <EdSection eyebrow="How it works" heading="Three phases, one arc.">
+            <div className="ed-cols">
+              <div className="ed-steps">
+                {PHASES.map((ph, i) => (
+                  <div key={ph.title}>
+                    <div className="ed-step-n">
+                      {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div className="ed-step-rule" />
+                    <div className="lbl" style={{ marginBottom: 8 }}>
+                      {ph.title} · {ph.when}
+                    </div>
+                    <p className="t-body ed-text">{ph.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </EdSection>
+
+          {/* What this cycle is working on — partner problems, a single-hierarchy list */}
+          <EdSection
+            eyebrow="What this cycle is working on"
+            heading="Real problems, brought by real partners."
+          >
+            <div className="ed-cols">
+              <div>
+                {SITUATIONS.map((si) => (
+                  <div className="kv" key={si.title}>
+                    <span className="t-body">
+                      {si.title}
+                      <span className="t-small" style={{ color: "var(--meta)" }}>
+                        {" "}
+                        · Brought by {si.owner}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </EdSection>
+
+          {/* Register — the closing CTA */}
+          <EdSection eyebrow="Register" heading="Ready?">
+            <div className="ed-cols">
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
+                  Registration takes a few minutes. The commitment is real, and so
+                  is what you’ll build.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <Link className="btn btn-red btn-lg" href="/login">
+                    Register for this cycle
+                  </Link>
+                  <Link className="see" href="/events/kickoff-summit">
+                    Just curious? Come to Kickoff →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </EdSection>
+        </div>
       </div>
     </>
   );

@@ -1,8 +1,11 @@
-import { Crumbs, ResourceTeaser } from "@/app/components/content/teasers";
+import { ResourceTeaser } from "@/app/components/content/teasers";
+import { DocBar, EditorialHeader } from "@/app/components/chrome/editorial";
 import { getResources } from "@/lib/content/queries";
 
 /* The Learning Library directory — the prototype generator's
-   directoryPage('library'): section-head + the full teaser grid. */
+   directoryPage('library'), recomposed on the editorial "standards-manual"
+   grid: the document bar, the dark header (count eyebrow + headline own the head
+   row, standfirst beneath), then the full teaser grid full-width. */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -20,25 +23,18 @@ export default async function LibraryPage() {
 
   return (
     <>
-      <div className="container">
-        <Crumbs trail={[["Home", "/"], ["Library", null]]} />
-      </div>
+      <DocBar trail={[["Home", "/"], ["Library", null]]} tag="The Upskilling Labs · Library" />
+
+      {/* ── Header: count eyebrow + headline (head row), standfirst (beneath) ── */}
+      <EditorialHeader
+        eyebrow={resources.length ? `Learning Library · ${resources.length}` : "Learning Library"}
+        title="Learn by doing"
+        standfirst="Everything here is free and open — including what cycle teams returned to the commons."
+      />
+
+      {/* ── Browse: the full teaser grid, full-width ── */}
       <section className="section">
         <div className="container">
-          <div className="section-head">
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                {resources.length
-                  ? `Learning Library · ${resources.length}`
-                  : "Learning Library"}
-              </div>
-              <h1 className="t-h2">Learn by doing</h1>
-            </div>
-          </div>
-          <p className="t-lede" style={{ marginBottom: 28 }}>
-            Everything here is free and open — including what cycle teams
-            returned to the commons.
-          </p>
           {resources.length ? (
             <div className="cards dense all">
               {resources.map((r) => (
