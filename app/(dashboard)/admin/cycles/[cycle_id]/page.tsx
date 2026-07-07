@@ -6,6 +6,7 @@ import { can } from "@/lib/auth/roles";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import CycleStatusForm from "./cycle-status-form";
 import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
+import CycleLogGateForm from "./cycle-log-gate-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
@@ -17,15 +18,7 @@ import WorkstreamsPanel, {
 } from "./workstreams-panel";
 import CycleWorkspaceTabs from "./cycle-workspace-tabs";
 import { resolveInitialTab } from "./cycle-tabs";
-import { podNoun } from "@/lib/cycle/labels";
-
-type CycleStatus = "active" | "closed" | "draft";
-
-const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
-  active: "active",
-  closed: "inactive",
-  draft: "draft",
-};
+import { podNoun, cycleStatusVariant } from "@/lib/cycle/labels";
 
 export type ParticipantRow = {
   participant_id: number;
@@ -72,6 +65,8 @@ export default async function AdminCycleDetailPage({
   ]);
 
   if (!cycle) notFound();
+
+  const isOrg = cycle.mode === "org";
 
   const { data: enrollments } = await serviceClient
     .from("cycle_enrollments")
@@ -200,7 +195,7 @@ export default async function AdminCycleDetailPage({
   // cycles for the copy-roster dropdown.
   let workstreamRows: WorkstreamAdminRow[] = [];
   let priorOrgCycles: PriorOrgCycleOption[] = [];
-  if (cycle.mode === "org") {
+  if (isOrg) {
     const [{ data: workstreamsData }, { data: runPods }, { data: priorCycles }] =
       await Promise.all([
         serviceClient
@@ -238,45 +233,67 @@ export default async function AdminCycleDetailPage({
   }
 
   const canTesting = can(userRoles, "testing:use");
-  const initialTab = resolveInitialTab(tab, canTesting);
+  const showDev = canTesting && !isOrg;
+  const initialTab = resolveInitialTab(tab, showDev);
 
   const overview = (
     <div className="space-y-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Enrolled" value={participants.length} />
+        <StatCard
+          label={isOrg ? "Staff" : "Enrolled"}
+          value={participants.length}
+        />
         <StatCard
           label="Active"
           value={<span className="text-teal-deep">{activeCount}</span>}
         />
-        <StatCard label="Pods" value={pods?.length ?? 0} />
+        <StatCard label={podNoun(cycle.mode, true)} value={pods?.length ?? 0} />
       </div>
       <section>
         <h2 className="mb-1 t-h3 text-ink">Cycle status</h2>
         <p className="mb-4 text-sm text-meta">
-          Move the cycle through its lifecycle. Phase windows live in
-          Configuration.
+          Move the cycle through its lifecycle.
+          {!isOrg && " Phase windows live in Configuration."}
         </p>
-        <CycleStatusForm cycleId={cycle.id} currentStatus={cycle.status} />
+        <CycleStatusForm
+          cycleId={cycle.id}
+          currentStatus={cycle.status}
+          mode={cycle.mode}
+        />
       </section>
     </div>
   );
 
   const configuration = config ? (
     <div className="space-y-10">
-      <section>
-        <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
-        <p className="mb-4 text-sm text-meta">
-          Open and close times for each phase.
-        </p>
-        <CycleScheduleForm cycleId={cycle.id} config={config} />
-      </section>
-      <hr className="border-ink/10" />
+      {!isOrg && (
+        <>
+          <section>
+            <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
+            <p className="mb-4 text-sm text-meta">
+              Open and close times for each phase.
+            </p>
+            <CycleScheduleForm cycleId={cycle.id} config={config} />
+          </section>
+          <hr className="border-ink/10" />
+        </>
+      )}
       <section>
         <h2 className="mb-1 t-h3 text-ink">Parameters</h2>
         <p className="mb-4 text-sm text-meta">
-          Voting thresholds and pod / project limits.
+          {isOrg
+            ? "Workstream limits and milestone review weeks."
+            : "Voting thresholds and pod / project limits."}
         </p>
-        <CycleParamsForm cycleId={cycle.id} config={config} />
+        <CycleParamsForm cycleId={cycle.id} config={config} mode={cycle.mode} />
+      </section>
+      <hr className="border-ink/10" />
+      <section>
+        <CycleLogGateForm
+          cycleId={cycle.id}
+          logDueAt={config.log_due_at}
+          gatePaused={config.log_gate_paused}
+        />
       </section>
     </div>
   ) : (
@@ -285,7 +302,7 @@ export default async function AdminCycleDetailPage({
 
   const formation = (
     <div className="space-y-10">
-      {cycle.mode === "org" ? (
+      {isOrg ? (
         <section>
           <h2 className="mb-1 t-h3 text-ink">Workstreams</h2>
           <p className="mb-4 text-sm text-meta">
@@ -306,7 +323,7 @@ export default async function AdminCycleDetailPage({
             Finalize problem-statement voting to create pods. Uses AI to
             generate pod names.
           </p>
-          <FinalizeVotingButton cycleId={cycle.id} />
+          <FinalizeVotingButton cycleId={cycle.id} cycleName={cycle.name} />
         </section>
       )}
       <hr className="border-ink/10" />
@@ -318,6 +335,7 @@ export default async function AdminCycleDetailPage({
           cycleId={cycle.id}
           pods={podAdminRows}
           participants={participantOptions}
+          mode={cycle.mode}
         />
       </section>
     </div>
@@ -327,38 +345,46 @@ export default async function AdminCycleDetailPage({
     <div className="space-y-10">
       <section>
         <h2 className="mb-4 t-h3 text-ink">
-          Participants ({participants.length})
+          {isOrg ? "Staff" : "Participants"} ({participants.length})
         </h2>
         <ParticipantsTable participants={participants} cycleId={cycleId} />
       </section>
-      <hr className="border-ink/10" />
-      <section>
-        <h2 className="mb-1 t-h3 text-ink">Access revocations</h2>
-        <p className="mb-4 text-sm text-meta">
-          Check for inactive participants and manage revocations.
-        </p>
-        <RevocationsSection
-          cycleId={cycle.id}
-          initialRevocations={revocations ?? []}
-          participants={participants}
-        />
-      </section>
+      {!isOrg && (
+        <>
+          <hr className="border-ink/10" />
+          <section>
+            <h2 className="mb-1 t-h3 text-ink">Access revocations</h2>
+            <p className="mb-4 text-sm text-meta">
+              Check for inactive participants and manage revocations.
+            </p>
+            <RevocationsSection
+              cycleId={cycle.id}
+              initialRevocations={revocations ?? []}
+              participants={participants}
+            />
+          </section>
+        </>
+      )}
     </div>
   );
 
-  const dev = config ? (
-    <div className="rounded-card border border-red/30 bg-red/[0.03] p-5">
-      <h2 className="mb-1 t-h3 text-ink">Testing controls</h2>
-      <p className="mb-4 text-sm text-meta">
-        Fast-forward the cycle one phase at a time. This rewrites the
-        phase-window timestamps in the schedule — for testing only.
-      </p>
-      <TestingControls
-        cycleId={cycle.id}
-        initialConfig={config as unknown as Record<string, unknown>}
-      />
-    </div>
-  ) : null;
+  const dev = isOrg
+    ? null
+    : config
+      ? (
+        <div className="rounded-card border border-red/30 bg-red/[0.03] p-5">
+          <h2 className="mb-1 t-h3 text-ink">Testing controls</h2>
+          <p className="mb-4 text-sm text-meta">
+            Fast-forward the cycle one phase at a time. This rewrites the
+            phase-window timestamps in the schedule — for testing only.
+          </p>
+          <TestingControls
+            cycleId={cycle.id}
+            initialConfig={config as unknown as Record<string, unknown>}
+          />
+        </div>
+      )
+      : null;
 
   return (
     <div>
@@ -373,14 +399,10 @@ export default async function AdminCycleDetailPage({
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="t-h1 text-ink">{cycle.name}</h1>
-          <StatusBadge
-            variant={CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive"}
-          >
+          <StatusBadge variant={cycleStatusVariant(cycle.status)}>
             {cycle.status}
           </StatusBadge>
-          {cycle.mode === "org" && (
-            <StatusBadge variant="forming">organization</StatusBadge>
-          )}
+          {isOrg && <StatusBadge variant="forming">organization</StatusBadge>}
         </div>
         <p className="mt-1 text-sm text-meta tabular-nums">
           {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
@@ -390,12 +412,13 @@ export default async function AdminCycleDetailPage({
 
       <CycleWorkspaceTabs
         initialTab={initialTab}
-        showDev={canTesting}
+        showDev={showDev}
         overview={overview}
         configuration={configuration}
         formation={formation}
         people={people}
         dev={dev}
+        labels={isOrg ? { formation: "Workstreams", people: "Staff" } : undefined}
       />
     </div>
   );

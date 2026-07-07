@@ -10,16 +10,24 @@ type Pod = {
   total_votes: number;
 };
 
-export default function FinalizeVotingButton({ cycleId }: { cycleId: number }) {
+export default function FinalizeVotingButton({
+  cycleId,
+  cycleName,
+}: {
+  cycleId: number;
+  cycleName: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ pods: Pod[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function finalize() {
+    // Two open cycles can be live at once (P-8) — name the cycle so a
+    // mis-click can't silently finalize the wrong one.
     if (
       !confirm(
-        "Finalize voting and create pods? This uses AI to name pods and cannot be undone."
+        `Finalize voting for “${cycleName}” and create pods? This uses AI to name pods and cannot be undone.`
       )
     )
       return;

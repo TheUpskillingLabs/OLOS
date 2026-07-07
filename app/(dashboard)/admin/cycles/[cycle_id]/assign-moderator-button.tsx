@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { moderatorNoun } from "@/lib/cycle/labels";
 
 type Participant = {
   participant_id: number;
@@ -18,11 +19,13 @@ export default function AssignModeratorButton({
   cycleId,
   participants,
   initialModerators,
+  mode,
 }: {
   podId: number;
   cycleId: number;
   participants: Participant[];
   initialModerators: Moderator[];
+  mode?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [moderators, setModerators] = useState<Moderator[]>(initialModerators);
@@ -106,7 +109,7 @@ export default function AssignModeratorButton({
           onClick={() => setOpen(true)}
           className="btn btn-ghost px-2.5 py-1 text-xs"
         >
-          {moderators.length > 0 ? "Manage" : "Assign moderator"}
+          {moderators.length > 0 ? "Manage" : `Assign ${moderatorNoun(mode).toLowerCase()}`}
         </button>
       </div>
     );
