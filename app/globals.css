@@ -257,41 +257,52 @@ dialog::backdrop {
     margin-right: var(--pad);
   }
 
-  /* ── Editorial "standards-manual" grid ─────────────────────────────────────
-     Homage to the 1976 NASA Graphics Standards Manual (with Column Five / The
-     Futur): a FIVE-COLUMN desktop field. Column 1 is the left INDEX (the section
-     label, with a teal numeral only where the sequence is real — never on plain
-     content sections). Columns 2–5 are the content play-space: the headline and
-     body sit at a readable measure, an optional right rail (col 5) takes the
-     standfirst or a pulled quote, and wide rows (media/steps) span 2–5. Heavy
-     horizontal rules divide sections. One structure governs the whole page, so
-     every number, label, headline and rule lands on the same columns — no jumble
-     of column starts. Flush-left, high-contrast, generous space; stacks to a
-     single column below the desktop breakpoint. .ed-doc gives the run of
-     sections a generous, even vertical rhythm. */
-  .ed-doc { display: grid; row-gap: clamp(48px, 6vw, 104px); }
-  .ed-grid { display: grid; grid-template-columns: 1fr; column-gap: clamp(28px, 3.5vw, 56px); row-gap: clamp(14px, 2vw, 24px); }
-  .ed-index { min-width: 0; }
-  .ed-main { min-width: 0; }
-  .ed-aside { min-width: 0; }
-  .ed-text { max-width: 64ch; } /* readable measure in the content column */
+  /* ── Editorial section — the standards-manual layout as a stack of ROWS on a
+     FIVE-COLUMN desktop field (homage to the 1976 NASA Graphics Standards
+     Manual, Column Five, The Futur).
+
+     Row 1 is the HEAD: the eyebrow sits in column 1, optically baseline-aligned
+     to the heading, which spans columns 2–5. Every following row is CONTENT in
+     the columns 2–5 zone, split into 1 / 2 / 4 EQUAL columns — and the content
+     within a row is always ONE hierarchy level. Lower-hierarchy text (body,
+     standfirst, pulled quotes) NEVER shares the heading's row; it flows in the
+     rows beneath. Heavy rules divide sections; every vertical gap is a multiple
+     of the 8px baseline so lines settle on one grid. Stacks to a single column
+     below the desktop breakpoint. */
+  .ed-doc { display: grid; row-gap: clamp(56px, 6vw, 88px); }
+
+  /* a section: a vertical stack of rows sharing the 5-column field */
+  .ed-sec { display: grid; grid-template-columns: 1fr; column-gap: clamp(28px, 3.5vw, 56px); row-gap: clamp(24px, 3vw, 32px); }
+  .ed-eyebrow { min-width: 0; }
+  .ed-heading { min-width: 0; text-wrap: balance; }
+  .ed-text { max-width: 62ch; } /* readable measure inside a content column */
+
+  /* a content row lives in the cols 2–5 zone and subdivides into N EQUAL
+     same-hierarchy columns (default 1; .ed-cols-2 / .ed-cols-4) */
+  .ed-cols { min-width: 0; display: grid; grid-template-columns: 1fr; column-gap: clamp(28px, 3.5vw, 56px); row-gap: 24px; }
+  .ed-cols-2 { --ed-n: 2; }
+  .ed-cols-4 { --ed-n: 4; }
+  /* buttons/links placed directly in a content row keep their intrinsic width
+     (grid items otherwise stretch to the track) */
+  .ed-cols > .btn, .ed-cols > a.btn { justify-self: start; }
+  /* a quote pulled to its own row — a teal rule over an emphasised line */
+  .ed-pull { font-weight: 600; font-size: clamp(24px, 2.2vw, 31px); line-height: 1.3; letter-spacing: -0.02em; max-width: 22ch; border-top: 2px solid var(--teal); padding-top: 16px; }
 
   /* the section index numeral — the brand accent (teal), like .idx/.lbl-teal;
      use ONLY where the sequence is real (steps, phases), never on prose sections */
-  .ed-num { display: block; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; letter-spacing: 0.02em; color: var(--teal-deep); margin-bottom: 10px; }
+  .ed-num { display: block; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; letter-spacing: 0.02em; color: var(--teal-deep); margin-bottom: 8px; }
   .on-dark .ed-num { color: var(--teal); }
   /* a heavy modernist rule that divides sections / underscores the header */
-  .ed-rule { border: 0; border-top: 2px solid var(--ink); margin: 0 0 24px; }
+  .ed-rule { border: 0; border-top: 2px solid var(--ink); margin: 0; }
   .on-dark .ed-rule { border-top-color: var(--od1); }
 
   @media (min-width: 1024px) {
-    .ed-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-    .ed-index { grid-column: 1; }          /* the index — unchanged role */
-    .ed-main { grid-column: 2 / span 3; }  /* cols 2–4: headline + body */
-    .ed-aside { grid-column: 5; }          /* col 5: standfirst / pulled quote */
-    .ed-wide { grid-column: 2 / -1; }      /* cols 2–5: media / steps / full row */
-    /* the hero standfirst drops to sit at the headline's baseline */
-    .ed-drop { align-self: end; }
+    .ed-sec { grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: baseline; }
+    .ed-sec > .ed-rule { grid-column: 1 / -1; align-self: start; }
+    .ed-eyebrow { grid-column: 1; }
+    .ed-heading { grid-column: 2 / -1; }
+    .ed-sec > .ed-cols { grid-column: 2 / -1; align-self: start; }
+    .ed-cols { grid-template-columns: repeat(var(--ed-n, 1), minmax(0, 1fr)); }
   }
 
   /* Numbered process — a row of steps (01 → 02 → 03), each a big index over a

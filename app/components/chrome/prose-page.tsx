@@ -36,19 +36,18 @@ export function ProsePage({
         <hr className="ed-rule" style={{ marginBottom: 0 }} />
       </div>
 
-      {/* ── Editorial header ── */}
+      {/* ── Editorial header: eyebrow + title on the head row, standfirst in
+          the row beneath (never beside the heading) ── */}
       <section className="grain on-dark" style={{ background: "var(--ink)" }}>
-        <div className="container" style={{ paddingTop: 88, paddingBottom: 88 }}>
-          <div className="ed-grid">
-            <div className="ed-index">
+        <div className="container" style={{ paddingTop: 96, paddingBottom: 96 }}>
+          <div className="ed-sec">
+            <div className="ed-eyebrow">
               <div className="lbl lbl-teal">{eyebrow}</div>
             </div>
-            <div className="ed-main">
-              <h1 className="t-h1">{title}</h1>
-            </div>
+            <h1 className="ed-heading t-h1">{title}</h1>
             {lede && (
-              <div className="ed-aside ed-drop">
-                <p className="t-lede" style={{ color: "var(--od2)" }}>
+              <div className="ed-cols">
+                <p className="t-lede ed-text" style={{ color: "var(--od2)" }}>
                   {lede}
                 </p>
               </div>
@@ -57,11 +56,13 @@ export function ProsePage({
         </div>
       </section>
 
-      {/* Body — a readable column set on the grid's content zone (col 4+),
-          aligned under the header's headline. */}
+      {/* Body — a readable column set in the content zone (cols 2–5), aligned
+          under the header's headline. */}
       <div className="container" style={{ paddingTop: 72, paddingBottom: 40 }}>
-        <div className="ed-grid">
-          <div className="ed-main ed-text">{children}</div>
+        <div className="ed-sec">
+          <div className="ed-cols">
+            <div className="ed-text">{children}</div>
+          </div>
         </div>
       </div>
     </>
