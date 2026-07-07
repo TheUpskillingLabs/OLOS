@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
+import { resolveAvatarUrl } from "@/lib/participants/avatar";
 import AppNav from "@/app/components/chrome/app-nav";
 import TabBar from "@/app/components/chrome/tab-bar";
 import OrbDefs from "@/app/components/chrome/orb-defs";
@@ -113,13 +114,8 @@ export default async function DashboardLayout({
     ? `${participant.first_name[0]}${participant.last_name[0]}`
     : (user.email?.[0] ?? "?").toUpperCase();
 
-  // The site-wide avatar: the member's photo (uploaded or Google), falling back
-  // to the OAuth picture, then to initials in the chrome components.
-  const avatarUrl =
-    participant?.profile_image_url ||
-    (user.user_metadata?.avatar_url as string | undefined) ||
-    (user.user_metadata?.picture as string | undefined) ||
-    null;
+  // The site-wide avatar: uploaded photo → Google → initials (chrome fallback).
+  const avatarUrl = participant ? resolveAvatarUrl(participant, user) : null;
 
   return (
     <div className="flex min-h-screen flex-col">

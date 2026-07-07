@@ -31,16 +31,27 @@ export async function GET(request: Request) {
         // wildcards (architecture review broken edge #19).
         const { data: participant } = await serviceClient
           .from("participants")
-          .select("id, auth_user_id, first_name, last_name")
+          .select("id, auth_user_id, first_name, last_name, profile_image_url")
           .ilike("email", escapeEmailForIlike(email))
           .maybeSingle();
 
         if (participant) {
-          // Link auth_user_id if not yet set
-          if (!participant.auth_user_id) {
+          // Link auth_user_id if not yet set, and backfill the Google photo so
+          // the member isn't a faceless initials block to peers in the directory
+          // / on their /u/[handle] (neither can see the member's OAuth session).
+          const googlePhoto =
+            (user.user_metadata?.avatar_url as string | undefined) ??
+            (user.user_metadata?.picture as string | undefined) ??
+            null;
+          const patch: Record<string, unknown> = {};
+          if (!participant.auth_user_id) patch.auth_user_id = user.id;
+          if (!participant.profile_image_url && googlePhoto) {
+            patch.profile_image_url = googlePhoto;
+          }
+          if (Object.keys(patch).length > 0) {
             await serviceClient
               .from("participants")
-              .update({ auth_user_id: user.id })
+              .update(patch)
               .eq("id", participant.id);
           }
           if (isOwnerEmail(email)) {

@@ -89,6 +89,30 @@ export default async function MemberProfilePage({
     getFollowingCount(service, member.id),
   ]);
 
+  // The member's active pods & projects — so a visitor can see what they build.
+  const [{ data: podRows }, { data: projRows }] = await Promise.all([
+    service
+      .from("pod_memberships")
+      .select("pods!inner(id, name)")
+      .eq("participant_id", member.id)
+      .is("inactive_at", null),
+    service
+      .from("project_memberships")
+      .select("projects!inner(id, name)")
+      .eq("participant_id", member.id)
+      .is("left_at", null),
+  ]);
+  const memberships = {
+    pods: (podRows ?? []).map((r) => {
+      const p = r.pods as unknown as { id: number; name: string | null };
+      return { id: p.id, name: p.name || `Pod ${p.id}` };
+    }),
+    projects: (projRows ?? []).map((r) => {
+      const p = r.projects as unknown as { id: number; name: string | null };
+      return { id: p.id, name: p.name || `Project ${p.id}` };
+    }),
+  };
+
   const displayName =
     member.preferred_name || `${member.first_name} ${member.last_name}`;
 
@@ -97,6 +121,7 @@ export default async function MemberProfilePage({
       mode="visitor"
       followerCount={followerCount}
       followingCount={followingCount}
+      memberships={memberships}
       followSlot={
         viewerId && !isSelf ? (
           <FollowButton

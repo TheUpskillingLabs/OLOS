@@ -66,6 +66,11 @@ export interface MemberProfileViewProps {
   /** Follower / following tallies shown under the header (both modes). */
   followerCount?: number;
   followingCount?: number;
+  /** The member's pods & projects, rendered as links. */
+  memberships?: {
+    pods: { id: number; name: string }[];
+    projects: { id: number; name: string }[];
+  };
 }
 
 export default function MemberProfileView({
@@ -77,6 +82,7 @@ export default function MemberProfileView({
   followSlot,
   followerCount,
   followingCount,
+  memberships,
 }: MemberProfileViewProps) {
   const isOwner = mode === "owner";
   const grouped = options ?? {};
@@ -98,7 +104,15 @@ export default function MemberProfileView({
 
       {/* Owner action bar — the way into the editor (this is your own profile). */}
       {isOwner && (
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex justify-end gap-2">
+          {member.handle && (
+            <Link
+              href={`/u/${member.handle}`}
+              className="btn btn-ghost px-4 py-2 text-sm"
+            >
+              View public profile
+            </Link>
+          )}
           <Link href="/profile/edit" className="btn btn-teal px-4 py-2 text-sm">
             Edit profile
           </Link>
@@ -241,15 +255,43 @@ export default function MemberProfileView({
             </>
           )}
 
+          {/* Pods & Projects — what the member is building, linked. */}
+          {memberships &&
+            (memberships.pods.length > 0 || memberships.projects.length > 0) && (
+              <Section title="Pods & Projects">
+                <div className="flex flex-wrap gap-2">
+                  {memberships.pods.map((p) => (
+                    <Link
+                      key={`pod-${p.id}`}
+                      href={`/pods/${p.id}`}
+                      className="inline-flex items-center rounded-card border border-ink/10 bg-white px-3 py-1.5 text-sm text-teal-deep transition-colors duration-150 hover:border-teal/40 hover:text-ink"
+                    >
+                      {p.name}
+                    </Link>
+                  ))}
+                  {memberships.projects.map((p) => (
+                    <Link
+                      key={`proj-${p.id}`}
+                      href={`/projects/${p.id}`}
+                      className="inline-flex items-center rounded-card border border-ink/10 bg-white px-3 py-1.5 text-sm text-teal-deep transition-colors duration-150 hover:border-teal/40 hover:text-ink"
+                    >
+                      {p.name}
+                    </Link>
+                  ))}
+                </div>
+              </Section>
+            )}
+
           {/* Cycle enrollments — cycle membership is visible within the
               members-only directory (not PII). */}
           {enrollments && enrollments.length > 0 && (
             <Section title="Cycle enrollments">
               <div className="space-y-2">
                 {enrollments.map((e) => (
-                  <div
+                  <Link
                     key={e.cycle_id}
-                    className="flex items-center justify-between gap-3"
+                    href={`/cycles/${e.cycle_id}`}
+                    className="-mx-1 flex items-center justify-between gap-3 rounded-card px-1 py-1 transition-colors duration-150 hover:bg-ink/[0.02]"
                   >
                     <span className="text-sm text-charcoal">
                       {e.cycle_name || `Cycle ${e.cycle_id}`}
@@ -259,7 +301,7 @@ export default function MemberProfileView({
                     >
                       {e.status}
                     </StatusBadge>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </Section>

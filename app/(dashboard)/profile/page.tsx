@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getFollowerCount, getFollowingCount } from "@/lib/follows/queries";
+import { resolveAvatarUrl } from "@/lib/participants/avatar";
 import MemberProfileView from "./member-profile-view";
 import UpdatesFeed from "../directory/updates-feed";
 
@@ -61,14 +62,36 @@ export default async function ProfilePage() {
     getFollowingCount(serviceClient, participant.id),
   ]);
 
+  // The member's active pods & projects, linked on the profile.
+  const [{ data: podRows }, { data: projRows }] = await Promise.all([
+    serviceClient
+      .from("pod_memberships")
+      .select("pods!inner(id, name)")
+      .eq("participant_id", participant.id)
+      .is("inactive_at", null),
+    serviceClient
+      .from("project_memberships")
+      .select("projects!inner(id, name)")
+      .eq("participant_id", participant.id)
+      .is("left_at", null),
+  ]);
+  const memberships = {
+    pods: (podRows ?? []).map((r) => {
+      const p = r.pods as unknown as { id: number; name: string | null };
+      return { id: p.id, name: p.name || `Pod ${p.id}` };
+    }),
+    projects: (projRows ?? []).map((r) => {
+      const p = r.projects as unknown as { id: number; name: string | null };
+      return { id: p.id, name: p.name || `Project ${p.id}` };
+    }),
+  };
+
   const displayName =
     participant.preferred_name ||
     `${participant.first_name} ${participant.last_name}`;
 
-  // Avatar: the Google OAuth photo (own session) falls back to the stored
-  // profile image, then to initials in the view.
-  const avatarUrl: string | null =
-    user.user_metadata?.avatar_url ?? participant.profile_image_url ?? null;
+  // One precedence everywhere: uploaded photo → Google → initials.
+  const avatarUrl = resolveAvatarUrl(participant, user);
 
   return (
     <MemberProfileView
@@ -100,6 +123,7 @@ export default async function ProfilePage() {
       options={grouped}
       followerCount={followerCount}
       followingCount={followingCount}
+      memberships={memberships}
       enrollments={(enrollments ?? []).map((e) => {
         const cycle = e.cycles as unknown as Record<string, unknown>;
         return {
