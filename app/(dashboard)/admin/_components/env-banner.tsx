@@ -1,10 +1,14 @@
-// Environment banner (DESIGN.md §10).
+// Environment banner — the admin shell's DB indicator.
 //
 // The same code serves dev and prod; only this banner changes. It reads the
 // deployment's own Supabase URL (and VERCEL_ENV as a fallback) so an organizer
 // can never confuse which database they're looking at. PROD is loud and red.
+//
+// Promoted out of the Entity Explorer into the admin shell (rendered by
+// app/(dashboard)/admin/layout.tsx) so every admin page — not just the
+// explorer — carries the warning.
 
-/** OLOS production Supabase project ref (DESIGN.md §10). */
+/** OLOS production Supabase project ref. */
 const PROD_PROJECT_REF = "cdbgkgkjnomjnpicaxqe";
 
 /** Extract the project ref from a Supabase URL, e.g. https://<ref>.supabase.co. */

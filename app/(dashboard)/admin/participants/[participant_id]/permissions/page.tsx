@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/guards";
 import type { Permission } from "@/lib/auth/permissions";
-import PermissionsEditor from "./permissions-editor";
-import AdminNameEditForm from "./admin-name-edit-form";
+import PermissionsEditor from "@/app/(dashboard)/admin/people/permissions-editor";
+import AdminNameEditForm from "@/app/(dashboard)/admin/people/admin-name-edit-form";
 
 export default async function ParticipantPermissionsPage({
   params,
@@ -13,27 +12,19 @@ export default async function ParticipantPermissionsPage({
   params: Promise<{ participant_id: string }>;
 }) {
   const { participant_id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const serviceClient = createServiceClient();
+  const { userRoles, serviceClient } = await requireAdmin();
 
   const participantId = parseInt(participant_id);
   if (isNaN(participantId)) notFound();
 
-  const [userRoles, { data: participant }, { data: permRows }, { data: roleRows }, { data: modAssignments }] =
+  const [{ data: participant }, { data: permRows }, { data: roleRows }, { data: modAssignments }] =
     await Promise.all([
-      resolveUserRoles(serviceClient, user.id),
       serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, is_test").eq("id", participantId).single(),
       serviceClient.from("participant_permissions").select("permission").eq("participant_id", participantId).is("revoked_at", null),
       serviceClient.from("user_roles").select("role").eq("participant_id", participantId).is("revoked_at", null),
       serviceClient.from("moderator_assignments").select("pod_id, pods (name, cycle_id, cycles (name))").eq("participant_id", participantId).is("removed_at", null),
     ]);
 
-  if (!isAdmin(userRoles)) redirect("/cycles");
   if (!participant) notFound();
 
   const currentPermissions = (permRows ?? []).map((r) => r.permission as Permission);
