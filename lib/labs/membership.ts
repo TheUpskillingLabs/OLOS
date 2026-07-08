@@ -81,19 +81,47 @@ export async function requireActiveLabMembership(
 }
 
 /**
+ * Pure decision for "start a waitlist" (no DB): given the current metros,
+ * either an existing lab matches (case-insensitive on name + st — active OR
+ * waitlist, never a duplicate) or a new waitlist row should be created with a
+ * collision-free slug. Extracted from findOrCreateWaitlistLab so the
+ * dedupe/slug logic is unit-testable.
+ */
+export function planWaitlistLab(
+  metros: LabRow[],
+  input: { city: string; st?: string | null }
+):
+  | { existing: LabRow }
+  | { create: { slug: string; name: string; st: string | null } } {
+  const name = input.city.trim();
+  const st = (input.st ?? "").trim().toUpperCase() || null;
+
+  const existing = metros.find(
+    (m) => norm(m.name) === norm(name) && norm(m.st) === norm(st)
+  );
+  if (existing) return { existing };
+
+  const base = slugifyLab(st ? `${name}-${st}` : name);
+  const taken = new Set(metros.map((m) => m.slug));
+  let slug = base;
+  for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+  return { create: { slug, name, st } };
+}
+
+/**
  * Find or create the waitlist lab for a city/state ("start a waitlist"). Dedup
  * is case-insensitive on (name, st): an existing lab — active OR waitlist — is
- * returned as-is (never a duplicate); otherwise a new `status='waitlist'` row
- * is inserted with a collision-free slug. Callers add the participant to
- * `metro_waitlist_signups` separately.
+ * returned as-is; otherwise a new `status='waitlist'` row is inserted with a
+ * collision-free slug. Callers add the participant to `metro_waitlist_signups`
+ * separately.
  */
 export async function findOrCreateWaitlistLab(
   client: SupabaseClient,
   input: { city: string; st?: string | null }
 ): Promise<{ lab?: LabRow; error?: string }> {
-  const name = input.city.trim();
-  if (!name) return { error: "A city is required to start a waitlist" };
-  const st = (input.st ?? "").trim().toUpperCase() || null;
+  if (!input.city.trim()) {
+    return { error: "A city is required to start a waitlist" };
+  }
 
   const { data: all, error: readErr } = await client
     .from("metros")
@@ -101,16 +129,12 @@ export async function findOrCreateWaitlistLab(
   if (readErr) return { error: readErr.message };
   const metros = (all ?? []) as LabRow[];
 
-  const existing = metros.find(
-    (m) => norm(m.name) === norm(name) && norm(m.st) === norm(st)
-  );
-  if (existing) return { lab: existing };
+  const plan = planWaitlistLab(metros, input);
+  if ("existing" in plan) return { lab: plan.existing };
 
-  const base = slugifyLab(st ? `${name}-${st}` : name);
+  const { slug: baseSlug, name, st } = plan.create;
+  let slug = baseSlug;
   const taken = new Set(metros.map((m) => m.slug));
-  let slug = base;
-  for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
-
   // One retry on a slug race (another concurrent start-a-waitlist).
   for (let attempt = 0; attempt < 2; attempt++) {
     const { data: created, error } = await client
@@ -120,7 +144,7 @@ export async function findOrCreateWaitlistLab(
       .single();
     if (!error && created) return { lab: created as LabRow };
     if (error?.code === "23505") {
-      slug = `${base}-${Math.max(2, taken.size + attempt + 2)}`;
+      slug = `${baseSlug}-${Math.max(2, taken.size + attempt + 2)}`;
       continue;
     }
     return { error: error?.message ?? "Could not create the waitlist lab" };

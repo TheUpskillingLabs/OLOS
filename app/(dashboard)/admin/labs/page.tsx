@@ -21,6 +21,7 @@ type MetroRow = {
 
 type LabListRow = MetroRow & {
   member_count: number;
+  waiting_count: number;
   lead_names: string[];
   cycle_summary: string;
 };
@@ -34,34 +35,46 @@ type EmbeddedName = {
 export default async function AdminLabsPage() {
   const { serviceClient } = await requireAdmin();
 
-  const [{ data: metros }, { data: memberRows }, { data: leadRows }, { data: cycleRows }] =
-    await Promise.all([
-      serviceClient
-        .from("metros")
-        .select("id, slug, name, st, status, is_default")
-        .order("status")
-        .order("name"),
-      serviceClient
-        .from("participants")
-        .select("metro_id")
-        .not("metro_id", "is", null),
-      serviceClient
-        .from("lab_leads")
-        .select(
-          "lab_id, participants!lab_leads_participant_id_fkey(first_name, last_name, preferred_name)"
-        )
-        .is("removed_at", null),
-      serviceClient
-        .from("cycles")
-        .select("lab_id, status, mode")
-        .not("lab_id", "is", null)
-        .in("status", ["draft", "upcoming", "active", "closing"]),
-    ]);
+  const [
+    { data: metros },
+    { data: memberRows },
+    { data: leadRows },
+    { data: cycleRows },
+    { data: waitlistRows },
+  ] = await Promise.all([
+    serviceClient
+      .from("metros")
+      .select("id, slug, name, st, status, is_default")
+      .order("status")
+      .order("name"),
+    serviceClient
+      .from("participants")
+      .select("metro_id")
+      .not("metro_id", "is", null),
+    serviceClient
+      .from("lab_leads")
+      .select(
+        "lab_id, participants!lab_leads_participant_id_fkey(first_name, last_name, preferred_name)"
+      )
+      .is("removed_at", null),
+    serviceClient
+      .from("cycles")
+      .select("lab_id, status, mode")
+      .not("lab_id", "is", null)
+      .in("status", ["draft", "upcoming", "active", "closing"]),
+    serviceClient.from("metro_waitlist_signups").select("metro_id"),
+  ]);
 
   const membersByMetro: Record<number, number> = {};
   for (const row of memberRows ?? []) {
     if (row.metro_id == null) continue;
     membersByMetro[row.metro_id] = (membersByMetro[row.metro_id] ?? 0) + 1;
+  }
+
+  const waitingByMetro: Record<number, number> = {};
+  for (const row of waitlistRows ?? []) {
+    if (row.metro_id == null) continue;
+    waitingByMetro[row.metro_id] = (waitingByMetro[row.metro_id] ?? 0) + 1;
   }
 
   const leadsByLab: Record<number, string[]> = {};
@@ -89,6 +102,7 @@ export default async function AdminLabsPage() {
     return {
       ...m,
       member_count: membersByMetro[m.id] ?? 0,
+      waiting_count: waitingByMetro[m.id] ?? 0,
       lead_names: leadsByLab[m.id] ?? [],
       cycle_summary: parts.length ? parts.join(" · ") : "—",
     };
@@ -140,6 +154,12 @@ export default async function AdminLabsPage() {
             header: "Members",
             className: "text-meta tabular-nums",
             cell: (row) => row.member_count,
+          },
+          {
+            key: "waiting",
+            header: "Waiting",
+            className: "text-meta tabular-nums",
+            cell: (row) => (row.status === "waitlist" ? row.waiting_count : "—"),
           },
           {
             key: "leads",

@@ -43,11 +43,13 @@ marketing page and its organizational identity are the same row.
   (`workstreams_one_home_check`): HQ's keep `sector_id` (the seeded HQ
   sector, 00060); a lab's carry `lab_id`. Per-lab sector rows would smuggle
   places into the theme axis — deliberately forbidden.
-- Pods carry their own **`pods.lab_id`** sub-cohort tag (00067) — under the
-  single shared HQ participant cycle a pod's lab can no longer be derived
-  via `cycle_id`. It is a host tag, not a membership fence. Projects derive
-  their lab from their pod; a project's destiny is still global
-  (graduation flips `projects.governance` to `'sector'`).
+- Pods carry their own **`pods.lab_id`** (00067) — under the single shared HQ
+  participant cycle a pod's lab can no longer be derived via `cycle_id`. As of
+  **00068 it is a membership fence**, not just a host tag: only that lab's
+  members belong to the pod, enforced by app guards AND a `pod_memberships`
+  trigger (`enforce_local_pod_membership`). Projects derive their lab from
+  their pod; a project's destiny is still global (graduation flips
+  `projects.governance` to `'sector'`).
 
 ## The HQ cycle and lab sub-cohorts (00067)
 
@@ -59,14 +61,16 @@ cycles with clear copy. (00062's per-(mode, lab) open invariant was the
 earlier per-lab-cycle model; 00067 supersedes it.)
 
 **"Automatically enrolled" means there is nothing to activate.** The moment
-HQ activates the quarterly cycle, every lab's members can join it, and the
-lab's slice is carried by two existing tags — `participants.metro_id` (who
-belongs to the lab) and `pods.lab_id` (which pods are the lab's). A pod
-formed at voting-finalize inherits the lab of the member who seeded its
-problem statement; an org run inherits its workstream's lab. `pods.lab_id`
-is a **host sub-cohort tag, not a membership fence** — voting is global and
-cross-metro joins are allowed. Member enrollment stays opt-in (join +
-agreement); nothing bulk-creates active enrollments.
+HQ activates the quarterly cycle, every active lab's members can join it, and
+the lab's slice is carried by two existing tags — `participants.metro_id` (who
+belongs to the lab) and `pods.lab_id` (which pods are the lab's). **Pods are
+local (00068):** each lab's members submit and vote on their *own* lab's
+problem statements, form their own pods (the pod cap `max_pods` applies **per
+lab**), and join only their own lab's pods. A pod inherits its lab from the
+`problem_statements.metro_id` snapshot of the member who seeded it (stable if
+they later change labs); an org run inherits its workstream's lab. Member
+enrollment stays opt-in (join + agreement); nothing bulk-creates active
+enrollments.
 
 **Labs keep their own `mode='org'` internal cycles** (mirroring HQ's org
 track, `docs/ORG_CYCLES.md`) for their leadership/workstream teams — the
@@ -78,6 +82,34 @@ Reads: `lib/cycle/active.ts` resolves the open track to HQ for everyone
 the pod, never the cycle); `getOrgCycle(labId)` stays lab-scoped. The
 lab-lead workspace (`/lab/[slug]`) shows the shared HQ open cycle plus the
 lab's org cycles, with pods filtered by `pods.lab_id`.
+
+## Registration is where lab membership is set (00068)
+
+The Local Lab is the membership **spine**. At registration an Upskiller
+**joins an active lab, joins an existing lab's waitlist, or starts a waitlist**
+for a new city (the funnel's lab-choice step; zip *suggests* the nearest lab
+via `metroFromZip` — it no longer assigns one silently). `participants.metro_id`
+references **only `active` labs**: the waitlist branches leave it NULL and
+write a `metro_waitlist_signups` row (the same store the public `/local-labs`
+CTAs use). "Start a waitlist" find-or-creates a `status='waitlist'` metros row
+(`findOrCreateWaitlistLab`, deduped on lowercased name + state).
+
+**Active-lab membership is required to register for a cycle at all.**
+`requireActiveLabMembership` (`lib/labs/membership.ts`) gates the
+cycle-registration routes (`cycles/[id]/join` page, `agreement`, `interest`) —
+a waitlisted or lab-less member is sent to `/local-labs`, and the dashboard
+shows a non-blocking "Join a Local Lab" banner (admins exempt; no redirect).
+
+HQ promotes a waitlist lab from `/admin/labs/[slug]` (`POST
+/api/labs/[lab_id]/promote`): the lab flips to `active` and every waitlist
+signup becomes an active-lab member who can now join a cycle.
+
+**Grandfathering.** Pre-00068 members with no metro are not kicked: the pod
+fence bites only non-NULL-lab pods, so the live HQ cycle (NULL-lab pods,
+NULL-metro members) keeps working. The active-lab gate applies to *new* cycle
+registrations; the per-lab ballot maps a NULL-metro viewer to the NULL bucket.
+(`metro_id` demotion — an active lab going back to waitlist — is out of scope;
+handle as a manual op: null out affected `metro_id`s + re-add signups.)
 
 ## Leadership
 

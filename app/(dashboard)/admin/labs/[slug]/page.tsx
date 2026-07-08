@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/format/date";
 import { one } from "@/lib/supabase/embed";
 import CreateCycleForm from "../../cycles/create-cycle-form";
 import LabLeadsPanel, { type LeadRow, type ParticipantOption } from "./lab-leads-panel";
+import PromoteLabButton from "./promote-lab-button";
 
 /**
  * HQ's per-lab drill-in (docs/LOCAL_LABS.md): the lab's cycle streams
@@ -104,26 +105,35 @@ export default async function AdminLabDetailPage({
     .maybeSingle();
   if (!lab) notFound();
 
-  const [{ data: cycles }, { data: leadRows }, { data: participantRows }] =
-    await Promise.all([
-      serviceClient
-        .from("cycles")
-        .select("id, name, start_date, end_date, status, mode")
-        .eq("lab_id", lab.id)
-        .order("start_date", { ascending: false }),
-      serviceClient
-        .from("lab_leads")
-        .select(
-          "participant_id, assigned_at, participants!lab_leads_participant_id_fkey(first_name, last_name, preferred_name, email)"
-        )
-        .eq("lab_id", lab.id)
-        .is("removed_at", null)
-        .order("assigned_at"),
-      serviceClient
-        .from("participants")
-        .select("id, first_name, last_name, preferred_name, email")
-        .order("first_name"),
-    ]);
+  const [
+    { data: cycles },
+    { data: leadRows },
+    { data: participantRows },
+    { count: waitingCount },
+  ] = await Promise.all([
+    serviceClient
+      .from("cycles")
+      .select("id, name, start_date, end_date, status, mode")
+      .eq("lab_id", lab.id)
+      .order("start_date", { ascending: false }),
+    serviceClient
+      .from("lab_leads")
+      .select(
+        "participant_id, assigned_at, participants!lab_leads_participant_id_fkey(first_name, last_name, preferred_name, email)"
+      )
+      .eq("lab_id", lab.id)
+      .is("removed_at", null)
+      .order("assigned_at"),
+    serviceClient
+      .from("participants")
+      .select("id, first_name, last_name, preferred_name, email")
+      .order("first_name"),
+    serviceClient
+      .from("metro_waitlist_signups")
+      .select("id", { count: "exact", head: true })
+      .eq("metro_id", lab.id),
+  ]);
+  const waiting = waitingCount ?? 0;
 
   const allCycles = (cycles ?? []) as CycleListRow[];
   const participantCycles = allCycles.filter((c) => c.mode !== "org");
@@ -168,6 +178,16 @@ export default async function AdminLabDetailPage({
               &larr; All labs
             </Link>
           </p>
+          {lab.status === "waitlist" && (
+            <div className="mt-3">
+              <p className="mb-2 text-sm text-meta">
+                <span className="font-semibold text-ink">{waiting}</span> waiting.
+                Promoting activates the lab and turns its waitlist into active
+                members who can join a cycle.
+              </p>
+              <PromoteLabButton labId={lab.id} labName={lab.name} waiting={waiting} />
+            </div>
+          )}
         </div>
         <CreateCycleForm fixedMode="org" labId={lab.id} />
       </div>
