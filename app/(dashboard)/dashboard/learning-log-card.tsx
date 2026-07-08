@@ -257,8 +257,11 @@ export default function LearningLogCard({
       const stillPendingIds = pendingCycleIds.filter(
         (id) => id !== selectedCycleId
       );
+      const stillDueCycle = logCycles.find((c) => c.id === stillPendingIds[0]);
       const stillDue = !data.gate_cleared
-        ? (logCycles.find((c) => c.id === stillPendingIds[0])?.name ?? null)
+        ? stillDueCycle
+          ? `${stillDueCycle.name}${stillDueCycle.mode === "org" ? " (org)" : ""}`
+          : null
         : null;
       setJustSaved({ cleared: !!data.gate_cleared, stillDue });
       // The form resets in place — log as often as you like.
@@ -324,6 +327,7 @@ export default function LearningLogCard({
             {logCycles.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+                {c.mode === "org" ? " (org)" : ""}
               </option>
             ))}
           </select>

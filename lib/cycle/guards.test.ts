@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { rejectOrgCycle } from "./guards";
+import { rejectOrgCycle, orgForbiddenConfigKeys } from "./guards";
 
 function fakeSupabase(cycle: { mode: string } | null): SupabaseClient {
   return {
@@ -41,5 +41,43 @@ describe("rejectOrgCycle", () => {
     expect(res!.status).toBe(403);
     const body = await res!.json();
     expect(body.error).toBe("Nope.");
+  });
+});
+
+describe("orgForbiddenConfigKeys", () => {
+  it("returns [] for an empty body", () => {
+    expect(orgForbiddenConfigKeys({})).toEqual([]);
+  });
+
+  it("returns [] when only allowed keys are present", () => {
+    expect(
+      orgForbiddenConfigKeys({
+        pod_limit: 5,
+        milestone_mid_week: 4,
+        milestone_final_week: 8,
+        log_gate_paused: true,
+      })
+    ).toEqual([]);
+  });
+
+  it("returns exactly the forbidden keys, sorted", () => {
+    expect(
+      orgForbiddenConfigKeys({
+        pod_limit: 5,
+        voting_open: "2026-01-01",
+        submitter_votes: 3,
+        milestone_mid_week: 4,
+      })
+    ).toEqual(["submitter_votes", "voting_open"]);
+  });
+
+  it("ignores keys with undefined values", () => {
+    expect(
+      orgForbiddenConfigKeys({
+        pod_limit: 5,
+        voting_open: undefined,
+        max_pods: undefined,
+      })
+    ).toEqual([]);
   });
 });

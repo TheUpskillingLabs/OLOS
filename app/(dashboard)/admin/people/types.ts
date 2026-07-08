@@ -8,7 +8,8 @@ export type Person = {
   email: string;
   created_at: string;
   is_test: boolean;
+  is_staff: boolean;
   roles: string[];
-  cycles: { cycle_id: number; cycle_name: string; status: string }[];
-  moderator_pods: { pod_id: number; pod_name: string }[];
+  cycles: { cycle_id: number; cycle_name: string; status: string; mode: string | null }[];
+  moderator_pods: { pod_id: number; pod_name: string; mode: string | null }[];
 };

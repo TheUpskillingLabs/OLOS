@@ -5,6 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { updateCycleConfigSchema } from "@/lib/validations/cycles";
+import { orgForbiddenConfigKeys } from "@/lib/cycle/guards";
 
 export const GET = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -32,6 +33,25 @@ export const PATCH = withAdminAuth(
 
     const body = await parseBody(request, updateCycleConfigSchema);
     if (isErrorResponse(body)) return body;
+
+    // Org cycles have no formation windows or ballots (docs/ORG_CYCLES.md
+    // §5) — reject phase-window/voting knobs outright rather than silently
+    // accepting a no-op write. Open/closed cycles allow the full schema.
+    const { data: cycle } = await auth.supabase
+      .from("cycles")
+      .select("mode")
+      .eq("id", cycleId)
+      .maybeSingle();
+
+    if (cycle?.mode === "org") {
+      const forbiddenKeys = orgForbiddenConfigKeys(body);
+      if (forbiddenKeys.length > 0) {
+        return NextResponse.json(
+          { error: "Not configurable on an organization cycle: " + forbiddenKeys.join(", ") },
+          { status: 400 }
+        );
+      }
+    }
 
     const { data, error } = await auth.supabase
       .from("cycle_config")

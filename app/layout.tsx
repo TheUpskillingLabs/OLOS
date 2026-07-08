@@ -10,9 +10,30 @@ const geologica = Geologica({
   variable: "--font-geologica",
 });
 
+// Absolute base for OG/Twitter image URLs and canonical links. The file-based
+// icons (favicon.ico, icon.png, apple-icon.png) and social cards
+// (opengraph-image.png, twitter-image.png) living in this folder are picked up
+// automatically by Next's metadata file conventions; the blocks below add the
+// text/type/URL tags that pair with them.
+const siteUrl =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://app.theupskillinglabs.org";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "The Upskilling Labs",
   description: "Find your people. Build your edge.",
+  openGraph: {
+    type: "website",
+    siteName: "The Upskilling Labs",
+    title: "The Upskilling Labs",
+    description: "Find your people. Build your edge.",
+    url: siteUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Upskilling Labs",
+    description: "Find your people. Build your edge.",
+  },
 };
 
 export const viewport: Viewport = {

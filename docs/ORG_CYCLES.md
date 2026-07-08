@@ -181,6 +181,11 @@ hand, once per quarter, workstream by workstream.
 - **No B2B closed-track concurrency.** `SECTOR_MODEL.md` §10 already
   defers `mode='closed'` cycle concurrency; org cycles don't reopen that
   question, they just add a third mode alongside it.
+- **Admin/moderator UI still doesn't differentiate the two worlds.** The
+  reuse described above means `/admin`, `/admin/people`, and `/moderator`
+  render org cycles and participant cycles through the same components with
+  no mode-aware sectioning, labeling, or nav — [`PRD-admin-org-separation.md`](PRD-admin-org-separation.md)
+  is the plan of record for closing that gap, phased.
 
 ## 7. Open questions / deferred
 
