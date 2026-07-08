@@ -29,7 +29,7 @@ export default async function JoinCyclePage({
 
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, first_name, last_name, preferred_name")
+    .select("id, first_name, last_name, preferred_name, metro_id")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -37,7 +37,7 @@ export default async function JoinCyclePage({
 
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, status, mode")
+    .select("id, name, status, mode, lab_id")
     .eq("id", cycleId)
     .single();
 
@@ -52,6 +52,15 @@ export default async function JoinCyclePage({
   // Org cycles (docs/ORG_CYCLES.md) are invite-only — no self-serve join
   // ceremony. Redirect before any interest/agreement UI renders.
   if (cycle.mode === "org") redirect("/cycles");
+
+  // Local Labs (docs/LOCAL_LABS.md): another lab's cohort isn't joinable
+  // from here — a soft redirect back to /cycles, whose lab-filtered view
+  // carries the member's own join CTA. Deliberately soft (a redirect, not
+  // an error) and only cross-LAB: a member with no metro or an HQ cycle
+  // (lab_id NULL) is never blocked, so mis-zipped members can't strand.
+  if (cycle.lab_id !== null && cycle.lab_id !== participant.metro_id) {
+    redirect("/cycles");
+  }
 
   // Already signed → the ceremony opens on the confirmation, not the pitch.
   const { data: agreement } = await serviceClient

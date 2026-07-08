@@ -5,7 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration";
 import { metroFromZip } from "@/lib/metros";
-import { getRecruitingCycle } from "@/lib/cycle/active";
+import { getMemberRecruitingCycle } from "@/lib/cycle/active";
 import { fulfillInvitation } from "@/lib/auth/invitations";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
 import {
@@ -101,6 +101,10 @@ export async function POST(request: NextRequest) {
       last_name: body.last_name,
       zip: body.zip,
       metro_slug: metro.slug,
+      // metro_id is the normalized FK (00044) and what Local Labs routing
+      // keys off (docs/LOCAL_LABS.md) — null only on the degenerate
+      // empty-metros fallback.
+      metro_id: metro.id,
       work_situation: body.work_situation,
       source: body.source,
       referred_by: body.referred_by ?? null,
@@ -136,11 +140,14 @@ export async function POST(request: NextRequest) {
 
   // Registration confirmation — point a new signup at the RECRUITING cohort
   // (the upcoming cycle if one is open, else the active one — SECTOR_MODEL §8),
-  // and only when its registration window is open.
+  // and only when its registration window is open. Local Labs
+  // (docs/LOCAL_LABS.md): the member's lab's cohort when their lab runs
+  // one, else the HQ/global cohort — identical to today until a lab
+  // activates its own cycle.
   let emailCycleName: string | null = null;
   let emailCycleJoinUrl: string | null = null;
 
-  const recruitingCycle = await getRecruitingCycle(supabase);
+  const recruitingCycle = await getMemberRecruitingCycle(supabase, metro.id);
 
   if (recruitingCycle) {
     const { data: config } = await supabase

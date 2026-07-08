@@ -19,14 +19,46 @@ const STATUS_VARIANT: Record<
 export default async function CyclesPage() {
   const supabase = await createClient();
 
-  const { data: cycles } = await supabase
-    .from("cycles")
-    .select("id, name, slug, start_date, end_date, status, mode")
-    .order("start_date", { ascending: false });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Fetch config for the active cycle to power the phase indicator
+  const [{ data: allCycles }, { data: me }] = await Promise.all([
+    supabase
+      .from("cycles")
+      .select("id, name, slug, start_date, end_date, status, mode, lab_id")
+      .order("start_date", { ascending: false }),
+    user
+      ? supabase
+          .from("participants")
+          .select("metro_id")
+          .eq("auth_user_id", user.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  // Local Labs (docs/LOCAL_LABS.md): a member sees their own lab's cycles
+  // plus the HQ/global ones — never another lab's cohort (its join CTA
+  // would enroll them in the wrong city). Everything below (partitions,
+  // CTAs, phase indicator) operates on this filtered view.
+  const memberLabId: number | null = me?.metro_id ?? null;
+  const cycles = (allCycles ?? []).filter(
+    (c) => c.lab_id === null || c.lab_id === memberLabId
+  );
+
+  // Fetch config for the active cycle to power the phase indicator —
+  // lab-first (the member's lab's cohort wins over HQ's when both run).
   const activeCycle =
-    cycles?.find((c) => c.status === "active" && c.mode === "open") ?? null;
+    (memberLabId !== null
+      ? cycles.find(
+          (c) =>
+            c.status === "active" && c.mode === "open" && c.lab_id === memberLabId
+        )
+      : null) ??
+    cycles.find(
+      (c) => c.status === "active" && c.mode === "open" && c.lab_id === null
+    ) ??
+    null;
   let activeCycleConfig = null;
   if (activeCycle) {
     const serviceClient = createServiceClient();

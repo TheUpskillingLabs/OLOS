@@ -39,7 +39,7 @@ export const POST = withAuth(
     // reconcileEnrollmentActivation (§3.7).
     const { data: cycle } = await supabase
       .from("cycles")
-      .select("id, status")
+      .select("id, status, lab_id")
       .eq("id", cycleId)
       .single();
 
@@ -51,6 +51,24 @@ export const POST = withAuth(
         { error: "This cycle is not currently accepting registrations" },
         { status: 400 }
       );
+    }
+
+    // Local Labs (docs/LOCAL_LABS.md): the server-side twin of the join
+    // page's cross-lab redirect — another lab's cohort can't be signed
+    // into directly. HQ cycles (lab_id NULL) are never blocked, so a
+    // mis-zipped member always has a path.
+    if (cycle.lab_id !== null) {
+      const { data: me } = await supabase
+        .from("participants")
+        .select("metro_id")
+        .eq("id", participantId)
+        .maybeSingle();
+      if (me?.metro_id !== cycle.lab_id) {
+        return NextResponse.json(
+          { error: "This cycle belongs to a different local lab" },
+          { status: 403 }
+        );
+      }
     }
 
     const body = await parseBody(request, cycleAgreementSchema);

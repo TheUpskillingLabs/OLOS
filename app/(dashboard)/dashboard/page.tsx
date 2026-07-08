@@ -42,30 +42,44 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline").eq("auth_user_id", user.id).maybeSingle(),
-    serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode").order("start_date", { ascending: false }),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
   ]);
 
   if (!participant) redirect("/register");
 
-  const activeCycle =
-    cycles?.find((c) => c.status === "active" && c.mode === "open") ?? null;
+  // Local Labs (docs/LOCAL_LABS.md): each lab runs its own cycle stream, so
+  // "the" active/upcoming cycle is resolved lab-first — the cycle whose
+  // lab_id matches the member's metro, falling back to the HQ/global
+  // (lab_id NULL) stream. Identical to the pre-labs pick until the member's
+  // lab activates its own cycle.
+  const memberLabId: number | null = participant.metro_id ?? null;
+  const pickCycle = (status: string, mode: string) =>
+    (memberLabId !== null
+      ? cycles?.find(
+          (c) => c.status === status && c.mode === mode && c.lab_id === memberLabId
+        )
+      : null) ??
+    cycles?.find(
+      (c) => c.status === status && c.mode === mode && c.lab_id === null
+    ) ??
+    null;
+
+  const activeCycle = pickCycle("active", "open");
 
   // The cohort a not-yet-enrolled member registers for: the newest cycle open
-  // for pre-registration (`upcoming`), if any. Mirrors getRecruitingCycle
+  // for pre-registration (`upcoming`), if any. Mirrors getMemberRecruitingCycle
   // (lib/cycle/active.ts) — the signup funnel and the confirmation email
   // already point new members at this cohort, so the dashboard's join CTA has
   // to as well, or a member who signed up for the upcoming cohort lands here
   // with no path to it. `cycles` is ordered start_date desc → the first match
   // is the newest upcoming.
-  const upcomingCycle =
-    cycles?.find((c) => c.status === "upcoming" && c.mode === "open") ?? null;
+  const upcomingCycle = pickCycle("upcoming", "open");
 
-  // The org cycle running alongside the participant cycle (docs/ORG_CYCLES.md)
-  // — a workstream's quarterly run reuses the same pods/cycles machinery,
-  // just scoped to mode 'org'. At most one is active at a time today.
-  const orgCycle =
-    cycles?.find((c) => c.status === "active" && c.mode === "org") ?? null;
+  // The org-internal cycle running alongside the participant cycle
+  // (docs/ORG_CYCLES.md) — lab staff resolve their lab's internal cycle,
+  // everyone else HQ's. At most one is active per stream (00062).
+  const orgCycle = pickCycle("active", "org");
 
   type PodMembership = { id: number; pod_id: number; pods: { id: number; name: string; status: string } };
   type WorkstreamMembership = {
