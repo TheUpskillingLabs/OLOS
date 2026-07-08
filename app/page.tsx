@@ -10,8 +10,6 @@ import {
   ResourceTeaser,
 } from "@/app/components/content/teasers";
 import { getEvents, getResources, getMetros } from "@/lib/content/queries";
-import type { EventRow } from "@/lib/content/queries";
-import { monthKey } from "@/lib/content/format";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getRecruitingCycle } from "@/lib/cycle/active";
@@ -104,39 +102,24 @@ export default async function LandingPage() {
       })
     : null;
 
-  // Fill the events preview to one row — six cards — sampled round-robin across
-  // upcoming months so one busy month can't monopolize the row (getEvents() is
-  // start_at ASC, so each month bucket stays soonest-first). If upcoming events
-  // run short, top up with the most recent past ones. The rest wait behind
-  // "All events →".
+  // The events preview shows the six soonest upcoming events, in order
+  // (getEvents() is start_at ASC, so `upcoming` is already soonest-first). If
+  // there aren't six upcoming yet, top up with the most recent past ones so the
+  // row never looks empty. The rest wait behind "All events →".
   const LANDING_EVENT_CAP = 6;
   const now = new Date();
   const upcoming = events.filter(
     (e) => new Date(e.end_at ?? e.start_at) >= now
   );
-  const byMonth = new Map<string, EventRow[]>();
-  for (const e of upcoming) {
-    const k = monthKey(e.start_at);
-    byMonth.set(k, [...(byMonth.get(k) ?? []), e]);
-  }
-  const buckets = [...byMonth.values()];
-  const picked: EventRow[] = [];
-  for (let round = 0; picked.length < LANDING_EVENT_CAP; round++) {
-    const before = picked.length;
-    for (const bucket of buckets) {
-      if (bucket[round]) picked.push(bucket[round]);
-      if (picked.length >= LANDING_EVENT_CAP) break;
-    }
-    if (picked.length === before) break; // every bucket exhausted
-  }
-  picked.sort((a, b) => a.start_at.localeCompare(b.start_at));
-  if (picked.length < LANDING_EVENT_CAP) {
+  const landingEvents = upcoming.slice(0, LANDING_EVENT_CAP);
+  if (landingEvents.length < LANDING_EVENT_CAP) {
     const recentPast = events
       .filter((e) => new Date(e.end_at ?? e.start_at) < now)
       .reverse(); // ASC in → newest first
-    picked.push(...recentPast.slice(0, LANDING_EVENT_CAP - picked.length));
+    landingEvents.push(
+      ...recentPast.slice(0, LANDING_EVENT_CAP - landingEvents.length)
+    );
   }
-  const landingEvents = picked;
   const landingResources = resources.slice(0, 6);
   const landingLabs = metros.slice(0, 4);
 
