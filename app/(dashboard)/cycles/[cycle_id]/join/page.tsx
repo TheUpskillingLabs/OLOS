@@ -35,6 +35,17 @@ export default async function JoinCyclePage({
 
   if (!participant) redirect("/register");
 
+  // Active-lab gate (docs/LOCAL_LABS.md — the membership spine): only members
+  // of an ACTIVE Local Lab can register for a cycle. Waitlisted or lab-less
+  // members are sent to pick/start a lab before any ceremony renders.
+  if (!participant.metro_id) redirect("/local-labs");
+  const { data: memberLab } = await serviceClient
+    .from("metros")
+    .select("status")
+    .eq("id", participant.metro_id)
+    .maybeSingle();
+  if (memberLab?.status !== "active") redirect("/local-labs");
+
   const { data: cycle } = await serviceClient
     .from("cycles")
     .select("id, name, status, mode, lab_id")

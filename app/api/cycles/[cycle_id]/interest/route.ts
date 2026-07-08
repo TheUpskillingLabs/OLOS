@@ -5,6 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleInterestSchema } from "@/lib/validations/cycle-interest";
+import { requireActiveLabMembership } from "@/lib/labs/membership";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -25,6 +26,11 @@ export const POST = withAuth(
     }
 
     const supabase = createServiceClient();
+
+    // Active-lab gate (docs/LOCAL_LABS.md): only a member of an ACTIVE Local
+    // Lab can register for a cycle — waitlisted/lab-less members are held.
+    const labGate = await requireActiveLabMembership(supabase, participantId);
+    if (labGate) return labGate;
 
     // Open for the running cohort ('active') and the next one ('upcoming') —
     // the upcoming cohort collects interest pre-kickoff. The enrollment written

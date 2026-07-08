@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { isAdmin } from "@/lib/auth/roles";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
@@ -9,15 +10,31 @@ export const GET = withAuth(
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
 
-    const { data: pods, error } = await auth.supabase
+    let query = auth.supabase
       .from("pods")
       .select(`
-        id, name, problem_statement_id, status,
+        id, name, problem_statement_id, status, lab_id,
         slack_channel_id, drive_folder_id, github_repo_url,
         problem_statements (statement_text)
       `)
       .eq("cycle_id", cycleId)
       .order("created_at");
+
+    // Pods are local (docs/LOCAL_LABS.md): a member browses only the pods they
+    // can join — their own lab's, plus any NULL-lab (HQ/grandfathered) pods
+    // the fence leaves open. Admins/lab-leads see all.
+    if (!isAdmin(auth.user)) {
+      const { data: me } = await auth.supabase
+        .from("participants")
+        .select("metro_id")
+        .eq("id", auth.user.participantId ?? 0)
+        .maybeSingle();
+      query = me?.metro_id
+        ? query.or(`lab_id.eq.${me.metro_id},lab_id.is.null`)
+        : query.is("lab_id", null);
+    }
+
+    const { data: pods, error } = await query;
 
     if (error) {
       return dbError(error);

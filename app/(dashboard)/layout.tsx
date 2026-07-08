@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
@@ -28,7 +29,7 @@ export default async function DashboardLayout({
   const serviceClient = createServiceClient();
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, preferred_name, first_name, last_name, is_test, profile_image_url")
+    .select("id, preferred_name, first_name, last_name, is_test, profile_image_url, metro_id")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
@@ -132,6 +133,12 @@ export default async function DashboardLayout({
     labLeadHref = leadMetro ? `/lab/${leadMetro.slug}` : null;
   }
 
+  // Local Labs (docs/LOCAL_LABS.md — the membership spine): a member with no
+  // active lab (metro_id NULL — lab-less or waitlisted) gets a non-blocking
+  // prompt to pick one, since active-lab membership gates cycle participation.
+  // Admins are exempt (they legitimately have no lab). No redirect — soft nudge.
+  const needsLab = !!participant && !participant.metro_id && !adminUser;
+
   const displayName =
     participant?.preferred_name ||
     (participant
@@ -167,6 +174,17 @@ export default async function DashboardLayout({
         moderatorPersonaLabel={coLeadOnly ? "Co-lead" : "Poderator"}
         labLeadHref={labLeadHref}
       />
+      {needsLab && (
+        <div className="border-b border-teal/30 bg-teal/10 px-4 py-2 text-center text-sm text-ink">
+          Join a Local Lab to take part in a Build Cycle.{" "}
+          <Link
+            href="/local-labs"
+            className="font-semibold text-teal-deep hover:underline"
+          >
+            Choose your lab &rarr;
+          </Link>
+        </div>
+      )}
       <main className="app-main container w-full flex-1 py-8">{children}</main>
       <TabBar initials={initials} avatarUrl={avatarUrl} hasEnrollment={hasEnrollment} />
       <FeedbackWidget />

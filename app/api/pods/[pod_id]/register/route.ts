@@ -28,7 +28,7 @@ export const POST = withAuth(
     // Get pod to check status and cycle
     const { data: pod } = await auth.supabase
       .from("pods")
-      .select("id, cycle_id, status")
+      .select("id, cycle_id, status, lab_id")
       .eq("id", podId)
       .single();
 
@@ -42,6 +42,27 @@ export const POST = withAuth(
       "This is an organization workstream — membership is by invitation."
     );
     if (orgRejection) return orgRejection;
+
+    // Pods are local (docs/LOCAL_LABS.md): a lab-tagged pod only accepts its
+    // own lab's members. The DB fence (00068) backstops this; here we return a
+    // friendly 403 instead of a raw constraint error. NULL-lab (HQ/
+    // grandfathered) pods stay open.
+    if (pod.lab_id !== null) {
+      const { data: me } = await auth.supabase
+        .from("participants")
+        .select("metro_id")
+        .eq("id", participantId)
+        .maybeSingle();
+      if (me?.metro_id !== pod.lab_id) {
+        return NextResponse.json(
+          {
+            error: "This pod belongs to a different Local Lab.",
+            redirect: "/local-labs",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     if (!["forming", "active"].includes(pod.status)) {
       return NextResponse.json({ error: "Pod is not accepting registrations" }, { status: 400 });

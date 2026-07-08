@@ -82,7 +82,7 @@ export const POST = withAuth(
 
     const { data: pod } = await client
       .from("pods")
-      .select("id, cycle_id, status")
+      .select("id, cycle_id, status, lab_id, cycles!inner(mode)")
       .eq("id", podId)
       .maybeSingle();
     if (!pod) {
@@ -97,11 +97,31 @@ export const POST = withAuth(
 
     const { data: participant } = await client
       .from("participants")
-      .select("id")
+      .select("id, metro_id")
       .eq("id", participant_id)
       .maybeSingle();
     if (!participant) {
       return NextResponse.json({ error: "Participant not found" }, { status: 404 });
+    }
+
+    // Pods are local (docs/LOCAL_LABS.md): requireLabAccessForPod above gates
+    // the ACTING admin/lab-lead; this gates the TARGET — an open-cycle
+    // lab-tagged pod only accepts that lab's members. Org runs (invite-only,
+    // cross-lab by design) and NULL-lab/HQ pods are exempt, matching the DB
+    // fence. Re-tag the member's lab or the pod's lab to override.
+    const podMode = ((pod.cycles as unknown) as { mode: string } | null)?.mode;
+    if (
+      pod.lab_id !== null &&
+      podMode === "open" &&
+      participant.metro_id !== pod.lab_id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "This pod is local to its lab — that participant belongs to a different Local Lab.",
+        },
+        { status: 400 }
+      );
     }
 
     const { data: existing } = await client

@@ -4,7 +4,7 @@ import { generateName } from "@/lib/llm/names";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
-import { one } from "@/lib/supabase/embed";
+import { rankAndSelect, type RankItem } from "@/lib/voting/rank";
 
 export const POST = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -41,72 +41,90 @@ export const POST = withAdminAuth(
         (tallyMap[v.problem_statement_id] || 0) + v.vote_count;
     }
 
-    // Get statements with their creation time for tiebreaking
+    // Statements with their lab snapshot (metro_id, 00068) + creation time.
     const statementIds = Object.keys(tallyMap).map(Number);
     const { data: statements } = await auth.supabase
       .from("problem_statements")
-      .select("id, statement_text, created_at")
+      .select("id, statement_text, created_at, metro_id")
       .in("id", statementIds.length > 0 ? statementIds : [0]);
 
-    const stmtMap: Record<number, { text: string; createdAt: string }> = {};
+    const stmtMap: Record<
+      number,
+      { text: string; createdAt: string; metroId: number | null }
+    > = {};
     for (const s of statements || []) {
-      stmtMap[s.id] = { text: s.statement_text, createdAt: s.created_at };
+      stmtMap[s.id] = {
+        text: s.statement_text,
+        createdAt: s.created_at,
+        metroId: s.metro_id ?? null,
+      };
     }
 
-    // Rank: filter by threshold, sort by votes desc, then by submission time asc
-    const ranked = Object.entries(tallyMap)
-      .map(([id, total]) => ({
-        problem_statement_id: parseInt(id, 10),
-        total_votes: total,
-        created_at: stmtMap[parseInt(id, 10)]?.createdAt || "",
-        text: stmtMap[parseInt(id, 10)]?.text || "",
-      }))
-      .sort((a, b) => {
-        if (b.total_votes !== a.total_votes) return b.total_votes - a.total_votes;
-        return a.created_at.localeCompare(b.created_at);
+    // Pods are local (docs/LOCAL_LABS.md): partition statements by their lab
+    // (the submitter's metro snapshot; NULL = the HQ/grandfathered bucket) and
+    // run selection PER LAB — each lab forms up to max_pods of its own top
+    // statements, so a small lab is never crowded out by a larger one's ballot.
+    const byLab = new Map<number | null, RankItem[]>();
+    for (const id of statementIds) {
+      const meta = stmtMap[id];
+      if (!meta) continue;
+      const arr = byLab.get(meta.metroId) ?? [];
+      arr.push({
+        problem_statement_id: id,
+        total_votes: tallyMap[id],
+        created_at: meta.createdAt || "",
       });
-
-    const eligible = ranked.filter((r) => r.total_votes >= config.vote_threshold);
-    const ineligible = ranked.filter((r) => r.total_votes < config.vote_threshold);
-
-    // Create pods for top eligible
-    const toCreate = eligible.slice(0, config.max_pods);
-    const pods = [];
-
-    // Sub-cohort tag (pods.lab_id, docs/LOCAL_LABS.md): a pod belongs to the
-    // lab of the member who seeded its problem statement — one batched
-    // lookup statement → submitter → metro. No submitter or no metro ⇒ NULL
-    // = an HQ pod. A host tag, not a membership fence: joining stays open.
-    const metroByStatement: Record<number, number | null> = {};
-    if (toCreate.length > 0) {
-      const { data: seederRows } = await auth.supabase
-        .from("problem_statements")
-        .select("id, participants (metro_id)")
-        .in("id", toCreate.map((s) => s.problem_statement_id));
-      for (const row of seederRows ?? []) {
-        const p = one(row.participants as { metro_id: number | null } | { metro_id: number | null }[] | null);
-        metroByStatement[row.id] = p?.metro_id ?? null;
-      }
+      byLab.set(meta.metroId, arr);
     }
 
-    for (let i = 0; i < toCreate.length; i++) {
-      const stmt = toCreate[i];
+    type StmtOut = {
+      problem_statement_id: number;
+      total_votes: number;
+      lab_id: number | null;
+    };
+    const selected: { item: RankItem; labId: number | null }[] = [];
+    const eligibleAll: StmtOut[] = [];
+    const ineligibleAll: StmtOut[] = [];
+    for (const [labId, items] of byLab) {
+      const r = rankAndSelect(items, {
+        voteThreshold: config.vote_threshold,
+        maxPods: config.max_pods,
+      });
+      for (const e of r.eligible)
+        eligibleAll.push({
+          problem_statement_id: e.problem_statement_id,
+          total_votes: e.total_votes,
+          lab_id: labId,
+        });
+      for (const e of r.ineligible)
+        ineligibleAll.push({
+          problem_statement_id: e.problem_statement_id,
+          total_votes: e.total_votes,
+          lab_id: labId,
+        });
+      for (const it of r.selected) selected.push({ item: it, labId });
+    }
+
+    // Create the pods, each tagged with its lab.
+    const pods = [];
+    for (const { item, labId } of selected) {
+      const text = stmtMap[item.problem_statement_id]?.text ?? "";
       let name: string;
       try {
-        name = await generateName("pod", stmt.text);
+        name = await generateName("pod", text);
       } catch {
         // Fallback: first 40 chars trimmed to nearest word
-        name = stmt.text.slice(0, 40).replace(/\s+\S*$/, "").trim();
+        name = text.slice(0, 40).replace(/\s+\S*$/, "").trim();
       }
 
       const { data: pod, error } = await auth.supabase
         .from("pods")
         .insert({
           cycle_id: cycleId,
-          problem_statement_id: stmt.problem_statement_id,
+          problem_statement_id: item.problem_statement_id,
           name,
           status: "forming",
-          lab_id: metroByStatement[stmt.problem_statement_id] ?? null,
+          lab_id: labId,
         })
         .select()
         .single();
@@ -115,24 +133,18 @@ export const POST = withAdminAuth(
         pods.push({
           id: pod.id,
           name: pod.name,
-          problem_statement_id: stmt.problem_statement_id,
-          total_votes: stmt.total_votes,
+          problem_statement_id: item.problem_statement_id,
+          total_votes: item.total_votes,
           status: "forming",
+          lab_id: labId,
         });
       }
     }
 
     return NextResponse.json({
       pods,
-      eligible_statements: eligible.map((e, i) => ({
-        problem_statement_id: e.problem_statement_id,
-        total_votes: e.total_votes,
-        rank: i + 1,
-      })),
-      ineligible_statements: ineligible.map((e) => ({
-        problem_statement_id: e.problem_statement_id,
-        total_votes: e.total_votes,
-      })),
+      eligible_statements: eligibleAll,
+      ineligible_statements: ineligibleAll,
     });
   }
 );

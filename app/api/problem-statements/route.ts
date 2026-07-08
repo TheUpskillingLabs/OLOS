@@ -37,7 +37,21 @@ export const POST = withAuth(
       return NextResponse.json({ error: "You must be an active participant in this cycle" }, { status: 403 });
     }
 
-    const row: Record<string, unknown> = { cycle_id, participant_id, statement_text };
+    // Snapshot the submitter's lab (docs/LOCAL_LABS.md) — per-lab voting and
+    // formation read this, and the snapshot stays stable if the member later
+    // changes labs. NULL = the grandfathered HQ bucket.
+    const { data: me } = await auth.supabase
+      .from("participants")
+      .select("metro_id")
+      .eq("id", participant_id)
+      .maybeSingle();
+
+    const row: Record<string, unknown> = {
+      cycle_id,
+      participant_id,
+      statement_text,
+      metro_id: me?.metro_id ?? null,
+    };
     if (proposal_data) row.proposal_data = proposal_data;
 
     const { data, error } = await auth.supabase

@@ -5,6 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleAgreementSchema } from "@/lib/validations/cycle-agreement";
+import { requireActiveLabMembership } from "@/lib/labs/membership";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // The Open Cycle Agreement signature (backend doc §2c) — the completion of
@@ -32,6 +33,11 @@ export const POST = withAuth(
     }
 
     const supabase = createServiceClient();
+
+    // Active-lab gate (docs/LOCAL_LABS.md): signing the cycle agreement is
+    // cycle registration — only members of an ACTIVE Local Lab may do it.
+    const labGate = await requireActiveLabMembership(supabase, participantId);
+    if (labGate) return labGate;
 
     // Registration is open for the running cohort ('active') and the next one
     // ('upcoming') — the upcoming cohort pre-registers before kickoff. The

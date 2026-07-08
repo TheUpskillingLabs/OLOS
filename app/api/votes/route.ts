@@ -36,6 +36,30 @@ export const POST = withAuth(
       return NextResponse.json({ error: "You must be an active participant" }, { status: 403 });
     }
 
+    // Same-lab guard (docs/LOCAL_LABS.md): you may only vote on your own lab's
+    // problem statements — the ballot already scopes to them, this is the
+    // server-side twin. Also validates the statement belongs to this cycle.
+    const { data: target } = await auth.supabase
+      .from("problem_statements")
+      .select("metro_id")
+      .eq("id", problem_statement_id)
+      .eq("cycle_id", cycle_id)
+      .maybeSingle();
+    if (!target) {
+      return NextResponse.json({ error: "Problem statement not found" }, { status: 404 });
+    }
+    const { data: voter } = await auth.supabase
+      .from("participants")
+      .select("metro_id")
+      .eq("id", voter_id)
+      .maybeSingle();
+    if ((target.metro_id ?? null) !== (voter?.metro_id ?? null)) {
+      return NextResponse.json(
+        { error: "You can only vote on your own lab's problem statements" },
+        { status: 403 }
+      );
+    }
+
     // Determine budget
     const { data: submission } = await auth.supabase
       .from("problem_statements")
