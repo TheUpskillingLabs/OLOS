@@ -4,14 +4,24 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { roleBadgeClass } from "@/lib/auth/role-colors";
+import { podNoun } from "@/lib/cycle/labels";
 import type { ParticipantRow } from "./page";
 
 interface Props {
   participants: ParticipantRow[];
   cycleId: number;
+  mode?: string | null;
 }
 
-export default function ParticipantsTable({ participants, cycleId }: Props) {
+export default function ParticipantsTable({
+  participants,
+  cycleId,
+  mode,
+}: Props) {
+  // Org staff are invite-only: enrollments never go through the activation
+  // pipeline the reconciler + stuck-inactive tooling exist for, so those
+  // affordances only render for participant cycles.
+  const isOrg = mode === "org";
   const router = useRouter();
   const [stuckOnly, setStuckOnly] = useState(false);
   // Single-flight: one reconcile in progress at a time. Drives the per-row
@@ -74,33 +84,41 @@ export default function ParticipantsTable({ participants, cycleId }: Props) {
   }
 
   if (participants.length === 0) {
-    return <p className="text-sm text-meta">No participants enrolled.</p>;
+    return (
+      <p className="text-sm text-meta">
+        {isOrg
+          ? "No staff enrolled yet — invite co-leads and members from the Organization page."
+          : "No participants enrolled."}
+      </p>
+    );
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-charcoal">
-          <input
-            type="checkbox"
-            checked={stuckOnly}
-            onChange={(e) => setStuckOnly(e.target.checked)}
-            className="h-3.5 w-3.5 rounded border-ink/10 bg-white text-teal focus:ring-1 focus:ring-teal focus:ring-offset-0"
-          />
-          <span>
-            Show only stuck-inactive
-            <span className="ml-1 text-meta tabular-nums">
-              ({stuckCount})
+      {!isOrg && (
+        <div className="flex items-center justify-between gap-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-charcoal">
+            <input
+              type="checkbox"
+              checked={stuckOnly}
+              onChange={(e) => setStuckOnly(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-ink/10 bg-white text-teal focus:ring-1 focus:ring-teal focus:ring-offset-0"
+            />
+            <span>
+              Show only stuck-inactive
+              <span className="ml-1 text-meta tabular-nums">
+                ({stuckCount})
+              </span>
             </span>
-          </span>
-        </label>
-        {stuckOnly && stuckCount === 0 && (
-          <span className="text-xs text-meta">
-            No stuck-inactive participants — every inactive row has an
-            access_revocations entry.
-          </span>
-        )}
-      </div>
+          </label>
+          {stuckOnly && stuckCount === 0 && (
+            <span className="text-xs text-meta">
+              No stuck-inactive participants — every inactive row has an
+              access_revocations entry.
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-sm">
@@ -116,7 +134,7 @@ export default function ParticipantsTable({ participants, cycleId }: Props) {
                 Status
               </th>
               <th className="lbl px-4 py-3 text-left">
-                Pods
+                {podNoun(mode, true)}
               </th>
               <th className="lbl px-4 py-3 text-left">
                 Roles
@@ -140,7 +158,7 @@ export default function ParticipantsTable({ participants, cycleId }: Props) {
                 >
                   <td className="px-4 py-3 font-medium text-ink">
                     {displayName}
-                    {isStuck && (
+                    {!isOrg && isStuck && (
                       <span
                         title="Inactive with no revocation row — likely never activated"
                         className="ml-2 inline-flex items-center rounded-sm bg-red/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red"
@@ -184,7 +202,7 @@ export default function ParticipantsTable({ participants, cycleId }: Props) {
                   <td className="px-4 py-3 text-right">
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
-                        {p.status === "inactive" && (
+                        {!isOrg && p.status === "inactive" && (
                           <button
                             type="button"
                             onClick={() => runReconciler(p.participant_id)}

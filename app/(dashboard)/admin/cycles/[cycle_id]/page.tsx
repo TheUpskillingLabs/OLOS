@@ -359,7 +359,7 @@ export default async function AdminCycleDetailPage({
     <div className="space-y-10">
       {isOrg ? (
         <section>
-          <h2 className="mb-1 t-h3 text-ink">Workstreams</h2>
+          <h2 className="mb-1 t-h3 text-ink">Charter runs</h2>
           <p className="mb-4 text-sm text-meta">
             Charter this cycle&rsquo;s runs from the org&rsquo;s durable
             workstreams, optionally copying a prior run&rsquo;s roster
@@ -384,7 +384,8 @@ export default async function AdminCycleDetailPage({
       <hr className="border-ink/10" />
       <section>
         <h2 className="mb-4 t-h3 text-ink">
-          {podNoun(cycle.mode, true)} ({pods?.length ?? 0})
+          {isOrg ? "Chartered runs" : podNoun(cycle.mode, true)} (
+          {pods?.length ?? 0})
         </h2>
         <PodsTable
           cycleId={cycle.id}
@@ -402,7 +403,11 @@ export default async function AdminCycleDetailPage({
         <h2 className="mb-4 t-h3 text-ink">
           {isOrg ? "Staff" : "Participants"} ({participants.length})
         </h2>
-        <ParticipantsTable participants={participants} cycleId={cycleId} />
+        <ParticipantsTable
+          participants={participants}
+          cycleId={cycleId}
+          mode={cycle.mode}
+        />
       </section>
       {!isOrg && (
         <>

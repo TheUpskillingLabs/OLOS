@@ -41,9 +41,23 @@ export default function WorkstreamsPanel({
   workstreams: WorkstreamAdminRow[];
   priorOrgCycles: PriorOrgCycleOption[];
 }) {
+  // Already-chartered workstreams live in the "Chartered runs" table below
+  // this panel — repeating them here read as a duplicated list, so the
+  // panel only shows what's left to charter.
+  const unchartered = workstreams.filter((w) => !w.run);
+  const charteredCount = workstreams.length - unchartered.length;
+
   return (
     <div className="rounded-card border border-ink/10 bg-white p-4 shadow-card">
-      <div className="mb-4 flex items-center justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        {charteredCount > 0 ? (
+          <p className="text-xs text-meta">
+            {charteredCount} of {workstreams.length} workstreams already
+            chartered — see Chartered runs below.
+          </p>
+        ) : (
+          <span />
+        )}
         <Link
           href="/admin/org"
           className="text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
@@ -54,9 +68,13 @@ export default function WorkstreamsPanel({
 
       {workstreams.length === 0 ? (
         <p className="text-sm text-meta">No workstreams yet.</p>
+      ) : unchartered.length === 0 ? (
+        <p className="text-sm text-meta">
+          All workstreams have runs this cycle.
+        </p>
       ) : (
         <div className="divide-y divide-ink/10">
-          {workstreams.map((w) => (
+          {unchartered.map((w) => (
             <WorkstreamRowItem
               key={w.id}
               cycleId={cycleId}
@@ -128,14 +146,7 @@ function WorkstreamRowItem({
         {workstream.status}
       </StatusBadge>
       <div className="flex min-w-[160px] flex-1 items-center justify-end gap-3">
-        {workstream.run ? (
-          <Link
-            href={`/pods/${workstream.run.pod_id}`}
-            className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
-          >
-            {workstream.run.name ?? `Run ${workstream.run.pod_id}`} &rarr;
-          </Link>
-        ) : workstream.status !== "active" ? (
+        {workstream.status !== "active" ? (
           <span className="text-xs text-meta">Dormant</span>
         ) : (
           <div className="flex items-center gap-2">

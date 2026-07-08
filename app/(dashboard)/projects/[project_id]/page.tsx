@@ -88,7 +88,8 @@ export default async function ProjectDetailPage({
     }[];
   }[] = [];
 
-  if (canViewDashboard && activeMembers.length > 0) {
+  // Org projects have no pulse checks — skip the dashboard data entirely.
+  if (mode !== "org" && canViewDashboard && activeMembers.length > 0) {
     const memberIds = activeMembers.map((m) => m.participant_id);
 
     const { data: pulseChecks } = await serviceClient
@@ -313,7 +314,7 @@ export default async function ProjectDetailPage({
         />
       </div>
 
-      {canViewDashboard && (
+      {mode !== "org" && canViewDashboard && (
         <PulseCheckDashboard members={pulseCheckData} />
       )}
     </div>

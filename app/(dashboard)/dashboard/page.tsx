@@ -570,16 +570,23 @@ export default async function DashboardPage() {
           avatarUrl={avatarUrl}
           eyebrow="Member portal"
           greeting={`Welcome, ${displayName}`}
-          lede="You're almost in — here's how to get set up."
+          lede={
+            orgActive
+              ? "Here's your home base — your workstreams are below."
+              : "You're almost in — here's how to get set up."
+          }
         />
+        {/* Org-only staff lead with their actual work; the cohort join CTA
+            is for the participant pipeline they're not in. */}
+        {orgActive && workstreamsSection}
         {fieldSurvey && fieldSurveyCard(fieldSurvey)}
         <SetupChecklist items={checklistItems} />
-        {upcomingCycle
-          ? preRegisteredUpcoming
-            ? preRegisteredCard(upcomingCycle)
-            : joinCycleCard(upcomingCycle, true)
-          : joinCycleCard(activeCycle, false)}
-        {workstreamsSection}
+        {!orgActive &&
+          (upcomingCycle
+            ? preRegisteredUpcoming
+              ? preRegisteredCard(upcomingCycle)
+              : joinCycleCard(upcomingCycle, true)
+            : joinCycleCard(activeCycle, false))}
         <div className="mt-8">{logSectionFor(!orgActive)}</div>
       </div>
     );
@@ -597,27 +604,30 @@ export default async function DashboardPage() {
           eyebrow="Member portal"
           greeting={`Welcome, ${displayName}`}
           lede={
-            upcomingCycle
-              ? "Here's your home base — the next Build Cycle is open for registration below."
-              : "Here's your home base at The Labs. The next Build Cycle will show up right here."
+            orgActive
+              ? "Here's your home base — your workstreams are below."
+              : upcomingCycle
+                ? "Here's your home base — the next Build Cycle is open for registration below."
+                : "Here's your home base at The Labs. The next Build Cycle will show up right here."
           }
         />
+        {orgActive && workstreamsSection}
         {fieldSurvey && fieldSurveyCard(fieldSurvey)}
         {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
-        {upcomingCycle ? (
-          preRegisteredUpcoming ? (
-            preRegisteredCard(upcomingCycle)
+        {!orgActive &&
+          (upcomingCycle ? (
+            preRegisteredUpcoming ? (
+              preRegisteredCard(upcomingCycle)
+            ) : (
+              joinCycleCard(upcomingCycle, true)
+            )
           ) : (
-            joinCycleCard(upcomingCycle, true)
-          )
-        ) : (
-          <EmptyState
-            icon={Calendar}
-            title="No cycle running right now"
-            description="Check back soon for the next Build Cycle."
-          />
-        )}
-        {workstreamsSection}
+            <EmptyState
+              icon={Calendar}
+              title="No cycle running right now"
+              description="Check back soon for the next Build Cycle."
+            />
+          ))}
         <div className="mt-8">{logSectionFor(!orgActive)}</div>
       </div>
     );

@@ -13,11 +13,13 @@ type CycleListRow = {
   mode: string | null;
 };
 
-/** Shared column set for both cycle sections (P-1) — only the headcount
-    column's header text differs ("Participants" vs. "Staff"). */
+/** Shared column set for both cycle sections (P-1) — the headcount column's
+    header ("Participants" vs. "Staff") and cell noun ("enrolled" vs. "staff")
+    differ per section. */
 function cycleColumns(
   countsByCycle: Map<number, { total: number; active: number }>,
-  countHeader: string
+  countHeader: string,
+  countNoun = "enrolled"
 ): Column<CycleListRow>[] {
   return [
     {
@@ -52,7 +54,7 @@ function cycleColumns(
       className: "text-meta tabular-nums",
       cell: (cycle) => {
         const counts = countsByCycle.get(cycle.id) ?? { total: 0, active: 0 };
-        return `${counts.active} active / ${counts.total} enrolled`;
+        return `${counts.active} active / ${counts.total} ${countNoun}`;
       },
     },
     {
@@ -131,7 +133,7 @@ export default async function AdminPage() {
             rows={orgCycles}
             rowKey={(cycle) => cycle.id}
             empty="No organization cycles yet."
-            columns={cycleColumns(countsByCycle, "Staff")}
+            columns={cycleColumns(countsByCycle, "Staff", "staff")}
           />
         </section>
       )}

@@ -14,8 +14,9 @@ import WorkstreamsDirectory, {
  * /admin/cycles/[id] drill-down. Three sections top to bottom: the org
  * cycle list (current cards + a collapsed past list), the workstream
  * directory (durable, cross-cycle — create/edit/status live in
- * workstreams-directory.tsx), and a staff roster scoped to whichever org
- * cycle currently has status='active'.
+ * workstreams-directory.tsx), and a staff roster scoped to the current org
+ * cycle — the active one if it exists, else the most recent draft/upcoming
+ * (so the roster is usable while the quarter is being set up).
  */
 
 const CURRENT_STATUSES = new Set(["draft", "upcoming", "active", "closing"]);
@@ -67,7 +68,10 @@ export default async function AdminOrgPage() {
   const cycles: OrgCycleRow[] = cycleRows ?? [];
   const current = cycles.filter((c) => CURRENT_STATUSES.has(c.status));
   const past = cycles.filter((c) => !CURRENT_STATUSES.has(c.status));
-  const activeCycle = current.find((c) => c.status === "active") ?? null;
+  // Active wins; otherwise fall back to the most recent draft/upcoming so
+  // the directory's run column + staff roster aren't empty during setup.
+  const rosterCycle =
+    current.find((c) => c.status === "active") ?? current[0] ?? null;
   const currentCycleIds = current.map((c) => c.id);
 
   const [{ data: enrollmentRows }, { data: runPodRows }, { data: workstreamRows }] =
@@ -102,11 +106,11 @@ export default async function AdminOrgPage() {
     runsCountByCycle[r.cycle_id] = (runsCountByCycle[r.cycle_id] ?? 0) + 1;
   }
 
-  // The active org cycle's runs feed both the workstream directory's
+  // The roster cycle's runs feed both the workstream directory's
   // "current run" cell and the staff roster below — everything else on
   // this page is cross-cycle or per-card.
-  const activeRuns = activeCycle
-    ? ((runPodRows ?? []) as RunPodRow[]).filter((r) => r.cycle_id === activeCycle.id)
+  const activeRuns = rosterCycle
+    ? ((runPodRows ?? []) as RunPodRow[]).filter((r) => r.cycle_id === rosterCycle.id)
     : [];
   const activeRunPodIds = activeRuns.map((r) => r.id);
   const runByWorkstream: Record<number, { pod_id: number; name: string | null }> = {};
@@ -293,9 +297,16 @@ export default async function AdminOrgPage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-4 t-h3 text-ink">Staff</h2>
-        {!activeCycle ? (
-          <p className="text-sm text-meta">No active organization cycle.</p>
+        <h2 className="mb-4 t-h3 text-ink">
+          Staff
+          {rosterCycle && (
+            <span className="ml-2 text-sm font-normal text-meta">
+              {rosterCycle.name}
+            </span>
+          )}
+        </h2>
+        {!rosterCycle ? (
+          <p className="text-sm text-meta">No current organization cycle.</p>
         ) : staffRows.length === 0 ? (
           <p className="text-sm text-meta">
             No staff on runs yet — invite co-leads and members.
