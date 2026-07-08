@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/guards";
+import { isOwner } from "@/lib/auth/roles";
 import { StatusBadge, DataTable, type Column } from "@/app/components/ui";
 import { formatDate } from "@/lib/format/date";
 import { one } from "@/lib/supabase/embed";
+import {
+  GrantRoleForm,
+  RoleRevokeButton,
+  type ParticipantOption,
+} from "./access-controls";
 
 /**
  * The Access console (docs auth unification): the whole authority tree in one
@@ -17,6 +23,7 @@ import { one } from "@/lib/supabase/embed";
  */
 
 type Embedded = {
+  id?: number;
   first_name: string;
   last_name: string;
   preferred_name: string | null;
@@ -37,7 +44,8 @@ type RoleRow = {
 };
 
 type Node = {
-  id: number;
+  id: number; // participant_roles row id
+  participantId: number | null;
   name: string;
   email: string;
   grantedBy: string | null; // null = the root
@@ -66,21 +74,32 @@ const AUTHORITY_ROLES = new Set([
 ]);
 
 export default async function AccessConsolePage() {
-  const { serviceClient } = await requireAdmin();
+  const { serviceClient, userRoles } = await requireAdmin();
+  const canGrantOwner = isOwner(userRoles);
 
-  const { data } = await serviceClient
-    .from("participant_roles")
-    .select(
-      `id, role, granted_at, note, lab_id, pod_id,
-       subject:participants!participant_roles_participant_id_fkey(id, first_name, last_name, preferred_name, email),
-       granter:participants!participant_roles_granted_by_fkey(first_name, last_name, preferred_name),
-       lab:metros(name),
-       pod:pods(name)`
-    )
-    .is("revoked_at", null)
-    .order("granted_at", { ascending: true });
+  const [{ data }, { data: peopleRows }] = await Promise.all([
+    serviceClient
+      .from("participant_roles")
+      .select(
+        `id, role, granted_at, note, lab_id, pod_id,
+         subject:participants!participant_roles_participant_id_fkey(id, first_name, last_name, preferred_name, email),
+         granter:participants!participant_roles_granted_by_fkey(first_name, last_name, preferred_name),
+         lab:metros(name),
+         pod:pods(name)`
+      )
+      .is("revoked_at", null)
+      .order("granted_at", { ascending: true }),
+    serviceClient
+      .from("participants")
+      .select("id, first_name, last_name, preferred_name, email")
+      .order("first_name"),
+  ]);
 
   const rows = (data ?? []) as RoleRow[];
+  const participantOptions: ParticipantOption[] = (peopleRows ?? []).map((p) => ({
+    id: p.id,
+    name: `${personName(p as Embedded)}${p.email ? ` (${p.email})` : ""}`,
+  }));
 
   const byRole: Record<string, Node[]> = {};
   for (const r of rows) {
@@ -89,6 +108,7 @@ export default async function AccessConsolePage() {
     const granter = one(r.granter as Embedded | Embedded[] | null);
     (byRole[r.role] ??= []).push({
       id: r.id,
+      participantId: subject?.id ?? null,
       name: personName(subject),
       email: subject?.email ?? "",
       // The root (granted_by NULL) has no granter; everyone else records one.
@@ -134,8 +154,31 @@ export default async function AccessConsolePage() {
   function section(
     title: string,
     nodes: Node[],
-    opts: { empty: string; extraCols?: Column<Node>[]; manageHref?: string; manageLabel?: string } = { empty: "None." }
+    opts: {
+      empty: string;
+      extraCols?: Column<Node>[];
+      manageHref?: string;
+      manageLabel?: string;
+      revokeRole?: string;
+    } = { empty: "None." }
   ) {
+    const revokeCol: Column<Node>[] = opts.revokeRole
+      ? [
+          {
+            key: "actions",
+            header: "",
+            align: "right",
+            cell: (n) =>
+              n.participantId != null ? (
+                <RoleRevokeButton
+                  participantId={n.participantId}
+                  role={opts.revokeRole as string}
+                  name={n.name}
+                />
+              ) : null,
+          },
+        ]
+      : [];
     return (
       <section className="mb-10">
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -155,7 +198,7 @@ export default async function AccessConsolePage() {
           rows={nodes}
           rowKey={(n) => n.id}
           empty={opts.empty}
-          columns={[nameCol, ...(opts.extraCols ?? []), provenanceCol, whenCol]}
+          columns={[nameCol, ...(opts.extraCols ?? []), provenanceCol, whenCol, ...revokeCol]}
         />
       </section>
     );
@@ -182,10 +225,13 @@ export default async function AccessConsolePage() {
           Every role in the org, rooted at the HQ owner, with the provenance of
           each grant. Authority resolves from one source of truth
           (<code className="text-xs">participant_roles</code>) that both the app
-          and the database read. Edits still happen on their home surfaces for
-          now — this view is the map.
+          and the database read. Grant or revoke a global role below; scoped
+          roles (lab leads, poderators, contributors) are managed on their own
+          surfaces, linked from each section.
         </p>
       </div>
+
+      <GrantRoleForm participants={participantOptions} canGrantOwner={canGrantOwner} />
 
       {/* Ownership — the root of the tree */}
       <section className="mb-10">
@@ -224,10 +270,17 @@ export default async function AccessConsolePage() {
         empty: "No admins.",
         manageHref: "/admin/people",
         manageLabel: "People & Access",
+        revokeRole: "admin",
       })}
       {(byRole["developer"]?.length ?? 0) > 0 &&
-        section("Developers", byRole["developer"] ?? [], { empty: "None." })}
-      {section("Observers", byRole["observer"] ?? [], { empty: "No observers." })}
+        section("Developers", byRole["developer"] ?? [], {
+          empty: "None.",
+          revokeRole: "developer",
+        })}
+      {section("Observers", byRole["observer"] ?? [], {
+        empty: "No observers.",
+        revokeRole: "observer",
+      })}
 
       {section("Lab leads", byRole["lab_lead"] ?? [], {
         empty: "No lab leads.",

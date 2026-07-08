@@ -126,7 +126,17 @@ describe("resolveUserRoles authority derivation", () => {
     expect(u.roles).toHaveLength(0);
   });
 
-  it("granular permissions still flow from participant_permissions", async () => {
+  it("capabilities derive from roles (admin role → cycles:write)", async () => {
+    const u = await resolveUserRoles(
+      mockClient(withParticipant({ participant_roles: [{ role: "admin" }] })),
+      "auth-1"
+    );
+    expect(can(u, "cycles:write")).toBe(true);
+    expect(can(u, "participants:read")).toBe(true);
+  });
+
+  it("legacy per-person grants are unioned in (no regression)", async () => {
+    // testing:use has no covering role here, but the legacy grant is preserved.
     const u = await resolveUserRoles(
       mockClient(
         withParticipant({ participant_permissions: [{ permission: "testing:use" }] })
@@ -134,6 +144,16 @@ describe("resolveUserRoles authority derivation", () => {
       "auth-1"
     );
     expect(can(u, "testing:use")).toBe(true);
+  });
+
+  it("a role with no global capabilities grants none (lab_lead)", async () => {
+    const u = await resolveUserRoles(
+      mockClient(
+        withParticipant({ participant_roles: [{ role: "lab_lead", pod_id: null, lab_id: 7 }] })
+      ),
+      "auth-1"
+    );
+    expect(u.permissions).toHaveLength(0);
   });
 
   it("active enrollment adds the participant role", async () => {

@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import type { Permission } from "./permissions";
+import { capabilitiesForRoles, type Permission } from "./permissions";
 
 export type Role = "owner" | "admin" | "observer" | "developer" | "moderator" | "participant";
 export type ParticipantStatus = "active" | "inactive" | "revoked";
@@ -58,8 +58,10 @@ export async function resolveUserRoles(
     supabase.from("cycle_enrollments").select("cycle_id, status").eq("participant_id", participantId),
   ]);
 
+  const dbRoles: string[] = [];
   if (roleRows) {
     for (const r of roleRows) {
+      dbRoles.push(r.role);
       switch (r.role) {
         case "owner":
         case "admin":
@@ -83,11 +85,17 @@ export async function resolveUserRoles(
     }
   }
 
+  // Capabilities are the UNION of what the participant's roles grant (the
+  // unified model — caps follow roles for any new grant) and any legacy
+  // per-person grants still in participant_permissions. The union guarantees
+  // no capability regresses while participant_permissions is drained onto
+  // roles (docs auth unification); revoking a role removes its derived caps,
+  // and the /admin/access revoke also clears the matching legacy rows.
+  const permSet = new Set<Permission>(capabilitiesForRoles(dbRoles));
   if (permRows) {
-    for (const p of permRows) {
-      permissions.push(p.permission as Permission);
-    }
+    for (const p of permRows) permSet.add(p.permission as Permission);
   }
+  permissions.push(...permSet);
 
   if (enrollments) {
     for (const e of enrollments) {
