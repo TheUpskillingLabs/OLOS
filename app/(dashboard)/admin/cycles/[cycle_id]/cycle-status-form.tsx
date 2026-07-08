@@ -42,12 +42,12 @@ export default function CycleStatusForm({
     next === "archived" && mode !== "org" ? "Archive cycle" : BUTTON_LABELS[next] ?? next;
 
   async function advance(next: string) {
-    if (
-      !confirm(
-        `Advance cycle status to "${next}"?${IRREVERSIBLE.has(next) ? " This cannot be undone." : ""}`
-      )
-    )
-      return;
+    // Terminal transitions run the close-out (lib/cycle/closeout.ts) —
+    // the confirm names the side effects so archiving is never a surprise.
+    const closeOutNote = IRREVERSIBLE.has(next)
+      ? " This cannot be undone. All of this cycle's pods dissolve (memberships and poderator assignments close), and its projects graduate to open-source sector governance."
+      : "";
+    if (!confirm(`Advance cycle status to "${next}"?${closeOutNote}`)) return;
 
     setLoading(next);
     setError(null);

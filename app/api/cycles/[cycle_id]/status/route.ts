@@ -5,6 +5,8 @@ import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { updateCycleStatusSchema } from "@/lib/validations/cycles";
+import { closeOutCycle } from "@/lib/cycle/closeout";
+import { createServiceClient } from "@/lib/supabase/server";
 
 // Cycle lifecycle (SECTOR_MODEL.md §4): draft → upcoming → active → closing →
 // archived. 'closed' is retained as a legacy terminal for pre-sector cohorts.
@@ -89,6 +91,16 @@ export const PATCH = withAdminAuth(
 
     if (error) {
       return dbError(error);
+    }
+
+    // Terminal transitions run the close-out (SECTOR_MODEL §6 /
+    // docs/LOCAL_LABS.md): pods dissolve, memberships and poderator
+    // assignments close, and projects graduate to sector governance —
+    // "pods are ephemeral, projects go global." Idempotent, so a legacy
+    // 'closed' followed by a later re-archive can't double-fire effects.
+    if (status === "archived" || status === "closed") {
+      const closeOut = await closeOutCycle(createServiceClient(), cycleId);
+      return NextResponse.json({ ...data, close_out: closeOut });
     }
 
     return NextResponse.json(data);
