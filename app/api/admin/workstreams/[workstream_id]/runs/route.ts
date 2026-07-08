@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { requireLabAccess } from "@/lib/auth/lab";
 import { isAdmin } from "@/lib/auth/roles";
+import { grantRole } from "@/lib/auth/grants";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -154,6 +155,21 @@ export const POST = withAuth(
       }
 
       if (moderatorIds.length > 0) {
+        // Record each copied poderator through grants.ts first (provenance:
+        // the chartering admin re-grants for the new cycle), so the
+        // participant_roles rows carry granted_by rather than the sync
+        // trigger's null. The moderator_assignments insert then no-ops the
+        // rows in the trigger.
+        for (const participant_id of moderatorIds) {
+          await grantRole(client, {
+            participantId: participant_id,
+            role: "poderator",
+            scope: { podId, cycleId: cycle_id },
+            actor: auth.user,
+            scopeAuthorized: true,
+            note: "poderator copied forward at charter",
+          });
+        }
         const { error: moderatorError } = await client
           .from("moderator_assignments")
           .insert(

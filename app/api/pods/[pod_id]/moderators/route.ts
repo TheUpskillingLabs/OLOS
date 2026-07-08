@@ -2,11 +2,13 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { requireLabAccessForPod } from "@/lib/auth/lab";
 import { isAdmin } from "@/lib/auth/roles";
+import { grantRole } from "@/lib/auth/grants";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { moderatorAssignmentSchema } from "@/lib/validations/pods";
 import { ensureActivePodMembership } from "@/lib/enrollment/reconciler";
+import { createServiceClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/embed";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
@@ -82,6 +84,25 @@ export const POST = withAuth(
         { error: "cycle_id does not match the pod's cycle" },
         { status: 400 }
       );
+    }
+
+    // Provenance: record the poderator role through the single write path
+    // (grants.ts) FIRST, so the participant_roles row carries granted_by —
+    // moderator_assignments has no assigned_by column, so its sync trigger
+    // would otherwise leave the grant "unrecorded" in the Access console.
+    // Service client because a lab lead (already authorized above) can't
+    // write participant_roles via RLS; the moderator_assignments insert's
+    // sync trigger then no-ops on the row this created (docs auth unification).
+    const grant = await grantRole(createServiceClient(), {
+      participantId: participant_id,
+      role: "poderator",
+      scope: { podId, cycleId: pod.cycle_id },
+      actor: auth.user,
+      scopeAuthorized: true,
+      note: "poderator assigned",
+    });
+    if (!grant.ok) {
+      return NextResponse.json({ error: grant.error }, { status: grant.status });
     }
 
     const { data, error } = await auth.supabase
