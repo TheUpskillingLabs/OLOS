@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration";
-import { metroFromZip } from "@/lib/metros";
+import { findOrCreateWaitlistLab } from "@/lib/labs/membership";
 import { getMemberRecruitingCycle } from "@/lib/cycle/active";
 import { fulfillInvitation } from "@/lib/auth/invitations";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
@@ -77,10 +77,56 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // The lab is assigned silently from the zip (owner decision — the zip is
-  // used for nothing else, and the funnel says so). Resolves from the
-  // metros table (migration 00038) — no hardcoded map.
-  const metro = await metroFromZip(body.zip);
+  // Resolve the Local Lab decision (docs/LOCAL_LABS.md — the membership
+  // spine). Only join_active gives an active-lab metro_id (what unlocks cycle
+  // participation); the waitlist branches keep metro_id NULL and record a
+  // metro_waitlist_signups row after the participant exists.
+  const choice = body.lab_choice;
+  let activeLab: { id: number; slug: string } | null = null;
+  let waitlistLabId: number | null = null;
+
+  if (choice.kind === "join_active") {
+    const { data: lab } = await supabase
+      .from("metros")
+      .select("id, slug, status")
+      .eq("id", choice.metro_id)
+      .maybeSingle();
+    if (!lab || lab.status !== "active") {
+      return NextResponse.json(
+        { error: "That lab isn't active — pick an active lab or join its waitlist." },
+        { status: 400 }
+      );
+    }
+    activeLab = { id: lab.id, slug: lab.slug };
+  } else if (choice.kind === "join_waitlist") {
+    const { data: lab } = await supabase
+      .from("metros")
+      .select("id, status")
+      .eq("id", choice.metro_id)
+      .maybeSingle();
+    if (!lab || lab.status !== "waitlist") {
+      return NextResponse.json(
+        { error: "That lab isn't accepting a waitlist." },
+        { status: 400 }
+      );
+    }
+    waitlistLabId = lab.id;
+  } else {
+    // start_waitlist — find-or-create the city's waitlist lab. A typed-in city
+    // that already exists as active routes to join it instead.
+    const { lab, error } = await findOrCreateWaitlistLab(supabase, {
+      city: choice.city,
+      st: choice.st ?? null,
+    });
+    if (error || !lab) {
+      return NextResponse.json(
+        { error: error ?? "Could not start the waitlist" },
+        { status: 400 }
+      );
+    }
+    if (lab.status === "active") activeLab = { id: lab.id, slug: lab.slug };
+    else waitlistLabId = lab.id;
+  }
 
   // The testing pathway (00042): a tester's full reset deletes their row;
   // the email-keyed grant survives, so re-registration re-flags them.
@@ -99,11 +145,11 @@ export async function POST(request: NextRequest) {
       first_name: body.first_name,
       last_name: body.last_name,
       zip: body.zip,
-      metro_slug: metro.slug,
-      // metro_id is the normalized FK (00044) and what Local Labs routing
-      // keys off (docs/LOCAL_LABS.md) — null only on the degenerate
-      // empty-metros fallback.
-      metro_id: metro.id,
+      // metro_slug/metro_id are set ONLY when the member joined an ACTIVE lab
+      // (docs/LOCAL_LABS.md): metro_id references only active labs, and cycle
+      // participation is gated on it. Waitlisted/lab-less members stay NULL.
+      metro_slug: activeLab?.slug ?? null,
+      metro_id: activeLab?.id ?? null,
       work_situation: body.work_situation,
       source: body.source,
       referred_by: body.referred_by ?? null,
@@ -127,6 +173,17 @@ export async function POST(request: NextRequest) {
     return dbError(pError, "funnel-registration");
   }
 
+  // Waitlist branches: record the signup now that the participant row exists.
+  // metro_id stays NULL — they're waiting, not an active member.
+  if (waitlistLabId) {
+    const { error: sErr } = await supabase
+      .from("metro_waitlist_signups")
+      .insert({ metro_id: waitlistLabId, participant_id: participant.id });
+    if (sErr && sErr.code !== "23505") {
+      return dbError(sErr, "funnel-waitlist-signup");
+    }
+  }
+
   // Owner is not self-serve — retired with the authorization unification
   // (participant_roles is the rooted source of truth; see migration 00066).
 
@@ -145,7 +202,11 @@ export async function POST(request: NextRequest) {
   let emailCycleName: string | null = null;
   let emailCycleJoinUrl: string | null = null;
 
-  const recruitingCycle = await getMemberRecruitingCycle(supabase, metro.id);
+  // Only active-lab members can register for a cycle (docs/LOCAL_LABS.md), so
+  // waitlisted signups get a plain welcome with no cycle CTA to dangle.
+  const recruitingCycle = activeLab
+    ? await getMemberRecruitingCycle(supabase, activeLab.id)
+    : null;
 
   if (recruitingCycle) {
     const { data: config } = await supabase

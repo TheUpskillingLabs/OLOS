@@ -174,6 +174,8 @@ export function FlowScreen({
   submittingLabel = "One moment…",
   onComplete,
   onExit,
+  initialAnswers,
+  initialStepIndex,
 }: {
   eyebrow: string;
   steps: FlowStep[];
@@ -183,9 +185,17 @@ export function FlowScreen({
   /** Runs on the last step's confirm. Return an error message to stay put, or null on success. */
   onComplete: (answers: FlowAnswers) => Promise<string | null>;
   onExit: () => void;
+  /** Seed answers when resuming a flow (e.g. returning from a later stage) —
+      defaults to empty. */
+  initialAnswers?: FlowAnswers;
+  /** Start on a specific step (e.g. land back on the last step when resuming) —
+      defaults to 0, clamped to range. */
+  initialStepIndex?: number;
 }) {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<FlowAnswers>({});
+  const [stepIndex, setStepIndex] = useState(() =>
+    Math.min(Math.max(initialStepIndex ?? 0, 0), Math.max(steps.length - 1, 0))
+  );
+  const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers ?? {});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   // Signature steps gate on reading — tracked here so the footer button knows.
