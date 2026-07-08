@@ -113,6 +113,9 @@ export const POST = withAuth(
         name: workstream.name,
         status: "active",
         problem_statement_id: null,
+        // Sub-cohort tag (pods.lab_id): a lab workstream's run belongs to
+        // that lab; HQ workstreams (lab_id NULL) charter HQ runs.
+        lab_id: workstream.lab_id ?? null,
       })
       .select("id")
       .single();

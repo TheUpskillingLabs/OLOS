@@ -4,6 +4,7 @@ import { generateName } from "@/lib/llm/names";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
+import { one } from "@/lib/supabase/embed";
 
 export const POST = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -72,6 +73,22 @@ export const POST = withAdminAuth(
     const toCreate = eligible.slice(0, config.max_pods);
     const pods = [];
 
+    // Sub-cohort tag (pods.lab_id, docs/LOCAL_LABS.md): a pod belongs to the
+    // lab of the member who seeded its problem statement — one batched
+    // lookup statement → submitter → metro. No submitter or no metro ⇒ NULL
+    // = an HQ pod. A host tag, not a membership fence: joining stays open.
+    const metroByStatement: Record<number, number | null> = {};
+    if (toCreate.length > 0) {
+      const { data: seederRows } = await auth.supabase
+        .from("problem_statements")
+        .select("id, participants (metro_id)")
+        .in("id", toCreate.map((s) => s.problem_statement_id));
+      for (const row of seederRows ?? []) {
+        const p = one(row.participants as { metro_id: number | null } | { metro_id: number | null }[] | null);
+        metroByStatement[row.id] = p?.metro_id ?? null;
+      }
+    }
+
     for (let i = 0; i < toCreate.length; i++) {
       const stmt = toCreate[i];
       let name: string;
@@ -89,6 +106,7 @@ export const POST = withAdminAuth(
           problem_statement_id: stmt.problem_statement_id,
           name,
           status: "forming",
+          lab_id: metroByStatement[stmt.problem_statement_id] ?? null,
         })
         .select()
         .single();
