@@ -33,6 +33,8 @@ export function Sheet({
   widthClass?: string;
   footer?: React.ReactNode;
 }) {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+
   // Close on Esc
   React.useEffect(() => {
     if (!open) return;
@@ -42,6 +44,47 @@ export function Sheet({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // Focus management for the modal dialog: move focus into the panel on
+  // open, and hand it back to whatever opened the sheet on close. Without
+  // this, keyboard/screen-reader focus stays on the (now backdropped)
+  // trigger and the dialog is announced but never entered.
+  React.useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    return () => {
+      previouslyFocused?.focus?.();
+    };
+  }, [open]);
+
+  // Trap Tab inside the panel (aria-modal promises focus can't escape).
+  function trapTab(e: React.KeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const focusables = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    );
+    if (focusables.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey) {
+      if (active === first || active === panel) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   // Lock body scroll while open
   React.useEffect(() => {
@@ -71,7 +114,10 @@ export function Sheet({
 
       {/* Panel */}
       <div
-        className={`absolute right-0 top-0 flex h-full ${widthClass} flex-col border-l border-ink/10 bg-paper shadow-[-12px_0_40px_rgba(0,20,27,0.2)]`}
+        ref={panelRef}
+        tabIndex={-1}
+        onKeyDown={trapTab}
+        className={`absolute right-0 top-0 flex h-full ${widthClass} flex-col border-l border-ink/10 bg-paper shadow-[-12px_0_40px_rgba(0,20,27,0.2)] focus:outline-none`}
       >
         {/* Header — only renders if a title is supplied */}
         {(title || description) && (

@@ -40,8 +40,14 @@ export default function PeopleWorkspace({
 
   return (
     <div>
-      <Tabs tabs={items} value={tab} onValueChange={onSelect} />
-      <div className="mt-8">
+      <Tabs tabs={items} value={tab} onValueChange={onSelect} idBase="people-ws" />
+      <div
+        role="tabpanel"
+        id={`people-ws-panel-${tab}`}
+        aria-labelledby={`people-ws-tab-${tab}`}
+        tabIndex={-1}
+        className="mt-8"
+      >
         {tab === "participants" && participantsPanel}
         {tab === "invitations" && invitationsPanel}
       </div>

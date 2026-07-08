@@ -60,8 +60,14 @@ export default function CycleWorkspaceTabs({
 
   return (
     <div>
-      <Tabs tabs={items} value={tab} onValueChange={onSelect} />
-      <div className="mt-8">
+      <Tabs tabs={items} value={tab} onValueChange={onSelect} idBase="cycle-ws" />
+      <div
+        role="tabpanel"
+        id={`cycle-ws-panel-${tab}`}
+        aria-labelledby={`cycle-ws-tab-${tab}`}
+        tabIndex={-1}
+        className="mt-8"
+      >
         {tab === "overview" && overview}
         {tab === "configuration" && configuration}
         {tab === "formation" && formation}

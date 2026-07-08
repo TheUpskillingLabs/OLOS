@@ -390,6 +390,7 @@ export default function LearningLogCard({
               value={blockerContext}
               onChange={(e) => setBlockerContext(e.target.value)}
               placeholder="What do you need?"
+              aria-label="What do you need?"
               rows={2}
               maxLength={2000}
               className="w-full rounded-card border border-ink/15 p-3 text-base"
@@ -406,10 +407,16 @@ export default function LearningLogCard({
             [promptLabels[1], exploring, setExploring],
             [promptLabels[2], nextFocus, setNextFocus],
           ] as const
-        ).map(([label, value, setter]) => (
+        ).map(([label, value, setter], i) => (
           <div key={label}>
-            <label className="text-sm font-semibold text-ink">{label}</label>
+            <label
+              htmlFor={`ll-reflect-${i}`}
+              className="text-sm font-semibold text-ink"
+            >
+              {label}
+            </label>
             <textarea
+              id={`ll-reflect-${i}`}
               value={value}
               onChange={(e) => setter(e.target.value)}
               rows={2}

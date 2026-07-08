@@ -215,8 +215,8 @@ export default function InvitationsTable({
               </FormField>
             </div>
             <div>
-              <label className="text-xs font-medium text-charcoal">Role Preset</label>
-              <select {...register("role_preset")} className={inputClass}>
+              <label htmlFor="inv-role-preset" className="text-xs font-medium text-charcoal">Role Preset</label>
+              <select id="inv-role-preset" {...register("role_preset")} className={inputClass}>
                 <option value="">No preset</option>
                 {availablePresets
                   .filter((p) => p !== "")
@@ -228,8 +228,8 @@ export default function InvitationsTable({
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-charcoal">Cycle</label>
-              <select {...register("cycle_id")} className={inputClass}>
+              <label htmlFor="inv-cycle" className="text-xs font-medium text-charcoal">Cycle</label>
+              <select id="inv-cycle" {...register("cycle_id")} className={inputClass}>
                 <option value="">None</option>
                 {participantCycles.length > 0 && (
                   <optgroup label="Participant cycles">
@@ -255,8 +255,8 @@ export default function InvitationsTable({
                 (co-lead/member, no preset) pick one too — so the select is
                 always offered rather than gated on the moderator preset. */}
             <div>
-              <label className="text-xs font-medium text-charcoal">Pod</label>
-              <select {...register("pod_id")} className={inputClass}>
+              <label htmlFor="inv-pod" className="text-xs font-medium text-charcoal">Pod</label>
+              <select id="inv-pod" {...register("pod_id")} className={inputClass}>
                 <option value="">None</option>
                 {participantPods.length > 0 && (
                   <optgroup label="Pods (participant cycles)">
@@ -286,8 +286,8 @@ export default function InvitationsTable({
                 pod_role is never sent. */}
             {podId && isOrgPod && (
               <div>
-                <label className="text-xs font-medium text-charcoal">Pod role</label>
-                <select {...register("pod_role")} className={inputClass}>
+                <label htmlFor="inv-pod-role" className="text-xs font-medium text-charcoal">Pod role</label>
+                <select id="inv-pod-role" {...register("pod_role")} className={inputClass}>
                   <option value="co_lead">Co-lead (workstream)</option>
                   <option value="member">Member (workstream)</option>
                 </select>
