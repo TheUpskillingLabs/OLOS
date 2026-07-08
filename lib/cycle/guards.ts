@@ -52,6 +52,9 @@ export const ORG_ALLOWED_CONFIG_KEYS = new Set([
   "milestone_mid_week",
   "milestone_final_week",
   "log_gate_paused",
+  // The Leadership Log cascade is an org-tier ritual (00069) — its pause
+  // toggle is valid only on org cycles.
+  "leadership_log_gate_paused",
 ]);
 
 // Keys in a parsed cycle_config PATCH body that aren't valid for an org

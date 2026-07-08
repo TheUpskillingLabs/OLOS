@@ -7,6 +7,7 @@ import { StatCard, StatusBadge } from "@/app/components/ui";
 import CycleStatusForm from "./cycle-status-form";
 import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
 import CycleLogGateForm from "./cycle-log-gate-form";
+import CycleLeadershipLogGateForm from "./cycle-leadership-log-gate-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
@@ -305,6 +306,15 @@ export default async function AdminCycleDetailPage({
           logDueAt={config.log_due_at}
           gatePaused={config.log_gate_paused}
         />
+        {isOrg && (
+          <div className="mt-4">
+            <CycleLeadershipLogGateForm
+              cycleId={cycle.id}
+              dueAt={config.leadership_log_due_at}
+              paused={config.leadership_log_gate_paused}
+            />
+          </div>
+        )}
       </section>
       <hr className="border-ink/10" />
       <section>

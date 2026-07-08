@@ -18,10 +18,14 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient();
   const nowIso = new Date().toISOString();
 
+  // Participant/closed cycles only. Org cycles' Learning Log window is armed
+  // Wednesday by /api/cron/leadership-log-window (docs/ORG_CYCLES.md §4a) —
+  // arming them here on Friday too would fight that Wednesday stamp.
   const { data: cycles } = await supabase
     .from("cycles")
     .select("id, cycle_config(log_gate_paused)")
-    .eq("status", "active");
+    .eq("status", "active")
+    .neq("mode", "org");
 
   const armed: number[] = [];
   const skipped: number[] = [];

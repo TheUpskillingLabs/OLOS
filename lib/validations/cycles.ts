@@ -30,6 +30,8 @@ export const updateCycleConfigSchema = z.object({
   milestone_final_week: z.number().int().min(0).max(12).optional(),
   // Admin gate pause — cron skips paused cycles and clears stale stamps (00040).
   log_gate_paused: z.boolean().optional(),
+  // Leadership Log pause — org cycles only (00069, docs/ORG_CYCLES.md §4a).
+  leadership_log_gate_paused: z.boolean().optional(),
   problem_statement_open: z.string().nullable().optional(),
   problem_statement_close: z.string().nullable().optional(),
   voting_open: z.string().nullable().optional(),
