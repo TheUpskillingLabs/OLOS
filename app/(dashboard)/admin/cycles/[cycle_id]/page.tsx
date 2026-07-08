@@ -19,6 +19,7 @@ import WorkstreamsPanel, {
 import CycleWorkspaceTabs from "./cycle-workspace-tabs";
 import { resolveInitialTab } from "./cycle-tabs";
 import { podNoun, cycleStatusVariant } from "@/lib/cycle/labels";
+import { one } from "@/lib/supabase/embed";
 
 export type ParticipantRow = {
   participant_id: number;
@@ -54,7 +55,7 @@ export default async function AdminCycleDetailPage({
   const [{ data: cycle }, { data: config }] = await Promise.all([
     serviceClient
       .from("cycles")
-      .select("id, name, start_date, end_date, status, mode")
+      .select("id, name, start_date, end_date, status, mode, lab_id, metros(name)")
       .eq("id", cycleId)
       .single(),
     serviceClient
@@ -67,6 +68,10 @@ export default async function AdminCycleDetailPage({
   if (!cycle) notFound();
 
   const isOrg = cycle.mode === "org";
+  // Local Labs (docs/LOCAL_LABS.md): lab cycles carry a lab badge in the
+  // header so HQ admins can tell whose stream they're editing.
+  const labName = one(cycle.metros as { name: string } | { name: string }[] | null)
+    ?.name;
 
   const { data: cycleSurveys } = await serviceClient
     .from("field_surveys")
@@ -463,6 +468,7 @@ export default async function AdminCycleDetailPage({
             {cycle.status}
           </StatusBadge>
           {isOrg && <StatusBadge variant="forming">organization</StatusBadge>}
+          {labName && <StatusBadge variant="draft">{labName}</StatusBadge>}
         </div>
         <p className="mt-1 text-sm text-meta tabular-nums">
           {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}

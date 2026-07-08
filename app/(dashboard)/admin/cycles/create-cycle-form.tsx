@@ -15,11 +15,17 @@ type FormData = z.infer<typeof createCycleSchema>;
  * POST body, and (for "org") the copy retitles to the organization-cycle
  * language used on /admin/org. Absent (the default /admin cycles list use),
  * behavior is unchanged: both cycle types selectable via the Type select.
+ *
+ * labId: when set (the /admin/labs/[slug] drill-in), the new cycle is pinned
+ * to that local lab's stream (docs/LOCAL_LABS.md) — same pattern as
+ * fixedMode, no visible control. Absent = HQ/global.
  */
 export default function CreateCycleForm({
   fixedMode,
+  labId,
 }: {
   fixedMode?: "open" | "org";
+  labId?: number;
 } = {}) {
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -44,6 +50,7 @@ export default function CreateCycleForm({
       body: JSON.stringify({
         ...data,
         ...(fixedMode ? { mode: fixedMode } : {}),
+        ...(labId ? { lab_id: labId } : {}),
         start_date: new Date(data.start_date).toISOString(),
         end_date: new Date(data.end_date).toISOString(),
       }),

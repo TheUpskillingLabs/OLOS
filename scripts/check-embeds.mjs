@@ -104,6 +104,19 @@ const CHECKS = [
     table: "pods",
     select: "id, name, cycle_id, cycles(name, mode)",
   },
+  {
+    // app/api/labs/[lab_id]/leads + admin/labs pages — lab_leads has TWO
+    // FKs to participants (participant_id, invited_by-style assigned_by):
+    // the embed must name the FK (same PGRST201 shape as project_roles).
+    table: "lab_leads",
+    select:
+      "participant_id, assigned_at, participants!lab_leads_participant_id_fkey(first_name, last_name, preferred_name, email)",
+  },
+  {
+    // admin cycle workspace header — lab badge.
+    table: "cycles",
+    select: "id, name, mode, lab_id, metros(name)",
+  },
 ];
 
 // ── Run ─────────────────────────────────────────────────────────────────────

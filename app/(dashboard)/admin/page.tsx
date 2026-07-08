@@ -11,16 +11,32 @@ type CycleListRow = {
   end_date: string;
   status: string;
   mode: string | null;
+  lab_id: number | null;
 };
 
 /** Shared column set for both cycle sections (P-1) — the headcount column's
     header ("Participants" vs. "Staff") and cell noun ("enrolled" vs. "staff")
-    differ per section. */
+    differ per section. labNameById (non-null once any lab cycle exists) adds
+    a Lab column so the global list stays legible across streams. */
 function cycleColumns(
   countsByCycle: Map<number, { total: number; active: number }>,
   countHeader: string,
-  countNoun = "enrolled"
+  countNoun = "enrolled",
+  labNameById: Map<number, string> | null = null
 ): Column<CycleListRow>[] {
+  const labColumn: Column<CycleListRow>[] = labNameById
+    ? [
+        {
+          key: "lab",
+          header: "Lab",
+          className: "text-meta",
+          cell: (cycle) =>
+            cycle.lab_id === null
+              ? "HQ"
+              : (labNameById.get(cycle.lab_id) ?? `Lab ${cycle.lab_id}`),
+        },
+      ]
+    : [];
   return [
     {
       key: "cycle",
@@ -28,6 +44,7 @@ function cycleColumns(
       className: "font-medium text-ink",
       cell: (cycle) => cycle.name,
     },
+    ...labColumn,
     {
       key: "status",
       header: "Status",
@@ -76,9 +93,10 @@ function cycleColumns(
 export default async function AdminPage() {
   const { serviceClient } = await requireAdmin();
 
-  const [{ data: cycles }, { data: enrollmentRows }] = await Promise.all([
-    serviceClient.from("cycles").select("id, name, start_date, end_date, status, mode").order("start_date", { ascending: false }),
+  const [{ data: cycles }, { data: enrollmentRows }, { data: metroRows }] = await Promise.all([
+    serviceClient.from("cycles").select("id, name, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
     serviceClient.from("cycle_enrollments").select("cycle_id, status"),
+    serviceClient.from("metros").select("id, name"),
   ]);
 
   const countsByCycle = new Map<number, { total: number; active: number }>();
@@ -93,6 +111,12 @@ export default async function AdminPage() {
   const allCycles = (cycles ?? []) as CycleListRow[];
   const participantCycles = allCycles.filter((c) => c.mode !== "org");
   const orgCycles = allCycles.filter((c) => c.mode === "org");
+
+  // The Lab column only appears once a lab cycle exists — before that the
+  // list is single-stream and the column would be all "HQ" noise.
+  const labNameById = allCycles.some((c) => c.lab_id !== null)
+    ? new Map((metroRows ?? []).map((m) => [m.id, m.name] as [number, string]))
+    : null;
 
   return (
     <div>
@@ -117,7 +141,7 @@ export default async function AdminPage() {
           rows={participantCycles}
           rowKey={(cycle) => cycle.id}
           empty="No cycles yet. Create one to get started."
-          columns={cycleColumns(countsByCycle, "Participants")}
+          columns={cycleColumns(countsByCycle, "Participants", "enrolled", labNameById)}
         />
       </section>
 
@@ -133,7 +157,7 @@ export default async function AdminPage() {
             rows={orgCycles}
             rowKey={(cycle) => cycle.id}
             empty="No organization cycles yet."
-            columns={cycleColumns(countsByCycle, "Staff", "staff")}
+            columns={cycleColumns(countsByCycle, "Staff", "staff", labNameById)}
           />
         </section>
       )}

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
   Building2,
+  MapPin,
   Users,
   FileText,
   ClipboardList,
@@ -45,6 +46,12 @@ const BASE_ITEMS: NavItem[] = [
     label: "Organization",
     Icon: Building2,
     match: (p) => p.startsWith("/admin/org"),
+  },
+  {
+    href: "/admin/labs",
+    label: "Local Labs",
+    Icon: MapPin,
+    match: (p) => p.startsWith("/admin/labs"),
   },
   {
     href: "/admin/people",
