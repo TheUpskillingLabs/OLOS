@@ -39,7 +39,7 @@ export const requireAdmin = cache(async (): Promise<AdminContext> => {
 });
 
 /**
- * The page-side gate for the /labs/[slug] workspace (docs/LOCAL_LABS.md):
+ * The page-side gate for the /lab/[slug] workspace (docs/LOCAL_LABS.md):
  * admin OR an active lead of that specific lab. Same fail-closed contract
  * as requireAdmin — lab pages read with the service-role client, so this
  * gate is their only protection. Admins pass so HQ can always drill into

@@ -129,7 +129,7 @@ export default async function DashboardLayout({
       .order("id")
       .limit(1)
       .maybeSingle();
-    labLeadHref = leadMetro ? `/labs/${leadMetro.slug}` : null;
+    labLeadHref = leadMetro ? `/lab/${leadMetro.slug}` : null;
   }
 
   const displayName =

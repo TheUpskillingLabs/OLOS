@@ -73,8 +73,10 @@ Powers split ("centrally coordinated by HQ"):
   lab-lead appointment, everything global.
 - **Lab leads** (later phase): manage *inside* their lab — pods, rosters,
   poderator assignment, invitations (never permission-minting), workstreams,
-  projects pre-graduation — via a dedicated `/labs/[slug]` workspace with a
-  fail-closed admin-or-lead guard. `/admin` stays admin-only.
+  projects pre-graduation — via a dedicated `/lab/[slug]` workspace with a
+  fail-closed admin-or-lead guard (`/labs` is unavailable: it's a
+  cached-permanent redirect to the public `/local-labs` cities pages).
+  `/admin` stays admin-only.
 
 ## Cycle close-out (later phase)
 

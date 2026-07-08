@@ -38,7 +38,7 @@ export interface AppNavProps {
       (B-2). Persona derivation from the pathname is unchanged; this only
       swaps the copy. */
   moderatorPersonaLabel?: string;
-  /** Local Labs (docs/LOCAL_LABS.md): the /labs/[slug] workspace of the
+  /** Local Labs (docs/LOCAL_LABS.md): the /lab/[slug] workspace of the
       first lab this member leads; null when they lead none. Adds a "Lab
       lead" entry to the View-as switcher. */
   labLeadHref?: string | null;
@@ -62,7 +62,7 @@ export default function AppNav({
     ? "admin"
     : pathname.startsWith("/moderator")
       ? "poderator"
-      : pathname.startsWith("/labs")
+      : pathname.startsWith("/lab/")
         ? "lablead"
         : null;
 

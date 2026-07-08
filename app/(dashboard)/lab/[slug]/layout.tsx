@@ -4,7 +4,9 @@ import { isAdmin } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
 
 /**
- * The lab-lead workspace shell (docs/LOCAL_LABS.md): a separate route group
+ * The lab-lead workspace shell (docs/LOCAL_LABS.md) at /lab/[slug] — NOT
+ * /labs (that's a cached-permanent redirect to the public /local-labs
+ * cities pages, next.config.ts). A separate route group
  * from /admin on purpose — the admin layout's requireAdmin() is the only
  * gate over service-role reads there, so it is never relaxed. This tree has
  * its own fail-closed gate: requireLabLead(slug) admits admins (HQ can

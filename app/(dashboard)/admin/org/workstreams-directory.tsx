@@ -37,7 +37,7 @@ export default function WorkstreamsDirectory({
   labId,
 }: {
   workstreams: WorkstreamDirectoryRow[];
-  /** Local Labs (docs/LOCAL_LABS.md): when set (the /labs/[slug]
+  /** Local Labs (docs/LOCAL_LABS.md): when set (the /lab/[slug]
       workspace), created workstreams belong to that lab instead of the
       HQ sector. */
   labId?: number;
