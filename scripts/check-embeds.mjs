@@ -117,6 +117,14 @@ const CHECKS = [
     table: "cycles",
     select: "id, name, mode, lab_id, metros(name)",
   },
+  {
+    // /admin/access console authority tree — participant_roles has three FKs
+    // to participants (participant_id, granted_by, revoked_by), so the subject
+    // and granter embeds must name their FK; lab_id→metros, pod_id→pods.
+    table: "participant_roles",
+    select:
+      "id, role, granted_at, note, lab_id, pod_id, subject:participants!participant_roles_participant_id_fkey(id, first_name, last_name, preferred_name, email), granter:participants!participant_roles_granted_by_fkey(first_name, last_name, preferred_name), lab:metros(name), pod:pods(name)",
+  },
 ];
 
 // ── Run ─────────────────────────────────────────────────────────────────────

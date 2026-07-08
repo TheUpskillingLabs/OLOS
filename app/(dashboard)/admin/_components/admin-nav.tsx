@@ -7,6 +7,7 @@ import {
   Building2,
   MapPin,
   Users,
+  KeyRound,
   FileText,
   ClipboardList,
   Database,
@@ -61,6 +62,12 @@ const BASE_ITEMS: NavItem[] = [
       p.startsWith("/admin/people") ||
       p.startsWith("/admin/participants") ||
       p.startsWith("/admin/invitations"),
+  },
+  {
+    href: "/admin/access",
+    label: "Access",
+    Icon: KeyRound,
+    match: (p) => p.startsWith("/admin/access"),
   },
   {
     href: "/admin/content",
