@@ -260,6 +260,9 @@ function PodSummaryCard({ card }: { card: PodCard }) {
   const phaseSuffix = card.phase_close_at
     ? formatPhaseSuffix(card.phase_open_at, card.phase_close_at)
     : null;
+  // Workstream runs don't pulse — the metric would always read "0 missing"
+  // and imply a practice that doesn't exist for staff.
+  const showPulse = card.cycle_mode !== "org";
 
   return (
     <Link
@@ -280,21 +283,23 @@ function PodSummaryCard({ card }: { card: PodCard }) {
         </StatusBadge>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <div>
-          <div className="mb-1 text-xs text-meta">Pulse this week</div>
-          <div className="flex items-baseline gap-1.5">
-            <span
-              className={`text-2xl font-bold tabular-nums ${BAND_TEXT[card.band]}`}
-            >
-              {card.missing_this_week}
-            </span>
-            <span className="text-xs text-meta">missing</span>
-            <span className={`ml-auto text-xs ${TREND_COLOR[card.trend]}`}>
-              {TREND_ARROW[card.trend]}
-            </span>
+      <div className={`mt-5 grid gap-3 ${showPulse ? "grid-cols-2" : "grid-cols-1"}`}>
+        {showPulse && (
+          <div>
+            <div className="mb-1 text-xs text-meta">Pulse this week</div>
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={`text-2xl font-bold tabular-nums ${BAND_TEXT[card.band]}`}
+              >
+                {card.missing_this_week}
+              </span>
+              <span className="text-xs text-meta">missing</span>
+              <span className={`ml-auto text-xs ${TREND_COLOR[card.trend]}`}>
+                {TREND_ARROW[card.trend]}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
         <div>
           <div className="mb-1 text-xs text-meta">Members</div>
           <div className="flex items-baseline gap-1.5">
