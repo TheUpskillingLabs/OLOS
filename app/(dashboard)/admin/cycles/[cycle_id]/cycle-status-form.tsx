@@ -16,6 +16,9 @@ const BUTTON_LABELS: Record<string, string> = {
   upcoming: "Open for recruiting",
   active: "Activate",
   closing: "Begin closing",
+  // Org cycles really do archive into the org sector; participant cycles
+  // don't, so they get the plainer label (P-9) — see the `mode` override
+  // below, applied only for the terminal `archived` transition.
   archived: "Archive to sector",
   closed: "Close (legacy)",
 };
@@ -25,14 +28,18 @@ const IRREVERSIBLE = new Set(["closed", "archived"]);
 export default function CycleStatusForm({
   cycleId,
   currentStatus,
+  mode,
 }: {
   cycleId: number;
   currentStatus: string;
+  mode?: string | null;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const nextOptions = NEXT_STATUSES[currentStatus] ?? [];
+  const buttonLabel = (next: string) =>
+    next === "archived" && mode !== "org" ? "Archive cycle" : BUTTON_LABELS[next] ?? next;
 
   async function advance(next: string) {
     if (
@@ -87,7 +94,7 @@ export default function CycleStatusForm({
               IRREVERSIBLE.has(next) ? "btn-red" : "btn-teal"
             }`}
           >
-            {loading === next ? "Updating…" : (BUTTON_LABELS[next] ?? next)}
+            {loading === next ? "Updating…" : buttonLabel(next)}
           </button>
         ))
       ) : (

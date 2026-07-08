@@ -253,22 +253,42 @@ const PARAM_GROUPS = [
   },
 ] as const;
 
+// Org cycles never open a ballot (docs/ORG_CYCLES.md) — the Problem/Project
+// Voting groups mean nothing there. Only `pod_limit` (relabeled) and the
+// milestone-week fields carry over (PRD-admin-org-separation.md M-8).
+const ORG_PARAM_GROUPS = [
+  {
+    heading: "Workstream limits",
+    fields: [{ label: "Workstreams per member", name: "pod_limit" }],
+  },
+  {
+    heading: "Milestone Reviews",
+    fields: [
+      { label: "Mid-cycle review week", name: "milestone_mid_week", max: 12 },
+      { label: "End-cycle review week", name: "milestone_final_week", max: 12 },
+    ],
+  },
+] as const;
+
 type ParamKey = typeof PARAM_GROUPS[number]["fields"][number]["name"];
 type ParamsFormData = Record<ParamKey, string>;
 
 export function CycleParamsForm({
   cycleId,
   config,
+  mode,
 }: {
   cycleId: number;
   config: Config;
+  mode?: string | null;
 }) {
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const groups = mode === "org" ? ORG_PARAM_GROUPS : PARAM_GROUPS;
 
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<ParamsFormData>({
     defaultValues: Object.fromEntries(
-      PARAM_GROUPS.flatMap((g) =>
+      groups.flatMap((g) =>
         g.fields.map((f) => [f.name, String(config[f.name as keyof Config] ?? "")])
       )
     ) as ParamsFormData,
@@ -279,7 +299,7 @@ export function CycleParamsForm({
     setServerError(null);
 
     const body: Record<string, number> = {};
-    for (const group of PARAM_GROUPS) {
+    for (const group of groups) {
       for (const field of group.fields) {
         const val = data[field.name as ParamKey];
         if (val !== "") body[field.name] = parseInt(val, 10);
@@ -304,7 +324,7 @@ export function CycleParamsForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-8 sm:grid-cols-2">
-        {PARAM_GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.heading}>
             <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">
               {group.heading}

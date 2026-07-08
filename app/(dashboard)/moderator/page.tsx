@@ -13,6 +13,7 @@ import { getFieldSurveyForCycle } from "@/lib/content/surveys";
 import OrientationCard from "./orientation-card";
 import { Switcher } from "./switcher";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
+import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 
 /**
  * All pods view (PRD §7.10).
@@ -80,13 +81,27 @@ export default async function ModeratorPage({
     }
   }
 
+  // P-7 / B-1: partition cards into participant pods vs. org workstream
+  // runs. Sort order within each subset is preserved — `cards` is already
+  // sorted (non-zero missing first, then alphabetical) and `.filter()`
+  // keeps relative order.
+  const participantCards = cards.filter((c) => c.cycle_mode !== "org");
+  const orgCards = cards.filter((c) => c.cycle_mode === "org");
+  const hasParticipantCards = participantCards.length > 0;
+  const hasOrgCards = orgCards.length > 0;
+  const sectioned = hasParticipantCards && hasOrgCards;
+  const allOrg = hasOrgCards && !hasParticipantCards;
+
   // Single-pod poderators don't see the All pods aggregates (PRD §7.10).
   // Admins always see the full view because their assignment count is
   // effectively unbounded.
-  const showAggregates = admin || cards.length > 1;
+  const showAggregates = admin || participantCards.length > 1;
 
-  const podIds = cards.map((c) => c.id);
-  const cycleIds = Array.from(new Set(cards.map((c) => c.cycle_id)));
+  // Rollup + cross-pod insights are pulse-health aggregates — workstreams
+  // don't run pulse checks, so scope both to the participant-pod subset
+  // (PRD-admin-org-separation §5, P-7/B-1).
+  const podIds = participantCards.map((c) => c.id);
+  const cycleIds = Array.from(new Set(participantCards.map((c) => c.cycle_id)));
 
   // Field-survey results for the poderator's cycle(s) — the sensemaking raw
   // material + CSV export sit one click from the pods they shepherd.
@@ -100,7 +115,7 @@ export default async function ModeratorPage({
   ).filter((x): x is { slug: string; title: string } => x !== null);
 
   const [rollup, crossPodFourWeeks, crossPodFullCycle, aiPromptRow] =
-    showAggregates
+    showAggregates && podIds.length > 0
       ? await Promise.all([
           getRollup(serviceClient, { podIds }),
           getCrossPodInsights(serviceClient, podIds, "4w"),
@@ -125,6 +140,27 @@ export default async function ModeratorPage({
   }));
   const showAllPodsEntry = admin || cards.length > 1;
 
+  // P-7 / B-1: admins with both kinds present get the combined heading;
+  // a non-admin whose cards are entirely org runs gets workstream/co-lead
+  // framing instead of "pod" copy.
+  const heading = admin
+    ? sectioned
+      ? "All pods & workstreams"
+      : "All pods"
+    : allOrg
+      ? "My workstreams"
+      : "My pods";
+
+  const subtitle = admin
+    ? "Pod health across cycles. Click a card to open the per-pod dashboard."
+    : allOrg
+      ? cards.length === 1
+        ? `Your assigned workstream — you're the ${moderatorNoun(cards[0].cycle_mode).toLowerCase()}. Click to open the dashboard.`
+        : `Workstream health across your assignments as ${moderatorNoun(orgCards[0].cycle_mode).toLowerCase()}. Click a card to open the dashboard.`
+      : cards.length === 1
+        ? "Your assigned pod. Click to open the per-pod dashboard."
+        : "Pod health across your assignments. Click a card to open the per-pod dashboard.";
+
   return (
     <div>
       {(showAllPodsEntry || cards.length > 0) && (
@@ -137,14 +173,10 @@ export default async function ModeratorPage({
         </div>
       )}
       <h1 className="t-h1 mb-2 text-ink">
-        {admin ? "All pods" : "My pods"}
+        {heading}
       </h1>
       <p className="mb-8 text-sm text-charcoal">
-        {admin
-          ? "Pod health across cycles. Click a card to open the per-pod dashboard."
-          : cards.length === 1
-            ? "Your assigned pod. Click to open the per-pod dashboard."
-            : "Pod health across your assignments. Click a card to open the per-pod dashboard."}
+        {subtitle}
       </p>
 
       <OrientationCard tooltipSeen={uiState.tooltip_seen ?? []} />
@@ -182,11 +214,24 @@ export default async function ModeratorPage({
         />
       ) : (
         <div className="space-y-8">
-          <PodCardGrid cards={cards} />
+          {sectioned ? (
+            <>
+              <section>
+                <h2 className="t-h3 mb-3 text-ink">Pods</h2>
+                <PodCardGrid cards={participantCards} />
+              </section>
+              <section>
+                <h2 className="t-h3 mb-3 text-ink">Workstreams</h2>
+                <PodCardGrid cards={orgCards} />
+              </section>
+            </>
+          ) : (
+            <PodCardGrid cards={cards} />
+          )}
           {rollup && (
             <RollupBlock
               rollup={rollup}
-              podCount={cards.length}
+              podCount={participantCards.length}
             />
           )}
           {crossPodFourWeeks && crossPodFullCycle && (
@@ -247,6 +292,9 @@ function PodSummaryCard({ card }: { card: PodCard }) {
   const phaseSuffix = card.phase_close_at
     ? formatPhaseSuffix(card.phase_open_at, card.phase_close_at)
     : null;
+  // Workstream runs don't pulse — the metric would always read "0 missing"
+  // and imply a practice that doesn't exist for staff.
+  const showPulse = card.cycle_mode !== "org";
 
   return (
     <Link
@@ -256,10 +304,10 @@ function PodSummaryCard({ card }: { card: PodCard }) {
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="lbl mb-1.5">
-            Pod
+            {podNoun(card.cycle_mode)}
           </div>
           <div className="truncate text-base font-semibold text-ink">
-            {card.name ?? `Pod ${card.id}`}
+            {card.name ?? `${podNoun(card.cycle_mode)} ${card.id}`}
           </div>
         </div>
         <StatusBadge variant={statusVariant} withDot>
@@ -267,21 +315,23 @@ function PodSummaryCard({ card }: { card: PodCard }) {
         </StatusBadge>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <div>
-          <div className="mb-1 text-xs text-meta">Pulse this week</div>
-          <div className="flex items-baseline gap-1.5">
-            <span
-              className={`text-2xl font-bold tabular-nums ${BAND_TEXT[card.band]}`}
-            >
-              {card.missing_this_week}
-            </span>
-            <span className="text-xs text-meta">missing</span>
-            <span className={`ml-auto text-xs ${TREND_COLOR[card.trend]}`}>
-              {TREND_ARROW[card.trend]}
-            </span>
+      <div className={`mt-5 grid gap-3 ${showPulse ? "grid-cols-2" : "grid-cols-1"}`}>
+        {showPulse && (
+          <div>
+            <div className="mb-1 text-xs text-meta">Pulse this week</div>
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={`text-2xl font-bold tabular-nums ${BAND_TEXT[card.band]}`}
+              >
+                {card.missing_this_week}
+              </span>
+              <span className="text-xs text-meta">missing</span>
+              <span className={`ml-auto text-xs ${TREND_COLOR[card.trend]}`}>
+                {TREND_ARROW[card.trend]}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
         <div>
           <div className="mb-1 text-xs text-meta">Members</div>
           <div className="flex items-baseline gap-1.5">

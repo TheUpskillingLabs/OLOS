@@ -3,6 +3,7 @@
 import * as React from "react";
 import { DataTable } from "@/app/components/ui";
 import { roleBadgeClass } from "@/lib/auth/role-colors";
+import { moderatorNoun } from "@/lib/cycle/labels";
 import ParticipantSheet from "./participant-sheet";
 import type { Person } from "./types";
 
@@ -13,6 +14,20 @@ import type { Person } from "./types";
  * stays in the cycle workspace's People tab. Each row drills into the
  * ParticipantSheet drawer.
  */
+
+/** P-5/P-6: org staff/enrollments/assignments read as one undifferentiated
+    bucket alongside cohort data unless they're visually called out. This tint
+    — a small teal-deep dot + slate text — mirrors the "organization"
+    StatusBadge tone already used on the admin cycle header
+    (`<StatusBadge variant="forming">organization</StatusBadge>`), so the same
+    color pairing means "org" everywhere on these surfaces. Exported so
+    participant-sheet.tsx's drawer can apply the identical treatment. */
+export const ORG_CHIP_CLASS =
+  "inline-flex items-center gap-1.5 rounded-sm bg-slate/10 py-0.5 text-xs font-medium text-slate";
+export function OrgDot() {
+  return <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-deep" />;
+}
+
 export default function PeopleTable({
   people,
   canManageRoles,
@@ -117,7 +132,13 @@ export default function PeopleTable({
                       tester
                     </span>
                   )}
-                  {roles.length === 0 && !p.is_test && (
+                  {p.is_staff && (
+                    <span className={`${ORG_CHIP_CLASS} px-2.5`}>
+                      <OrgDot />
+                      staff
+                    </span>
+                  )}
+                  {roles.length === 0 && !p.is_test && !p.is_staff && (
                     <span className="text-xs text-meta">—</span>
                   )}
                 </div>
@@ -129,20 +150,27 @@ export default function PeopleTable({
             header: "Cycles",
             cell: (p) => (
               <div className="flex flex-wrap gap-1">
-                {p.cycles.map((c) => (
-                  <span
-                    key={c.cycle_id}
-                    className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
-                      c.status === "active"
-                        ? "bg-teal/10 text-teal-deep"
-                        : c.status === "revoked"
-                          ? "bg-red/10 text-red"
-                          : "bg-ink/[0.04] text-meta"
-                    }`}
-                  >
-                    {c.cycle_name || `Cycle ${c.cycle_id}`}
-                  </span>
-                ))}
+                {p.cycles.map((c) =>
+                  c.mode === "org" ? (
+                    <span key={c.cycle_id} className={`${ORG_CHIP_CLASS} px-2`}>
+                      <OrgDot />
+                      {c.cycle_name || `Cycle ${c.cycle_id}`}
+                    </span>
+                  ) : (
+                    <span
+                      key={c.cycle_id}
+                      className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
+                        c.status === "active"
+                          ? "bg-teal/10 text-teal-deep"
+                          : c.status === "revoked"
+                            ? "bg-red/10 text-red"
+                            : "bg-ink/[0.04] text-meta"
+                      }`}
+                    >
+                      {c.cycle_name || `Cycle ${c.cycle_id}`}
+                    </span>
+                  )
+                )}
                 {p.cycles.length === 0 && <span className="text-xs text-meta">—</span>}
               </div>
             ),
@@ -152,14 +180,21 @@ export default function PeopleTable({
             header: "Moderating",
             cell: (p) => (
               <div className="flex flex-wrap gap-1">
-                {p.moderator_pods.map((mp) => (
-                  <span
-                    key={mp.pod_id}
-                    className="inline-flex items-center rounded-sm bg-navy/10 px-2 py-0.5 text-xs font-medium text-navy"
-                  >
-                    {mp.pod_name}
-                  </span>
-                ))}
+                {p.moderator_pods.map((mp) =>
+                  mp.mode === "org" ? (
+                    <span key={mp.pod_id} className={`${ORG_CHIP_CLASS} px-2`}>
+                      <OrgDot />
+                      {moderatorNoun(mp.mode).toLowerCase()} &middot; {mp.pod_name}
+                    </span>
+                  ) : (
+                    <span
+                      key={mp.pod_id}
+                      className="inline-flex items-center rounded-sm bg-navy/10 px-2 py-0.5 text-xs font-medium text-navy"
+                    >
+                      {mp.pod_name}
+                    </span>
+                  )
+                )}
                 {p.moderator_pods.length === 0 && (
                   <span className="text-xs text-meta">—</span>
                 )}

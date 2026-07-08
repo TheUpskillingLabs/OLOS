@@ -18,7 +18,7 @@ export default async function AdminPeoplePage({
   // ── Participants (global master list) ──
   const { data: participants } = await serviceClient
     .from("participants")
-    .select("id, first_name, last_name, preferred_name, email, created_at, is_test")
+    .select("id, first_name, last_name, preferred_name, email, created_at, is_test, is_staff")
     .order("created_at", { ascending: false });
 
   const participantIds = participants?.map((p) => p.id) ?? [];
@@ -29,10 +29,10 @@ export default async function AdminPeoplePage({
         ? serviceClient.from("user_roles").select("participant_id, role").in("participant_id", participantIds).is("revoked_at", null)
         : Promise.resolve({ data: [] as { participant_id: number; role: string }[] }),
       participantIds.length
-        ? serviceClient.from("cycle_enrollments").select("participant_id, status, cycle_id, cycles (name)").in("participant_id", participantIds)
+        ? serviceClient.from("cycle_enrollments").select("participant_id, status, cycle_id, cycles (name, mode)").in("participant_id", participantIds)
         : Promise.resolve({ data: [] as { participant_id: number; status: string; cycle_id: number; cycles: unknown }[] }),
       participantIds.length
-        ? serviceClient.from("moderator_assignments").select("participant_id, pod_id, pods (name)").in("participant_id", participantIds).is("removed_at", null)
+        ? serviceClient.from("moderator_assignments").select("participant_id, pod_id, pods (name, cycles (mode))").in("participant_id", participantIds).is("removed_at", null)
         : Promise.resolve({ data: [] as { participant_id: number; pod_id: number; pods: unknown }[] }),
     ]);
 
@@ -41,22 +41,30 @@ export default async function AdminPeoplePage({
     (rolesByParticipant[r.participant_id] ??= []).push(r.role);
   }
 
-  const cyclesByParticipant: Record<number, { cycle_id: number; cycle_name: string; status: string }[]> = {};
+  const cyclesByParticipant: Record<number, { cycle_id: number; cycle_name: string; status: string; mode: string | null }[]> = {};
   for (const e of allEnrollments ?? []) {
-    const c = (e.cycles as unknown) as { name: string } | null;
+    const c = one(e.cycles as { name: string; mode: string } | { name: string; mode: string }[] | null);
     (cyclesByParticipant[e.participant_id] ??= []).push({
       cycle_id: e.cycle_id,
       cycle_name: c?.name ?? "",
       status: e.status,
+      mode: c?.mode ?? null,
     });
   }
 
-  const modPodsByParticipant: Record<number, { pod_id: number; pod_name: string }[]> = {};
+  const modPodsByParticipant: Record<number, { pod_id: number; pod_name: string; mode: string | null }[]> = {};
   for (const ma of allModAssignments ?? []) {
-    const pod = (ma.pods as unknown) as { name: string | null } | null;
+    const pod = one(
+      ma.pods as
+        | { name: string | null; cycles: { mode: string } | { mode: string }[] | null }
+        | { name: string | null; cycles: { mode: string } | { mode: string }[] | null }[]
+        | null
+    );
+    const podCycle = pod ? one(pod.cycles) : null;
     (modPodsByParticipant[ma.participant_id] ??= []).push({
       pod_id: ma.pod_id,
       pod_name: pod?.name ?? `Pod ${ma.pod_id}`,
+      mode: podCycle?.mode ?? null,
     });
   }
 
@@ -68,6 +76,7 @@ export default async function AdminPeoplePage({
     email: p.email,
     created_at: p.created_at,
     is_test: !!p.is_test,
+    is_staff: !!p.is_staff,
     roles: rolesByParticipant[p.id] ?? [],
     cycles: cyclesByParticipant[p.id] ?? [],
     moderator_pods: modPodsByParticipant[p.id] ?? [],
@@ -77,9 +86,9 @@ export default async function AdminPeoplePage({
   const [{ data: invitations }, { data: cycles }, { data: pods }] = await Promise.all([
     serviceClient
       .from("invitations")
-      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, pod_role, status, created_at, expires_at, accepted_at, email_sent_at, cycles (name)")
+      .select("id, email, token, permissions, role_preset, cycle_id, pod_id, pod_role, status, created_at, expires_at, accepted_at, email_sent_at, cycles (name, mode)")
       .order("created_at", { ascending: false }),
-    serviceClient.from("cycles").select("id, name, status").order("start_date", { ascending: false }),
+    serviceClient.from("cycles").select("id, name, status, mode").order("start_date", { ascending: false }),
     serviceClient.from("pods").select("id, name, cycle_id, cycles (name, mode)").order("created_at", { ascending: false }),
   ]);
 
@@ -94,7 +103,7 @@ export default async function AdminPeoplePage({
   });
 
   const invitationRows = (invitations ?? []).map((inv) => {
-    const cycle = (inv.cycles as unknown) as { name: string } | null;
+    const cycle = one(inv.cycles as { name: string; mode: string } | { name: string; mode: string }[] | null);
     return {
       id: inv.id,
       email: inv.email,
@@ -103,6 +112,7 @@ export default async function AdminPeoplePage({
       role_preset: inv.role_preset,
       cycle_id: inv.cycle_id,
       cycle_name: cycle?.name ?? null,
+      cycle_mode: cycle?.mode ?? null,
       pod_id: inv.pod_id,
       pod_role: inv.pod_role,
       status: inv.status,
@@ -132,7 +142,7 @@ export default async function AdminPeoplePage({
         invitationsPanel={
           <InvitationsTable
             invitations={invitationRows}
-            cycles={(cycles ?? []).map((c) => ({ id: c.id, name: c.name }))}
+            cycles={(cycles ?? []).map((c) => ({ id: c.id, name: c.name, mode: c.mode }))}
             pods={podOptions}
             canManageRoles={canManageRoles}
           />

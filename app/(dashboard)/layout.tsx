@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
+import { one } from "@/lib/supabase/embed";
 import AppNav from "@/app/components/chrome/app-nav";
 import TabBar from "@/app/components/chrome/tab-bar";
 import OrbDefs from "@/app/components/chrome/orb-defs";
@@ -102,6 +103,21 @@ export default async function DashboardLayout({
   const moderatorUser = isModerator(userRoles);
   const showPods = can(userRoles, "pods:read") || moderatorUser;
 
+  // The persona pill (B-2): "Co-lead" when every pod this member moderates
+  // is an org workstream run, "Poderator" otherwise (participant-mode or
+  // mixed) — and unchanged for admins with no moderator assignments at all.
+  let coLeadOnly = false;
+  if (userRoles.moderatorPodIds.length > 0) {
+    const { data: moderatedPods } = await serviceClient
+      .from("pods")
+      .select("id, cycles(mode)")
+      .in("id", userRoles.moderatorPodIds);
+    coLeadOnly =
+      !!moderatedPods &&
+      moderatedPods.length > 0 &&
+      moderatedPods.every((p) => one(p.cycles)?.mode === "org");
+  }
+
   const displayName =
     participant?.preferred_name ||
     (participant
@@ -134,6 +150,7 @@ export default async function DashboardLayout({
         hasEnrollment={hasEnrollment}
         logDue={logGate.active}
         isTest={!!participant?.is_test}
+        moderatorPersonaLabel={coLeadOnly ? "Co-lead" : "Poderator"}
       />
       <main className="app-main container w-full flex-1 py-8">{children}</main>
       <TabBar initials={initials} avatarUrl={avatarUrl} hasEnrollment={hasEnrollment} />

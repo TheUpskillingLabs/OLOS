@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, StatusBadge, Sheet } from "@/app/components/ui";
 import AssignModeratorButton from "./assign-moderator-button";
+import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 
 /**
  * The Formation-tab pods table. Extracted from the cycle detail page and wired
@@ -42,10 +43,12 @@ export default function PodsTable({
   cycleId,
   pods,
   participants,
+  mode,
 }: {
   cycleId: number;
   pods: PodAdminRow[];
   participants: ParticipantOption[];
+  mode?: string | null;
 }) {
   const [managePodId, setManagePodId] = React.useState<number | null>(null);
   const managePod = pods.find((p) => p.id === managePodId) ?? null;
@@ -53,7 +56,9 @@ export default function PodsTable({
   if (pods.length === 0) {
     return (
       <p className="text-sm text-meta">
-        No pods yet. Finalize pod voting to create them.
+        {mode === "org"
+          ? "No workstream runs chartered yet — create runs from the workstreams above."
+          : "No pods yet. Finalize pod voting to create them."}
       </p>
     );
   }
@@ -66,9 +71,9 @@ export default function PodsTable({
         columns={[
           {
             key: "pod",
-            header: "Pod",
+            header: podNoun(mode),
             className: "font-medium text-ink",
-            cell: (p) => p.name ?? `Pod ${p.id}`,
+            cell: (p) => p.name ?? `${podNoun(mode)} ${p.id}`,
           },
           {
             key: "status",
@@ -87,13 +92,14 @@ export default function PodsTable({
           },
           {
             key: "moderators",
-            header: "Moderators",
+            header: moderatorNoun(mode, true),
             cell: (p) => (
               <AssignModeratorButton
                 podId={p.id}
                 cycleId={cycleId}
                 participants={participants}
                 initialModerators={p.moderators}
+                mode={mode}
               />
             ),
           },
@@ -125,7 +131,7 @@ export default function PodsTable({
       <Sheet
         open={managePod !== null}
         onClose={() => setManagePodId(null)}
-        title={managePod ? (managePod.name ?? `Pod ${managePod.id}`) : ""}
+        title={managePod ? (managePod.name ?? `${podNoun(mode)} ${managePod.id}`) : ""}
         description="Membership and status — admin overrides"
       >
         {managePod && (
@@ -133,6 +139,7 @@ export default function PodsTable({
             key={managePod.id}
             pod={managePod}
             participants={participants}
+            mode={mode}
           />
         )}
       </Sheet>
@@ -143,9 +150,11 @@ export default function PodsTable({
 function PodManagePanel({
   pod,
   participants,
+  mode,
 }: {
   pod: PodAdminRow;
   participants: ParticipantOption[];
+  mode?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
@@ -186,12 +195,12 @@ function PodManagePanel({
   }
 
   const forceActive = () => {
-    if (
-      !confirm(
-        "Force this pod to active? This skips the pod_min check and activates every current member's enrollment.",
-      )
-    )
-      return;
+    const noun = podNoun(mode).toLowerCase();
+    const message =
+      mode === "org"
+        ? `Force this ${noun} to active? This activates every current member's enrollment.`
+        : `Force this ${noun} to active? This skips the pod_min check and activates every current member's enrollment.`;
+    if (!confirm(message)) return;
     call(`/api/admin/pods/${pod.id}`, "PATCH", { status: "active" });
   };
 

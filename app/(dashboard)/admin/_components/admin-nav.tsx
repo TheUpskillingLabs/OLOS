@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
+  Building2,
   Users,
   FileText,
   ClipboardList,
@@ -38,6 +39,12 @@ const BASE_ITEMS: NavItem[] = [
     label: "Cycles",
     Icon: LayoutGrid,
     match: (p) => p === "/admin" || p.startsWith("/admin/cycles"),
+  },
+  {
+    href: "/admin/org",
+    label: "Organization",
+    Icon: Building2,
+    match: (p) => p.startsWith("/admin/org"),
   },
   {
     href: "/admin/people",

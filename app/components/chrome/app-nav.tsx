@@ -33,6 +33,11 @@ export interface AppNavProps {
   logDue: boolean;
   /** Tester account — the avatar menu carries a "Reset Test Account" item. */
   isTest: boolean;
+  /** The label for the Poderator persona — "Co-lead" when every pod this
+      member moderates is an org workstream run, "Poderator" otherwise
+      (B-2). Persona derivation from the pathname is unchanged; this only
+      swaps the copy. */
+  moderatorPersonaLabel?: string;
 }
 
 export default function AppNav({
@@ -45,6 +50,7 @@ export default function AppNav({
   hasEnrollment,
   logDue,
   isTest,
+  moderatorPersonaLabel = "Poderator",
 }: AppNavProps) {
   const pathname = usePathname() || "";
   const persona = pathname.startsWith("/admin")
@@ -69,7 +75,7 @@ export default function AppNav({
         {persona ? (
           <>
             <span className="persona-lbl">
-              {persona === "admin" ? "Admin" : "Poderator"}
+              {persona === "admin" ? "Admin" : moderatorPersonaLabel}
             </span>
             <Link className="nav-link exit-member" href="/dashboard">
               Exit to member view
@@ -137,6 +143,7 @@ export default function AppNav({
           showPods={showPods}
           persona={persona}
           isTest={isTest}
+          moderatorPersonaLabel={moderatorPersonaLabel}
         />
       </div>
     </header>
@@ -156,6 +163,7 @@ function AvatarMenu({
   showPods,
   persona,
   isTest,
+  moderatorPersonaLabel,
 }: {
   initials: string;
   avatarUrl: string | null;
@@ -165,6 +173,7 @@ function AvatarMenu({
   showPods: boolean;
   persona: "admin" | "poderator" | null;
   isTest: boolean;
+  moderatorPersonaLabel: string;
 }) {
   const [open, setOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
@@ -322,7 +331,11 @@ function AvatarMenu({
               </div>
               {radio(persona === null, "Upskiller", "/dashboard")}
               {(isModerator || showPods) &&
-                radio(persona === "poderator", "Poderator", "/moderator")}
+                radio(
+                  persona === "poderator",
+                  moderatorPersonaLabel,
+                  "/moderator"
+                )}
               {isAdmin && radio(persona === "admin", "Admin", "/admin")}
             </>
           )}

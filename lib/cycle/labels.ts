@@ -13,3 +13,25 @@ export function moderatorNoun(mode: string | null | undefined, plural = false): 
   if (mode === "org") return plural ? "Co-leads" : "Co-lead";
   return plural ? "Poderators" : "Poderator";
 }
+
+/* StatusBadge variant for every cycle lifecycle state (SECTOR_MODEL §4).
+   The admin surfaces previously kept partial maps (active/closed/draft only),
+   so the real states `upcoming`/`closing`/`archived` fell through to the grey
+   "inactive" look — a recruiting cohort read as dead. One shared mapping:
+   upcoming is anticipatory like the member cycles page treats it, closing is
+   still-alive teal, terminal states go grey. */
+export function cycleStatusVariant(
+  status: string
+): "active" | "forming" | "inactive" | "draft" {
+  switch (status) {
+    case "active":
+      return "active";
+    case "upcoming":
+    case "closing":
+      return "forming";
+    case "draft":
+      return "draft";
+    default: // closed, archived, anything legacy
+      return "inactive";
+  }
+}

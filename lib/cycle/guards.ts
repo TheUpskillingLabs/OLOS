@@ -37,3 +37,29 @@ export async function rejectOrgCycle(
 
   return null;
 }
+
+// Config keys an org cycle actually uses. Org cycles have no formation
+// windows or ballots (docs/ORG_CYCLES.md §5) — the phase-window
+// (problem_statement_*/voting_*/pod_registration_*/solution_*/
+// project_registration_*) and voting-count (submitter_votes,
+// vote_threshold, max_pods, etc.) knobs are inert there, since nothing
+// ever reads or stamps them for a mode='org' cycle. Silently accepting a
+// PATCH containing them would let a raw API caller believe the write took
+// effect when it's actually a no-op, so the config route rejects them
+// outright instead.
+export const ORG_ALLOWED_CONFIG_KEYS = new Set([
+  "pod_limit",
+  "milestone_mid_week",
+  "milestone_final_week",
+  "log_gate_paused",
+]);
+
+// Keys in a parsed cycle_config PATCH body that aren't valid for an org
+// cycle, sorted for stable error copy. Only own enumerable keys with a
+// defined value count — parseBody's zod-stripped output omits keys the
+// caller never sent, so those never show up here.
+export function orgForbiddenConfigKeys(body: Record<string, unknown>): string[] {
+  return Object.keys(body)
+    .filter((key) => body[key] !== undefined && !ORG_ALLOWED_CONFIG_KEYS.has(key))
+    .sort();
+}

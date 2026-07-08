@@ -3,10 +3,20 @@
 import * as React from "react";
 import { Sheet } from "@/app/components/ui";
 import { roleBadgeClass } from "@/lib/auth/role-colors";
+import { moderatorNoun } from "@/lib/cycle/labels";
 import type { Permission } from "@/lib/auth/permissions";
 import PermissionsEditor from "./permissions-editor";
 import AdminNameEditForm from "./admin-name-edit-form";
 import type { Person } from "./types";
+
+/** Same org tint as people-table.tsx's ORG_CHIP_CLASS/OrgDot — duplicated
+    rather than imported to avoid a circular import (people-table.tsx renders
+    this component). Keep the two in sync if the tint ever changes. */
+const ORG_CHIP_CLASS =
+  "inline-flex items-center gap-1.5 rounded-sm bg-slate/10 py-0.5 text-xs font-medium text-slate";
+function OrgDot() {
+  return <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-deep" />;
+}
 
 /**
  * The participant drill-in drawer. Replaces the standalone permissions page as
@@ -106,7 +116,13 @@ export default function ParticipantSheet({
                   tester
                 </span>
               )}
-              {person.roles.length === 0 && !person.is_test && (
+              {person.is_staff && (
+                <span className={`${ORG_CHIP_CLASS} px-2.5`}>
+                  <OrgDot />
+                  staff
+                </span>
+              )}
+              {person.roles.length === 0 && !person.is_test && !person.is_staff && (
                 <span className="text-xs text-meta">No elevated role</span>
               )}
             </div>
@@ -115,20 +131,27 @@ export default function ParticipantSheet({
                 <h3 className="lbl mb-1.5">Cycles</h3>
                 {person.cycles.length ? (
                   <div className="flex flex-wrap gap-1">
-                    {person.cycles.map((c) => (
-                      <span
-                        key={c.cycle_id}
-                        className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
-                          c.status === "active"
-                            ? "bg-teal/10 text-teal-deep"
-                            : c.status === "revoked"
-                              ? "bg-red/10 text-red"
-                              : "bg-ink/[0.04] text-meta"
-                        }`}
-                      >
-                        {c.cycle_name || `Cycle ${c.cycle_id}`}
-                      </span>
-                    ))}
+                    {person.cycles.map((c) =>
+                      c.mode === "org" ? (
+                        <span key={c.cycle_id} className={`${ORG_CHIP_CLASS} px-2`}>
+                          <OrgDot />
+                          {c.cycle_name || `Cycle ${c.cycle_id}`}
+                        </span>
+                      ) : (
+                        <span
+                          key={c.cycle_id}
+                          className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
+                            c.status === "active"
+                              ? "bg-teal/10 text-teal-deep"
+                              : c.status === "revoked"
+                                ? "bg-red/10 text-red"
+                                : "bg-ink/[0.04] text-meta"
+                          }`}
+                        >
+                          {c.cycle_name || `Cycle ${c.cycle_id}`}
+                        </span>
+                      )
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-meta">—</p>
@@ -138,14 +161,21 @@ export default function ParticipantSheet({
                 <h3 className="lbl mb-1.5">Moderating</h3>
                 {person.moderator_pods.length ? (
                   <div className="flex flex-wrap gap-1">
-                    {person.moderator_pods.map((mp) => (
-                      <span
-                        key={mp.pod_id}
-                        className="inline-flex items-center rounded-sm bg-navy/10 px-2 py-0.5 text-xs font-medium text-navy"
-                      >
-                        {mp.pod_name}
-                      </span>
-                    ))}
+                    {person.moderator_pods.map((mp) =>
+                      mp.mode === "org" ? (
+                        <span key={mp.pod_id} className={`${ORG_CHIP_CLASS} px-2`}>
+                          <OrgDot />
+                          {moderatorNoun(mp.mode).toLowerCase()} &middot; {mp.pod_name}
+                        </span>
+                      ) : (
+                        <span
+                          key={mp.pod_id}
+                          className="inline-flex items-center rounded-sm bg-navy/10 px-2 py-0.5 text-xs font-medium text-navy"
+                        >
+                          {mp.pod_name}
+                        </span>
+                      )
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-meta">—</p>

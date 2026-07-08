@@ -72,6 +72,7 @@ export type PodDetail = {
   status: string;
   cycle_id: number;
   cycle_name: string | null;
+  cycle_mode: string | null;
   phase_num: number | null;
   phase_display_name: string | null;
   phase_short_name: string | null;
@@ -102,7 +103,7 @@ export async function getPodDetail(
     .select(`
       id, name, status, cycle_id,
       slack_channel_id, drive_folder_id, github_repo_url,
-      cycles (id, name)
+      cycles (id, name, mode)
     `)
     .eq("id", podId)
     .single();
@@ -268,7 +269,9 @@ export async function getPodDetail(
     status: pod.status as string,
     cycle_id: pod.cycle_id as number,
     cycle_name:
-      (pod.cycles as unknown as { name: string } | null)?.name ?? null,
+      (pod.cycles as unknown as { name: string; mode: string | null } | null)?.name ?? null,
+    cycle_mode:
+      (pod.cycles as unknown as { name: string; mode: string | null } | null)?.mode ?? null,
     phase_num: phase?.num ?? null,
     phase_display_name: phase?.displayName ?? null,
     phase_short_name: phase?.shortName ?? null,

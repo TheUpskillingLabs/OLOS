@@ -22,6 +22,7 @@ export default function CycleWorkspaceTabs({
   formation,
   people,
   dev,
+  labels,
 }: {
   initialTab: CycleTab;
   showDev: boolean;
@@ -30,6 +31,10 @@ export default function CycleWorkspaceTabs({
   formation: React.ReactNode;
   people: React.ReactNode;
   dev: React.ReactNode;
+  /** Per-mode overrides for tab labels (e.g. org cycles: "Workstreams",
+      "Staff"). Tab VALUES are untouched — only the displayed label changes,
+      so deep links and cycle-tabs.ts stay stable. */
+  labels?: Partial<Record<CycleTab, string>>;
 }) {
   const [tab, setTab] = React.useState<CycleTab>(initialTab);
 
@@ -46,11 +51,11 @@ export default function CycleWorkspaceTabs({
   };
 
   const items: TabItem[] = [
-    { value: "overview", label: "Overview" },
-    { value: "configuration", label: "Configuration" },
-    { value: "formation", label: "Formation" },
-    { value: "people", label: "People" },
-    { value: "dev", label: "Dev · Testing", hidden: !showDev },
+    { value: "overview", label: labels?.overview ?? "Overview" },
+    { value: "configuration", label: labels?.configuration ?? "Configuration" },
+    { value: "formation", label: labels?.formation ?? "Formation" },
+    { value: "people", label: labels?.people ?? "People" },
+    { value: "dev", label: labels?.dev ?? "Dev · Testing", hidden: !showDev },
   ];
 
   return (
