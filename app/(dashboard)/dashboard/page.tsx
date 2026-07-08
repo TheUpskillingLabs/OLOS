@@ -20,6 +20,14 @@ import QuickLinks from "./quick-links";
 import ShareSurveyButton from "./share-survey-button";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
+import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
+import {
+  workstreamLeadContext,
+  labLeadContext,
+} from "@/lib/leadership-logs/context";
+import LeadershipLogCard, {
+  type LeadershipCardScope,
+} from "./leadership-log-card";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 import { getFieldSurveyForCycle, type FieldSurvey } from "@/lib/content/surveys";
 
@@ -250,6 +258,40 @@ export default async function DashboardPage() {
   // internally, so pass it through instead of a redundant round trip.
   const logGate = await learningLogGate(participant.id, logCycles);
 
+  // Leadership Log (docs/ORG_CYCLES.md §4a) — the org lead tiers' weekly
+  // reflection, non-blocking. Resolve the scopes this member leads, then fetch
+  // the tier-below context for each armed scope. Empty for non-leads.
+  const { data: myLabLeadRows } = await serviceClient
+    .from("lab_leads")
+    .select("lab_id")
+    .eq("participant_id", participant.id)
+    .is("removed_at", null);
+  const leadScopes = await leadershipScopesFor(
+    participant.id,
+    (myLabLeadRows ?? []).map((r) => r.lab_id)
+  );
+  const leadershipCardScopes: LeadershipCardScope[] = await Promise.all(
+    leadScopes
+      .filter((s) => s.armed)
+      .map(async (s) => ({
+        tier: s.tier,
+        cycleId: s.cycleId,
+        podId: s.podId,
+        labId: s.labId,
+        scopeLabel: s.scopeLabel,
+        cycleName: s.cycleName,
+        targetDay: s.targetDay,
+        due: s.due,
+        submittedThisWeek: s.submittedThisWeek,
+        context:
+          s.tier === "workstream_lead" && s.podId != null
+            ? (await workstreamLeadContext(participant.id, s.podId, s.cycleId)) ?? []
+            : s.tier === "lab_lead" && s.labId != null
+              ? (await labLeadContext(participant.id, s.labId, s.cycleId)) ?? []
+              : [],
+      }))
+  );
+
   // Milestone weeks reframe the weekly log as an evaluation, prefilled from the
   // member's own record. Weeks are admin-configurable (cycle_config, 00047).
   let milestoneCtx: MilestoneContext | null = null;
@@ -334,6 +376,23 @@ export default async function DashboardPage() {
         logCycles={logCycles}
         pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
       />
+    </section>
+  );
+
+  // The Leadership Log section — rendered for org leads (workstream/lab) with
+  // an armed weekly window, in every dashboard state (a lead's org duty is
+  // independent of their participant-cycle state). Non-blocking.
+  const leadershipSection = leadershipCardScopes.length > 0 && (
+    <section className="mb-8" id="leadership-log">
+      <div className="mb-4">
+        <div className="lbl lbl-teal mb-1.5">Leadership</div>
+        <h2 className="t-h3 text-ink">Your Leadership Log</h2>
+        <p className="mt-1 text-sm text-meta">
+          Your weekly team reflection, written in the context of your team&rsquo;s
+          logs.
+        </p>
+      </div>
+      <LeadershipLogCard scopes={leadershipCardScopes} />
     </section>
   );
 
@@ -602,6 +661,7 @@ export default async function DashboardPage() {
               : joinCycleCard(upcomingCycle, true)
             : joinCycleCard(activeCycle, false))}
         <div className="mt-8">{logSectionFor(!orgActive)}</div>
+        {leadershipSection}
       </div>
     );
   }
@@ -643,6 +703,7 @@ export default async function DashboardPage() {
             />
           ))}
         <div className="mt-8">{logSectionFor(!orgActive)}</div>
+        {leadershipSection}
       </div>
     );
   }
@@ -749,6 +810,7 @@ export default async function DashboardPage() {
               member too, so journal mode is wrong for them even in the
               interest-submitted states below. */}
           {logSectionFor(!inActiveCycle && !orgActive)}
+          {leadershipSection}
 
           {/* Interest submitted, pod window not yet open */}
           {state === "interest_submitted_window_closed" && activeCycleConfig && (
