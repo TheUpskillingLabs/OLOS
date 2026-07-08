@@ -357,7 +357,7 @@ export default async function LandingPage() {
             seeHref="/local-labs"
             seeLabel="All cities →"
           />
-          <MetroSearch metros={metros} initial={landingLabs} />
+          <MetroSearch metros={metros} initial={landingLabs} signedIn={signedIn} />
         </div>
       </section>
 

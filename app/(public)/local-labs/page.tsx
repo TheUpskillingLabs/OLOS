@@ -1,6 +1,7 @@
 import MetroSearch from "@/app/components/content/metro-search";
 import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { getMetros } from "@/lib/content/queries";
+import { publicSession } from "@/lib/auth/public-session";
 
 /* The Local labs (cities) directory — the prototype generator's
    directoryPage('labs'), recomposed on the editorial "standards-manual" grid:
@@ -21,7 +22,10 @@ export const metadata = {
 };
 
 export default async function LabsPage() {
-  const metros = await getMetros(); // already sorted active-first, then waiting desc
+  const [metros, { signedIn }] = await Promise.all([
+    getMetros(), // already sorted active-first, then waiting desc
+    publicSession(),
+  ]);
 
   return (
     <>
@@ -35,7 +39,7 @@ export default async function LabsPage() {
       {/* ── Browse: the metro search + city grid, full-width ── */}
       <section className="section">
         <div className="container">
-          <MetroSearch metros={metros} initial={metros} />
+          <MetroSearch metros={metros} initial={metros} signedIn={signedIn} />
         </div>
       </section>
     </>

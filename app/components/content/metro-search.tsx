@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LabTeaser } from "@/app/components/content/teasers";
 import type { MetroRow } from "@/lib/content/queries";
+
+/** Split a free-text search into city + optional 2-letter state
+    ("Austin, TX" → {city:"Austin", st:"TX"}; "Austin" → {city:"Austin"}). */
+function parseCityState(input: string): { city: string; st?: string } {
+  const m = input.match(/^(.+?),\s*([A-Za-z]{2})$/);
+  if (m) return { city: m[1].trim(), st: m[2].toUpperCase() };
+  return { city: input };
+}
 
 /* The public metro search — city first, account second (owner decision):
    browse and pick your city free; the account ask comes only when a name
@@ -14,12 +23,42 @@ import type { MetroRow } from "@/lib/content/queries";
 export default function MetroSearch({
   metros,
   initial = [],
+  signedIn = false,
 }: {
   metros: MetroRow[];
   initial?: MetroRow[];
+  signedIn?: boolean;
 }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
+  const [starting, setStarting] = useState(false);
   const query = q.trim().toLowerCase();
+
+  // "Start the list" (docs/LOCAL_LABS.md): signed-in members create/join the
+  // waitlist lab for the typed city and land on its page; signed-out visitors
+  // take the /login handoff.
+  const startList = async () => {
+    setStarting(true);
+    try {
+      const res = await fetch("/api/labs/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parseCityState(q.trim())),
+      });
+      const body = await res.json().catch(() => null);
+      if (res.ok && body?.lab?.slug) {
+        router.push(`/local-labs/${body.lab.slug}`);
+        return;
+      }
+      if (res.status === 401 || res.status === 403) {
+        window.location.href = body?.redirect ?? "/login";
+        return;
+      }
+      setStarting(false);
+    } catch {
+      setStarting(false);
+    }
+  };
   const matches = query
     ? metros.filter(
         (m) =>
@@ -75,9 +114,19 @@ export default function MetroSearch({
               Every lab started as a list of names. Enough names, and we come.
             </p>
           </div>
-          <Link className="btn btn-red" href="/login">
-            Start the list
-          </Link>
+          {signedIn ? (
+            <button
+              className="btn btn-red"
+              onClick={startList}
+              disabled={starting}
+            >
+              Start the list
+            </button>
+          ) : (
+            <Link className="btn btn-red" href="/login">
+              Start the list
+            </Link>
+          )}
         </div>
       )}
     </div>

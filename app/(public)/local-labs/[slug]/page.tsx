@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   EventTeaser,
@@ -9,6 +8,7 @@ import { getEvents, getMetro, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import JoinButton from "./join-button";
+import JoinActiveButton from "./join-active-button";
 
 /* The lab (metro) detail page — the prototype generator's labPage(), both
    branches: the active lab's dark gravity cover (labs/dc) and the waitlist
@@ -47,6 +47,27 @@ async function alreadyJoined(metroId: number): Promise<boolean> {
   }
 }
 
+/** Whether the signed-in visitor is already a member of this (active) lab
+    (participants.metro_id == metroId). Never gates. */
+async function alreadyMember(metroId: number): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return false;
+    const service = createServiceClient();
+    const { data: participant } = await service
+      .from("participants")
+      .select("metro_id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    return participant?.metro_id === metroId;
+  } catch {
+    return false;
+  }
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -77,7 +98,11 @@ export default async function LabPage({
   if (!m) notFound();
 
   if (m.status === "active") {
-    const events = (await getEvents()).slice(0, 3);
+    const [events, { signedIn }, member] = await Promise.all([
+      getEvents().then((e) => e.slice(0, 3)),
+      publicSession(),
+      alreadyMember(m.id),
+    ]);
     return (
       <>
         <section
@@ -135,9 +160,13 @@ export default async function LabPage({
                 </div>
               </div>
             </div>
-            <Link className="btn btn-white" href="/login">
-              Join this lab
-            </Link>
+            <JoinActiveButton
+              labId={m.id}
+              labName={m.name}
+              signedIn={signedIn}
+              joined={member}
+              className="btn btn-white"
+            />
           </div>
         </section>
         <section className="section">
