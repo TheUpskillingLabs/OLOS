@@ -102,7 +102,7 @@ export default function ParticipantsTable({ participants, cycleId }: Props) {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-sm">
           <thead className="bg-ink/[0.02]">
             <tr>

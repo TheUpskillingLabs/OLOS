@@ -68,7 +68,7 @@ export default function PulseCheckDashboard({
       </div>
 
       {/* Per-member table */}
-      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-left text-sm">
           <thead className="bg-ink/[0.03]">
             <tr>

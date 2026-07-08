@@ -125,10 +125,13 @@ export default async function ProjectDetailPage({
   }
 
   // Active project_roles (DRI/contributor ladder) with participant names.
+  // The embed must name the FK: project_roles has TWO FKs to participants
+  // (participant_id, invited_by), and a bare `participants(...)` makes
+  // PostgREST fail the whole select with PGRST201 at runtime.
   const { data: projectRoleRows } = await serviceClient
     .from("project_roles")
     .select(
-      "participant_id, role, created_at, participants(first_name, last_name, preferred_name)"
+      "participant_id, role, created_at, participants!project_roles_participant_id_fkey(first_name, last_name, preferred_name)"
     )
     .eq("project_id", projectId)
     .is("removed_at", null)
@@ -253,7 +256,7 @@ export default async function ProjectDetailPage({
         <h2 className="t-h3 mb-3 text-ink">
           {mode === "org" ? "Core team" : "Members"} ({activeMembers.length})
         </h2>
-        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+        <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
               <tr>

@@ -183,7 +183,7 @@ export default async function PodDetailPage({
         <h2 className="t-h3 mb-3 text-ink">
           Members ({members?.length || 0})
         </h2>
-        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+        <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
               <tr>

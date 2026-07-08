@@ -62,7 +62,7 @@ export default async function AdminSurveysPage() {
       {surveys.length === 0 ? (
         <p className="text-sm text-meta">No surveys yet — create the first one.</p>
       ) : (
-        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+        <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-ink/10 text-xs uppercase tracking-wide text-meta">
               <tr>
