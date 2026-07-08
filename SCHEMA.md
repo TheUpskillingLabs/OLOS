@@ -765,7 +765,8 @@ erDiagram
 | `metros` | Public Content | Local labs / cities — `active` or `waitlist` |
 | `metro_waitlist_signups` | Public Content | Participant ↔ metro waitlist joins (unique pair) |
 | `event_rsvps` | Public Content | Email-only public RSVPs (never account-gated) |
-| `learning_logs` | Practice | The weekly ritual: health check + reflection + share flag (replaces pulse_checks for new cycles) |
+| `learning_logs` | Practice | The weekly ritual: health check + reflection + share flag (replaces pulse_checks for new cycles). For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
+| `leadership_logs` | Practice | The org leadership cascade (00069): weekly reflections by `workstream_lead` (Thu) and `lab_lead` (Fri) tiers, scoped to a run pod or a lab; non-blocking, written in the context of the tier below |
 | `profile_updates` | Practice | Member updates feed — written ONLY by Learning Log shares |
 | `saved_items` | Practice | A member's saved events/resources (the /learning hearts) — polymorphic by slug |
 | `spotlights` | Public Content | Upskiller Spotlights + their submission pipeline (public /stories) |

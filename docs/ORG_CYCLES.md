@@ -122,6 +122,30 @@ implemented in [`lib/learning-logs/gate-logic.ts`](../lib/learning-logs/gate-log
 - Members enrolled in no active cycle, or only in cycles whose gate isn't
   armed, are never gated — this is cycle practice, not a site-wide toll.
 
+### 4a. The Leadership Log cascade (migration 00069)
+
+The org tier runs a **staggered weekly cascade** so each level reflects in the
+context of the level below — members Wednesday, workstream leads Thursday, lab
+leads Friday. Concretely:
+
+- **Members** file the ordinary weekly Learning Log, but for org cycles it is
+  armed **Wednesday** (participant cycles stay Friday) and carries three extra
+  **work fields** (`work_summary` / `work_progress` / `work_blockers`, 00069) —
+  the owner's "both a learning log + work log fields." It keeps the hard gate.
+- **Workstream leads** and **Lab Leads** file a separate **`leadership_logs`**
+  entry — the "Leadership Log" — scoped to their run pod (`workstream_lead`,
+  Thursday) or their lab (`lab_lead`, Friday). It is **non-blocking** (a
+  dashboard due card + a reminder email, no lockout) and is composed beside a
+  read-only view of the tier below's logs: a workstream lead reads their run
+  members' Learning Logs; a lab lead reads their workstream leads' Leadership
+  Logs (cross-tier reads via service-role, authorized to the reader's own
+  team). A co-lead files **both** the Wednesday member Learning Log and their
+  Thursday Leadership Log — that is intended.
+- Window is config-as-data like the Learning Log: a Wednesday cron stamps
+  `cycle_config.leadership_log_due_at` (and the org `log_due_at`); per-tier
+  target days are derived offsets. `leadership_log_gate_paused` is the admin
+  grace toggle. The HQ org cycle (`lab_id NULL`) has no lab-lead tier.
+
 ## 5. Lifecycle
 
 Org cycles run the **same** state machine as participant cycles —
