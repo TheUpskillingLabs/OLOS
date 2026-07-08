@@ -6,15 +6,20 @@
 
 ## The model in one paragraph
 
-The org is **HQ plus local labs**. Cycles are centrally coordinated by HQ,
-but each local lab has its own leadership, workstream teams, pods, and
-projects (plus participants). Labs are **orthogonal to sectors** — this is a
-hard constraint, not a style choice: a **sector** is the durable, global,
-thematic home (`docs/SECTOR_MODEL.md`) that projects graduate to as open
-source when their cycle ends; a **local lab** is the local delivery tier
-that *facilitates the creation* of those projects through per-cohort pods.
-Pods dissolve/are archived at the end of the cycle so local poderators can
-focus on the next cohort. Theme vs. place; permanent vs. per-cohort.
+The org is **HQ plus local labs**. HQ runs **one quarterly participant
+cycle**, and every local lab is **automatically enrolled in it as a
+sub-cohort** (migration `00067`) — there is nothing per-lab to activate.
+Each lab still has its own leadership, workstream teams, pods, and projects
+(plus participants), all living *inside* the shared HQ cycle, tagged to the
+lab. Individual members still opt in via the join + agreement ceremony
+(registration keeps its gravity). Labs are **orthogonal to sectors** — this
+is a hard constraint, not a style choice: a **sector** is the durable,
+global, thematic home (`docs/SECTOR_MODEL.md`) that projects graduate to as
+open source when their cycle ends; a **local lab** is the local delivery
+tier that *facilitates the creation* of those projects through per-cohort
+pods. Pods dissolve/are archived at the end of the cycle so local
+poderators can focus on the next cohort. Theme vs. place; permanent vs.
+per-cohort.
 
 ## The lab entity is `metros`
 
@@ -44,24 +49,35 @@ marketing page and its organizational identity are the same row.
   their lab from their pod; a project's destiny is still global
   (graduation flips `projects.governance` to `'sector'`).
 
-## Cycle streams and invariants
+## The HQ cycle and lab sub-cohorts (00067)
 
-Each lab runs its own cycle stream on HQ's shared quarterly calendar — one
-`mode='open'` cohort for participants and (mirroring HQ's org track,
-`docs/ORG_CYCLES.md`) optionally one `mode='org'` cycle for the lab's own
-team/workstreams. 00062 rescopes 00060's per-mode invariant to
-**≤1 active + ≤1 upcoming per (mode, lab)** — partial unique indexes on
-`(mode, COALESCE(lab_id, 0))`, so HQ's NULL-lab bucket keeps its invariant
-verbatim. `mode='closed'` (B2B) stays exempt. The app-level twin lives in
-`app/api/cycles/[cycle_id]/status/route.ts`.
+**The `mode='open'` participant track is ONE HQ stream.** ≤1 active + ≤1
+upcoming globally (`one_active_open_cycle` / `one_upcoming_open_cycle`), and
+the `cycles_open_is_hq_when_live` CHECK forbids a live open cycle carrying a
+`lab_id`. Both `POST /api/cycles` and the status route reject per-lab open
+cycles with clear copy. (00062's per-(mode, lab) open invariant was the
+earlier per-lab-cycle model; 00067 supersedes it.)
 
-Every "the active cycle" read is stream-scoped through `lib/cycle/active.ts`:
-`getOperatingCycle` / `getRecruitingCycle` / `getOrgCycle` take a
-`labId` (`null` = HQ/global, the default). Member-facing code uses
-`getMemberOperatingCycle` / `getMemberRecruitingCycle`, which prefer the
-member's lab (`participants.metro_id`) and fall back to HQ — until a lab
-activates its own cycle, every member resolves to the global cohort, which
-is what makes the rollout incremental.
+**"Automatically enrolled" means there is nothing to activate.** The moment
+HQ activates the quarterly cycle, every lab's members can join it, and the
+lab's slice is carried by two existing tags — `participants.metro_id` (who
+belongs to the lab) and `pods.lab_id` (which pods are the lab's). A pod
+formed at voting-finalize inherits the lab of the member who seeded its
+problem statement; an org run inherits its workstream's lab. `pods.lab_id`
+is a **host sub-cohort tag, not a membership fence** — voting is global and
+cross-metro joins are allowed. Member enrollment stays opt-in (join +
+agreement); nothing bulk-creates active enrollments.
+
+**Labs keep their own `mode='org'` internal cycles** (mirroring HQ's org
+track, `docs/ORG_CYCLES.md`) for their leadership/workstream teams — the
+per-lab invariant survives for org only (`one_active_org_cycle_per_lab` +
+upcoming twin). `mode='closed'` (B2B) stays exempt.
+
+Reads: `lib/cycle/active.ts` resolves the open track to HQ for everyone
+(`getMemberOperatingCycle` / `getMemberRecruitingCycle` — the metro selects
+the pod, never the cycle); `getOrgCycle(labId)` stays lab-scoped. The
+lab-lead workspace (`/lab/[slug]`) shows the shared HQ open cycle plus the
+lab's org cycles, with pods filtered by `pods.lab_id`.
 
 ## Leadership
 
