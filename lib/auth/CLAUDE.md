@@ -135,16 +135,30 @@ Files:
 - [`app/api/auth/callback/route.ts`](../../app/api/auth/callback/route.ts) —
   the only OAuth landing endpoint. Exchanges the `code`, looks up
   `participants` by email (service-role client, bypasses RLS), links
-  `auth_user_id` if missing, auto-promotes owner emails, fulfills any pending
+  `auth_user_id` if missing, fulfills any pending
   invitation, then redirects.
 
   - **No participant row** → redirect to `/register`. (See §404 vs redirect
     below.)
   - **Auth failure** → `?error=auth_failed` query on `/login`.
 
-- [`lib/auth/owner-emails.ts`](./owner-emails.ts) — `OWNER_EMAILS` env var
-  list; first sign-in from one of those addresses upserts an `owner` row in
-  `user_roles`. This is bootstrap-only and intentional.
+- **Owner is not self-serve (2026-07, authorization unification).**
+  `lib/auth/owner-emails.ts` and its `OWNER_EMAILS` auto-promotion were
+  **removed**: signing in with an allowlisted address no longer mints an
+  `owner`. Ownership is a single rooted tree — `hello@brendanwhitaker.com` is
+  the primary owner (`participant_roles`, `granted_by IS NULL`, migration
+  `00066`); every other owner is a co-owner *granted by* an existing owner
+  (provenance), and the DB `guard_owner_grant` trigger (00064) blocks any
+  authenticated non-owner from minting an owner. `OWNER_EMAILS` survives only
+  as the default-inviter hint for `scripts/ops/send-bulk-invites.ts`.
+- **Authority resolves from `participant_roles` — one source of truth for
+  the app AND DB RLS (2026-07).** `resolveUserRoles` reads `participant_roles`
+  (the same table `is_admin()`/`is_owner()` read, 00058), so the app and
+  database can no longer disagree on who is admin/owner. `isAdmin`/`isOwner`
+  are role-based (owner/admin/developer for admin; owner for owner), matching
+  RLS exactly. Granular capabilities (`permissions[]`) still read
+  `participant_permissions` for now — deriving them from roles is a later
+  commit. See the authorization-unification plan/runbook.
 - [`lib/auth/roles.ts`](./roles.ts) — `resolveUserRoles(supabase, authUserId)`
   produces the `UserRoles` shape every guarded route consumes. **This is the
   spec's "JWT claims" surface.**

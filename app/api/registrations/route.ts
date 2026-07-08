@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { isOwnerEmail, ensureOwnerRole } from "@/lib/auth/owner-emails";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { registrationSchema } from "@/lib/validations/participants";
@@ -96,9 +95,8 @@ export async function POST(request: NextRequest) {
     return dbError(pError, "registration");
   }
 
-  if (isOwnerEmail(email)) {
-    await ensureOwnerRole(supabase, participant.id);
-  }
+  // Owner is not self-serve — retired with the authorization unification
+  // (participant_roles is the rooted source of truth; see migration 00066).
 
   // Insert multiselect options
   const optionIds: number[] = [

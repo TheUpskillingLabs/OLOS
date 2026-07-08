@@ -36,7 +36,8 @@ function fakeSupabase(activeDriRow: { id: number } | null): SupabaseClient {
 
 describe("isProjectDri", () => {
   it("is true for an admin, regardless of project_roles", async () => {
-    const user = baseUser({ permissions: ["cycles:write"] });
+    // Admin is role-based now (matches DB RLS), not permission-derived.
+    const user = baseUser({ roles: ["admin"] });
     const supabase = fakeSupabase(null);
     expect(await isProjectDri(supabase, user, 1, 1)).toBe(true);
   });

@@ -49,7 +49,7 @@ function user(overrides: Partial<UserRoles> = {}): UserRoles {
   };
 }
 
-const admin = () => user({ permissions: ["cycles:write"] as UserRoles["permissions"] });
+const admin = () => user({ roles: ["admin"] });
 const leadOf = (labId: number) => user({ labLeadLabIds: [labId] });
 
 beforeEach(() => {
