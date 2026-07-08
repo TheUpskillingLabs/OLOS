@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDate } from "@/lib/format/date";
 
 /* The /admin/stories review client — group by status, edit editorial fields,
    publish/hide/delete. Each row owns its edit state; the parent holds the list
@@ -148,7 +149,7 @@ function SpotlightRow({
     <div className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-meta tabular-nums">
-          #{row.id} · submitted {new Date(row.created_at).toLocaleDateString()}
+          #{row.id} · submitted {formatDate(row.created_at)}
           {row.submitter_email ? ` · ${row.submitter_email}` : ""}
           {row.slug ? ` · /stories#s-${row.slug}` : ""}
         </span>

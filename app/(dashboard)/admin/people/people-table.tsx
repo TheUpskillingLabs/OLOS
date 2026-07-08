@@ -4,6 +4,7 @@ import * as React from "react";
 import { DataTable } from "@/app/components/ui";
 import { roleBadgeClass } from "@/lib/auth/role-colors";
 import { moderatorNoun } from "@/lib/cycle/labels";
+import { formatDate } from "@/lib/format/date";
 import ParticipantSheet from "./participant-sheet";
 import type { Person } from "./types";
 
@@ -205,7 +206,7 @@ export default function PeopleTable({
             key: "joined",
             header: "Joined",
             className: "text-meta tabular-nums",
-            cell: (p) => new Date(p.created_at).toLocaleDateString(),
+            cell: (p) => formatDate(p.created_at),
           },
           {
             key: "actions",

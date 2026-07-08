@@ -102,6 +102,10 @@ export default async function AdminPeoplePage({
     };
   });
 
+  // Expiry is computed here, once, at request time: reading the clock inside
+  // the client component's render made the server and browser disagree on
+  // which buttons exist (a structural hydration mismatch).
+  const now = new Date();
   const invitationRows = (invitations ?? []).map((inv) => {
     const cycle = one(inv.cycles as { name: string; mode: string } | { name: string; mode: string }[] | null);
     return {
@@ -120,6 +124,7 @@ export default async function AdminPeoplePage({
       expires_at: inv.expires_at,
       accepted_at: inv.accepted_at,
       email_sent_at: inv.email_sent_at ?? null,
+      is_expired: inv.status === "pending" && new Date(inv.expires_at) < now,
     };
   });
 

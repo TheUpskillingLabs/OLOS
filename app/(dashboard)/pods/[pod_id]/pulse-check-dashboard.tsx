@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { StatCard } from "@/app/components/ui";
+import { formatDate } from "@/lib/format/date";
 
 type PulseCheck = {
   scheduled_date: string;
@@ -122,9 +123,7 @@ export default function PulseCheckDashboard({
                       </span>
                       <span className="w-32 text-meta tabular-nums">
                         {lastCompleted
-                          ? new Date(
-                              lastCompleted.completed_at!
-                            ).toLocaleDateString()
+                          ? formatDate(lastCompleted.completed_at!)
                           : "—"}
                       </span>
                       <span className="w-24 text-meta tabular-nums">
@@ -156,9 +155,7 @@ export default function PulseCheckDashboard({
                                   >
                                     <div className="mb-2 flex items-center justify-between">
                                       <span className="text-xs font-medium tracking-tight text-teal-deep tabular-nums">
-                                        {new Date(
-                                          c.scheduled_date
-                                        ).toLocaleDateString()}
+                                        {formatDate(c.scheduled_date)}
                                       </span>
                                       {r?.energy_level != null && (
                                         <span className="rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-deep tabular-nums">

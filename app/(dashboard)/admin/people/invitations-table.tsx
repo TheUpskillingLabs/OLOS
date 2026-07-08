@@ -5,6 +5,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormField, Input } from "@/app/components/ui/form";
+import { formatDate } from "@/lib/format/date";
 
 const inviteFormSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -32,6 +33,9 @@ type Invitation = {
   expires_at: string;
   accepted_at: string | null;
   email_sent_at: string | null;
+  /** Computed server-side (people/page.tsx) — reading the clock during
+      render would hydration-mismatch, structurally (buttons render on it). */
+  is_expired: boolean;
 };
 
 const inputClass =
@@ -53,6 +57,8 @@ export default function InvitationsTable({
   const [serverError, setServerError] = useState<string | null>(null);
   const [sending, setSending] = useState<number | null>(null);
   const [sendError, setSendError] = useState<{ id: number; message: string } | null>(null);
+  const [revoking, setRevoking] = useState<number | null>(null);
+  const [revokeError, setRevokeError] = useState<{ id: number; message: string } | null>(null);
 
   // P-3/P-4: split the Cycle and Pod pickers into participant/organization
   // optgroups so Priya can't attach a participant invite to the org's
@@ -130,6 +136,7 @@ export default function InvitationsTable({
         cycle_name: selectedCycle?.name ?? null,
         cycle_mode: selectedCycle?.mode ?? null,
         email_sent_at: sendRes.ok ? sendData.email_sent_at : null,
+        is_expired: false,
       },
       ...prev,
     ]);
@@ -142,11 +149,26 @@ export default function InvitationsTable({
   }
 
   async function revokeInvitation(id: number) {
-    const res = await fetch(`/api/invitations/${id}`, { method: "PATCH" });
-    if (res.ok) {
-      setInvitations((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, status: "revoked" } : i))
-      );
+    setRevoking(id);
+    setRevokeError(null);
+    try {
+      const res = await fetch(`/api/invitations/${id}`, { method: "PATCH" });
+      if (res.ok) {
+        setInvitations((prev) =>
+          prev.map((i) => (i.id === id ? { ...i, status: "revoked" } : i))
+        );
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setRevokeError({
+          id,
+          message:
+            typeof data?.error === "string"
+              ? data.error
+              : "Failed to revoke invitation",
+        });
+      }
+    } finally {
+      setRevoking(null);
     }
   }
 
@@ -333,8 +355,7 @@ export default function InvitationsTable({
           </thead>
           <tbody className="divide-y divide-ink/10">
             {filtered.map((inv) => {
-              const isExpired =
-                inv.status === "pending" && new Date(inv.expires_at) < new Date();
+              const isExpired = inv.is_expired;
 
               return (
                 <tr
@@ -393,7 +414,7 @@ export default function InvitationsTable({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-meta tabular-nums">
-                    {new Date(inv.created_at).toLocaleDateString()}
+                    {formatDate(inv.created_at)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex flex-col items-end gap-1.5">
@@ -404,7 +425,7 @@ export default function InvitationsTable({
                             disabled={sending === inv.id}
                             title={
                               inv.email_sent_at
-                                ? `Last sent ${new Date(inv.email_sent_at).toLocaleDateString()}`
+                                ? `Last sent ${formatDate(inv.email_sent_at)}`
                                 : "Resend magic link"
                             }
                             className="rounded-card bg-ink/[0.04] px-3 py-1 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 hover:bg-ink/[0.08] hover:text-ink active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
@@ -416,14 +437,18 @@ export default function InvitationsTable({
                           !isExpired && (
                             <button
                               onClick={() => revokeInvitation(inv.id)}
-                              className="rounded-card ring-1 ring-ink/10 px-3 py-1 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-red/10 hover:text-red hover:ring-red/30 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                              disabled={revoking === inv.id}
+                              className="rounded-card ring-1 ring-ink/10 px-3 py-1 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-red/10 hover:text-red hover:ring-red/30 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
                             >
-                              Revoke
+                              {revoking === inv.id ? "Revoking…" : "Revoke"}
                             </button>
                           )}
                       </div>
                       {sendError?.id === inv.id && (
                         <p className="text-xs text-red">{sendError.message}</p>
+                      )}
+                      {revokeError?.id === inv.id && (
+                        <p className="text-xs text-red">{revokeError.message}</p>
                       )}
                     </div>
                   </td>

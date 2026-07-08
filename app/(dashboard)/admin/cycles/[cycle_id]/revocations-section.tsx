@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/app/components/ui";
+import { formatDate } from "@/lib/format/date";
 import type { ParticipantRow } from "./page";
 
 type Revocation = {
@@ -161,7 +162,7 @@ export default function RevocationsSection({
             key: "revoked",
             header: "Revoked",
             className: "text-meta tabular-nums",
-            cell: (rev) => new Date(rev.revoked_at).toLocaleDateString(),
+            cell: (rev) => formatDate(rev.revoked_at),
           },
           {
             key: "actions",
