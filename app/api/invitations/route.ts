@@ -1,7 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAdminAuth, withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
-import { can } from "@/lib/auth/roles";
+import { can, isAdmin } from "@/lib/auth/roles";
+import { labForCycle, labForPod, requireLabAccess } from "@/lib/auth/lab";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { createInvitationSchema } from "@/lib/validations/invitations";
@@ -24,7 +25,7 @@ export const GET = withAdminAuth(
   }
 );
 
-export const POST = withAdminAuth(
+export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
     const body = await parseBody(request, createInvitationSchema);
     if (isErrorResponse(body)) return body;
@@ -33,6 +34,27 @@ export const POST = withAdminAuth(
 
     if (pod_role && !pod_id) {
       return NextResponse.json({ error: "pod_role requires a pod" }, { status: 400 });
+    }
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // invite ONLY into their own lab — the invite's target (pod first,
+    // else cycle) must resolve to a lab they lead — and may NEVER mint
+    // permissions: no role_preset, no permissions array. Untargeted
+    // invites (no cycle, no pod) stay admin-only.
+    if (!isAdmin(auth.user)) {
+      if (role_preset || (extraPerms && extraPerms.length > 0)) {
+        return NextResponse.json(
+          { error: "Lab leads cannot grant role presets or permissions." },
+          { status: 403 }
+        );
+      }
+      const targetLab = pod_id
+        ? await labForPod(pod_id)
+        : cycle_id
+          ? await labForCycle(cycle_id)
+          : null;
+      const guard = requireLabAccess(auth.user, targetLab);
+      if (guard) return guard;
     }
 
     const serviceClient = createServiceClient();

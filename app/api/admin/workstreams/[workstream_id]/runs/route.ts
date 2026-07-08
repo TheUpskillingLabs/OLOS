@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { requireLabAccess } from "@/lib/auth/lab";
+import { isAdmin } from "@/lib/auth/roles";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -17,8 +19,8 @@ import { reconcilePodMembers } from "@/lib/enrollment/reconciler";
  * §2/§5). Optionally copies the prior run's roster forward
  * (`copy_from_cycle_id`) per §5's manual-rollover primitive.
  */
-export const POST = withAdminAuth(
-  async (request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const POST = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const workstreamId = parseIntParam(params.workstream_id, "workstream_id");
     if (workstreamId instanceof NextResponse) return workstreamId;
 
@@ -30,12 +32,21 @@ export const POST = withAdminAuth(
 
     const { data: workstream } = await client
       .from("workstreams")
-      .select("id, name, status")
+      .select("id, name, status, lab_id")
       .eq("id", workstreamId)
       .maybeSingle();
     if (!workstream) {
       return NextResponse.json({ error: "Workstream not found" }, { status: 404 });
     }
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // charter runs for their own lab's workstreams. HQ (sector-homed)
+    // workstreams resolve to no lab and stay admin-only.
+    if (!isAdmin(auth.user)) {
+      const guard = requireLabAccess(auth.user, workstream.lab_id ?? null);
+      if (guard) return guard;
+    }
+
     if (workstream.status !== "active") {
       return NextResponse.json(
         { error: "This workstream is dormant and cannot start a new run." },
@@ -45,11 +56,20 @@ export const POST = withAdminAuth(
 
     const { data: cycle } = await client
       .from("cycles")
-      .select("id, mode, status")
+      .select("id, mode, status, lab_id")
       .eq("id", cycle_id)
       .maybeSingle();
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
+    }
+    // A run lives in its workstream's stream: HQ workstreams charter into
+    // HQ org cycles, a lab's into that same lab's — for everyone, admins
+    // included; a cross-stream run would orphan the roster's lab identity.
+    if ((workstream.lab_id ?? null) !== (cycle.lab_id ?? null)) {
+      return NextResponse.json(
+        { error: "The run's cycle must belong to the same lab as the workstream." },
+        { status: 400 }
+      );
     }
     if (cycle.mode !== "org") {
       return NextResponse.json(

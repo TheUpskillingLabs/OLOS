@@ -118,6 +118,20 @@ export default async function DashboardLayout({
       moderatedPods.every((p) => one(p.cycles)?.mode === "org");
   }
 
+  // Local Labs (docs/LOCAL_LABS.md): leads get a "Lab lead" entry in the
+  // View-as switcher, pointing at the first lab they lead.
+  let labLeadHref: string | null = null;
+  if (userRoles.labLeadLabIds.length > 0) {
+    const { data: leadMetro } = await serviceClient
+      .from("metros")
+      .select("slug")
+      .in("id", userRoles.labLeadLabIds)
+      .order("id")
+      .limit(1)
+      .maybeSingle();
+    labLeadHref = leadMetro ? `/labs/${leadMetro.slug}` : null;
+  }
+
   const displayName =
     participant?.preferred_name ||
     (participant
@@ -151,6 +165,7 @@ export default async function DashboardLayout({
         logDue={logGate.active}
         isTest={!!participant?.is_test}
         moderatorPersonaLabel={coLeadOnly ? "Co-lead" : "Poderator"}
+        labLeadHref={labLeadHref}
       />
       <main className="app-main container w-full flex-1 py-8">{children}</main>
       <TabBar initials={initials} avatarUrl={avatarUrl} hasEnrollment={hasEnrollment} />

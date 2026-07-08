@@ -7,6 +7,10 @@ export const createWorkstreamSchema = z.object({
   slug: z.string().min(1).max(200).optional(),
   description: z.string().optional(),
   sector_id: z.number().int().positive().optional(),
+  // Local Labs (docs/LOCAL_LABS.md): a lab's internal workstream. Mutually
+  // exclusive with sector_id (workstreams_one_home_check, 00062) — the
+  // route enforces the XOR with a clear 400.
+  lab_id: z.number().int().positive().optional(),
 });
 
 export type CreateWorkstream = z.infer<typeof createWorkstreamSchema>;

@@ -37,3 +37,40 @@ export const requireAdmin = cache(async (): Promise<AdminContext> => {
 
   return { user, userRoles, serviceClient };
 });
+
+/**
+ * The page-side gate for the /labs/[slug] workspace (docs/LOCAL_LABS.md):
+ * admin OR an active lead of that specific lab. Same fail-closed contract
+ * as requireAdmin — lab pages read with the service-role client, so this
+ * gate is their only protection. Admins pass so HQ can always drill into
+ * a lab workspace.
+ */
+export interface LabContext extends AdminContext {
+  lab: { id: number; slug: string; name: string; st: string | null; status: string };
+}
+
+export const requireLabLead = cache(
+  async (slug: string): Promise<LabContext> => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+
+    const serviceClient = createServiceClient();
+    const [userRoles, { data: lab }] = await Promise.all([
+      resolveUserRoles(serviceClient, user.id),
+      serviceClient
+        .from("metros")
+        .select("id, slug, name, st, status")
+        .eq("slug", slug)
+        .maybeSingle(),
+    ]);
+    if (!lab) redirect("/dashboard");
+    if (!isAdmin(userRoles) && !userRoles.labLeadLabIds.includes(lab.id)) {
+      redirect("/dashboard");
+    }
+
+    return { user, userRoles, serviceClient, lab };
+  }
+);

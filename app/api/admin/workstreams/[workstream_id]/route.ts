@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { requireLabAccess, labForWorkstream } from "@/lib/auth/lab";
+import { isAdmin } from "@/lib/auth/roles";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -19,10 +21,18 @@ import { createServiceClient } from "@/lib/supabase/server";
  * whether renames should cascade; until that's settled, "as chartered"
  * is the safer default.
  */
-export const PATCH = withAdminAuth(
-  async (request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const PATCH = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const workstreamId = parseIntParam(params.workstream_id, "workstream_id");
     if (workstreamId instanceof NextResponse) return workstreamId;
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // edit their own lab's workstreams. HQ (sector-homed) workstreams
+    // resolve to no lab and stay admin-only.
+    if (!isAdmin(auth.user)) {
+      const guard = requireLabAccess(auth.user, await labForWorkstream(workstreamId));
+      if (guard) return guard;
+    }
 
     const body = await parseBody(request, updateWorkstreamSchema);
     if (isErrorResponse(body)) return body;

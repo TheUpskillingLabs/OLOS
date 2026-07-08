@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
+import { requireLabAccessForPod } from "@/lib/auth/lab";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -86,10 +87,16 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  * optional reason field. No structural change to the route's control
  * flow.
  */
-export const PATCH = withAdminAuth(
-  async (request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const PATCH = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // manage pods in their own lab's cycles. HQ pods (lab_id NULL) resolve
+    // to no lab and stay admin-only.
+    const guard = await requireLabAccessForPod(auth.user, podId);
+    if (guard) return guard;
 
     const body = await parseBody(request, adminPodStatusSchema);
     if (isErrorResponse(body)) return body;

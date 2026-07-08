@@ -34,8 +34,13 @@ export type WorkstreamDirectoryRow = {
 
 export default function WorkstreamsDirectory({
   workstreams,
+  labId,
 }: {
   workstreams: WorkstreamDirectoryRow[];
+  /** Local Labs (docs/LOCAL_LABS.md): when set (the /labs/[slug]
+      workspace), created workstreams belong to that lab instead of the
+      HQ sector. */
+  labId?: number;
 }) {
   const router = useRouter();
   const [formOpen, setFormOpen] = React.useState(false);
@@ -52,7 +57,11 @@ export default function WorkstreamsDirectory({
       const res = await fetch("/api/admin/workstreams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description: description || undefined }),
+        body: JSON.stringify({
+          name,
+          description: description || undefined,
+          ...(labId ? { lab_id: labId } : {}),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

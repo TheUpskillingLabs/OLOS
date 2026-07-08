@@ -38,6 +38,10 @@ export interface AppNavProps {
       (B-2). Persona derivation from the pathname is unchanged; this only
       swaps the copy. */
   moderatorPersonaLabel?: string;
+  /** Local Labs (docs/LOCAL_LABS.md): the /labs/[slug] workspace of the
+      first lab this member leads; null when they lead none. Adds a "Lab
+      lead" entry to the View-as switcher. */
+  labLeadHref?: string | null;
 }
 
 export default function AppNav({
@@ -51,13 +55,16 @@ export default function AppNav({
   logDue,
   isTest,
   moderatorPersonaLabel = "Poderator",
+  labLeadHref = null,
 }: AppNavProps) {
   const pathname = usePathname() || "";
   const persona = pathname.startsWith("/admin")
     ? "admin"
     : pathname.startsWith("/moderator")
       ? "poderator"
-      : null;
+      : pathname.startsWith("/labs")
+        ? "lablead"
+        : null;
 
   return (
     <header className="sitenav appnav" id="site-nav">
@@ -75,7 +82,11 @@ export default function AppNav({
         {persona ? (
           <>
             <span className="persona-lbl">
-              {persona === "admin" ? "Admin" : moderatorPersonaLabel}
+              {persona === "admin"
+                ? "Admin"
+                : persona === "lablead"
+                  ? "Lab lead"
+                  : moderatorPersonaLabel}
             </span>
             <Link className="nav-link exit-member" href="/dashboard">
               Exit to member view
@@ -144,6 +155,7 @@ export default function AppNav({
           persona={persona}
           isTest={isTest}
           moderatorPersonaLabel={moderatorPersonaLabel}
+          labLeadHref={labLeadHref}
         />
       </div>
     </header>
@@ -164,6 +176,7 @@ function AvatarMenu({
   persona,
   isTest,
   moderatorPersonaLabel,
+  labLeadHref,
 }: {
   initials: string;
   avatarUrl: string | null;
@@ -171,15 +184,16 @@ function AvatarMenu({
   isAdmin: boolean;
   isModerator: boolean;
   showPods: boolean;
-  persona: "admin" | "poderator" | null;
+  persona: "admin" | "poderator" | "lablead" | null;
   isTest: boolean;
   moderatorPersonaLabel: string;
+  labLeadHref: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
-  const canViewAs = isAdmin || isModerator || showPods;
+  const canViewAs = isAdmin || isModerator || showPods || !!labLeadHref;
 
   // Esc / outside-click close + ArrowUp/Down cycling — the shared.js contract.
   useEffect(() => {
@@ -336,6 +350,8 @@ function AvatarMenu({
                   moderatorPersonaLabel,
                   "/moderator"
                 )}
+              {labLeadHref &&
+                radio(persona === "lablead", "Lab lead", labLeadHref)}
               {isAdmin && radio(persona === "admin", "Admin", "/admin")}
             </>
           )}

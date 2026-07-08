@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth, withAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
+import { requireLabAccessForPod } from "@/lib/auth/lab";
 import { isAdmin } from "@/lib/auth/roles";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
@@ -45,10 +46,16 @@ export const GET = withAuth(
   }
 );
 
-export const POST = withAdminAuth(
+export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // assign poderators/co-leads on pods in their own lab's cycles. HQ
+    // pods stay admin-only.
+    const guard = await requireLabAccessForPod(auth.user, podId);
+    if (guard) return guard;
 
     // Fetch the pod up front — today's route trusted the body's cycle_id
     // without ever checking the pod exists. Validating here also gives us

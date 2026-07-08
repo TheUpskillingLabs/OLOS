@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { requireLabAccess } from "@/lib/auth/lab";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { createWorkstreamSchema } from "@/lib/validations/workstreams";
@@ -8,19 +9,43 @@ import { slugifyHandle } from "@/lib/participants/handle";
 import { createServiceClient } from "@/lib/supabase/server";
 import { HQ_SECTOR_SLUG, resolveHqSectorId } from "@/lib/cycle/org-sector";
 
-export const POST = withAdminAuth(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async (request: NextRequest, _auth: AuthenticatedRequest) => {
+export const POST = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest) => {
     const body = await parseBody(request, createWorkstreamSchema);
     if (isErrorResponse(body)) return body;
-    const { name, description } = body;
+    const { name, description, lab_id } = body;
     let { slug, sector_id } = body;
+
+    // Local Labs (docs/LOCAL_LABS.md): a workstream lives in exactly one
+    // home. With lab_id it's a lab's internal workstream — admin or that
+    // lab's lead may create it. Without lab_id it's HQ's sector-homed
+    // track — requireLabAccess(user, null) keeps that admin-only.
+    const guard = requireLabAccess(auth.user, lab_id ?? null);
+    if (guard) return guard;
+    if (lab_id && sector_id) {
+      return NextResponse.json(
+        { error: "A workstream belongs to either a sector or a lab, not both." },
+        { status: 400 }
+      );
+    }
 
     // workstreams is service-role-write-only (migration 00060) — the admin
     // cookie client has no INSERT policy on this table.
     const client = createServiceClient();
 
-    if (!sector_id) {
+    if (lab_id) {
+      const { data: metro } = await client
+        .from("metros")
+        .select("id")
+        .eq("id", lab_id)
+        .maybeSingle();
+      if (!metro) {
+        return NextResponse.json(
+          { error: `No local lab (metro) with id ${lab_id}.` },
+          { status: 404 }
+        );
+      }
+    } else if (!sector_id) {
       const hqSectorId = await resolveHqSectorId(client);
       if (!hqSectorId) {
         return NextResponse.json(
@@ -37,9 +62,13 @@ export const POST = withAdminAuth(
       slug = slugifyHandle(name);
     }
 
+    const insert: Record<string, unknown> = { name, slug, description };
+    if (lab_id) insert.lab_id = lab_id;
+    else insert.sector_id = sector_id;
+
     const { data: workstream, error } = await client
       .from("workstreams")
-      .insert({ name, slug, description, sector_id })
+      .insert(insert)
       .select()
       .single();
 
