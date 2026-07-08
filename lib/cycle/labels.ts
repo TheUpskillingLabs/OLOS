@@ -20,6 +20,13 @@ export function moderatorNoun(mode: string | null | undefined, plural = false): 
    "inactive" look — a recruiting cohort read as dead. One shared mapping:
    upcoming is anticipatory like the member cycles page treats it, closing is
    still-alive teal, terminal states go grey. */
+/* StatusBadge variant for workstream lifecycle states (active/dormant).
+   Previously duplicated as identical local maps in workstreams-panel.tsx and
+   workstreams-directory.tsx. */
+export function workstreamStatusVariant(status: string): "active" | "inactive" {
+  return status === "active" ? "active" : "inactive";
+}
+
 export function cycleStatusVariant(
   status: string
 ): "active" | "forming" | "inactive" | "draft" {

@@ -224,7 +224,7 @@ export default async function ProjectDetailPage({
         >
           <Link
             href={`/cycles/${project.cycle_id}`}
-            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+            className="transition-colors duration-150 hover:text-teal-deep"
           >
             Cycle
           </Link>
@@ -233,7 +233,7 @@ export default async function ProjectDetailPage({
           </span>
           <Link
             href={`/pods/${project.pod_id}`}
-            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+            className="transition-colors duration-150 hover:text-teal-deep"
           >
             {pod?.name || `${podNoun(mode)} ${project.pod_id}`}
           </Link>

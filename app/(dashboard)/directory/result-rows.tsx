@@ -50,7 +50,7 @@ function RowShell({
       {href ? (
         <Link
           href={href}
-          className={`${className} hover:bg-teal/5 focus-visible:bg-teal/5 focus-visible:outline-none`}
+          className={`${className} hover:bg-teal/5 focus-visible:bg-teal/5`}
         >
           {children}
         </Link>

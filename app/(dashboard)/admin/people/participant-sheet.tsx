@@ -1,22 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Sheet } from "@/app/components/ui";
+import { Sheet, ORG_CHIP_CLASS, OrgDot } from "@/app/components/ui";
 import { roleBadgeClass } from "@/lib/auth/role-colors";
 import { moderatorNoun } from "@/lib/cycle/labels";
 import type { Permission } from "@/lib/auth/permissions";
 import PermissionsEditor from "./permissions-editor";
 import AdminNameEditForm from "./admin-name-edit-form";
 import type { Person } from "./types";
-
-/** Same org tint as people-table.tsx's ORG_CHIP_CLASS/OrgDot — duplicated
-    rather than imported to avoid a circular import (people-table.tsx renders
-    this component). Keep the two in sync if the tint ever changes. */
-const ORG_CHIP_CLASS =
-  "inline-flex items-center gap-1.5 rounded-sm bg-slate/10 py-0.5 text-xs font-medium text-slate";
-function OrgDot() {
-  return <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-deep" />;
-}
 
 /**
  * The participant drill-in drawer. Replaces the standalone permissions page as

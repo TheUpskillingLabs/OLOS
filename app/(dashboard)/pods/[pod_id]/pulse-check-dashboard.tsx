@@ -113,7 +113,7 @@ export default function PulseCheckDashboard({
                       onClick={() =>
                         setExpandedId(isExpanded ? null : m.participant_id)
                       }
-                      className="flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:bg-ink/[0.04]"
+                      className="flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 hover:bg-ink/[0.02] focus-visible:bg-ink/[0.04]"
                     >
                       <span className="flex-1 font-medium text-charcoal">
                         {m.name}

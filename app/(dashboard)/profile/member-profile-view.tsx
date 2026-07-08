@@ -80,7 +80,7 @@ export default function MemberProfileView({
         <div className="mb-4">
           <Link
             href="/directory"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-ink"
           >
             <span aria-hidden>←</span> Back to the Directory
           </Link>
@@ -283,7 +283,7 @@ function Field({
           href={value}
           target="_blank"
           rel="noopener noreferrer"
-          className="break-all text-sm text-teal-deep transition-colors duration-150 hover:text-ink hover:underline focus-visible:outline-none focus-visible:text-ink"
+          className="break-all text-sm text-teal-deep transition-colors duration-150 hover:text-ink hover:underline"
         >
           {value}
         </a>

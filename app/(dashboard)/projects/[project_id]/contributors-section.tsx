@@ -125,7 +125,7 @@ export default function ContributorsSection({
                       onClick={() => removeContributor(c.participant_id, c.name)}
                       disabled={busy}
                       aria-label={`Remove ${c.name}`}
-                      className="text-sm font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-red"
+                      className="text-sm font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       &times;
                     </button>

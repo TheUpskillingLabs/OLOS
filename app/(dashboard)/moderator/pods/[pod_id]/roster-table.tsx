@@ -183,7 +183,7 @@ export function RosterTable({
               onClick={() =>
                 setFilters((f) => ({ ...f, show_inactive: !showInactive }))
               }
-              className="text-teal-deep transition-colors hover:text-ink focus-visible:outline-none focus-visible:underline"
+              className="text-teal-deep transition-colors hover:text-ink focus-visible:underline"
             >
               {showInactive ? "Hide inactive" : "Show inactive"}
             </button>
@@ -193,7 +193,7 @@ export function RosterTable({
               onClick={() =>
                 setFilters((f) => ({ ...f, show_staff_test: !showStaffTest }))
               }
-              className="text-teal-deep transition-colors hover:text-ink focus-visible:outline-none focus-visible:underline"
+              className="text-teal-deep transition-colors hover:text-ink focus-visible:underline"
             >
               {showStaffTest
                 ? "Hide staff & test accounts"

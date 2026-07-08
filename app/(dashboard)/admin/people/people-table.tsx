@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { DataTable } from "@/app/components/ui";
+import { DataTable, ORG_CHIP_CLASS, OrgDot } from "@/app/components/ui";
 import { roleBadgeClass } from "@/lib/auth/role-colors";
 import { moderatorNoun } from "@/lib/cycle/labels";
 import { formatDate } from "@/lib/format/date";
@@ -14,20 +14,11 @@ import type { Person } from "./types";
  * context is a badge, and cycle-scoped remediation (reconciler, revocations)
  * stays in the cycle workspace's People tab. Each row drills into the
  * ParticipantSheet drawer.
+ *
+ * No pagination on purpose: search + the role filter are the browsing
+ * pattern at the current ~70 rows. Revisit (client-side pages or server
+ * pagination) if the community grows past a few hundred rows.
  */
-
-/** P-5/P-6: org staff/enrollments/assignments read as one undifferentiated
-    bucket alongside cohort data unless they're visually called out. This tint
-    — a small teal-deep dot + slate text — mirrors the "organization"
-    StatusBadge tone already used on the admin cycle header
-    (`<StatusBadge variant="forming">organization</StatusBadge>`), so the same
-    color pairing means "org" everywhere on these surfaces. Exported so
-    participant-sheet.tsx's drawer can apply the identical treatment. */
-export const ORG_CHIP_CLASS =
-  "inline-flex items-center gap-1.5 rounded-sm bg-slate/10 py-0.5 text-xs font-medium text-slate";
-export function OrgDot() {
-  return <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-teal-deep" />;
-}
 
 export default function PeopleTable({
   people,

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/app/components/ui";
+import { workstreamStatusVariant } from "@/lib/cycle/labels";
 
 /**
  * The Organization page's workstream directory (docs/ORG_CYCLES.md §2/§5):
@@ -29,11 +30,6 @@ export type WorkstreamDirectoryRow = {
   description: string | null;
   status: string;
   run: WorkstreamDirectoryRun | null;
-};
-
-const WORKSTREAM_STATUS_VARIANT: Record<string, "active" | "inactive"> = {
-  active: "active",
-  dormant: "inactive",
 };
 
 export default function WorkstreamsDirectory({
@@ -134,7 +130,7 @@ export default function WorkstreamsDirectory({
                 setName("");
                 setDescription("");
               }}
-              className="text-sm text-meta transition-colors duration-150 hover:text-charcoal focus-visible:outline-none focus-visible:text-charcoal"
+              className="text-sm text-meta transition-colors duration-150 hover:text-charcoal"
             >
               Cancel
             </button>
@@ -225,7 +221,7 @@ function WorkstreamDirectoryRowItem({
             <p className="text-xs text-meta">{workstream.description}</p>
           )}
         </div>
-        <StatusBadge variant={WORKSTREAM_STATUS_VARIANT[workstream.status] ?? "inactive"}>
+        <StatusBadge variant={workstreamStatusVariant(workstream.status)}>
           {workstream.status}
         </StatusBadge>
         <div className="min-w-[180px] flex-1">
@@ -233,7 +229,7 @@ function WorkstreamDirectoryRowItem({
             <div>
               <Link
                 href={`/pods/${workstream.run.pod_id}`}
-                className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
               >
                 {workstream.run.name ?? `Run ${workstream.run.pod_id}`} &rarr;
               </Link>
@@ -247,11 +243,11 @@ function WorkstreamDirectoryRowItem({
             <span className="text-xs text-meta">No run this cycle</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setEditing((v) => !v)}
-            className="text-xs font-medium text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+            className="rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
           >
             {editing ? "Cancel" : "Edit"}
           </button>
@@ -259,7 +255,7 @@ function WorkstreamDirectoryRowItem({
             type="button"
             onClick={toggleStatus}
             disabled={togglingStatus}
-            className="text-xs font-medium text-meta transition-colors duration-150 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-charcoal"
+            className="rounded-card bg-ink/[0.04] px-3 py-1 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 hover:bg-ink/[0.08] hover:text-ink active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
           >
             {togglingStatus
               ? "…"

@@ -6,6 +6,7 @@ export { DataTable } from "./data-table";
 export type { Column } from "./data-table";
 export { Tabs } from "./tabs";
 export type { TabItem } from "./tabs";
+export { OrgChip, OrgDot, ORG_CHIP_CLASS } from "./org-chip";
 export { FilterDropdown } from "./filter-dropdown";
 export type { FilterOption } from "./filter-dropdown";
 export { AlertBanner } from "./alert-banner";

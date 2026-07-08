@@ -250,7 +250,7 @@ export default async function AdminOrgPage() {
                 </div>
                 <Link
                   href={`/admin/cycles/${cycle.id}`}
-                  className="mt-3 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                  className="mt-3 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
                 >
                   Manage &rarr;
                 </Link>
@@ -280,7 +280,7 @@ export default async function AdminOrgPage() {
                   </span>
                   <Link
                     href={`/admin/cycles/${cycle.id}`}
-                    className="font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                    className="font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
                   >
                     Manage &rarr;
                   </Link>
@@ -351,7 +351,7 @@ export default async function AdminOrgPage() {
       <div>
         <Link
           href="/admin/people?tab=invitations"
-          className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+          className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
         >
           Invite staff &rarr;
         </Link>

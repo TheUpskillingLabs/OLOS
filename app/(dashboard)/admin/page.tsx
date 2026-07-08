@@ -64,7 +64,7 @@ function cycleColumns(
       cell: (cycle) => (
         <Link
           href={`/admin/cycles/${cycle.id}`}
-          className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+          className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
         >
           Manage &rarr;
         </Link>

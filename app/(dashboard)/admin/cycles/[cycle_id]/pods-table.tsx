@@ -112,13 +112,13 @@ export default function PodsTable({
                 <button
                   type="button"
                   onClick={() => setManagePodId(p.id)}
-                  className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                  className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
                 >
                   Manage
                 </button>
                 <Link
                   href={`/pods/${p.id}`}
-                  className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                  className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
                 >
                   View &rarr;
                 </Link>
@@ -260,7 +260,7 @@ function PodManagePanel({
                 type="button"
                 onClick={() => removeMember(m.participant_id)}
                 disabled={busy}
-                className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-red"
+                className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Remove
               </button>

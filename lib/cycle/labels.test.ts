@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { podNoun, moderatorNoun, cycleStatusVariant } from "./labels";
+import { podNoun, moderatorNoun, cycleStatusVariant, workstreamStatusVariant } from "./labels";
 
 describe("podNoun / moderatorNoun", () => {
   it("speaks Workstream/Co-lead for org cycles", () => {
@@ -29,5 +29,16 @@ describe("cycleStatusVariant", () => {
 
   it("falls back to inactive for legacy/unknown states", () => {
     expect(cycleStatusVariant("bogus")).toBe("inactive");
+  });
+});
+
+describe("workstreamStatusVariant", () => {
+  it("maps active/dormant to the badge variants", () => {
+    expect(workstreamStatusVariant("active")).toBe("active");
+    expect(workstreamStatusVariant("dormant")).toBe("inactive");
+  });
+
+  it("treats unknown states as inactive", () => {
+    expect(workstreamStatusVariant("bogus")).toBe("inactive");
   });
 });

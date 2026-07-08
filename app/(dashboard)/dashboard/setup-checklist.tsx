@@ -30,7 +30,7 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
         </span>
         <button
           type="button"
-          className="text-xs text-meta transition-colors hover:text-ink focus-visible:outline-none focus-visible:underline"
+          className="text-xs text-meta transition-colors hover:text-ink focus-visible:underline"
           onClick={() => setExpanded(true)}
         >
           Show
@@ -88,7 +88,7 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
       {allDone && (
         <button
           type="button"
-          className="mt-3 text-xs text-meta transition-colors hover:text-ink focus-visible:outline-none focus-visible:underline"
+          className="mt-3 text-xs text-meta transition-colors hover:text-ink focus-visible:underline"
           onClick={() => setExpanded(false)}
         >
           Collapse

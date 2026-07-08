@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/app/components/ui";
+import { workstreamStatusVariant } from "@/lib/cycle/labels";
 
 /**
  * Formation-tab counterpart to PodsTable for org cycles (docs/ORG_CYCLES.md
@@ -26,11 +27,6 @@ export type WorkstreamAdminRow = {
   run: WorkstreamRun | null;
 };
 export type PriorOrgCycleOption = { id: number; name: string };
-
-const WORKSTREAM_STATUS_VARIANT: Record<string, "active" | "inactive"> = {
-  active: "active",
-  dormant: "inactive",
-};
 
 export default function WorkstreamsPanel({
   cycleId,
@@ -60,7 +56,7 @@ export default function WorkstreamsPanel({
         )}
         <Link
           href="/admin/org"
-          className="text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+          className="text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
         >
           Manage workstreams &rarr;
         </Link>
@@ -142,7 +138,7 @@ function WorkstreamRowItem({
           <p className="text-xs text-meta">{workstream.description}</p>
         )}
       </div>
-      <StatusBadge variant={WORKSTREAM_STATUS_VARIANT[workstream.status] ?? "inactive"}>
+      <StatusBadge variant={workstreamStatusVariant(workstream.status)}>
         {workstream.status}
       </StatusBadge>
       <div className="flex min-w-[160px] flex-1 items-center justify-end gap-3">

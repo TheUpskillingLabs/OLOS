@@ -128,7 +128,7 @@ export default function AssignModeratorButton({
               <button
                 onClick={() => remove(m.participant_id)}
                 disabled={loading}
-                className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-red"
+                className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Remove
               </button>
@@ -170,7 +170,7 @@ export default function AssignModeratorButton({
 
       <button
         onClick={() => setOpen(false)}
-        className="text-xs text-meta transition-colors duration-150 hover:text-charcoal focus-visible:outline-none focus-visible:text-charcoal"
+        className="text-xs text-meta transition-colors duration-150 hover:text-charcoal"
       >
         Close
       </button>

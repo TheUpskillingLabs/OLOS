@@ -527,7 +527,7 @@ export default function PulseCheckForm({
             <button
               type="button"
               onClick={() => setShowNominations(true)}
-              className="flex w-full items-center justify-between gap-3 text-left text-sm text-charcoal transition-colors duration-150 ease-out hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+              className="flex w-full items-center justify-between gap-3 text-left text-sm text-charcoal transition-colors duration-150 ease-out hover:text-teal-deep"
             >
               <span>
                 <span className="font-semibold tracking-tight text-ink">
@@ -800,7 +800,7 @@ function ToolsAutocomplete({
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="rounded-full text-teal-deep/70 transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                className="rounded-full text-teal-deep/70 transition-colors duration-150 hover:text-ink"
                 aria-label={`Remove ${tag}`}
               >
                 ×
@@ -901,7 +901,7 @@ function ConfirmationView({
         <button
           type="button"
           onClick={onSubmitAnother}
-          className="text-xs text-meta underline-offset-4 transition-colors duration-150 hover:text-teal-deep hover:underline focus-visible:outline-none focus-visible:text-teal-deep"
+          className="text-xs text-meta underline-offset-4 transition-colors duration-150 hover:text-teal-deep hover:underline"
         >
           {copy.confirmation.secondaryCta}
         </button>

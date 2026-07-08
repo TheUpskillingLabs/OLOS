@@ -218,7 +218,7 @@ export default function ProposalForm({
                 setEditing(false);
                 reset(hydrateInitialValues(initialProposal));
               }}
-              className="text-sm text-slate transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:underline"
+              className="text-sm text-slate transition-colors duration-150 hover:text-ink focus-visible:underline"
             >
               Cancel
             </button>

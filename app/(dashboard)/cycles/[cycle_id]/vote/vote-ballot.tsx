@@ -211,7 +211,7 @@ export default function VoteBallot({
                     onClick={() =>
                       setExpandedId(isExpanded ? null : stmt.id)
                     }
-                    className="mt-2 inline-flex items-center text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
+                    className="mt-2 inline-flex items-center text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline"
                   >
                     {isExpanded ? "Show less" : "Read full proposal"}
                   </button>

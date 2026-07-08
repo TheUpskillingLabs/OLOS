@@ -27,6 +27,7 @@ export function EnvBanner() {
     return (
       <div
         role="status"
+        title={`Supabase project: ${ref}`}
         className="mb-6 flex items-center gap-2 rounded-card border border-red/60 bg-red/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-red shadow-card"
       >
         <span aria-hidden>⚠</span>
@@ -38,10 +39,11 @@ export function EnvBanner() {
   return (
     <div
       role="status"
+      title={`Supabase project: ${ref}`}
       className="mb-6 flex items-center gap-2 rounded-card border border-teal/40 bg-teal/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-teal-deep"
     >
       <span aria-hidden className="text-teal">●</span>
-      DEV — {ref}
+      DEV — development database
     </div>
   );
 }

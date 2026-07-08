@@ -112,7 +112,7 @@ export default function CharterProjectForm({ podId }: { podId: number }) {
             setName("");
             setGithubRepoUrl("");
           }}
-          className="text-sm text-meta transition-colors duration-150 hover:text-charcoal focus-visible:outline-none focus-visible:text-charcoal"
+          className="text-sm text-meta transition-colors duration-150 hover:text-charcoal"
         >
           Cancel
         </button>

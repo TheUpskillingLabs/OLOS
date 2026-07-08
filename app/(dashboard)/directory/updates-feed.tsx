@@ -145,7 +145,7 @@ export default async function UpdatesFeed({
                       {posterLink ? (
                         <Link
                           href={posterLink}
-                          className="text-sm font-semibold text-ink transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+                          className="text-sm font-semibold text-ink transition-colors duration-150 hover:text-teal-deep"
                         >
                           {name}
                         </Link>
