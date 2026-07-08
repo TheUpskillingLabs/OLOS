@@ -169,14 +169,30 @@ export default async function AdminLabDetailPage({
             </Link>
           </p>
         </div>
-        <CreateCycleForm labId={lab.id} />
+        <CreateCycleForm fixedMode="org" labId={lab.id} />
       </div>
 
-      {cycleSection(
-        "Participant cycles",
-        participantCycles,
-        "No participant cycles for this lab yet — create one to start its first cohort."
-      )}
+      {/* Sub-cohort model (docs/LOCAL_LABS.md, 00067): the participant track
+          is the single HQ quarterly cycle — this lab participates in it
+          automatically, so there is no per-lab participant cycle to create.
+          Historical per-lab participant cycles (if any) still list. */}
+      <section className="mb-8 rounded-card border border-teal/30 bg-teal/10 p-4">
+        <p className="text-sm text-ink">
+          <span className="font-semibold">Participant cohort:</span> this lab
+          participates in the HQ quarterly cycle automatically — members join
+          it and form {lab.name}-tagged pods. Manage the cycle from{" "}
+          <Link href="/admin" className="font-semibold text-teal-deep hover:underline">
+            Cycles
+          </Link>
+          .
+        </p>
+      </section>
+      {participantCycles.length > 0 &&
+        cycleSection(
+          "Historical participant cycles",
+          participantCycles,
+          "None."
+        )}
       {cycleSection(
         "Internal cycles",
         internalCycles,

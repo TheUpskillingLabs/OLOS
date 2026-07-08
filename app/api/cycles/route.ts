@@ -39,9 +39,23 @@ export const POST = withAdminAuth(
     const { name, slug, start_date, end_date, mode: bodyMode, sector_id: bodySectorId, lab_id } = body;
     const mode = bodyMode ?? "open";
 
-    // Local Labs (docs/LOCAL_LABS.md): a lab_id pins the cycle to that lab's
-    // stream. The metro must exist; waitlist metros are allowed — HQ may
-    // deliberately pre-stage a launching lab's first cycle.
+    // Sub-cohort model (docs/LOCAL_LABS.md, 00067): the participant track is
+    // one HQ cycle — labs participate as sub-cohorts inside it, so a
+    // lab-pinned open cycle is a contradiction. Only mode='org' (a lab's
+    // internal team cycle) takes a lab_id.
+    if (lab_id && mode === "open") {
+      return NextResponse.json(
+        {
+          error:
+            "Participant cycles are HQ-run — labs participate as sub-cohorts automatically. Omit lab_id (labs may still run their own internal org cycles).",
+        },
+        { status: 400 }
+      );
+    }
+
+    // A lab_id pins an org cycle to that lab. The metro must exist;
+    // waitlist metros are allowed — HQ may deliberately pre-stage a
+    // launching lab's first internal cycle.
     if (lab_id) {
       const { data: metro } = await auth.supabase
         .from("metros")

@@ -53,9 +53,11 @@ export const POST = withAuth(
       );
     }
 
-    // Local Labs (docs/LOCAL_LABS.md): the server-side twin of the join
-    // page's cross-lab redirect — another lab's cohort can't be signed
-    // into directly. HQ cycles (lab_id NULL) are never blocked, so a
+    // Sub-cohort model (docs/LOCAL_LABS.md, 00067): the signable participant
+    // cycle is the single HQ one (live open cycles are lab_id NULL by the
+    // cycles_open_is_hq_when_live CHECK) — this server-side twin of the join
+    // page's guard remains as defense-in-depth against direct POSTs at
+    // residual/historical per-lab cycles. HQ cycles are never blocked, so a
     // mis-zipped member always has a path.
     if (cycle.lab_id !== null) {
       const { data: me } = await supabase

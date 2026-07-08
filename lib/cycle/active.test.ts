@@ -110,31 +110,27 @@ describe("getRecruitingCycle", () => {
   });
 });
 
-describe("member helpers (lab first, HQ fallback)", () => {
+describe("member helpers (sub-cohort model: open always resolves to HQ)", () => {
   const hq = cycle({ id: 1, lab_id: null });
   const balt = cycle({ id: 2, lab_id: 7 });
 
-  it("prefers the member's lab cycle when it exists", async () => {
+  it("resolves the HQ cycle regardless of the member's metro", async () => {
     const result = await getMemberOperatingCycle(mockClient([hq, balt]), 7);
-    expect(result?.id).toBe(2);
-  });
-
-  it("falls back to HQ when the member's lab runs no cycle", async () => {
-    const result = await getMemberOperatingCycle(mockClient([hq]), 7);
     expect(result?.id).toBe(1);
   });
 
-  it("goes straight to HQ for members without a metro", async () => {
+  it("resolves HQ for members without a metro", async () => {
     const result = await getMemberOperatingCycle(mockClient([hq, balt]), null);
     expect(result?.id).toBe(1);
   });
 
-  it("recruiting variant prefers the lab's upcoming cohort", async () => {
+  it("recruiting variant never routes to a residual lab cohort", async () => {
     const labUpcoming = cycle({ id: 5, status: "upcoming", lab_id: 7 });
+    const hqActive = cycle({ id: 1, status: "active", lab_id: null });
     const result = await getMemberRecruitingCycle(
-      mockClient([hq, labUpcoming]),
+      mockClient([hqActive, labUpcoming]),
       7
     );
-    expect(result?.id).toBe(5);
+    expect(result?.id).toBe(1);
   });
 });

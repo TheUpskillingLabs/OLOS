@@ -37,28 +37,23 @@ export default async function CyclesPage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  // Local Labs (docs/LOCAL_LABS.md): a member sees their own lab's cycles
-  // plus the HQ/global ones — never another lab's cohort (its join CTA
-  // would enroll them in the wrong city). Everything below (partitions,
-  // CTAs, phase indicator) operates on this filtered view.
+  // Local Labs are sub-cohorts of the single HQ participant cycle
+  // (docs/LOCAL_LABS.md, 00067): every member sees the HQ open cycle —
+  // their metro selects their pod inside it, not their cycle. Org cycles
+  // stay lab-scoped: a member sees HQ's org cycle plus their own lab's,
+  // never another lab's internal cycle.
   const memberLabId: number | null = me?.metro_id ?? null;
   const cycles = (allCycles ?? []).filter(
-    (c) => c.lab_id === null || c.lab_id === memberLabId
+    (c) =>
+      c.lab_id === null || (c.mode === "org" && c.lab_id === memberLabId)
   );
 
-  // Fetch config for the active cycle to power the phase indicator —
-  // lab-first (the member's lab's cohort wins over HQ's when both run).
+  // Fetch config for the active cycle to power the phase indicator — the
+  // single HQ open cycle.
   const activeCycle =
-    (memberLabId !== null
-      ? cycles.find(
-          (c) =>
-            c.status === "active" && c.mode === "open" && c.lab_id === memberLabId
-        )
-      : null) ??
     cycles.find(
       (c) => c.status === "active" && c.mode === "open" && c.lab_id === null
-    ) ??
-    null;
+    ) ?? null;
   let activeCycleConfig = null;
   if (activeCycle) {
     const serviceClient = createServiceClient();

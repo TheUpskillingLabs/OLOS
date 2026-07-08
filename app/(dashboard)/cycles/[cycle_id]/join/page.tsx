@@ -53,11 +53,11 @@ export default async function JoinCyclePage({
   // ceremony. Redirect before any interest/agreement UI renders.
   if (cycle.mode === "org") redirect("/cycles");
 
-  // Local Labs (docs/LOCAL_LABS.md): another lab's cohort isn't joinable
-  // from here — a soft redirect back to /cycles, whose lab-filtered view
-  // carries the member's own join CTA. Deliberately soft (a redirect, not
-  // an error) and only cross-LAB: a member with no metro or an HQ cycle
-  // (lab_id NULL) is never blocked, so mis-zipped members can't strand.
+  // Sub-cohort model (docs/LOCAL_LABS.md, 00067): the joinable participant
+  // cycle is the single HQ one (live open cycles are lab_id NULL by the
+  // cycles_open_is_hq_when_live CHECK), so this guard never fires for it —
+  // it remains as defense-in-depth against deep links into residual or
+  // historical per-lab cycles. Members with no metro are never blocked.
   if (cycle.lab_id !== null && cycle.lab_id !== participant.metro_id) {
     redirect("/cycles");
   }

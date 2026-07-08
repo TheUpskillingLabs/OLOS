@@ -12,16 +12,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
      - getOrgCycle → the one running HQ/Core-Contributor cycle
        (status='active', mode='org'). Org cycles run in parallel with the
        participant cycle rather than instead of it — see docs/ORG_CYCLES.md.
-   Reads here are mode- AND lab-scoped: with Local Labs (docs/LOCAL_LABS.md)
-   each lab runs its own cycle stream, so `status='active' AND mode='open'`
-   alone no longer identifies a single row. Every getter takes a `labId`
-   (`null` = the HQ/global stream — the default, which reproduces the
-   pre-labs behavior exactly), and the per-(mode, lab) partial unique
-   indexes (migration 00062) keep `.maybeSingle()` safe within a stream.
-
-   Member-facing code should not pick a stream by hand: use
-   getMemberOperatingCycle / getMemberRecruitingCycle, which prefer the
-   member's lab (participants.metro_id) and fall back to HQ/global. */
+   Local Labs are SUB-COHORTS of the single HQ participant cycle
+   (docs/LOCAL_LABS.md, migration 00067): mode='open' is one HQ stream
+   (lab_id NULL — ≤1 active + ≤1 upcoming globally), and a member's metro
+   selects their POD (pods.lab_id), never their cycle. Only mode='org'
+   remains per-lab — labs run their own internal team cycles — so
+   getOrgCycle keeps its labId parameter, and the labId on the open-track
+   getters is retained for org callers/symmetry but member routing always
+   resolves open to HQ. */
 
 const CYCLE_COLUMNS =
   "id, name, slug, start_date, end_date, status, mode, sector_id, lab_id";
@@ -98,19 +96,18 @@ export async function getOrgCycle(
   return (data as CycleRow | null) ?? null;
 }
 
-/* Member-facing resolution: a member belongs to their lab's stream when the
-   lab runs one, and to the HQ/global stream otherwise. The fallback is what
-   makes Local Labs shippable incrementally — until a lab activates its own
-   cycle, every member resolves to today's global cohort. */
+/* Member-facing resolution: every member — whatever their lab — belongs to
+   the single HQ participant cycle (sub-cohort model, 00067). Labs are
+   "automatically enrolled": there is nothing per-lab to activate, and the
+   member's metro selects their pod inside the cycle, not the cycle itself.
+   The metroId parameter is kept so call sites stay explicit about having
+   thought of labs, but it no longer changes the open-track answer. */
 
 export async function getMemberOperatingCycle(
   supabase: SupabaseClient,
   metroId: number | null
 ): Promise<CycleRow | null> {
-  if (metroId !== null) {
-    const labCycle = await getOperatingCycle(supabase, metroId);
-    if (labCycle) return labCycle;
-  }
+  void metroId; // retained so call sites stay explicit about labs (see above)
   return getOperatingCycle(supabase, null);
 }
 
@@ -118,9 +115,6 @@ export async function getMemberRecruitingCycle(
   supabase: SupabaseClient,
   metroId: number | null
 ): Promise<CycleRow | null> {
-  if (metroId !== null) {
-    const labCycle = await getRecruitingCycle(supabase, metroId);
-    if (labCycle) return labCycle;
-  }
+  void metroId; // retained so call sites stay explicit about labs (see above)
   return getRecruitingCycle(supabase, null);
 }

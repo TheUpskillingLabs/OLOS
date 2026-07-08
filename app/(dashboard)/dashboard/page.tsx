@@ -48,14 +48,14 @@ export default async function DashboardPage() {
 
   if (!participant) redirect("/register");
 
-  // Local Labs (docs/LOCAL_LABS.md): each lab runs its own cycle stream, so
-  // "the" active/upcoming cycle is resolved lab-first — the cycle whose
-  // lab_id matches the member's metro, falling back to the HQ/global
-  // (lab_id NULL) stream. Identical to the pre-labs pick until the member's
-  // lab activates its own cycle.
+  // Local Labs are sub-cohorts of the single HQ participant cycle
+  // (docs/LOCAL_LABS.md, 00067): the open track always resolves to the HQ
+  // (lab_id NULL) cycle — the member's metro selects their pod, not their
+  // cycle. Only the org track stays lab-first: lab staff resolve their
+  // lab's internal cycle, everyone else HQ's.
   const memberLabId: number | null = participant.metro_id ?? null;
   const pickCycle = (status: string, mode: string) =>
-    (memberLabId !== null
+    (mode === "org" && memberLabId !== null
       ? cycles?.find(
           (c) => c.status === status && c.mode === mode && c.lab_id === memberLabId
         )

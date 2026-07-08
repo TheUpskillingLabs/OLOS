@@ -51,13 +51,31 @@ export const PATCH = withAdminAuth(
       );
     }
 
-    // At most one 'active' and one 'upcoming' cycle per (mode, lab) — the
-    // app-level twin of migration 00062's partial unique indexes. Each lab
-    // runs its own cycle stream alongside HQ's (lab_id NULL), so the
-    // conflict scan stays inside this cycle's stream. Reject a second one
-    // with a clear message instead of a raw unique-violation. 'closed' mode
-    // cycles are legacy pre-sector cohorts with no invariant yet — B2B
-    // concurrency is deferred, so the guard is skipped entirely for them.
+    // Sub-cohort model (00067): a live participant cycle is always HQ's —
+    // labs join it as sub-cohorts, they don't run their own. The DB CHECK
+    // (cycles_open_is_hq_when_live) is the backstop; this gives the clear
+    // message. Residual per-lab open drafts can't be activated.
+    if (
+      (status === "active" || status === "upcoming") &&
+      cycle.mode === "open" &&
+      cycle.lab_id !== null
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Participant cycles are HQ-run — labs participate as sub-cohorts automatically and don't activate their own.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // At most one 'active' and one 'upcoming' cycle per stream — the
+    // app-level twin of migration 00067's partial unique indexes. The
+    // participant (open) track is ONE global HQ stream; org cycles remain
+    // per-lab (each lab's internal team cycle alongside HQ's). Reject a
+    // second one with a clear message instead of a raw unique-violation.
+    // 'closed' mode cycles are legacy pre-sector cohorts with no invariant
+    // yet — B2B concurrency is deferred, so the guard skips them.
     if ((status === "active" || status === "upcoming") && cycle.mode !== "closed") {
       let conflictQuery = auth.supabase
         .from("cycles")
@@ -65,17 +83,20 @@ export const PATCH = withAdminAuth(
         .eq("status", status)
         .eq("mode", cycle.mode)
         .neq("id", cycleId);
-      conflictQuery =
-        cycle.lab_id === null
-          ? conflictQuery.is("lab_id", null)
-          : conflictQuery.eq("lab_id", cycle.lab_id);
+      if (cycle.mode === "org") {
+        conflictQuery =
+          cycle.lab_id === null
+            ? conflictQuery.is("lab_id", null)
+            : conflictQuery.eq("lab_id", cycle.lab_id);
+      }
       const { count } = await conflictQuery;
       if ((count ?? 0) > 0) {
         const modeLabel = cycle.mode === "org" ? "organization" : "open";
-        const streamLabel = cycle.lab_id === null ? "" : " in this lab";
+        const streamLabel =
+          cycle.mode === "org" && cycle.lab_id !== null ? " in this lab" : "";
         return NextResponse.json(
           {
-            error: `Another ${modeLabel} cycle is already ${status}${streamLabel}. Only one ${status} cycle is allowed per mode${cycle.lab_id === null ? "" : " per lab"} at a time.`,
+            error: `Another ${modeLabel} cycle is already ${status}${streamLabel}. Only one ${status} ${modeLabel} cycle is allowed at a time.`,
           },
           { status: 409 }
         );
