@@ -121,6 +121,11 @@ export default function LearningLogCard({
   const [accomplished, setAccomplished] = useState(pf?.accomplished ?? "");
   const [exploring, setExploring] = useState(pf?.exploring ?? "");
   const [nextFocus, setNextFocus] = useState(pf?.next_focus ?? "");
+  // Work-log fields (00069) — org cycles only (the member tier of the
+  // Leadership Log cascade).
+  const [workSummary, setWorkSummary] = useState("");
+  const [workProgress, setWorkProgress] = useState("");
+  const [workBlockers, setWorkBlockers] = useState("");
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -240,6 +245,9 @@ export default function LearningLogCard({
           accomplished: accomplished || null,
           exploring: exploring || null,
           next_focus: nextFocus || null,
+          work_summary: workSummary || null,
+          work_progress: workProgress || null,
+          work_blockers: workBlockers || null,
           share_publicly: share,
           cycle_id: selectedCycleId,
         }),
@@ -426,6 +434,38 @@ export default function LearningLogCard({
           </div>
         ))}
       </div>
+
+      {/* Work log (org cycles only, 00069) — the member tier of the
+          Leadership Log cascade: your work on the workstream this week. */}
+      {!journal && selectedCycle?.mode === "org" && (
+        <div className="mt-6 space-y-4 rounded-card border border-teal/20 bg-teal/[0.04] p-4">
+          <p className="lbl">Your work this week</p>
+          {(
+            [
+              ["What did you work on for the workstream?", workSummary, setWorkSummary],
+              ["Progress toward the workstream’s goal", workProgress, setWorkProgress],
+              ["Blockers on the work", workBlockers, setWorkBlockers],
+            ] as const
+          ).map(([label, value, setter], i) => (
+            <div key={label}>
+              <label
+                htmlFor={`ll-work-${i}`}
+                className="text-sm font-semibold text-ink"
+              >
+                {label}
+              </label>
+              <textarea
+                id={`ll-work-${i}`}
+                value={value}
+                onChange={(e) => setter(e.target.value)}
+                rows={2}
+                maxLength={2000}
+                className="mt-1 w-full rounded-card border border-ink/15 p-3 text-base"
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Part 3 — share preview */}
       {preview && (

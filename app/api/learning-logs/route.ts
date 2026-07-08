@@ -125,6 +125,10 @@ export const POST = withAuth(
       }
     }
 
+    // Work-log fields (00069) belong to the org member tier only — persist
+    // them just for org cycles so an open-cycle log never carries them.
+    const isOrg = chosenCycle?.mode === "org";
+
     const { data: log, error } = await auth.supabase
       .from("learning_logs")
       .insert({
@@ -140,6 +144,9 @@ export const POST = withAuth(
         accomplished: body.accomplished?.trim() || null,
         exploring: body.exploring?.trim() || null,
         next_focus: body.next_focus?.trim() || null,
+        work_summary: isOrg ? (body.work_summary?.trim() || null) : null,
+        work_progress: isOrg ? (body.work_progress?.trim() || null) : null,
+        work_blockers: isOrg ? (body.work_blockers?.trim() || null) : null,
         share_publicly: body.share_publicly,
       })
       .select("id, created_at")

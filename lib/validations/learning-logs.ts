@@ -44,6 +44,24 @@ export const learningLogSchema = z
       .max(2000, "next_focus must be 2000 characters or fewer")
       .optional()
       .nullable(),
+    // Work-log fields (00069) — only meaningful for org-cycle logs (the member
+    // tier of the Leadership Log cascade); the card shows them for mode='org'
+    // only, and the route persists them only for org cycles.
+    work_summary: z
+      .string()
+      .max(2000, "work_summary must be 2000 characters or fewer")
+      .optional()
+      .nullable(),
+    work_progress: z
+      .string()
+      .max(2000, "work_progress must be 2000 characters or fewer")
+      .optional()
+      .nullable(),
+    work_blockers: z
+      .string()
+      .max(2000, "work_blockers must be 2000 characters or fewer")
+      .optional()
+      .nullable(),
     share_publicly: z.boolean().default(false),
     cycle_id: z.number().int().positive().optional().nullable(),
   })
