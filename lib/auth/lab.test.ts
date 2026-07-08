@@ -10,7 +10,7 @@ import type { UserRoles } from "./roles";
 
 const state: {
   cycleLab: { lab_id: number | null } | null;
-  podRow: { cycle_id: number; cycles: { lab_id: number | null } } | null;
+  podRow: { lab_id: number | null } | null;
 } = { cycleLab: null, podRow: null };
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -78,13 +78,13 @@ describe("requireLabAccess", () => {
 });
 
 describe("labForPod", () => {
-  it("walks pod → cycle → lab_id", async () => {
-    state.podRow = { cycle_id: 3, cycles: { lab_id: 7 } };
+  it("reads the pod's own lab tag (pods.lab_id, 00067)", async () => {
+    state.podRow = { lab_id: 7 };
     expect(await labForPod(1)).toBe(7);
   });
 
   it("returns null for HQ pods and missing pods", async () => {
-    state.podRow = { cycle_id: 3, cycles: { lab_id: null } };
+    state.podRow = { lab_id: null };
     expect(await labForPod(1)).toBeNull();
     state.podRow = null;
     expect(await labForPod(999)).toBeNull();

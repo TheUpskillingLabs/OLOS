@@ -42,18 +42,17 @@ export async function labForCycle(cycleId: number): Promise<number | null> {
   return data?.lab_id ?? null;
 }
 
-/** The lab a pod belongs to, via its cycle (null = HQ/global or not found). */
+/** The lab a pod belongs to (null = HQ/global or not found). Reads the
+ *  pod's own lab tag (pods.lab_id, 00067) — under the single HQ open cycle
+ *  a pod's lab can no longer be derived from its cycle. */
 export async function labForPod(podId: number): Promise<number | null> {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from("pods")
-    .select("cycle_id, cycles(lab_id)")
+    .select("lab_id")
     .eq("id", podId)
     .maybeSingle();
-  if (!data) return null;
-  const cycle = data.cycles as { lab_id: number | null } | { lab_id: number | null }[] | null;
-  const row = Array.isArray(cycle) ? cycle[0] : cycle;
-  return row?.lab_id ?? null;
+  return data?.lab_id ?? null;
 }
 
 /** The lab a workstream belongs to (null = HQ/sector-homed or not found). */

@@ -38,8 +38,10 @@ marketing page and its organizational identity are the same row.
   (`workstreams_one_home_check`): HQ's keep `sector_id` (the seeded HQ
   sector, 00060); a lab's carry `lab_id`. Per-lab sector rows would smuggle
   places into the theme axis — deliberately forbidden.
-- Pods and projects need **no lab column**: they inherit their lab via
-  `cycle_id`. A project's lab is where it was born; its destiny is global
+- Pods carry their own **`pods.lab_id`** sub-cohort tag (00067) — under the
+  single shared HQ participant cycle a pod's lab can no longer be derived
+  via `cycle_id`. It is a host tag, not a membership fence. Projects derive
+  their lab from their pod; a project's destiny is still global
   (graduation flips `projects.governance` to `'sector'`).
 
 ## Cycle streams and invariants

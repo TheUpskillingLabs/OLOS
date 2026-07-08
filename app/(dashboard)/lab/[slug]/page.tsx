@@ -53,12 +53,15 @@ export default async function LabWorkspacePage({
   const { lab, userRoles, serviceClient } = await requireLabLead(slug);
   const admin = isAdmin(userRoles);
 
+  // The lab's cycle world (docs/LOCAL_LABS.md, sub-cohort model): the shared
+  // HQ participant cycle (mode='open', lab_id NULL — every lab participates
+  // in it automatically) plus this lab's own internal org cycles.
   const [{ data: cycleRows }, { data: workstreamRows }, { data: memberRows }] =
     await Promise.all([
       serviceClient
         .from("cycles")
         .select("id, name, start_date, end_date, status, mode")
-        .eq("lab_id", lab.id)
+        .or(`lab_id.eq.${lab.id},and(lab_id.is.null,mode.eq.open)`)
         .order("start_date", { ascending: false }),
       serviceClient
         .from("workstreams")
@@ -77,10 +80,13 @@ export default async function LabWorkspacePage({
   const currentCycleIds = currentCycles.map((c) => c.id);
 
   // ── Pods per current cycle (the PodsTable assembly, lab-scoped) ────────
+  // This lab's pods carry pods.lab_id (00067) — under the shared HQ open
+  // cycle, cycle_id alone no longer identifies the lab's slice.
   const { data: podRows } = currentCycleIds.length
     ? await serviceClient
         .from("pods")
         .select("id, name, status, cycle_id, workstream_id")
+        .eq("lab_id", lab.id)
         .in("cycle_id", currentCycleIds)
         .order("created_at")
     : { data: [] as { id: number; name: string | null; status: string; cycle_id: number; workstream_id: number | null }[] };
@@ -171,15 +177,30 @@ export default async function LabWorkspacePage({
     }
   );
 
-  // ── Invitations targeting this lab's cycles ────────────────────────────
-  const { data: inviteRows } = currentCycleIds.length
+  // ── Invitations targeting this lab ─────────────────────────────────────
+  // Lab-relevant = into one of the lab's own (org) cycles, or into one of
+  // the lab's pods. The shared HQ open cycle is in currentCycleIds, so a
+  // bare cycle filter would surface every lab's HQ-cycle invitations —
+  // post-filter by pod instead.
+  const labOwnCycleIds = new Set(
+    currentCycles.filter((c) => c.mode === "org").map((c) => c.id)
+  );
+  const labPodIds = new Set(podIds);
+  const { data: rawInviteRows } = currentCycleIds.length
     ? await serviceClient
         .from("invitations")
-        .select("id, email, status, pod_role, created_at, cycle_id, cycles (name)")
+        .select("id, email, status, pod_role, created_at, cycle_id, pod_id, cycles (name)")
         .in("cycle_id", currentCycleIds)
         .order("created_at", { ascending: false })
-        .limit(25)
-    : { data: [] as { id: number; email: string; status: string; pod_role: string | null; created_at: string; cycle_id: number; cycles: unknown }[] };
+        .limit(100)
+    : { data: [] as { id: number; email: string; status: string; pod_role: string | null; created_at: string; cycle_id: number; pod_id: number | null; cycles: unknown }[] };
+  const inviteRows = (rawInviteRows ?? [])
+    .filter(
+      (inv) =>
+        labOwnCycleIds.has(inv.cycle_id) ||
+        (inv.pod_id != null && labPodIds.has(inv.pod_id))
+    )
+    .slice(0, 25);
 
   const memberRoster = (memberRows ?? []).map((p) => ({
     participant_id: p.id,
@@ -222,7 +243,8 @@ export default async function LabWorkspacePage({
               key: "track",
               header: "Track",
               className: "text-meta",
-              cell: (row) => (row.mode === "org" ? "Internal (team)" : "Participant"),
+              cell: (row) =>
+                row.mode === "org" ? "Internal (team)" : "Participant (HQ shared)",
             },
             {
               key: "status",
