@@ -60,6 +60,7 @@ erDiagram
         timestamp end_date
         varchar status
         int sector_id FK "→ sectors(id) (00049)"
+        int lab_id FK "→ metros(id), NULL = HQ/global (00062)"
         varchar mode "open/closed/org (00049; org added 00060)"
     }
 
@@ -526,6 +527,10 @@ erDiagram
     }
 
     metros ||--o{ metro_waitlist_signups : "collects"
+    metros ||--o{ cycles : "lab stream (00062; NULL = HQ)"
+    metros ||--o{ workstreams : "lab workstreams (00062)"
+    metros ||--o{ lab_leads : "leadership (00062)"
+    participants ||--o{ lab_leads : "leads"
     participants ||--o{ metro_waitlist_signups : "joins"
     events ||--o{ event_rsvps : "collects"
 ```
@@ -655,13 +660,23 @@ erDiagram
 
     workstreams {
         int id PK
-        int sector_id FK
+        int sector_id FK "nullable since 00062 — sector XOR lab"
+        int lab_id FK "→ metros(id) (00062)"
         varchar name
         varchar slug UK
         text description
         varchar status
         timestamptz created_at
         timestamptz updated_at
+    }
+
+    lab_leads {
+        int id PK
+        int participant_id FK
+        int lab_id FK "→ metros(id) (00062)"
+        int assigned_by FK
+        timestamptz assigned_at
+        timestamptz removed_at "partial-unique active row"
     }
 
     pods {
