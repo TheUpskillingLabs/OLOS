@@ -27,7 +27,7 @@ export const PATCH = withAdminAuth(
     // Get current status
     const { data: cycle } = await auth.supabase
       .from("cycles")
-      .select("status, mode")
+      .select("status, mode, lab_id")
       .eq("id", cycleId)
       .single();
 
@@ -49,24 +49,31 @@ export const PATCH = withAdminAuth(
       );
     }
 
-    // At most one 'active' and one 'upcoming' cycle per mode (migrations
-    // 00048/00049/00060 — org cycles run alongside a participant cycle, not
-    // instead of it). Reject a second one within the same mode with a clear
-    // message instead of a raw unique-violation. 'closed' mode cycles are
-    // legacy pre-sector cohorts with no per-mode invariant yet — B2B
+    // At most one 'active' and one 'upcoming' cycle per (mode, lab) — the
+    // app-level twin of migration 00062's partial unique indexes. Each lab
+    // runs its own cycle stream alongside HQ's (lab_id NULL), so the
+    // conflict scan stays inside this cycle's stream. Reject a second one
+    // with a clear message instead of a raw unique-violation. 'closed' mode
+    // cycles are legacy pre-sector cohorts with no invariant yet — B2B
     // concurrency is deferred, so the guard is skipped entirely for them.
     if ((status === "active" || status === "upcoming") && cycle.mode !== "closed") {
-      const { count } = await auth.supabase
+      let conflictQuery = auth.supabase
         .from("cycles")
         .select("id", { count: "exact", head: true })
         .eq("status", status)
         .eq("mode", cycle.mode)
         .neq("id", cycleId);
+      conflictQuery =
+        cycle.lab_id === null
+          ? conflictQuery.is("lab_id", null)
+          : conflictQuery.eq("lab_id", cycle.lab_id);
+      const { count } = await conflictQuery;
       if ((count ?? 0) > 0) {
         const modeLabel = cycle.mode === "org" ? "organization" : "open";
+        const streamLabel = cycle.lab_id === null ? "" : " in this lab";
         return NextResponse.json(
           {
-            error: `Another ${modeLabel} cycle is already ${status}. Only one ${status} cycle is allowed per mode at a time.`,
+            error: `Another ${modeLabel} cycle is already ${status}${streamLabel}. Only one ${status} cycle is allowed per mode${cycle.lab_id === null ? "" : " per lab"} at a time.`,
           },
           { status: 409 }
         );

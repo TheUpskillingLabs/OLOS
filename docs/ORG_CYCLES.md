@@ -1,5 +1,13 @@
 # Org cycles — the org runs its own cycle structure, on itself
 
+> **Local Labs note (migration `00062`, `docs/LOCAL_LABS.md`):** the pattern
+> described here is HQ's instance of a now-general shape. Each local lab
+> (metro) can run its own `mode='org'` cycle for its leadership/workstream
+> teams alongside its participant cycle; the per-mode invariants below are
+> rescoped per (mode, lab), with HQ as the `lab_id IS NULL` stream. HQ
+> workstreams keep `sector_id` (the seeded HQ sector); lab workstreams carry
+> `lab_id` instead.
+
 **Status:** 2026-07, owner-ratified. **First slice shipping:** migration
 `00060` (`cycles.mode='org'`, the per-mode active/upcoming invariants,
 `workstreams`, the `project_roles`/`project_subscriptions` IC ladder,

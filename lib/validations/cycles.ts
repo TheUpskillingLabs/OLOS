@@ -9,6 +9,9 @@ export const createCycleSchema = z.object({
   // defers that track. Defaults to 'open' at the route.
   mode: z.enum(["open", "org"]).optional(),
   sector_id: z.number().int().positive().optional(),
+  // Local Labs (docs/LOCAL_LABS.md): the metro this cycle belongs to.
+  // Absent = HQ/global stream.
+  lab_id: z.number().int().positive().optional(),
 });
 
 export const updateCycleConfigSchema = z.object({

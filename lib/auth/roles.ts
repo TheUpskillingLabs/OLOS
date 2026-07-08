@@ -10,6 +10,8 @@ export interface UserRoles {
   roles: Role[];
   permissions: Permission[];
   moderatorPodIds: number[];
+  /** Labs (metros) this participant actively leads (lab_leads, 00062). */
+  labLeadLabIds: number[];
   cycleEnrollments: {
     cycleId: number;
     status: ParticipantStatus;
@@ -31,21 +33,24 @@ export async function resolveUserRoles(
   const roles: Role[] = [];
   const permissions: Permission[] = [];
   const moderatorPodIds: number[] = [];
+  const labLeadLabIds: number[] = [];
   const cycleEnrollments: UserRoles["cycleEnrollments"] = [];
 
   if (!participantId) {
-    return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments };
+    return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, labLeadLabIds, cycleEnrollments };
   }
 
   const [
     { data: userRoles },
     { data: permRows },
     { data: modAssignments },
+    { data: labLeads },
     { data: enrollments },
   ] = await Promise.all([
     supabase.from("user_roles").select("role").eq("participant_id", participantId).is("revoked_at", null),
     supabase.from("participant_permissions").select("permission").eq("participant_id", participantId).is("revoked_at", null),
     supabase.from("moderator_assignments").select("pod_id").eq("participant_id", participantId).is("removed_at", null),
+    supabase.from("lab_leads").select("lab_id").eq("participant_id", participantId).is("removed_at", null),
     supabase.from("cycle_enrollments").select("cycle_id, status").eq("participant_id", participantId),
   ]);
 
@@ -68,6 +73,12 @@ export async function resolveUserRoles(
     }
   }
 
+  if (labLeads) {
+    for (const l of labLeads) {
+      labLeadLabIds.push(l.lab_id);
+    }
+  }
+
   if (enrollments) {
     for (const e of enrollments) {
       cycleEnrollments.push({ cycleId: e.cycle_id, status: e.status });
@@ -77,7 +88,7 @@ export async function resolveUserRoles(
     }
   }
 
-  return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments };
+  return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, labLeadLabIds, cycleEnrollments };
 }
 
 /** Check if user has a specific permission */
@@ -102,6 +113,16 @@ export function isModerator(roles: UserRoles): boolean {
 
 export function isModeratorForPod(roles: UserRoles, podId: number): boolean {
   return roles.moderatorPodIds.includes(podId);
+}
+
+/** True if user actively leads the given local lab (metro). */
+export function isLabLead(roles: UserRoles, labId: number): boolean {
+  return roles.labLeadLabIds.includes(labId);
+}
+
+/** True if user actively leads any local lab. */
+export function isAnyLabLead(roles: UserRoles): boolean {
+  return roles.labLeadLabIds.length > 0;
 }
 
 export function isActiveParticipant(roles: UserRoles, cycleId: number): boolean {

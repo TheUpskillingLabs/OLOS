@@ -36,14 +36,34 @@ export const POST = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
     const body = await parseBody(request, createCycleSchema);
     if (isErrorResponse(body)) return body;
-    const { name, slug, start_date, end_date, mode: bodyMode, sector_id: bodySectorId } = body;
+    const { name, slug, start_date, end_date, mode: bodyMode, sector_id: bodySectorId, lab_id } = body;
     const mode = bodyMode ?? "open";
 
+    // Local Labs (docs/LOCAL_LABS.md): a lab_id pins the cycle to that lab's
+    // stream. The metro must exist; waitlist metros are allowed — HQ may
+    // deliberately pre-stage a launching lab's first cycle.
+    if (lab_id) {
+      const { data: metro } = await auth.supabase
+        .from("metros")
+        .select("id")
+        .eq("id", lab_id)
+        .maybeSingle();
+      if (!metro) {
+        return NextResponse.json(
+          { error: `No local lab (metro) with id ${lab_id}.` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Org cycles need a sector_id; resolve the seeded HQ sector when the
-    // caller doesn't supply one (docs/ORG_CYCLES.md §2). 'open' cycles pass
-    // sector_id through unmodified if the caller happens to provide one.
+    // caller doesn't supply one (docs/ORG_CYCLES.md §2) — but only for HQ's
+    // own org cycle. A lab's internal (org-mode) cycle belongs to the lab,
+    // not to a thematic sector: its workstreams carry lab_id instead
+    // (docs/LOCAL_LABS.md). 'open' cycles pass sector_id through unmodified
+    // if the caller happens to provide one.
     let sector_id = bodySectorId;
-    if (mode === "org" && !sector_id) {
+    if (mode === "org" && !sector_id && !lab_id) {
       const serviceClient = createServiceClient();
       const hqSectorId = await resolveHqSectorId(serviceClient);
       if (!hqSectorId) {
@@ -61,6 +81,7 @@ export const POST = withAdminAuth(
     // Create cycle
     const cycleInsert: Record<string, unknown> = { name, slug, start_date, end_date, mode };
     if (sector_id) cycleInsert.sector_id = sector_id;
+    if (lab_id) cycleInsert.lab_id = lab_id;
 
     const { data: cycle, error: cycleError } = await auth.supabase
       .from("cycles")

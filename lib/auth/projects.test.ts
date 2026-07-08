@@ -10,6 +10,7 @@ function baseUser(overrides: Partial<UserRoles> = {}): UserRoles {
     roles: [],
     permissions: [],
     moderatorPodIds: [],
+    labLeadLabIds: [],
     cycleEnrollments: [],
     ...overrides,
   };
