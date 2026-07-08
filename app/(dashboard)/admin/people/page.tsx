@@ -142,10 +142,15 @@ export default async function AdminPeoplePage({
       <PeopleWorkspace
         initialTab={initialTab}
         participantsPanel={
-          <PeopleTable people={people} canManageRoles={canManageRoles} />
+          <PeopleTable
+            key="participants"
+            people={people}
+            canManageRoles={canManageRoles}
+          />
         }
         invitationsPanel={
           <InvitationsTable
+            key="invitations"
             invitations={invitationRows}
             cycles={(cycles ?? []).map((c) => ({ id: c.id, name: c.name, mode: c.mode }))}
             pods={podOptions}
