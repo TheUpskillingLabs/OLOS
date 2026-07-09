@@ -92,6 +92,7 @@ export default function LearningLogCard({
   journal = false,
   logCycles = [],
   pendingCycleIds = [],
+  embedded = false,
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
@@ -112,6 +113,10 @@ export default function LearningLogCard({
       saves against the open cycle by default and stays locked with a
       success message. */
   pendingCycleIds?: number[];
+  /** Embedded in the feed composer (dashboard): drop the card chrome and the
+      header — the composer's card + "Learning Log" tab supply them — and
+      render just the form. */
+  embedded?: boolean;
 }) {
   const pf = milestone?.prefill ?? null;
   const [clarity, setClarity] = useState(pf?.clarity ?? 3);
@@ -295,26 +300,36 @@ export default function LearningLogCard({
 
   return (
     <section
-      id="learning-log"
-      className={`mb-8 rounded-card border bg-white p-6 shadow-card ${
-        gateActive ? "border-red" : "border-ink/10"
-      }`}
+      id={embedded ? undefined : "learning-log"}
+      className={
+        embedded
+          ? ""
+          : `mb-8 rounded-card border bg-white p-6 shadow-card ${
+              gateActive ? "border-red" : "border-ink/10"
+            }`
+      }
     >
-      <div className="flex items-baseline justify-between">
-        <div>
-          <p className="lbl">
-            {journal ? "Journal" : activeMilestone ? "Milestone" : "Weekly ritual"}
-          </p>
-          <h2 className="t-h3 text-ink">
-            {activeMilestone ? activeMilestone.label : "Learning Log"}
-          </h2>
+      {!embedded && (
+        <div className="flex items-baseline justify-between">
+          <div>
+            <p className="lbl">
+              {journal
+                ? "Journal"
+                : activeMilestone
+                  ? "Milestone"
+                  : "Weekly ritual"}
+            </p>
+            <h2 className="t-h3 text-ink">
+              {activeMilestone ? activeMilestone.label : "Learning Log"}
+            </h2>
+          </div>
+          {count > 0 && (
+            <span className="text-sm text-meta">
+              {count} {count === 1 ? "log" : "logs"} so far
+            </span>
+          )}
         </div>
-        {count > 0 && (
-          <span className="text-sm text-meta">
-            {count} {count === 1 ? "log" : "logs"} so far
-          </span>
-        )}
-      </div>
+      )}
 
       {activeMilestone && (
         <p className="mt-2 text-sm text-charcoal">

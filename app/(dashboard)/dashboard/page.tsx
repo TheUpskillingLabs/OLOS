@@ -5,7 +5,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
-import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
+import { type MilestoneContext } from "./learning-log-card";
 import { getCycleWeek } from "@/lib/cycle/week";
 import {
   milestoneKindForWeek,
@@ -19,7 +19,7 @@ import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import ShareSurveyButton from "./share-survey-button";
 import UpdatesFeed from "../directory/updates-feed";
-import PostComposer from "./post-composer";
+import FeedComposer from "./feed-composer";
 import ProfileMiniCard from "./profile-mini-card";
 import MembershipsPanel from "./memberships-panel";
 import AnnouncementsPanel from "./announcements-panel";
@@ -353,37 +353,29 @@ export default async function DashboardPage() {
   // isn't an active cycle member; the weekly gate + pod health check only
   // apply inside an active cycle. Rendered in every dashboard state below.
   const inActiveCycle = state === "active";
-  const logSectionFor = (journal: boolean) => (
-    <section className="mb-8" id="learning-log">
-      <div className="mb-4">
-        <div className="lbl lbl-teal mb-1.5">
-          {journal ? "Your practice" : "Weekly practice"}
-        </div>
-        <h2 className="t-h3 text-ink">Your Learning Log</h2>
-      </div>
-      {!journal && logGate.active && (
-        <div
-          className="mb-4 rounded-card border border-red bg-red/5 px-5 py-4"
-          role="alert"
-          id="log-gate-banner"
-        >
-          <p className="font-semibold tracking-tight text-ink">
-            Your weekly Learning Log is due
-          </p>
-          <p className="mt-0.5 text-sm text-charcoal">
-            Save one below and everything unlocks the moment you do.
-          </p>
-        </div>
-      )}
-      <LearningLogCard
-        gateActive={!journal && logGate.active}
-        milestone={journal ? null : milestoneCtx}
-        journal={journal}
-        logCycles={logCycles}
-        pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
-      />
-    </section>
-  );
+  // The Learning Log now lives in the feed composer (below, top of feed). A
+  // gated member is bounced here by the layout gate and must save a log to
+  // escape — so when the gate is active, surface a jump-link near the top that
+  // scrolls to the composer and (via the composer's #learning-log handler)
+  // opens the Learning Log tab.
+  const logDueBanner = logGate.active ? (
+    <a
+      href="#learning-log"
+      id="log-gate-banner"
+      role="alert"
+      className="mb-8 flex items-center justify-between gap-4 rounded-card border border-red bg-red/5 px-5 py-4 transition-colors duration-150 hover:bg-red/10"
+    >
+      <span>
+        <span className="block font-semibold tracking-tight text-ink">
+          Your weekly Learning Log is due
+        </span>
+        <span className="mt-0.5 block text-sm text-charcoal">
+          Save one in your feed below and everything unlocks the moment you do.
+        </span>
+      </span>
+      <span className="btn btn-teal shrink-0 px-4 py-2 text-sm">Log now</span>
+    </a>
+  ) : null;
 
   // The Leadership Log section — rendered for org leads (workstream/lab) with
   // an armed weekly window, in every dashboard state (a lead's org duty is
@@ -714,12 +706,22 @@ export default async function DashboardPage() {
     </aside>
   );
 
-  // The feed: a "Share an update" composer atop the community stream. A post is
-  // a freeform log — public to the community, or private to just you (the
-  // viewer's own private posts fold into their feed via viewerParticipantId).
-  const feed = (
+  // The feed: one composer card atop the community stream. The card holds two
+  // options — Update (a freeform post, public to the community or private to
+  // just you) and Learning Log (the weekly ritual / journal) — with the log
+  // opening by default when the weekly gate is active. `journal` mirrors the
+  // matching per-state value the old Learning Log section used.
+  const feedFor = (journal: boolean) => (
     <section className="space-y-4">
-      <PostComposer avatarUrl={avatarUrl} initials={initials} />
+      <FeedComposer
+        avatarUrl={avatarUrl}
+        initials={initials}
+        gateActive={!journal && logGate.active}
+        milestone={journal ? null : milestoneCtx}
+        journal={journal}
+        logCycles={logCycles}
+        pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
+      />
       <UpdatesFeed viewerParticipantId={participant.id} />
     </section>
   );
@@ -751,11 +753,9 @@ export default async function DashboardPage() {
                   ? preRegisteredCard(upcomingCycle)
                   : joinCycleCard(upcomingCycle, true)
                 : joinCycleCard(activeCycle, false))}
-            <div className="mt-8">{logSectionFor(!orgActive)}</div>
+            {logDueBanner}
             {leadershipSection}
-            <div className="mt-8">
-              {feed}
-            </div>
+            <div className="mt-8">{feedFor(!orgActive)}</div>
           </div>
           {leftPanel}
           {rightPanel}
@@ -804,11 +804,9 @@ export default async function DashboardPage() {
                   description="Check back soon for the next Build Cycle."
                 />
               ))}
-            <div className="mt-8">{logSectionFor(!orgActive)}</div>
+            {logDueBanner}
             {leadershipSection}
-            <div className="mt-8">
-              {feed}
-            </div>
+            <div className="mt-8">{feedFor(!orgActive)}</div>
           </div>
           {leftPanel}
           {rightPanel}
@@ -914,14 +912,12 @@ export default async function DashboardPage() {
           {/* Setup leads for a new member; collapses to a strip once done. */}
           {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
 
-          {/* The Learning Log — a personal journaling practice on Home (Phase
-              1; replaces the pulse-check CTA). Active cycle members get the
-              weekly ritual + gate + pod health check; everyone else journals
-              (journal mode). The gate banner + lock apply only inside a
-              cycle — an org-only member (orgActive) is an active cycle
-              member too, so journal mode is wrong for them even in the
-              interest-submitted states below. */}
-          {logSectionFor(!inActiveCycle && !orgActive)}
+          {/* The Learning Log lives in the feed composer at the bottom of this
+              column. When the weekly gate is active the layout bounces the
+              member here and locks the app until they log, so surface a
+              jump-link banner up top that scrolls to the composer and opens the
+              Learning Log tab. */}
+          {logDueBanner}
           {leadershipSection}
 
           {/* Interest submitted, pod window not yet open */}
@@ -1002,11 +998,12 @@ export default async function DashboardPage() {
               states can render it too. */}
           {workstreamsSection}
 
-          {/* Below the actions: your commitments + the community updates feed. */}
+          {/* Below the actions: your commitments + the community updates feed
+              (with the Update / Learning Log composer at its top). */}
           <div className="mt-8 space-y-8">
             {/* Your commitments — the dated anchor events + .ics, always findable */}
             <CycleCommitments />
-            {feed}
+            {feedFor(!inActiveCycle && !orgActive)}
           </div>
         </div>
 
