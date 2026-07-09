@@ -814,12 +814,12 @@ export default async function DashboardPage() {
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
-      {/* Adaptive LinkedIn-style field below the timeline: center actions +
-          community feed (4/7), left identity + groups (2/7), right org news
-          (1/7). Three tiers via .dash-7 (globals.css): 1-col mobile → 2-col
-          tablet → 7-col desktop. DOM order center → left → right leads mobile
-          with the actions. */}
-      <div className="dash-7">
+      {/* Adaptive LinkedIn-style field below the timeline: left identity +
+          groups (4/12), center actions + community feed (5/12), right org news
+          (3/12). Three tiers via .dash-12 (globals.css): 1-col mobile → 2-col
+          tablet → 12-col (4-5-3) desktop. DOM order center → left → right leads
+          mobile with the actions. */}
+      <div className="dash-12">
         {/* CENTER — what to do now, then the community feed */}
         <div className="dash-center">
           {/* The field survey is the cohort's opening activity — the first CTA. */}
