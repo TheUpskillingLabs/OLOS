@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { StatusBadge } from "@/app/components/ui";
 import { getWorkstreamPage } from "@/lib/content/org-pages";
+import FollowButton from "@/app/components/follow-button";
+import { pageFollowState } from "@/lib/follows/server";
 
 function runVariant(status: string): "active" | "forming" | "inactive" {
   if (status === "active") return "active";
@@ -41,6 +43,7 @@ export default async function WorkstreamPage({
   const data = await getWorkstreamPage(slug);
   if (!data) notFound();
   const { workstream, home, runs } = data;
+  const follow = await pageFollowState({ type: "workstream", id: workstream.id });
 
   return (
     <>
@@ -65,6 +68,15 @@ export default async function WorkstreamPage({
       </EditorialHeader>
 
       <div className="container" style={{ paddingTop: 48, paddingBottom: 72 }}>
+        {follow && (
+          <div className="mb-8 flex justify-end">
+            <FollowButton
+              type="workstream"
+              id={workstream.id}
+              initialFollowing={follow.following}
+            />
+          </div>
+        )}
         <section>
           <h2 className="t-h3 mb-1 text-ink">Runs</h2>
           <p className="mb-4 text-sm text-meta">

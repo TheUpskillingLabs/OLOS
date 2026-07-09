@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import MemberProfileView from "../../profile/member-profile-view";
 import UpdatesFeed from "../../directory/updates-feed";
+import FollowButton from "@/app/components/follow-button";
+import { isFollowing } from "@/lib/follows/data";
 
 /**
  * /u/[handle] — a member's public-to-members profile (visitor mode).
@@ -66,9 +68,40 @@ export default async function MemberProfilePage({
   const displayName =
     member.preferred_name || `${member.first_name} ${member.last_name}`;
 
+  // Resolve the viewer to seed the Follow button (hidden on your own profile).
+  let viewerId: number | null = null;
+  {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: me } = await service
+        .from("participants")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      viewerId = me?.id ?? null;
+    }
+  }
+  const canFollow = viewerId != null && viewerId !== member.id;
+  const followingMember =
+    viewerId != null && viewerId !== member.id
+      ? await isFollowing(service, viewerId, { type: "user", id: member.id })
+      : false;
+
   return (
     <MemberProfileView
       mode="visitor"
+      followSlot={
+        canFollow ? (
+          <FollowButton
+            type="user"
+            id={member.id}
+            initialFollowing={followingMember}
+          />
+        ) : null
+      }
       member={{
         id: member.id,
         handle: member.handle,

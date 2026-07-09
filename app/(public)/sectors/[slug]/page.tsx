@@ -6,6 +6,8 @@ import { StatusBadge } from "@/app/components/ui";
 import { cycleStatusVariant, workstreamStatusVariant } from "@/lib/cycle/labels";
 import { formatDate } from "@/lib/format/date";
 import { getSectorPage } from "@/lib/content/org-pages";
+import FollowButton from "@/app/components/follow-button";
+import { pageFollowState } from "@/lib/follows/server";
 
 /* Public sector detail — the durable, cross-cohort home for a theme's cohorts
    and teams (docs/SECTOR_MODEL.md). Deep-link target for the dashboard left
@@ -36,6 +38,7 @@ export default async function SectorPage({
   const data = await getSectorPage(slug);
   if (!data) notFound();
   const { sector, cycles, workstreams } = data;
+  const follow = await pageFollowState({ type: "sector", id: sector.id });
 
   return (
     <>
@@ -46,6 +49,15 @@ export default async function SectorPage({
       />
 
       <div className="container" style={{ paddingTop: 48, paddingBottom: 72 }}>
+        {follow && (
+          <div className="mb-8 flex justify-end">
+            <FollowButton
+              type="sector"
+              id={sector.id}
+              initialFollowing={follow.following}
+            />
+          </div>
+        )}
         <section className="mb-10">
           <h2 className="t-h3 mb-4 text-ink">Cycles</h2>
           {cycles.length === 0 ? (

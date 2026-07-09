@@ -61,6 +61,8 @@ export interface MemberProfileViewProps {
   enrollments?: MemberProfileEnrollment[];
   /** Rendered below the card — the member's shared Learning-Log updates. */
   updatesSlot?: React.ReactNode;
+  /** Visitor mode: a Follow button in the context bar (omitted on own profile). */
+  followSlot?: React.ReactNode;
 }
 
 export default function MemberProfileView({
@@ -69,6 +71,7 @@ export default function MemberProfileView({
   options,
   enrollments,
   updatesSlot,
+  followSlot,
 }: MemberProfileViewProps) {
   const isOwner = mode === "owner";
   const grouped = options ?? {};
@@ -77,13 +80,14 @@ export default function MemberProfileView({
     <div className="max-w-3xl">
       {/* Visitor context bar — who you're looking at + the way back. */}
       {!isOwner && (
-        <div className="mb-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <Link
             href="/directory"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-ink"
           >
             <span aria-hidden>←</span> Back to the Directory
           </Link>
+          {followSlot}
         </div>
       )}
 

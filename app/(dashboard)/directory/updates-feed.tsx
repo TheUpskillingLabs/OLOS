@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/app/components/ui";
 import UpdateSocial from "./update-social";
 import { fetchSocialForUpdates } from "@/lib/updates/social";
+import { getFollowedParticipantIds } from "@/lib/follows/data";
 
 /**
  * Community updates — the reader that finally pays off the Learning Log's
@@ -119,17 +120,27 @@ export default async function UpdatesFeed({
     .order("created_at", { ascending: false })
     .limit(PAGE);
 
+  // Feed mode only: whether the viewer follows anyone yet (drives the nudge).
+  let noFollows = false;
   if (participantId != null) {
     // Member-scoped (a profile's own shares) — already access-controlled by the
     // page; don't hide internal accounts here or a staff owner wouldn't see
-    // their own shares.
+    // their own shares. The follow filter doesn't apply — a profile always
+    // shows that member's own updates.
     query = query.eq("participant_id", participantId);
   } else {
-    // Global community feed — hide internal (test/staff) posters, matching the
-    // directory grid.
+    // The Following feed — hide internal (test/staff) posters, then restrict to
+    // updates authored by the users you follow, plus your own.
     query = query
       .eq("participants.is_test", false)
       .eq("participants.is_staff", false);
+    const followedIds =
+      viewerId != null ? await getFollowedParticipantIds(service, viewerId) : [];
+    noFollows = followedIds.length === 0;
+    const authorIds =
+      viewerId != null ? [...followedIds, viewerId] : followedIds;
+    // Anonymous + following no one → match nothing (-1 is never a real id).
+    query = query.in("participant_id", authorIds.length > 0 ? authorIds : [-1]);
   }
 
   const { data, error } = await query;
@@ -174,7 +185,19 @@ export default async function UpdatesFeed({
     <section>
       <h2 className="section-head mb-3">{title}</h2>
       {rows.length === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+        participantId == null && noFollows ? (
+          <EmptyState
+            title="Your feed is quiet"
+            description="Follow members and pages to see their updates here."
+            action={
+              <Link href="/directory" className="btn btn-teal px-4 py-2 text-sm">
+                Find people to follow
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState title={emptyTitle} description={emptyDescription} />
+        )
       ) : (
         <ul className="space-y-3">
           {rows.map((u) => {

@@ -560,6 +560,15 @@ erDiagram
         timestamptz updated_at
     }
 
+    follows {
+        int id PK
+        int follower_participant_id FK "the follower"
+        int followee_participant_id FK "user target (XOR page)"
+        varchar page_type "sector/workstream/lab (XOR user)"
+        int page_id "page target id (no FK — polymorphic)"
+        timestamptz created_at
+    }
+
     metros ||--o{ metro_waitlist_signups : "collects"
     metros ||--o{ cycles : "lab stream (00062; NULL = HQ)"
     metros ||--o{ workstreams : "lab workstreams (00062)"
@@ -572,6 +581,7 @@ erDiagram
     profile_updates ||--o{ profile_update_comments : "commented on (00073)"
     participants ||--o{ profile_update_likes : "likes"
     participants ||--o{ profile_update_comments : "comments"
+    participants ||--o{ follows : "follows (00074)"
     events ||--o{ event_rsvps : "collects"
 ```
 
@@ -808,6 +818,7 @@ erDiagram
 | `profile_updates` | Practice | Member updates feed — Learning Log shares plus freeform posts from the feed composer (00072): `visibility` `labs` (public/members-wide) or `private` (author-only) |
 | `profile_update_likes` | Practice | Per-member like TOGGLE on a feed update (00073); `UNIQUE(update_id, participant_id)`, cascade-deletes with the update/participant |
 | `profile_update_comments` | Practice | Freeform comments on a feed update (00073); RLS: visible when the parent update is, self INSERT/DELETE, service-role writes bind the author from the session |
+| `follows` | Practice | The follow graph (00074): a member follows other members (`followee_participant_id`) or org pages (`page_type`+`page_id` = sector/workstream/lab), polymorphic (exactly one target). Powers the "Following" feed — `profile_updates` are filtered to followed users + self. RLS: manage your own follows, read rows targeting you |
 | `saved_items` | Practice | A member's saved events/resources (the /learning hearts) — polymorphic by slug |
 | `spotlights` | Public Content | Upskiller Spotlights + their submission pipeline (public /stories) |
 | `field_surveys` | Data Sensemaker | The field-survey instrument — one row per sector/cycle problem domain (public `/survey/[slug]`) |
