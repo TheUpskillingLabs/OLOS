@@ -28,8 +28,6 @@ import { PersonRow, PodRow, ProjectRow, ResultList } from "./result-rows";
  *
  *   /directory?tab=pods&q=climate&cycle=3&status=active
  *
- * `updatesSlot` carries the Community-updates feed (an async RSC rendered by
- * the page) — shown only on the default, unfiltered All view.
  */
 
 type Tab = "all" | "people" | "pods" | "projects";
@@ -79,13 +77,7 @@ function serialize(state: SearchState): string {
   return params.toString();
 }
 
-export default function DirectorySearch({
-  data,
-  updatesSlot,
-}: {
-  data: DirectoryData;
-  updatesSlot?: ReactNode;
-}) {
+export default function DirectorySearch({ data }: { data: DirectoryData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [state, setState] = useState<SearchState>(() =>
@@ -201,7 +193,6 @@ export default function DirectorySearch({
   const activeFilterCount = [metro, intent, cycle, status].filter(
     Boolean
   ).length;
-  const isDefaultView = tab === "all" && !q && activeFilterCount === 0;
 
   const set = (patch: Partial<SearchState>) =>
     setState((s) => ({ ...s, ...patch }));
@@ -402,7 +393,6 @@ export default function DirectorySearch({
         )}
       </div>
 
-      {isDefaultView && updatesSlot && <div className="mt-10">{updatesSlot}</div>}
     </div>
   );
 }

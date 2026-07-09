@@ -6,6 +6,7 @@ import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { addContributorSchema } from "@/lib/validations/workstreams";
 import { createServiceClient } from "@/lib/supabase/server";
+import { followPageSilently } from "@/lib/follows/seed";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // The IC ladder for a project (project_roles / project_subscriptions,
@@ -65,6 +66,10 @@ export const POST = withAuth(
       }
       return dbError(error, "project-contributors-add");
     }
+
+    // New project member follows the project page so its updates reach their
+    // feed (event-driven seed; a later manual unfollow sticks).
+    await followPageSilently(serviceClient, participant_id, "project", projectId);
 
     return NextResponse.json(inserted, { status: 201 });
   }

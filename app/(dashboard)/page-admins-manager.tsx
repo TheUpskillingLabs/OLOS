@@ -4,11 +4,16 @@ import { useState } from "react";
 import type { PageType, PageAdminEntry } from "@/lib/pages/authz";
 
 /**
- * Manage a page's explicit admins — the "others can be added" list beyond the
- * page's auto-admins (its leads; a project's members). Shown only to admins.
- * Add by @handle; remove an added admin. Auto-admins aren't listed here (they
- * come from roles), so only explicit rows appear and are removable.
+ * Manage a page's admins. Lists the FULL roster — auto-admins (the page's
+ * leads; a project's members) labelled by source, plus explicitly-added ones.
+ * Shown only to admins. Add by @handle; only "added" rows are removable
+ * (the rest derive from roles).
  */
+const SOURCE_LABEL: Record<PageAdminEntry["source"], string> = {
+  lead: "Lead",
+  member: "Member",
+  added: "Added",
+};
 export default function PageAdminsManager({
   pageType,
   pageId,
@@ -75,26 +80,33 @@ export default function PageAdminsManager({
       </p>
       <div className="mt-3 flex flex-col gap-2">
         {admins.length === 0 ? (
-          <p className="text-sm text-meta">No added admins yet.</p>
+          <p className="text-sm text-meta">No admins yet.</p>
         ) : (
           admins.map((a) => (
             <div
               key={a.participantId}
               className="flex items-center justify-between gap-3"
             >
-              <span className="min-w-0 truncate text-sm text-ink">
-                {a.name}
-                {a.handle ? (
-                  <span className="text-meta"> · @{a.handle}</span>
-                ) : null}
+              <span className="flex min-w-0 items-center gap-2 text-sm text-ink">
+                <span className="min-w-0 truncate">
+                  {a.name}
+                  {a.handle ? (
+                    <span className="text-meta"> · @{a.handle}</span>
+                  ) : null}
+                </span>
+                <span className="shrink-0 rounded-full bg-ink/[0.06] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-meta">
+                  {SOURCE_LABEL[a.source]}
+                </span>
               </span>
-              <button
-                type="button"
-                onClick={() => remove(a.participantId)}
-                className="shrink-0 text-xs text-meta transition-colors duration-150 hover:text-red"
-              >
-                Remove
-              </button>
+              {a.source === "added" && (
+                <button
+                  type="button"
+                  onClick={() => remove(a.participantId)}
+                  className="shrink-0 text-xs text-meta transition-colors duration-150 hover:text-red"
+                >
+                  Remove
+                </button>
+              )}
             </div>
           ))
         )}

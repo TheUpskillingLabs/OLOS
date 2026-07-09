@@ -1,12 +1,38 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * One-time seed: a member auto-follows the pages they belong to — their local
- * lab, their active pods, their projects, and the workstreams their pods run —
- * so page updates reach their feed without a manual step (migration 00076's
- * `page_follows_seeded`). Runs once on dashboard load; a member who later
- * unfollows a page stays unfollowed. Best-effort — never throws into render.
+ * Auto-follow the pages you belong to, two ways:
+ *   • ensurePageFollowsSeeded — a one-time backfill on dashboard load
+ *     (migration 00076's `page_follows_seeded`): lab, active pods, their
+ *     workstreams, projects, and the member's sector.
+ *   • followPageSilently — event-driven: called at membership-creation points
+ *     (pod join, project contributor add, lab join) so pages gained AFTER the
+ *     backfill are followed too. Fires once per membership event, so a later
+ *     manual unfollow is never overridden.
+ * Both are best-effort — never throw into the caller's path.
  */
+
+/** Idempotent single-page follow — the event-driven seeding primitive. */
+export async function followPageSilently(
+  service: SupabaseClient,
+  participantId: number,
+  pageType: "lab" | "sector" | "workstream" | "pod" | "project",
+  pageId: number
+): Promise<void> {
+  try {
+    const { error } = await service.from("follows").insert({
+      follower_participant_id: participantId,
+      page_type: pageType,
+      page_id: pageId,
+    });
+    // 23505 = already following — fine.
+    if (error && error.code !== "23505") {
+      console.error("[follows] silent page follow failed:", error.message);
+    }
+  } catch (e) {
+    console.error("[follows] silent page follow failed:", e);
+  }
+}
 export async function ensurePageFollowsSeeded(
   service: SupabaseClient,
   participant: {
@@ -47,6 +73,23 @@ export async function ensurePageFollowsSeeded(
       .is("removed_at", null);
     for (const r of projRoles ?? []) {
       targets.push({ page_type: "project", page_id: r.project_id as number });
+    }
+
+    // Active cycle enrollments → follow the cycles' sectors (the left rail
+    // shows the sector as an open-cycle member's org unit, so its page posts
+    // should reach them).
+    const { data: enrollments } = await service
+      .from("cycle_enrollments")
+      .select("cycles!inner(sector_id)")
+      .eq("participant_id", participant.id)
+      .eq("status", "active");
+    const sectorIds = new Set<number>();
+    for (const row of enrollments ?? []) {
+      const cycle = Array.isArray(row.cycles) ? row.cycles[0] : row.cycles;
+      if (cycle?.sector_id != null) sectorIds.add(cycle.sector_id as number);
+    }
+    for (const sid of sectorIds) {
+      targets.push({ page_type: "sector", page_id: sid });
     }
 
     if (targets.length > 0) {

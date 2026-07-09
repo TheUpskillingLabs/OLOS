@@ -81,6 +81,25 @@ vi.mock("@/lib/supabase/server", () => ({
           },
         };
       }
+      // The post-membership follow seed (followPageSilently) reads the pod's
+      // workstream and inserts follows — inert here.
+      if (table === "pods") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: { workstream_id: null } }),
+            }),
+          }),
+        };
+      }
+      if (table === "follows") {
+        return {
+          insert: async (row: Record<string, unknown>) => {
+            state.inserts.push({ table, row });
+            return { error: null };
+          },
+        };
+      }
       throw new Error(`unexpected table ${table}`);
     },
   }),

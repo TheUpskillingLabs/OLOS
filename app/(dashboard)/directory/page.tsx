@@ -4,7 +4,6 @@ import { MapPin } from "lucide-react";
 import { fetchDirectoryData } from "@/lib/directory/data";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import DirectorySearch from "./directory-search";
-import UpdatesFeed from "./updates-feed";
 import PeopleYouMayKnow from "../people-you-may-know";
 
 /**
@@ -75,9 +74,10 @@ export default async function DirectoryPage() {
         />
       )}
 
-      {/* The island reads useSearchParams — Suspense keeps Next happy. */}
+      {/* The island reads useSearchParams — Suspense keeps Next happy. The
+          directory is a discovery surface; the feed lives on the dashboard. */}
       <Suspense>
-        <DirectorySearch data={data} updatesSlot={<UpdatesFeed />} />
+        <DirectorySearch data={data} />
       </Suspense>
     </div>
   );

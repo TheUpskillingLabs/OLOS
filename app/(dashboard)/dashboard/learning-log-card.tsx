@@ -10,7 +10,8 @@ import { useCallback, useEffect, useState } from "react";
         the member, their Poderator, and admins. Never shared.
      2. Scaffolded reflection — three prompts that kill the blank page.
      3. Share preview — the prompts concatenated into one paragraph, with a
-        members-only share toggle (the ONLY source of member updates).
+        members-only share toggle (one of two feed sources, alongside the
+        freeform Update composer).
    Unlimited logs; the form resets after save; saving clears the weekly
    gate instantly ("You're back in ✓" — firm, never shaming). */
 

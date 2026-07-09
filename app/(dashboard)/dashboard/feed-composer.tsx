@@ -109,9 +109,18 @@ export default function FeedComposer({
         gateActive ? "border-red" : "border-ink/10"
       }`}
     >
-      {/* Header — avatar + the two options as a segmented control. */}
+      {/* Header — the speaking identity + the two options as a segmented
+          control. Posting as a page swaps the avatar for the page's squared
+          tile (matching the feed), so it's visible who's talking. */}
       <div className="flex items-center gap-3 border-b border-ink/10 p-4">
-        {avatarUrl ? (
+        {tab === "update" && selectedPage ? (
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-ink text-sm font-bold text-white"
+            title={`Posting as ${selectedPage.name}`}
+          >
+            {selectedPage.name.slice(0, 2).toUpperCase()}
+          </div>
+        ) : avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
@@ -219,19 +228,8 @@ export default function FeedComposer({
           </div>
         ) : (
           <div>
-            {gateActive && (
-              <div
-                className="mb-4 rounded-card border border-red bg-red/5 px-4 py-3"
-                role="alert"
-              >
-                <p className="font-semibold tracking-tight text-ink">
-                  Your weekly Learning Log is due
-                </p>
-                <p className="mt-0.5 text-sm text-charcoal">
-                  Save one and everything unlocks the moment you do.
-                </p>
-              </div>
-            )}
+            {/* No extra "log is due" alert here — the red border, the tab's red
+                dot, and the dashboard's jump-link banner already carry it. */}
             <LearningLogCard
               embedded
               gateActive={gateActive}

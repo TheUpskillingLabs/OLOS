@@ -90,17 +90,29 @@ export default async function MemberProfilePage({
       ? await isFollowing(service, viewerId, { type: "user", id: member.id })
       : false;
 
+  // Follower count — the audience this member's public updates reach.
+  const { count: followerCount } = await service
+    .from("follows")
+    .select("id", { head: true, count: "exact" })
+    .eq("followee_participant_id", member.id);
+
   return (
     <MemberProfileView
       mode="visitor"
       followSlot={
-        canFollow ? (
-          <FollowButton
-            type="user"
-            id={member.id}
-            initialFollowing={followingMember}
-          />
-        ) : null
+        <span className="flex items-center gap-3">
+          <span className="text-sm text-meta tabular-nums">
+            {followerCount ?? 0}{" "}
+            {followerCount === 1 ? "follower" : "followers"}
+          </span>
+          {canFollow && (
+            <FollowButton
+              type="user"
+              id={member.id}
+              initialFollowing={followingMember}
+            />
+          )}
+        </span>
       }
       member={{
         id: member.id,

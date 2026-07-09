@@ -103,9 +103,9 @@ export default async function ProfilePage() {
       updatesSlot={
         <UpdatesFeed
           participantId={participant.id}
-          title="Your shares"
-          emptyTitle="You haven't shared anything yet"
-          emptyDescription="Share a Learning Log to the community and it will appear here."
+          title="Your updates"
+          emptyTitle="You haven't posted anything yet"
+          emptyDescription="Post an update from your dashboard — or share a Learning Log — and it will appear here."
         />
       }
     />

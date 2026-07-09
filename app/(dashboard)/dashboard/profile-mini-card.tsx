@@ -13,6 +13,7 @@ export default function ProfileMiniCard({
   avatarUrl,
   initials,
   handle,
+  followingCount = null,
 }: {
   displayName: string;
   headline: string | null;
@@ -20,6 +21,8 @@ export default function ProfileMiniCard({
   avatarUrl: string | null;
   initials: string;
   handle: string | null;
+  /** People + pages followed — links to /network when provided. */
+  followingCount?: number | null;
 }) {
   return (
     <section className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
@@ -39,6 +42,14 @@ export default function ProfileMiniCard({
         <h2 className="mt-3 t-h4 text-ink">{displayName}</h2>
         {headline && <p className="mt-1 text-sm text-teal-deep">{headline}</p>}
         {metroName && <p className="mt-1 text-xs text-meta">{metroName}</p>}
+        {followingCount != null && (
+          <Link
+            href="/network"
+            className="mt-2 text-xs font-semibold text-teal-deep transition-colors duration-150 hover:text-ink"
+          >
+            Following · {followingCount}
+          </Link>
+        )}
       </div>
 
       <div className="mt-4 flex flex-col gap-2">

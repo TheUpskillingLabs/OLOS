@@ -283,43 +283,153 @@ export interface PageAdminEntry {
   participantId: number;
   name: string;
   handle: string | null;
-  /** "added" rows are removable; auto-admins ("lead"/"member") are not. */
-  source: "added";
+  /** "added" rows are removable; auto-admins ("lead"/"member") come from roles. */
+  source: "lead" | "member" | "added";
+}
+
+const ADMIN_DISPLAY =
+  "participant_id, participants:participant_id!inner(handle, preferred_name, first_name, last_name)";
+
+interface AdminRow {
+  participant_id: number;
+  participants:
+    | { handle: string | null; preferred_name: string | null; first_name: string | null; last_name: string | null }
+    | { handle: string | null; preferred_name: string | null; first_name: string | null; last_name: string | null }[]
+    | null;
+}
+
+function adminEntry(row: AdminRow, source: PageAdminEntry["source"]): PageAdminEntry {
+  const p = Array.isArray(row.participants)
+    ? row.participants[0]
+    : row.participants;
+  const name =
+    p?.preferred_name ||
+    [p?.first_name, p?.last_name].filter(Boolean).join(" ") ||
+    "A member";
+  return {
+    participantId: row.participant_id,
+    name,
+    handle: p?.handle ?? null,
+    source,
+  };
+}
+
+/** Merge rosters, deduping by participant with the strongest source winning
+    (lead > member > added) — pure, unit-tested. */
+export function mergeAdminRosters(
+  ...rosters: PageAdminEntry[][]
+): PageAdminEntry[] {
+  const rank: Record<PageAdminEntry["source"], number> = {
+    lead: 0,
+    member: 1,
+    added: 2,
+  };
+  const byId = new Map<number, PageAdminEntry>();
+  for (const roster of rosters) {
+    for (const entry of roster) {
+      const existing = byId.get(entry.participantId);
+      if (!existing || rank[entry.source] < rank[existing.source]) {
+        byId.set(entry.participantId, entry);
+      }
+    }
+  }
+  return [...byId.values()].sort(
+    (a, b) => rank[a.source] - rank[b.source] || a.name.localeCompare(b.name)
+  );
 }
 
 /**
- * The explicit admin roster for the manage panel — the `page_admins` rows only
- * (auto-admins are derived from roles and shown/handled separately). Returns
- * display-safe fields via a participants allowlist join.
+ * The FULL admin roster for the manage panel: the page's auto-admins (its
+ * leads; a project's members/maintainers) labelled by source, merged with the
+ * explicitly-added `page_admins` rows. Only "added" rows are removable — the
+ * rest derive from roles. Display-safe fields via a participants allowlist join.
  */
 export async function pageAdmins(
   service: SupabaseClient,
   type: PageType,
   id: number
 ): Promise<PageAdminEntry[]> {
-  const { data } = await service
+  // Explicit rows.
+  const { data: explicit } = await service
     .from("page_admins")
-    .select(
-      "participant_id, participants:participant_id!inner(handle, preferred_name, first_name, last_name)"
-    )
+    .select(ADMIN_DISPLAY)
     .eq("page_type", type)
     .eq("page_id", id)
     .is("removed_at", null)
     .order("created_at", { ascending: true });
+  const added = ((explicit ?? []) as unknown as AdminRow[]).map((r) =>
+    adminEntry(r, "added")
+  );
 
-  return (data ?? []).map((row) => {
-    const p = Array.isArray(row.participants)
-      ? row.participants[0]
-      : row.participants;
-    const name =
-      p?.preferred_name ||
-      [p?.first_name, p?.last_name].filter(Boolean).join(" ") ||
-      "A member";
-    return {
-      participantId: row.participant_id as number,
-      name,
-      handle: p?.handle ?? null,
-      source: "added" as const,
-    };
-  });
+  // Auto-admins by entity type.
+  const auto: PageAdminEntry[] = [];
+  if (type === "lab") {
+    const { data } = await service
+      .from("participant_roles")
+      .select(ADMIN_DISPLAY)
+      .eq("role", "lab_lead")
+      .eq("lab_id", id)
+      .is("revoked_at", null);
+    auto.push(
+      ...((data ?? []) as unknown as AdminRow[]).map((r) => adminEntry(r, "lead"))
+    );
+  } else if (type === "pod") {
+    const { data } = await service
+      .from("moderator_assignments")
+      .select(ADMIN_DISPLAY)
+      .eq("pod_id", id)
+      .is("removed_at", null);
+    auto.push(
+      ...((data ?? []) as unknown as AdminRow[]).map((r) => adminEntry(r, "lead"))
+    );
+  } else if (type === "workstream") {
+    const { data: runPods } = await service
+      .from("pods")
+      .select("id")
+      .eq("workstream_id", id);
+    const podIds = (runPods ?? []).map((p) => p.id as number);
+    if (podIds.length > 0) {
+      const { data } = await service
+        .from("moderator_assignments")
+        .select(ADMIN_DISPLAY)
+        .in("pod_id", podIds)
+        .is("removed_at", null);
+      auto.push(
+        ...((data ?? []) as unknown as AdminRow[]).map((r) =>
+          adminEntry(r, "lead")
+        )
+      );
+    }
+  } else if (type === "project") {
+    const { data: proj } = await service
+      .from("projects")
+      .select("pod_id")
+      .eq("id", id)
+      .maybeSingle();
+    const [{ data: roleRows }, coLeads] = await Promise.all([
+      service
+        .from("project_roles")
+        .select(ADMIN_DISPLAY)
+        .eq("project_id", id)
+        .is("removed_at", null),
+      proj
+        ? service
+            .from("moderator_assignments")
+            .select(ADMIN_DISPLAY)
+            .eq("pod_id", proj.pod_id)
+            .is("removed_at", null)
+        : Promise.resolve({ data: [] as AdminRow[] }),
+    ]);
+    auto.push(
+      ...((coLeads.data ?? []) as unknown as AdminRow[]).map((r) =>
+        adminEntry(r, "lead")
+      ),
+      ...((roleRows ?? []) as unknown as AdminRow[]).map((r) =>
+        adminEntry(r, "member")
+      )
+    );
+  }
+  // Sectors: no lead role — admin/explicit only.
+
+  return mergeAdminRosters(auto, added);
 }

@@ -341,6 +341,14 @@ export default async function LabWorkspacePage({
         <p className="mb-4 text-sm text-meta">
           Post news for {lab.name} members — it shows in the org-news rail of
           their dashboard. Scoped to this lab; HQ posts org-wide news separately.
+          For a post in the community feed instead, post as your lab from{" "}
+          <Link
+            href={`/local-labs/${lab.slug}`}
+            className="font-semibold text-teal-deep hover:underline"
+          >
+            your lab page
+          </Link>
+          .
         </p>
         <AnnouncementsAdmin
           initial={labAnnouncements}

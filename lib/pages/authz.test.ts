@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UserRoles } from "@/lib/auth/roles";
-import { isPageAdmin, pageHref, pageTypeLabel } from "./authz";
+import {
+  isPageAdmin,
+  pageHref,
+  pageTypeLabel,
+  mergeAdminRosters,
+  type PageAdminEntry,
+} from "./authz";
 
 // A service client that fails the test if any DB call is made — proves the
 // synchronous auto-admin short-circuits (admin / lab-lead / pod-moderator)
@@ -36,6 +42,35 @@ describe("pageHref / pageTypeLabel", () => {
   it("labels each type", () => {
     expect(pageTypeLabel("lab")).toBe("Local Lab");
     expect(pageTypeLabel("project")).toBe("Project");
+  });
+});
+
+describe("mergeAdminRosters", () => {
+  const mk = (
+    participantId: number,
+    name: string,
+    source: PageAdminEntry["source"]
+  ): PageAdminEntry => ({ participantId, name, handle: null, source });
+
+  it("dedupes by participant with the strongest source winning", () => {
+    const merged = mergeAdminRosters(
+      [mk(1, "Ada", "lead"), mk(2, "Bea", "member")],
+      [mk(1, "Ada", "added"), mk(3, "Cal", "added")]
+    );
+    expect(merged.map((e) => `${e.participantId}:${e.source}`)).toEqual([
+      "1:lead",
+      "2:member",
+      "3:added",
+    ]);
+  });
+
+  it("orders lead > member > added, then by name", () => {
+    const merged = mergeAdminRosters([
+      mk(4, "Zed", "added"),
+      mk(5, "Amy", "lead"),
+      mk(6, "Bob", "lead"),
+    ]);
+    expect(merged.map((e) => e.name)).toEqual(["Amy", "Bob", "Zed"]);
   });
 });
 

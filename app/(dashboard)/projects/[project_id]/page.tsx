@@ -7,7 +7,7 @@ import { StatusBadge } from "@/app/components/ui";
 import { podNoun } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
-import FollowButton from "./follow-button";
+import FollowButton from "@/app/components/follow-button";
 import ContributorsSection from "./contributors-section";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
@@ -150,32 +150,23 @@ export default async function ProjectDetailPage({
     };
   });
 
-  // Viewer's own follow state — self-read RLS covers this via the anon client.
-  let following = false;
-  if (userRoles?.participantId) {
-    const { data: subscription } = await supabase
-      .from("project_subscriptions")
-      .select("id")
-      .eq("project_id", projectId)
-      .eq("participant_id", userRoles.participantId)
-      .maybeSingle();
-    following = !!subscription;
-  }
-
+  // Follower count from the follows graph — the population that actually
+  // receives this project's page posts (00077 unification).
   const { count: followerCount } = await serviceClient
-    .from("project_subscriptions")
+    .from("follows")
     .select("id", { count: "exact", head: true })
-    .eq("project_id", projectId);
+    .eq("page_type", "project")
+    .eq("page_id", projectId);
 
   // One DRI definition, shared with the POST route (lib/auth/projects).
   const canManageContributors = userRoles
     ? await isProjectDri(serviceClient, userRoles, projectId, project.pod_id)
     : false;
 
-  // Add-contributor options: the cycle's enrollees, unioned with the
-  // project's followers (project_subscriptions) — org enrollees are
-  // invite-only staff, so followers are how a DRI reaches the ICs the
-  // follow feature is meant to recruit (docs/ORG_CYCLES.md §2). Deduped by
+  // Add-contributor options: the cycle's enrollees, unioned with the project's
+  // followers (follows graph — 00077 retired project_subscriptions) — org
+  // enrollees are invite-only staff, so followers are how a DRI reaches the ICs
+  // the follow feature is meant to recruit (docs/ORG_CYCLES.md §2). Deduped by
   // participant_id; follower-only entries are suffixed so the DRI can tell
   // them apart from enrollees. Only fetched when the viewer can manage.
   let participantOptions: { participant_id: number; name: string }[] = [];
@@ -188,11 +179,12 @@ export default async function ProjectDetailPage({
         )
         .eq("cycle_id", project.cycle_id),
       serviceClient
-        .from("project_subscriptions")
+        .from("follows")
         .select(
-          "participant_id, participants(first_name, last_name, preferred_name)"
+          "follower_participant_id, participants:follower_participant_id(first_name, last_name, preferred_name)"
         )
-        .eq("project_id", projectId),
+        .eq("page_type", "project")
+        .eq("page_id", projectId),
     ]);
 
     const nameOf = (row: { participants: unknown }) => {
@@ -205,8 +197,11 @@ export default async function ProjectDetailPage({
       optionsByParticipant.set(e.participant_id, nameOf(e));
     }
     for (const f of followerRows ?? []) {
-      if (optionsByParticipant.has(f.participant_id)) continue;
-      optionsByParticipant.set(f.participant_id, `${nameOf(f)} (follower)`);
+      if (optionsByParticipant.has(f.follower_participant_id)) continue;
+      optionsByParticipant.set(
+        f.follower_participant_id,
+        `${nameOf(f)} (follower)`
+      );
     }
 
     participantOptions = [...optionsByParticipant.entries()].map(
@@ -252,7 +247,12 @@ export default async function ProjectDetailPage({
             </span>
           </div>
           {userRoles?.participantId != null && (
-            <FollowButton projectId={project.id} following={following} />
+            <FollowButton
+              type="project"
+              id={project.id}
+              initialFollowing={pageCtx.following}
+              size="sm"
+            />
           )}
         </div>
       </div>

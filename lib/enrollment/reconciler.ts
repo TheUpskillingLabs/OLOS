@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { followPageSilently } from "@/lib/follows/seed";
 
 export type EnrollmentStatus = "active" | "inactive";
 
@@ -178,6 +179,25 @@ export async function ensureActivePodMembership(
     );
 
   await reconcileEnrollmentActivation(participantId, cycleId);
+
+  // New pod member follows the pod page (and its workstream run, if any) so
+  // page updates reach their feed — fires once per membership event, so a
+  // later manual unfollow is never overridden (event-driven counterpart of
+  // ensurePageFollowsSeeded).
+  await followPageSilently(client, participantId, "pod", podId);
+  const { data: pod } = await client
+    .from("pods")
+    .select("workstream_id")
+    .eq("id", podId)
+    .maybeSingle();
+  if (pod?.workstream_id != null) {
+    await followPageSilently(
+      client,
+      participantId,
+      "workstream",
+      pod.workstream_id
+    );
+  }
 }
 
 /**

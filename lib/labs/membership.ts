@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { followPageSilently } from "@/lib/follows/seed";
 
 export interface LabRow {
   id: number;
@@ -175,6 +176,10 @@ export async function setActiveLabMembership(
     .update({ metro_id: lab.id, metro_slug: lab.slug })
     .eq("id", participantId);
   if (error) return { error: error.message };
+
+  // New lab member follows the lab page so its updates reach their feed
+  // (event-driven seed; a later manual unfollow sticks).
+  await followPageSilently(client, participantId, "lab", lab.id);
 
   return { lab: lab as LabRow };
 }

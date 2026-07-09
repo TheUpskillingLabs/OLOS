@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/app/components/ui";
 import UpdateSocial from "./update-social";
+import DeleteUpdateButton from "./delete-update-button";
+import { relTime } from "@/lib/format/rel-time";
 import { fetchSocialForUpdates } from "@/lib/updates/social";
 import { getFollowedParticipantIds, getFollowedPages } from "@/lib/follows/data";
 import { resolveUserRoles } from "@/lib/auth/roles";
@@ -9,6 +11,7 @@ import {
   pagesUserCanPostAs,
   pageNames,
   pageTypeLabel,
+  isPageAdmin,
   type PageType,
 } from "@/lib/pages/authz";
 
@@ -38,8 +41,6 @@ export interface UpdatesFeedProps {
   title?: string;
   emptyTitle?: string;
   emptyDescription?: string;
-  /** Owner mode: render a per-row retract control. */
-  renderRetract?: (updateId: number) => React.ReactNode;
 }
 
 interface Poster {
@@ -83,29 +84,15 @@ interface FeedItem {
   createdAt: string;
   visibility: string;
   author: Author;
+  /** Deletion ownership: the posting member's id, or the page key ("type:id"). */
+  authorParticipantId: number | null;
+  pageKey: string | null;
 }
 
 const USER_SELECT =
   "id, participant_id, body, created_at, visibility, participants:participant_id!inner(handle, preferred_name, first_name, last_name, profile_image_url)";
 const PAGE_SELECT =
   "id, body, created_at, author_page_type, author_page_id";
-
-function relTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const s = Math.max(0, Math.round((now - then) / 1000));
-  if (s < 60) return "just now";
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.round(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function userAuthor(embed: Poster | Poster[] | null): Author {
   const p = Array.isArray(embed) ? embed[0] : embed;
@@ -158,10 +145,9 @@ export default async function UpdatesFeed({
   pageType,
   pageId,
   viewerParticipantId,
-  title = "Community updates",
+  title = "Your feed",
   emptyTitle = "No updates yet",
-  emptyDescription = "When members share a Learning Log to the community, it shows up here.",
-  renderRetract,
+  emptyDescription = "When people and pages you follow post updates, they show up here.",
 }: UpdatesFeedProps) {
   const service = createServiceClient();
   const pageScoped = pageType != null && pageId != null;
@@ -191,11 +177,18 @@ export default async function UpdatesFeed({
 
   const userRows: UserRow[] = [];
   const pageRows: PageRow[] = [];
-  let noSources = false;
+  // Pages the viewer admins ("type:id") — powers the page-post Delete control.
+  const adminKeys = new Set<string>();
 
   if (pageScoped) {
     // A page's own feed — just that page's authored updates.
     pageRows.push(...(await fetchPagePosts(service, [{ type: pageType!, id: pageId! }])));
+    if (user) {
+      const roles = await resolveUserRoles(supabase, user.id);
+      if (await isPageAdmin(service, roles, pageType!, pageId!)) {
+        adminKeys.add(`${pageType}:${pageId}`);
+      }
+    }
   } else if (participantId != null) {
     // Member-scoped — that member's own shares (access-controlled by the page).
     const { data } = await service
@@ -216,10 +209,7 @@ export default async function UpdatesFeed({
       user != null
         ? await pagesUserCanPostAs(service, await resolveUserRoles(supabase, user.id))
         : [];
-    noSources =
-      followedIds.length === 0 &&
-      followedPages.length === 0 &&
-      adminPages.length === 0;
+    for (const p of adminPages) adminKeys.add(`${p.type}:${p.id}`);
 
     const authorIds =
       viewerId != null ? [...followedIds, viewerId] : followedIds;
@@ -272,13 +262,17 @@ export default async function UpdatesFeed({
 
   // Build a unified, time-sorted item list.
   const items: FeedItem[] = [
-    ...userRows.map((u) => ({
-      id: u.id,
-      body: u.body,
-      createdAt: u.created_at,
-      visibility: u.visibility,
-      author: userAuthor(u.participants),
-    })),
+    ...userRows.map(
+      (u): FeedItem => ({
+        id: u.id,
+        body: u.body,
+        createdAt: u.created_at,
+        visibility: u.visibility,
+        author: userAuthor(u.participants),
+        authorParticipantId: u.participant_id,
+        pageKey: null,
+      })
+    ),
     ...pageRows.map((r): FeedItem => {
       const type = r.author_page_type as PageType;
       const meta = pageMeta.get(`${type}:${r.author_page_id}`);
@@ -295,6 +289,8 @@ export default async function UpdatesFeed({
           initials: pageInitials(name),
           link: meta?.href ?? "#",
         },
+        authorParticipantId: null,
+        pageKey: `${type}:${r.author_page_id}`,
       };
     }),
   ]
@@ -316,7 +312,9 @@ export default async function UpdatesFeed({
     <section>
       <h2 className="section-head mb-3">{title}</h2>
       {items.length === 0 ? (
-        !pageScoped && participantId == null && noSources ? (
+        !pageScoped && participantId == null ? (
+          // Feed mode: an empty feed always gets the actionable nudge — the
+          // fix is the same whether you follow nobody or quiet accounts.
           <EmptyState
             title="Your feed is quiet"
             description="Follow members and pages to see their updates here."
@@ -333,6 +331,10 @@ export default async function UpdatesFeed({
         <ul className="space-y-3">
           {items.map((it) => {
             const a = it.author;
+            const canDelete =
+              (it.authorParticipantId != null &&
+                it.authorParticipantId === viewerId) ||
+              (it.pageKey != null && adminKeys.has(it.pageKey));
             return (
               <li
                 key={it.id}
@@ -391,20 +393,26 @@ export default async function UpdatesFeed({
                     <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-charcoal">
                       {it.body}
                     </p>
-                    {renderRetract && (
-                      <div className="mt-2">{renderRetract(it.id)}</div>
+                    {canDelete && (
+                      <div className="mt-2">
+                        <DeleteUpdateButton updateId={it.id} />
+                      </div>
                     )}
                   </div>
                 </div>
-                <UpdateSocial
-                  updateId={it.id}
-                  initialLikeCount={social.likeCount.get(it.id) ?? 0}
-                  initialLiked={social.likedByViewer.has(it.id)}
-                  initialComments={social.comments.get(it.id) ?? []}
-                  viewerParticipantId={viewerId}
-                  viewerAvatarUrl={viewer?.avatarUrl ?? null}
-                  viewerInitials={viewer?.initials ?? "•"}
-                />
+                {/* Private posts are author-only — a like/comment bar would be
+                    dead controls no one else can ever see. */}
+                {it.visibility !== "private" && (
+                  <UpdateSocial
+                    updateId={it.id}
+                    initialLikeCount={social.likeCount.get(it.id) ?? 0}
+                    initialLiked={social.likedByViewer.has(it.id)}
+                    initialComments={social.comments.get(it.id) ?? []}
+                    viewerParticipantId={viewerId}
+                    viewerAvatarUrl={viewer?.avatarUrl ?? null}
+                    viewerInitials={viewer?.initials ?? "•"}
+                  />
+                )}
               </li>
             );
           })}

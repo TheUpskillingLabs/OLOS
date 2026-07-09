@@ -424,6 +424,12 @@ export default async function DashboardPage() {
     .not("followee_participant_id", "is", null);
   const followsAnyone = (followingCount ?? 0) > 0;
 
+  // Total network size (people + pages) — the profile card's /network link.
+  const { count: followingTotal } = await serviceClient
+    .from("follows")
+    .select("id", { head: true, count: "exact" })
+    .eq("follower_participant_id", participant.id);
+
   // The "Register" row leads to the cohort the member should register for. In
   // the onboarding states (no active enrollment yet) that's the upcoming cohort
   // when one is open for pre-registration — matching where the signup funnel
@@ -690,6 +696,7 @@ export default async function DashboardPage() {
         avatarUrl={avatarUrl}
         initials={initials}
         handle={participant.handle}
+        followingCount={followingTotal ?? 0}
       />
       <MembershipsPanel
         memberships={memberships}
