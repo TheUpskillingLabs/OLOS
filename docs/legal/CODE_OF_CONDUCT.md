@@ -2,9 +2,6 @@
 
 **Effective date:** July 6, 2026
 
-> **Draft for review.** This Code of Conduct was newly authored and should be reviewed
-> and adopted by The Upskilling Labs' leadership and board before it is treated as final.
-
 The Upskilling Labs is a community built on learning together — openly, in person, and with
 respect. This Code of Conduct sets the expectations for everyone who takes part, so the
 Labs stays a place where anyone can show up, contribute, and belong. It is part of the

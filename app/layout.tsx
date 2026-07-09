@@ -16,7 +16,7 @@ const geologica = Geologica({
 // automatically by Next's metadata file conventions; the blocks below add the
 // text/type/URL tags that pair with them.
 const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://app.theupskillinglabs.org";
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://olos.theupskillinglabs.org";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
