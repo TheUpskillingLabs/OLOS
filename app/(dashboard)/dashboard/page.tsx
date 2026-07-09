@@ -640,6 +640,79 @@ export default async function DashboardPage() {
   // member elsewhere: the log section must use their full eligibility
   // (gate + logCycles), not forced journal mode, and their workstreams must
   // render, or the org gate locks them out of the whole app with no banner.
+  // The shared 3-panel scaffold — used by EVERY dashboard state now, not just
+  // the engaged one. Left = identity + the groups you belong to (empty-friendly);
+  // right = org news. memberships is fetched for all states (incl. onboarding).
+  const memberships = await getParticipantMemberships(participant.id, {
+    metroId: memberLabId,
+    activeCycle: activeCycle
+      ? {
+          id: activeCycle.id,
+          name: activeCycle.name,
+          start_date: activeCycle.start_date,
+          end_date: activeCycle.end_date,
+          sector_id: activeCycle.sector_id,
+          mode: activeCycle.mode,
+        }
+      : null,
+  });
+  const labName = memberships.lab?.name ?? null;
+
+  const leftPanel = (
+    <div className="dash-left flex flex-col gap-6">
+      <ProfileMiniCard
+        displayName={displayName}
+        headline={participant.headline}
+        metroName={labName}
+        avatarUrl={avatarUrl}
+        initials={initials}
+        handle={participant.handle}
+      />
+      <MembershipsPanel
+        memberships={memberships}
+        mode={activeCycle?.mode ?? null}
+      />
+      <QuickLinks cycleId={activeCycle?.id} />
+      {otherCycles.length > 0 && (
+        <details className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
+          <summary className="lbl cursor-pointer hover:text-charcoal">
+            Past cycles
+          </summary>
+          <div className="mt-4 flex flex-col gap-2">
+            {otherCycles.map((cycle) => {
+              const variant =
+                STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
+              return (
+                <Link
+                  key={cycle.id}
+                  href={`/cycles/${cycle.id}`}
+                  className="flex items-center justify-between gap-3 rounded-card border border-ink/10 bg-white px-4 py-3 transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-ink">
+                      {cycle.name}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-meta">
+                      {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
+                      {new Date(cycle.end_date).toLocaleDateString()}
+                    </span>
+                  </span>
+                  <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
+                </Link>
+              );
+            })}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+
+  const rightPanel = (
+    <aside className="dash-right flex flex-col gap-6">
+      <AnnouncementsPanel labId={memberLabId} labName={labName} />
+    </aside>
+  );
+
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
@@ -654,19 +727,28 @@ export default async function DashboardPage() {
               : "You're almost in — here's how to get set up."
           }
         />
-        {/* Org-only staff lead with their actual work; the cohort join CTA
-            is for the participant pipeline they're not in. */}
-        {orgActive && workstreamsSection}
-        {fieldSurvey && fieldSurveyCard(fieldSurvey)}
-        <SetupChecklist items={checklistItems} />
-        {!orgActive &&
-          (upcomingCycle
-            ? preRegisteredUpcoming
-              ? preRegisteredCard(upcomingCycle)
-              : joinCycleCard(upcomingCycle, true)
-            : joinCycleCard(activeCycle, false))}
-        <div className="mt-8">{logSectionFor(!orgActive)}</div>
-        {leadershipSection}
+        <div className="dash-12">
+          <div className="dash-center">
+            {/* Org-only staff lead with their actual work; the cohort join CTA
+                is for the participant pipeline they're not in. */}
+            {orgActive && workstreamsSection}
+            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
+            <SetupChecklist items={checklistItems} />
+            {!orgActive &&
+              (upcomingCycle
+                ? preRegisteredUpcoming
+                  ? preRegisteredCard(upcomingCycle)
+                  : joinCycleCard(upcomingCycle, true)
+                : joinCycleCard(activeCycle, false))}
+            <div className="mt-8">{logSectionFor(!orgActive)}</div>
+            {leadershipSection}
+            <div className="mt-8">
+              <UpdatesFeed />
+            </div>
+          </div>
+          {leftPanel}
+          {rightPanel}
+        </div>
       </div>
     );
   }
@@ -690,25 +772,36 @@ export default async function DashboardPage() {
                 : "Here's your home base at The Labs. The next Build Cycle will show up right here."
           }
         />
-        {orgActive && workstreamsSection}
-        {fieldSurvey && fieldSurveyCard(fieldSurvey)}
-        {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
-        {!orgActive &&
-          (upcomingCycle ? (
-            preRegisteredUpcoming ? (
-              preRegisteredCard(upcomingCycle)
-            ) : (
-              joinCycleCard(upcomingCycle, true)
-            )
-          ) : (
-            <EmptyState
-              icon={Calendar}
-              title="No cycle running right now"
-              description="Check back soon for the next Build Cycle."
-            />
-          ))}
-        <div className="mt-8">{logSectionFor(!orgActive)}</div>
-        {leadershipSection}
+        <div className="dash-12">
+          <div className="dash-center">
+            {orgActive && workstreamsSection}
+            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
+            {checklistItems.length > 0 && (
+              <SetupChecklist items={checklistItems} />
+            )}
+            {!orgActive &&
+              (upcomingCycle ? (
+                preRegisteredUpcoming ? (
+                  preRegisteredCard(upcomingCycle)
+                ) : (
+                  joinCycleCard(upcomingCycle, true)
+                )
+              ) : (
+                <EmptyState
+                  icon={Calendar}
+                  title="No cycle running right now"
+                  description="Check back soon for the next Build Cycle."
+                />
+              ))}
+            <div className="mt-8">{logSectionFor(!orgActive)}</div>
+            {leadershipSection}
+            <div className="mt-8">
+              <UpdatesFeed />
+            </div>
+          </div>
+          {leftPanel}
+          {rightPanel}
+        </div>
       </div>
     );
   }
@@ -780,24 +873,6 @@ export default async function DashboardPage() {
     activeCycle &&
     podWindowOpen &&
     myPods.length < podLimit;
-
-  // The left-rail "pages/groups" — org unit, lab, cycle, pods, projects. Only
-  // reached in the engaged return (the no-cycle/no-enrollment states returned
-  // above), so this query never runs for onboarding.
-  const memberships = await getParticipantMemberships(participant.id, {
-    metroId: memberLabId,
-    activeCycle: activeCycle
-      ? {
-          id: activeCycle.id,
-          name: activeCycle.name,
-          start_date: activeCycle.start_date,
-          end_date: activeCycle.end_date,
-          sector_id: activeCycle.sector_id,
-          mode: activeCycle.mode,
-        }
-      : null,
-  });
-  const labName = memberships.lab?.name ?? null;
 
   return (
     <div>
@@ -924,60 +999,9 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* LEFT — identity + the pages/groups you belong to + durable nav */}
-        <div className="dash-left flex flex-col gap-6">
-          <ProfileMiniCard
-            displayName={displayName}
-            headline={participant.headline}
-            metroName={labName}
-            avatarUrl={avatarUrl}
-            initials={initials}
-            handle={participant.handle}
-          />
-          <MembershipsPanel
-            memberships={memberships}
-            mode={activeCycle?.mode ?? null}
-          />
-          <QuickLinks cycleId={activeCycle?.id} />
+        {leftPanel}
 
-          {/* Past cycles — a compact archive, tucked away */}
-          {otherCycles.length > 0 && (
-            <details className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
-              <summary className="lbl cursor-pointer hover:text-charcoal">
-                Past cycles
-              </summary>
-              <div className="mt-4 flex flex-col gap-2">
-                {otherCycles.map((cycle) => {
-                  const variant =
-                    STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
-                  return (
-                    <Link
-                      key={cycle.id}
-                      href={`/cycles/${cycle.id}`}
-                      className="flex items-center justify-between gap-3 rounded-card border border-ink/10 bg-white px-4 py-3 transition-colors duration-150 ease-out hover:border-ink/20 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-ink">
-                          {cycle.name}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-meta">
-                          {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                          {new Date(cycle.end_date).toLocaleDateString()}
-                        </span>
-                      </span>
-                      <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
-                    </Link>
-                  );
-                })}
-              </div>
-            </details>
-          )}
-        </div>
-
-        {/* RIGHT — org news & announcements */}
-        <aside className="dash-right flex flex-col gap-6">
-          <AnnouncementsPanel labId={memberLabId} labName={labName} />
-        </aside>
+        {rightPanel}
       </div>
     </div>
   );
