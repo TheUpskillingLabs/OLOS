@@ -36,7 +36,7 @@ import { createInterface } from "node:readline/promises";
 //               cethihabtddiujzayaxe  IS dev/staging (retains pre-split data)
 // MUST match whatever is currently prod, not historical prod.
 const PROD_PROJECT_REF = "cdbgkgkjnomjnpicaxqe";
-const DEFAULT_APP_URL = "https://olos.theupskillinglabs.org";
+const DEFAULT_APP_URL = "https://theupskillinglabs.org";
 const EMAIL_SUBJECT = "You're invited to The Upskilling Labs";
 const PER_ROW_DELAY_MS = 200;
 

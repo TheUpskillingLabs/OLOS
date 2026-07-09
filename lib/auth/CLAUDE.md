@@ -450,12 +450,15 @@ Sequenced — each step depends on the previous:
    `https://<project-ref>.supabase.co/auth/v1/callback`.
 2. **Supabase Studio → Auth → Providers → Google** — paste client_id +
    secret from step 1.
-3. **Supabase Studio → Auth → URL Configuration** — set `Site URL` and
-   add the prod app domain to Redirect URLs
-   (`https://olos.theupskillinglabs.org/api/auth/callback`). The
-   `app.theupskillinglabs.org` subdomain referenced in earlier drafts was
-   never DNS'd; production lives on `olos.theupskillinglabs.org` per the
-   Vercel project's domain configuration.
+3. **Supabase Studio → Auth → URL Configuration** — set `Site URL` to
+   `https://theupskillinglabs.org` and add
+   `https://theupskillinglabs.org/api/auth/callback` to Redirect URLs.
+   Production is moving onto the apex `theupskillinglabs.org` as the legacy
+   Squarespace marketing site is folded into this app; the earlier
+   `olos.theupskillinglabs.org` subdomain and the never-DNS'd
+   `app.theupskillinglabs.org` are both superseded. Leave the
+   `olos.…/api/auth/callback` entry in the allow-list until that subdomain is
+   retired so in-flight sign-ins don't break during cutover.
 4. ✅ **Resend** — verified `enroll.theupskillinglabs.org` (subdomain mode);
    SPF + DKIM + DMARC passing on the 2026-05-08 first prod send. Approved
    sender is `noreply@enroll.theupskillinglabs.org` (in-code default

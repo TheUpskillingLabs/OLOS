@@ -1,8 +1,7 @@
 import { ProsePage } from "@/app/components/chrome/prose-page";
 
 /* Code of Conduct — hosted on-site. Copy mirrors docs/legal/CODE_OF_CONDUCT.md
-   (the source of truth); keep the two in sync. Note: newly authored — pending
-   org/board review before it is treated as final. */
+   (the source of truth); keep the two in sync when either changes. */
 
 export const dynamic = "force-dynamic";
 
