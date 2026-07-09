@@ -119,7 +119,7 @@ export default function NavSearch() {
       <Link
         href="/directory?focus=1"
         aria-label="Search the directory"
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white min-[900px]:hidden"
+        className="appnav-search-icon grid h-10 w-10 shrink-0 place-items-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white min-[900px]:hidden"
       >
         <Search className="h-5 w-5" aria-hidden />
       </Link>

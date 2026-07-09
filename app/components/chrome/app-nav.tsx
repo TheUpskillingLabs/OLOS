@@ -174,6 +174,44 @@ export default function AppNav({
               Directory
             </Link>
             </nav>
+            {/* Mobile destination nav (<768px) — icon-only, sharing the single
+                top row with the logo + avatar (the desktop text nav-links above
+                collapse away). Replaces the old fixed bottom tab bar. */}
+            <nav className="appnav-mobile" aria-label="Sections">
+              <Link
+                className={`am-tab${isActive(pathname, "/dashboard") ? " active" : ""}`}
+                href="/dashboard"
+                aria-label={logDue ? "Home — Log due" : "Home"}
+              >
+                <span className="am-icon">
+                  {HOME_ICON}
+                  {logDue && <span className="am-pip" aria-hidden />}
+                </span>
+              </Link>
+              {hasEnrollment && (
+                <Link
+                  className={`am-tab${isActive(pathname, "/cycles") ? " active" : ""}`}
+                  href="/cycles"
+                  aria-label="My Cycle"
+                >
+                  <span className="am-icon">{CYCLE_ICON}</span>
+                </Link>
+              )}
+              <Link
+                className={`am-tab${isActive(pathname, "/learning") ? " active" : ""}`}
+                href="/learning"
+                aria-label="Learning"
+              >
+                <span className="am-icon">{LEARNING_ICON}</span>
+              </Link>
+              <Link
+                className={`am-tab${isActive(pathname, "/directory") ? " active" : ""}`}
+                href="/directory"
+                aria-label="Directory"
+              >
+                <span className="am-icon">{DIRECTORY_ICON}</span>
+              </Link>
+            </nav>
           </>
         )}
         <AvatarMenu
@@ -189,46 +227,6 @@ export default function AppNav({
           labLeadHref={labLeadHref}
         />
       </div>
-      {/* Mobile destination strip (< 768px) — the top-bar nav that replaces the
-          old fixed bottom tab bar. Hidden on persona surfaces (admin/moderator)
-          and on desktop, where the text nav-links above take over. */}
-      {!persona && (
-        <nav className="appnav-mobile" aria-label="Sections">
-          <Link
-            className={`am-tab${isActive(pathname, "/dashboard") ? " active" : ""}`}
-            href="/dashboard"
-          >
-            <span className="am-icon">
-              {HOME_ICON}
-              {logDue && <span className="am-pip" aria-hidden />}
-            </span>
-            <span>Home</span>
-          </Link>
-          {hasEnrollment && (
-            <Link
-              className={`am-tab${isActive(pathname, "/cycles") ? " active" : ""}`}
-              href="/cycles"
-            >
-              <span className="am-icon">{CYCLE_ICON}</span>
-              <span>Cycle</span>
-            </Link>
-          )}
-          <Link
-            className={`am-tab${isActive(pathname, "/learning") ? " active" : ""}`}
-            href="/learning"
-          >
-            <span className="am-icon">{LEARNING_ICON}</span>
-            <span>Learning</span>
-          </Link>
-          <Link
-            className={`am-tab${isActive(pathname, "/directory") ? " active" : ""}`}
-            href="/directory"
-          >
-            <span className="am-icon">{DIRECTORY_ICON}</span>
-            <span>Directory</span>
-          </Link>
-        </nav>
-      )}
     </header>
   );
 }
