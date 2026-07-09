@@ -2,8 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { fetchDirectoryData } from "@/lib/directory/data";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import DirectorySearch from "./directory-search";
 import UpdatesFeed from "./updates-feed";
+import PeopleYouMayKnow from "../people-you-may-know";
 
 /**
  * /directory — the community directory (roadmap Phase 2). Members-only: the
@@ -26,6 +28,28 @@ export const dynamic = "force-dynamic";
 export default async function DirectoryPage() {
   const data = await fetchDirectoryData();
 
+  // Resolve the viewer for the "People you may know" suggestions.
+  let viewerId: number | null = null;
+  let viewerMetroId: number | null = null;
+  {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const service = createServiceClient();
+      const { data: me } = await service
+        .from("participants")
+        .select("id, metro_id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      if (me) {
+        viewerId = me.id;
+        viewerMetroId = me.metro_id ?? null;
+      }
+    }
+  }
+
   return (
     <div className="space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -41,6 +65,15 @@ export default async function DirectoryPage() {
           Cities
         </Link>
       </header>
+
+      {viewerId != null && (
+        <PeopleYouMayKnow
+          viewerId={viewerId}
+          metroId={viewerMetroId}
+          limit={6}
+          variant="grid"
+        />
+      )}
 
       {/* The island reads useSearchParams — Suspense keeps Next happy. */}
       <Suspense>

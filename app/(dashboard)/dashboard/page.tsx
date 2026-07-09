@@ -23,7 +23,9 @@ import FeedComposer from "./feed-composer";
 import ProfileMiniCard from "./profile-mini-card";
 import MembershipsPanel from "./memberships-panel";
 import AnnouncementsPanel from "./announcements-panel";
+import PeopleYouMayKnow from "../people-you-may-know";
 import { getParticipantMemberships } from "@/lib/participants/memberships";
+import { ensureLabFollowSeeded } from "@/lib/follows/seed";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
@@ -56,11 +58,15 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle, lab_follow_seeded").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
   ]);
 
   if (!participant) redirect("/register");
+
+  // One-time seed: a member with an active lab follows that lab page by default
+  // (respects a later manual unfollow via the lab_follow_seeded flag).
+  await ensureLabFollowSeeded(serviceClient, participant);
 
   // Local Labs are sub-cohorts of the single HQ participant cycle
   // (docs/LOCAL_LABS.md, 00067): the open track always resolves to the HQ
@@ -401,6 +407,15 @@ export default async function DashboardPage() {
   // SetupChecklist collapses to a strip once every row is done.
   const profileDone = !!(participant.bio || participant.headline);
 
+  // Onboarding "follow people you know" step — done once the member follows at
+  // least one other member (page follows, incl. the auto-seeded lab, don't count).
+  const { count: followingCount } = await serviceClient
+    .from("follows")
+    .select("id", { head: true, count: "exact" })
+    .eq("follower_participant_id", participant.id)
+    .not("followee_participant_id", "is", null);
+  const followsAnyone = (followingCount ?? 0) > 0;
+
   // The "Register" row leads to the cohort the member should register for. In
   // the onboarding states (no active enrollment yet) that's the upcoming cohort
   // when one is open for pre-registration — matching where the signup funnel
@@ -455,6 +470,13 @@ export default async function DashboardPage() {
       done: profileDone,
       href: "/profile/edit",
       cta: "Edit",
+    },
+    {
+      key: "follow",
+      label: "Follow people you know",
+      done: followsAnyone,
+      href: "/directory",
+      cta: "Find",
     },
     ...(registerCycle
       ? [
@@ -703,6 +725,11 @@ export default async function DashboardPage() {
   const rightPanel = (
     <aside className="dash-right flex flex-col gap-6">
       <AnnouncementsPanel labId={memberLabId} labName={labName} />
+      <PeopleYouMayKnow
+        viewerId={participant.id}
+        metroId={memberLabId}
+        variant="rail"
+      />
     </aside>
   );
 
