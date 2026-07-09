@@ -890,10 +890,10 @@ export default async function DashboardPage() {
       )}
 
       {/* Adaptive LinkedIn-style field below the timeline: left identity +
-          groups (4/12), center actions + community feed (5/12), right org news
+          groups (3/12), center actions + community feed (6/12), right org news
           (3/12). Three tiers via .dash-12 (globals.css): 1-col mobile → 2-col
-          tablet → 12-col (4-5-3) desktop. DOM order center → left → right leads
-          mobile with the actions. */}
+          tablet → 12-col (3-6-3) desktop, left & right rails sticky. DOM order
+          center → left → right leads mobile with the actions. */}
       <div className="dash-12">
         {/* CENTER — what to do now, then the community feed */}
         <div className="dash-center">

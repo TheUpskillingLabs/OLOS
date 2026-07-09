@@ -790,7 +790,7 @@ button:focus-visible {
      center → left → right so mobile leads with the actions/feed.
        mobile  (<768):     single column, actions first
        tablet  (768–1023): 2-col main + rail; identity & news stack in the rail
-       desktop (≥1024):    12-col grid, 4-5-3 (left | center | right)
+       desktop (≥1024):    12-col grid, 3-6-3; left & right rails go sticky
      grid-row:1 pins all three to the same row — without it, the default sparse
      auto-flow drops the earlier-column items (left/right) below the DOM-first
      center, which read as the columns falling "below the feed". */
@@ -803,9 +803,11 @@ button:focus-visible {
   }
   @media (min-width: 1024px) {
     .dash-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; row-gap: 32px; }
-    .dash-12 > .dash-left { grid-column: 1 / span 4; grid-row: 1; }
-    .dash-12 > .dash-center { grid-column: 5 / span 5; grid-row: 1; }
-    .dash-12 > .dash-right { grid-column: 10 / span 3; grid-row: 1; }
+    /* left & right rails stick under the app bar once scrolled to; center scrolls.
+       align-self:start keeps each rail its own height so sticky has room to move. */
+    .dash-12 > .dash-left { grid-column: 1 / span 3; grid-row: 1; position: sticky; top: 88px; align-self: start; }
+    .dash-12 > .dash-center { grid-column: 4 / span 6; grid-row: 1; }
+    .dash-12 > .dash-right { grid-column: 10 / span 3; grid-row: 1; position: sticky; top: 88px; align-self: start; }
   }
 }
 
