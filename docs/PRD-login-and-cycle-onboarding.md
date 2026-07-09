@@ -432,7 +432,7 @@ The copy below is a draft. Final wording should go through whoever owns brand vo
 
 - `preferred_name` (falls back to `first_name` if null)
 - `cycle_name` (only used in the primary variant)
-- `cycle_join_url` (only used in the primary variant; typically `https://olos.theupskillinglabs.org/cycles/{cycle_id}/join`)
+- `cycle_join_url` (only used in the primary variant; typically `https://theupskillinglabs.org/cycles/{cycle_id}/join`)
 
 **Conditional logic:**
 
@@ -472,7 +472,7 @@ The copy below is a draft. Final wording should go through whoever owns brand vo
 
 **Template variables required:**
 
-- `login_url` (typically `https://olos.theupskillinglabs.org/login`)
+- `login_url` (typically `https://theupskillinglabs.org/login`)
 
 **Security notes:**
 
