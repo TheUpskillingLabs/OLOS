@@ -531,12 +531,27 @@ erDiagram
         timestamptz created_at
     }
 
+    announcements {
+        int id PK
+        varchar title
+        text body
+        int author_participant_id FK "nullable — system posts"
+        int lab_id FK "→ metros(id); NULL = global (00070)"
+        varchar status "draft/published/archived"
+        boolean pinned
+        timestamptz published_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     metros ||--o{ metro_waitlist_signups : "collects"
     metros ||--o{ cycles : "lab stream (00062; NULL = HQ)"
     metros ||--o{ workstreams : "lab workstreams (00062)"
     metros ||--o{ lab_leads : "leadership (00062)"
+    metros ||--o{ announcements : "lab-scoped news (00070; NULL = global)"
     participants ||--o{ lab_leads : "leads"
     participants ||--o{ metro_waitlist_signups : "joins"
+    participants ||--o{ announcements : "authors"
     events ||--o{ event_rsvps : "collects"
 ```
 
@@ -557,6 +572,8 @@ erDiagram
 **Learning Log (migrations `00040`, `00041` — roadmap Phase 1):** `learning_logs` is the weekly practice ritual replacing `pulse_checks` for new cycles (pulse history stays, private, untouched). Three parts in one row: health check (`clarity`/`alignment` 1–5 + `is_blocked`/`blocker_context` — visible to the member, their Poderator, and admins; never shared), scaffolded reflection (`accomplished`/`exploring`/`next_focus`), and `share_publicly` — when true the API writes a `profile_updates` row carrying ONLY the concatenated paragraph (provenance via `learning_log_id`; the metrics never travel). `kind` carries the milestone variants (`milestone_7` / `milestone_13`, surfaced as Mid-cycle / End-cycle) — opened on the admin-configurable `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default weeks 6 / 12), server-derived at write time. No per-window unique — unlimited logs. The weekly gate is config-as-data: the Friday cron (`/api/cron/learning-log-window`) stamps `cycle_config.log_due_at`; an active enrollee with no log at/after the stamp is locked to the dashboard (`lib/learning-logs/gate.ts`); `log_gate_paused` is the grace toggle. RLS: self + cycle-staff SELECT, self INSERT, append-only; `profile_updates` is authenticated-SELECT (`visibility='labs'`), self-DELETE, service-role INSERT only. `participants.is_staff`/`is_test` (00041) are roster-visibility flags (hidden by default on Poderator rosters, excluded from health math) — never permissions.
 
 **Upskiller Spotlights (migration `00051`):** `spotlights` is the public `/stories` page (onboarding-proto's `stories.html`) plus its submission pipeline, in one table. A "Share your story" submission (public `POST /api/stories`, per-IP throttled) lands as a row with `status='submitted'` and only `name` + `story` filled; the Labs team enriches the editorial fields (`role`, `tag`, `tag_label`, `quote`, `grad`) and flips `status='published'` from `/admin/stories` (`PATCH /api/admin/stories/[id]`, which stamps `published_at` and derives a unique `slug` — the `#s-{slug}` deep-link contract). RLS is anon-SELECT-`published`-only (mirrors events/resources); every write is service-role. Launches empty — no auto-publish (owner decision, concierge review), the same empty-until-real posture the Library took in `00036`. `image_url` (migration `00052`) is an optional member headshot (a `/assets/...` static path or an absolute URL); when NULL the `/stories` card + landing story row fall back to the orb placeholder — the same image-or-orb pattern the content teasers use for events/resources.
+
+**Org announcements (migration `00070`):** `announcements` is the admin-authored org-news feed in the participant dashboard's right rail — a first-class content table alongside `spotlights`/`events`. `lab_id` follows the `cycles`/`workstreams` scope model (00062): `NULL` = global/org-wide, set = one local lab (`metros`); a member sees published rows that are global OR match their own `metro_id`. Lifecycle is `draft`→`published`→`archived` with a `pinned` float; publishing stamps `published_at` (once set, kept). Authoring is `/admin/announcements` (`POST /api/admin/announcements`, `PATCH`/`DELETE /api/admin/announcements/[id]`), all service-role + admin-gated; `author_participant_id` is nullable for institutional posts. RLS: authenticated SELECT of `published` rows (admins see every status for the review surface), `is_admin_or_owner()` writes; lab-scoping is applied in the query, not the policy. `updated_at` owned by the shared `set_updated_at()` trigger (00037).
 
 **Saved items (migration `00050`):** `saved_items` is a member's hearted content — the "Saved" vertical on the authed `/learning` page (onboarding-proto's `userState.saved`). Polymorphic by slug: `(item_type ∈ {event, resource}, slug)` points at the stable, URL-matching slug (events + resources are seeded idempotently by slug — 00033/00034), so a saved row survives a re-seed and maps 1:1 to `/events/{slug}` · `/library/{slug}`. `UNIQUE(participant_id, item_type, slug)`. The toggle route `POST /api/saved` (session identity, service-role) validates the slug against a *published* item before saving. RLS is self-only for SELECT/INSERT/DELETE (`participant_id = current_participant_id()`).
 
@@ -765,6 +782,7 @@ erDiagram
 | `metros` | Public Content | Local labs / cities — `active` or `waitlist` |
 | `metro_waitlist_signups` | Public Content | Participant ↔ metro waitlist joins (unique pair) |
 | `event_rsvps` | Public Content | Email-only public RSVPs (never account-gated) |
+| `announcements` | Public Content | Admin-authored org news for the dashboard rail; `lab_id` NULL = global, else lab-scoped (00070) |
 | `learning_logs` | Practice | The weekly ritual: health check + reflection + share flag (replaces pulse_checks for new cycles). For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
 | `leadership_logs` | Practice | The org leadership cascade (00069): weekly reflections by `workstream_lead` (Thu) and `lab_lead` (Fri) tiers, scoped to a run pod or a lab; non-blocking, written in the context of the tier below |
 | `profile_updates` | Practice | Member updates feed — written ONLY by Learning Log shares |

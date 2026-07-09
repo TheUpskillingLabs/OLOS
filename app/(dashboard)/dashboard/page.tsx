@@ -18,6 +18,11 @@ import UpNext, { type TodoCard } from "./up-next";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import ShareSurveyButton from "./share-survey-button";
+import UpdatesFeed from "../directory/updates-feed";
+import ProfileMiniCard from "./profile-mini-card";
+import MembershipsPanel from "./memberships-panel";
+import AnnouncementsPanel from "./announcements-panel";
+import { getParticipantMemberships } from "@/lib/participants/memberships";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
@@ -50,7 +55,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
   ]);
 
@@ -776,6 +781,24 @@ export default async function DashboardPage() {
     podWindowOpen &&
     myPods.length < podLimit;
 
+  // The left-rail "pages/groups" — org unit, lab, cycle, pods, projects. Only
+  // reached in the engaged return (the no-cycle/no-enrollment states returned
+  // above), so this query never runs for onboarding.
+  const memberships = await getParticipantMemberships(participant.id, {
+    metroId: memberLabId,
+    activeCycle: activeCycle
+      ? {
+          id: activeCycle.id,
+          name: activeCycle.name,
+          start_date: activeCycle.start_date,
+          end_date: activeCycle.end_date,
+          sector_id: activeCycle.sector_id,
+          mode: activeCycle.mode,
+        }
+      : null,
+  });
+  const labName = memberships.lab?.name ?? null;
+
   return (
     <div>
       <DashboardHero
@@ -791,11 +814,14 @@ export default async function DashboardPage() {
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
-      {/* Two-column working layout: the main column carries what to do now;
-          the right rail carries the durable utilities (LinkedIn's rail in
-          the light system). Collapses to a single column below 768px. */}
-      <div className="dash">
-        <div>
+      {/* Adaptive LinkedIn-style field below the timeline: center actions +
+          community feed (4/7), left identity + groups (2/7), right org news
+          (1/7). Three tiers via .dash-7 (globals.css): 1-col mobile → 2-col
+          tablet → 7-col desktop. DOM order center → left → right leads mobile
+          with the actions. */}
+      <div className="dash-7">
+        {/* CENTER — what to do now, then the community feed */}
+        <div className="dash-center">
           {/* The field survey is the cohort's opening activity — the first CTA. */}
           {fieldSurvey && fieldSurveyCard(fieldSurvey)}
 
@@ -889,12 +915,29 @@ export default async function DashboardPage() {
           {/* Your workstreams — extracted above so the org-only early-return
               states can render it too. */}
           {workstreamsSection}
+
+          {/* Below the actions: your commitments + the community updates feed. */}
+          <div className="mt-8 space-y-8">
+            {/* Your commitments — the dated anchor events + .ics, always findable */}
+            <CycleCommitments />
+            <UpdatesFeed />
+          </div>
         </div>
 
-        {/* Right rail — durable utilities */}
-        <aside className="flex flex-col gap-6">
-          {/* Your commitments — the dated anchor events + .ics, always findable */}
-          <CycleCommitments />
+        {/* LEFT — identity + the pages/groups you belong to + durable nav */}
+        <div className="dash-left flex flex-col gap-6">
+          <ProfileMiniCard
+            displayName={displayName}
+            headline={participant.headline}
+            metroName={labName}
+            avatarUrl={avatarUrl}
+            initials={initials}
+            handle={participant.handle}
+          />
+          <MembershipsPanel
+            memberships={memberships}
+            mode={activeCycle?.mode ?? null}
+          />
           <QuickLinks cycleId={activeCycle?.id} />
 
           {/* Past cycles — a compact archive, tucked away */}
@@ -929,6 +972,11 @@ export default async function DashboardPage() {
               </div>
             </details>
           )}
+        </div>
+
+        {/* RIGHT — org news & announcements */}
+        <aside className="dash-right flex flex-col gap-6">
+          <AnnouncementsPanel labId={memberLabId} labName={labName} />
         </aside>
       </div>
     </div>

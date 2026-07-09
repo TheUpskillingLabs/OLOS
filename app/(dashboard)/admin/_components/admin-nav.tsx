@@ -9,6 +9,7 @@ import {
   Users,
   KeyRound,
   FileText,
+  Megaphone,
   ClipboardList,
   Database,
   type LucideIcon,
@@ -74,6 +75,12 @@ const BASE_ITEMS: NavItem[] = [
     label: "Content",
     Icon: FileText,
     match: (p) => p.startsWith("/admin/content") || p.startsWith("/admin/stories"),
+  },
+  {
+    href: "/admin/announcements",
+    label: "Announcements",
+    Icon: Megaphone,
+    match: (p) => p.startsWith("/admin/announcements"),
   },
   {
     href: "/admin/surveys",

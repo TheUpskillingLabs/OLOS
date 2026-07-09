@@ -777,6 +777,28 @@ button:focus-visible {
     .cycle-banner { flex-direction: row; align-items: center; justify-content: space-between; gap: 40px; padding: 40px 48px; }
     .cycle-banner .cb-cta { width: auto; flex-shrink: 0; }
   }
+
+  /* Engaged-dashboard field — three adaptive tiers (LinkedIn-style). DOM order
+     is center → left → right so mobile leads with the actions/feed.
+       mobile  (<768):     single column, actions first
+       tablet  (768–1279): 2-col main + rail; identity & news stack in the rail
+       desktop (≥1280):    full 7-col grid, 2·4·1 (left | center | right) */
+  .dash-7 { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start; }
+  @media (min-width: 768px) and (max-width: 1279.98px) {
+    .dash-7 { grid-template-columns: 1fr 300px; column-gap: 32px; grid-template-areas: "center left" "center right"; }
+    .dash-7 > .dash-center { grid-area: center; }
+    .dash-7 > .dash-left { grid-area: left; }
+    .dash-7 > .dash-right { grid-area: right; }
+  }
+  @media (min-width: 1024px) and (max-width: 1279.98px) {
+    .dash-7 { grid-template-columns: 1fr 340px; column-gap: 48px; }
+  }
+  @media (min-width: 1280px) {
+    .dash-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: var(--pad); row-gap: 40px; }
+    .dash-7 > .dash-left { grid-column: 1 / span 2; }
+    .dash-7 > .dash-center { grid-column: 3 / span 4; }
+    .dash-7 > .dash-right { grid-column: 7 / span 1; }
+  }
 }
 
 @keyframes pulse {
