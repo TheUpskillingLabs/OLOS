@@ -114,14 +114,18 @@ export default async function SectorPage({
           )}
         </section>
 
-        <section className="mt-10">
-          <PageUpdatesSection
-            type="sector"
-            id={sector.id}
-            name={sector.name}
-            ctx={ctx}
-          />
-        </section>
+        {/* Members-only: page updates are 'labs' visibility, so the feed shows
+            only to signed-in members (this page is public). */}
+        {ctx.viewerId != null && (
+          <section className="mt-10">
+            <PageUpdatesSection
+              type="sector"
+              id={sector.id}
+              name={sector.name}
+              ctx={ctx}
+            />
+          </section>
+        )}
       </div>
     </>
   );

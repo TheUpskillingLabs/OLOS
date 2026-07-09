@@ -111,14 +111,17 @@ export default async function WorkstreamPage({
           )}
         </section>
 
-        <section className="mt-10">
-          <PageUpdatesSection
-            type="workstream"
-            id={workstream.id}
-            name={workstream.name}
-            ctx={ctx}
-          />
-        </section>
+        {/* Members-only feed on a public page — gate to signed-in members. */}
+        {ctx.viewerId != null && (
+          <section className="mt-10">
+            <PageUpdatesSection
+              type="workstream"
+              id={workstream.id}
+              name={workstream.name}
+              ctx={ctx}
+            />
+          </section>
+        )}
       </div>
     </>
   );

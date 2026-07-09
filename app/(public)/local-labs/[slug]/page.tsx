@@ -184,11 +184,14 @@ export default async function LabPage({
             </div>
           </div>
         )}
-        <section className="section">
-          <div className="container">
-            <PageUpdatesSection type="lab" id={m.id} name={m.name} ctx={ctx} />
-          </div>
-        </section>
+        {/* Members-only feed on a public page — gate to signed-in members. */}
+        {ctx.viewerId != null && (
+          <section className="section">
+            <div className="container">
+              <PageUpdatesSection type="lab" id={m.id} name={m.name} ctx={ctx} />
+            </div>
+          </section>
+        )}
         <section className="section">
           <div className="container">
             <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
