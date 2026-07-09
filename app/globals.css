@@ -744,17 +744,18 @@ button:focus-visible {
     .sitenav.appnav .nav-links ~ .avatar-wrap { margin-left: 12px; }
   }
 
-  /* the app bottom tab bar (phone furniture, <768px) */
-  .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; display: flex; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(12px); border-top: 1px solid var(--rule); padding: 8px 8px max(12px, env(safe-area-inset-bottom)); }
-  .tabbar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; background: none; border: none; cursor: pointer; color: var(--meta); text-decoration: none; transition: color 0.15s; }
-  .tabbar .tab svg { width: 24px; height: 24px; }
-  .tabbar .tab span { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
-  .tabbar .tab.active { color: var(--teal-deep); }
-  .tabbar .tab .tab-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--teal-deep); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
-  @media (min-width: 768px) { .tabbar { display: none; } }
-  /* content above the tab bar never hides under it */
-  .app-main { padding-bottom: 88px; }
-  @media (min-width: 768px) { .app-main { padding-bottom: 0; } }
+  /* the mobile destination strip (phone furniture, <768px) — a second row in
+     the sticky top app bar (LinkedIn-mobile-web posture), replacing the old
+     fixed bottom tab bar. Dark-navy header, so icons ride light. */
+  .appnav .appnav-mobile { display: flex; gap: 2px; padding: 2px var(--pad) 8px; border-top: 1px solid var(--rule-d); }
+  .appnav .appnav-mobile .am-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; color: var(--od2); text-decoration: none; border-radius: var(--r); transition: color 0.15s, background 0.15s; }
+  .appnav .appnav-mobile .am-tab:hover { color: var(--od1); background: rgba(255, 255, 255, 0.06); }
+  .appnav .appnav-mobile .am-tab.active { color: var(--od1); }
+  .appnav .appnav-mobile .am-icon { position: relative; display: inline-flex; }
+  .appnav .appnav-mobile .am-icon svg { width: 22px; height: 22px; }
+  .appnav .appnav-mobile .am-pip { position: absolute; top: -1px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+  .appnav .appnav-mobile .am-tab span:last-child { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  @media (min-width: 768px) { .appnav .appnav-mobile { display: none; } }
 
   /* avatar account menu */
   .avatar-wrap { position: relative; }

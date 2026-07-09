@@ -124,7 +124,7 @@ export async function getParticipantMemberships(
     activeCycle?.sector_id != null && activeCycle.mode !== "org"
       ? service
           .from("sectors")
-          .select("id, name")
+          .select("id, name, slug")
           .eq("id", activeCycle.sector_id)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
@@ -153,7 +153,7 @@ export async function getParticipantMemberships(
         kind: "lab",
         id: labRow.id,
         name: labDisplayName(labRow.name, labRow.st),
-        href: "/local-labs",
+        href: `/local-labs/${labRow.slug}`,
       }
     : null;
 
@@ -203,14 +203,23 @@ export async function getParticipantMemberships(
   });
 
   // ── org unit ──
-  // Participant (open) cycles: the cycle's sector. Org members: the workstream
-  // behind one of their run pods (no public page → rendered as a chip). The
-  // sector query already ran above; the workstream fallback only fires for org
-  // members (a pod carrying a workstream_id), so it stays off the hot path.
+  // Participant (open) cycles: the cycle's sector → /sectors/[slug]. Org
+  // members: the workstream behind one of their run pods → /workstreams/[slug].
+  // The sector query already ran above; the workstream fallback only fires for
+  // org members (a pod carrying a workstream_id), so it stays off the hot path.
   let orgUnit: MembershipEntity | null = null;
-  const sectorRow = sectorRes.data as { id: number; name: string } | null;
+  const sectorRow = sectorRes.data as {
+    id: number;
+    name: string;
+    slug: string;
+  } | null;
   if (sectorRow) {
-    orgUnit = { kind: "orgUnit", id: sectorRow.id, name: sectorRow.name, href: null };
+    orgUnit = {
+      kind: "orgUnit",
+      id: sectorRow.id,
+      name: sectorRow.name,
+      href: `/sectors/${sectorRow.slug}`,
+    };
   } else {
     const runPod = podRows
       .map((m) => one(m.pods))
@@ -218,11 +227,16 @@ export async function getParticipantMemberships(
     if (runPod?.workstream_id != null) {
       const { data: ws } = await service
         .from("workstreams")
-        .select("id, name")
+        .select("id, name, slug")
         .eq("id", runPod.workstream_id)
         .maybeSingle();
       if (ws) {
-        orgUnit = { kind: "orgUnit", id: ws.id, name: ws.name, href: null };
+        orgUnit = {
+          kind: "orgUnit",
+          id: ws.id,
+          name: ws.name,
+          href: `/workstreams/${ws.slug}`,
+        };
       }
     }
   }

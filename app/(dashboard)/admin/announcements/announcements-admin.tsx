@@ -31,13 +31,18 @@ const inputCls =
 export default function AnnouncementsAdmin({
   initial,
   labs,
+  fixedLab,
 }: {
   initial: AdminAnnouncement[];
   labs: LabOption[];
+  /** Lab-scoped mode (the /lab/[slug] composer): audience is locked to this
+      lab, so the audience picker is hidden and every post is scoped to it. */
+  fixedLab?: { id: number; label: string };
 }) {
   const [rows, setRows] = useState<AdminAnnouncement[]>(initial);
 
   function labLabel(labId: number | null) {
+    if (fixedLab) return fixedLab.label;
     if (labId == null) return "Org-wide";
     return labs.find((l) => l.id === labId)?.label ?? `Lab #${labId}`;
   }
@@ -110,7 +115,7 @@ export default function AnnouncementsAdmin({
 
   return (
     <div className="space-y-10">
-      <ComposeForm labs={labs} onCreate={create} />
+      <ComposeForm labs={labs} fixedLab={fixedLab} onCreate={create} />
 
       {groups.map(([label, status]) => {
         const g = rows.filter((r) => r.status === status);
@@ -126,6 +131,7 @@ export default function AnnouncementsAdmin({
                     key={r.id}
                     row={r}
                     labs={labs}
+                    fixedLab={fixedLab}
                     labLabel={labLabel}
                     onPatch={patch}
                     onRemove={remove}
@@ -169,14 +175,16 @@ function LabSelect({
 
 function ComposeForm({
   labs,
+  fixedLab,
   onCreate,
 }: {
   labs: LabOption[];
+  fixedLab?: { id: number; label: string };
   onCreate: (body: Record<string, unknown>) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [labId, setLabId] = useState<number | null>(null);
+  const [labId, setLabId] = useState<number | null>(fixedLab?.id ?? null);
   const [pinned, setPinned] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -192,13 +200,13 @@ function ComposeForm({
       await onCreate({
         title: title.trim(),
         body: body.trim(),
-        lab_id: labId,
+        lab_id: fixedLab ? fixedLab.id : labId,
         pinned,
         status,
       });
       setTitle("");
       setBody("");
-      setLabId(null);
+      setLabId(fixedLab?.id ?? null);
       setPinned(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -234,7 +242,11 @@ function ComposeForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="lbl mb-1 block">Audience</span>
-            <LabSelect labs={labs} value={labId} onChange={setLabId} />
+            {fixedLab ? (
+              <p className="px-1 py-2 text-sm text-meta">{fixedLab.label}</p>
+            ) : (
+              <LabSelect labs={labs} value={labId} onChange={setLabId} />
+            )}
           </label>
           <label className="flex items-center gap-2 self-end pb-2 text-sm text-ink">
             <input
@@ -278,12 +290,14 @@ function ComposeForm({
 function AnnouncementRow({
   row,
   labs,
+  fixedLab,
   labLabel,
   onPatch,
   onRemove,
 }: {
   row: AdminAnnouncement;
   labs: LabOption[];
+  fixedLab?: { id: number; label: string };
   labLabel: (labId: number | null) => string;
   onPatch: (id: number, body: Record<string, unknown>) => Promise<void>;
   onRemove: (id: number) => Promise<void>;
@@ -351,7 +365,11 @@ function AnnouncementRow({
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className="lbl mb-1 block">Audience</span>
-            <LabSelect labs={labs} value={labId} onChange={setLabId} />
+            {fixedLab ? (
+              <p className="px-1 py-2 text-sm text-meta">{fixedLab.label}</p>
+            ) : (
+              <LabSelect labs={labs} value={labId} onChange={setLabId} />
+            )}
           </label>
           <label className="flex items-center gap-2 self-end pb-2 text-sm text-ink">
             <input

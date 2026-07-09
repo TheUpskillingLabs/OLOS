@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  withAdminAuth,
-  type AuthenticatedRequest,
-} from "@/lib/auth/middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/auth/middleware";
 import { createServiceClient } from "@/lib/supabase/server";
+import { requireLabAccess } from "@/lib/auth/lab";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { dbError } from "@/lib/api/errors";
 import { announcementCreateSchema } from "@/lib/validations/announcement";
 
-// Create an org announcement (the /admin/announcements compose form). Admin-
-// gated, service-role. lab_id null = global; publishing on create stamps
-// published_at; the acting admin is recorded as the author. Mirrors the
-// spotlight admin write pattern (app/api/admin/stories).
-export const POST = withAdminAuth(
+// Create an announcement (the /admin/announcements compose form, or the lab
+// workspace composer). Authored by an admin/owner (any audience, incl. the
+// org-wide lab_id=null) OR by a lab lead scoped to a lab they lead —
+// requireLabAccess enforces both: admin short-circuits; a lab lead is confined
+// to their labLeadLabIds; lab_id=null resolves admin-only. Service-role write;
+// publishing stamps published_at; the actor is recorded as the author.
+export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
     const body = await parseBody(request, announcementCreateSchema);
     if (isErrorResponse(body)) return body;
+
+    const guard = requireLabAccess(auth.user, body.lab_id ?? null);
+    if (guard) return guard;
 
     const service = createServiceClient();
     const insert: Record<string, unknown> = {

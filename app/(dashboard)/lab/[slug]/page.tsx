@@ -11,6 +11,9 @@ import PodsTable, {
 import WorkstreamsDirectory, {
   type WorkstreamDirectoryRow,
 } from "@/app/(dashboard)/admin/org/workstreams-directory";
+import AnnouncementsAdmin, {
+  type AdminAnnouncement,
+} from "@/app/(dashboard)/admin/announcements/announcements-admin";
 import LabInviteForm from "./lab-invite-form";
 
 /**
@@ -56,24 +59,34 @@ export default async function LabWorkspacePage({
   // The lab's cycle world (docs/LOCAL_LABS.md, sub-cohort model): the shared
   // HQ participant cycle (mode='open', lab_id NULL — every lab participates
   // in it automatically) plus this lab's own internal org cycles.
-  const [{ data: cycleRows }, { data: workstreamRows }, { data: memberRows }] =
-    await Promise.all([
-      serviceClient
-        .from("cycles")
-        .select("id, name, start_date, end_date, status, mode")
-        .or(`lab_id.eq.${lab.id},and(lab_id.is.null,mode.eq.open)`)
-        .order("start_date", { ascending: false }),
-      serviceClient
-        .from("workstreams")
-        .select("id, name, description, status")
-        .eq("lab_id", lab.id)
-        .order("name"),
-      serviceClient
-        .from("participants")
-        .select("id, first_name, last_name, preferred_name, email")
-        .eq("metro_id", lab.id)
-        .order("first_name"),
-    ]);
+  const [
+    { data: cycleRows },
+    { data: workstreamRows },
+    { data: memberRows },
+    { data: announcementRows },
+  ] = await Promise.all([
+    serviceClient
+      .from("cycles")
+      .select("id, name, start_date, end_date, status, mode")
+      .or(`lab_id.eq.${lab.id},and(lab_id.is.null,mode.eq.open)`)
+      .order("start_date", { ascending: false }),
+    serviceClient
+      .from("workstreams")
+      .select("id, name, description, status")
+      .eq("lab_id", lab.id)
+      .order("name"),
+    serviceClient
+      .from("participants")
+      .select("id, first_name, last_name, preferred_name, email")
+      .eq("metro_id", lab.id)
+      .order("first_name"),
+    serviceClient
+      .from("announcements")
+      .select("id, title, body, lab_id, status, pinned, published_at, created_at")
+      .eq("lab_id", lab.id)
+      .order("created_at", { ascending: false }),
+  ]);
+  const labAnnouncements = (announcementRows as AdminAnnouncement[]) ?? [];
 
   const cycles = (cycleRows ?? []) as CycleRow[];
   const currentCycles = cycles.filter((c) => CURRENT_STATUSES.has(c.status));
@@ -320,6 +333,20 @@ export default async function LabWorkspacePage({
           into the lab&rsquo;s internal cycle each quarter.
         </p>
         <WorkstreamsDirectory workstreams={workstreamDirectoryRows} labId={lab.id} />
+      </section>
+
+      {/* Lab announcements — lab-scoped org news for this lab's members. */}
+      <section>
+        <h2 className="mb-1 t-h3 text-ink">Announcements</h2>
+        <p className="mb-4 text-sm text-meta">
+          Post news for {lab.name} members — it shows in the org-news rail of
+          their dashboard. Scoped to this lab; HQ posts org-wide news separately.
+        </p>
+        <AnnouncementsAdmin
+          initial={labAnnouncements}
+          labs={[]}
+          fixedLab={{ id: lab.id, label: lab.name }}
+        />
       </section>
 
       {/* Invitations into this lab's cycles. */}

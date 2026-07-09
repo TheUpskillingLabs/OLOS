@@ -10,8 +10,9 @@ import {
 /**
  * The left-rail "pages/groups" list — the entities a member belongs to (org
  * unit, local lab, cycle, pods, projects), LinkedIn-style. Each row deep-links
- * when it has a route; the org unit (sector/workstream) has no public page, so
- * it renders as a plain chip.
+ * to its detail page (org unit → /sectors/[slug] or /workstreams/[slug], lab →
+ * /local-labs/[slug], plus /cycles, /pods, /projects); a row without an href
+ * falls back to a plain chip.
  */
 
 function badgeVariant(

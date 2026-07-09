@@ -6,7 +6,6 @@ import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { one } from "@/lib/supabase/embed";
 import AppNav from "@/app/components/chrome/app-nav";
-import TabBar from "@/app/components/chrome/tab-bar";
 import OrbDefs from "@/app/components/chrome/orb-defs";
 import FeedbackWidget from "@/app/components/feedback/feedback-widget";
 import { learningLogGate } from "@/lib/learning-logs/gate";
@@ -186,7 +185,6 @@ export default async function DashboardLayout({
         </div>
       )}
       <main className="app-main container w-full flex-1 py-8">{children}</main>
-      <TabBar initials={initials} avatarUrl={avatarUrl} hasEnrollment={hasEnrollment} />
       <FeedbackWidget />
     </div>
   );

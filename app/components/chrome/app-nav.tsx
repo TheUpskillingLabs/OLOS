@@ -7,6 +7,37 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import NavSearch from "./nav-search";
 
+/* Destination icons for the mobile top strip (< 768px), ported from the retired
+   bottom tab bar. LinkedIn-mobile-web posture: navigation rides the top bar. */
+const HOME_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+const CYCLE_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+    <polyline points="21 3 21 9 15 9" />
+  </svg>
+);
+const LEARNING_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </svg>
+);
+const DIRECTORY_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 /* The signed-in app bar — ported from onboarding-proto chrome.js (.sitenav.appnav).
    Design rules carried over (owner decisions):
    - the logo only ever sits on dark navy;
@@ -158,6 +189,46 @@ export default function AppNav({
           labLeadHref={labLeadHref}
         />
       </div>
+      {/* Mobile destination strip (< 768px) — the top-bar nav that replaces the
+          old fixed bottom tab bar. Hidden on persona surfaces (admin/moderator)
+          and on desktop, where the text nav-links above take over. */}
+      {!persona && (
+        <nav className="appnav-mobile" aria-label="Sections">
+          <Link
+            className={`am-tab${isActive(pathname, "/dashboard") ? " active" : ""}`}
+            href="/dashboard"
+          >
+            <span className="am-icon">
+              {HOME_ICON}
+              {logDue && <span className="am-pip" aria-hidden />}
+            </span>
+            <span>Home</span>
+          </Link>
+          {hasEnrollment && (
+            <Link
+              className={`am-tab${isActive(pathname, "/cycles") ? " active" : ""}`}
+              href="/cycles"
+            >
+              <span className="am-icon">{CYCLE_ICON}</span>
+              <span>Cycle</span>
+            </Link>
+          )}
+          <Link
+            className={`am-tab${isActive(pathname, "/learning") ? " active" : ""}`}
+            href="/learning"
+          >
+            <span className="am-icon">{LEARNING_ICON}</span>
+            <span>Learning</span>
+          </Link>
+          <Link
+            className={`am-tab${isActive(pathname, "/directory") ? " active" : ""}`}
+            href="/directory"
+          >
+            <span className="am-icon">{DIRECTORY_ICON}</span>
+            <span>Directory</span>
+          </Link>
+        </nav>
+      )}
     </header>
   );
 }
