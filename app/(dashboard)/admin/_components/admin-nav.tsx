@@ -11,6 +11,7 @@ import {
   FileText,
   Megaphone,
   ClipboardList,
+  MessageSquare,
   Database,
   type LucideIcon,
 } from "lucide-react";
@@ -87,6 +88,12 @@ const BASE_ITEMS: NavItem[] = [
     label: "Surveys",
     Icon: ClipboardList,
     match: (p) => p.startsWith("/admin/surveys"),
+  },
+  {
+    href: "/admin/feedback",
+    label: "Feedback",
+    Icon: MessageSquare,
+    match: (p) => p.startsWith("/admin/feedback"),
   },
 ];
 
