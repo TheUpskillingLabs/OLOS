@@ -24,6 +24,8 @@ const PAGE = 30;
 export interface UpdatesFeedProps {
   /** Scope to a single member (their shared updates). Omit for the full feed. */
   participantId?: number;
+  /** Global-feed only: also fold in THIS viewer's own private posts. */
+  viewerParticipantId?: number;
   title?: string;
   emptyTitle?: string;
   emptyDescription?: string;
@@ -44,6 +46,7 @@ interface UpdateRow {
   participant_id: number;
   body: string;
   created_at: string;
+  visibility: string;
   participants: Poster | Poster[] | null;
 }
 
@@ -66,6 +69,7 @@ function relTime(iso: string): string {
 
 export default async function UpdatesFeed({
   participantId,
+  viewerParticipantId,
   title = "Community updates",
   emptyTitle = "No updates yet",
   emptyDescription = "When members share a Learning Log to the community, it shows up here.",
@@ -76,7 +80,7 @@ export default async function UpdatesFeed({
   let query = service
     .from("profile_updates")
     .select(
-      "id, participant_id, body, created_at, participants:participant_id!inner(handle, preferred_name, first_name, last_name, profile_image_url)"
+      "id, participant_id, body, created_at, visibility, participants:participant_id!inner(handle, preferred_name, first_name, last_name, profile_image_url)"
     )
     .eq("visibility", "labs")
     .order("created_at", { ascending: false })
@@ -101,7 +105,30 @@ export default async function UpdatesFeed({
   if (error) {
     console.error("[updates-feed] profile_updates query failed:", error.message);
   }
-  const rows = (data ?? []) as unknown as UpdateRow[];
+  let rows = (data ?? []) as unknown as UpdateRow[];
+
+  // On the dashboard (global feed) fold in the viewer's OWN private posts, so a
+  // "Private · only you" post is visible to its author but no one else.
+  if (participantId == null && viewerParticipantId != null) {
+    const { data: mine } = await service
+      .from("profile_updates")
+      .select(
+        "id, participant_id, body, created_at, visibility, participants:participant_id!inner(handle, preferred_name, first_name, last_name, profile_image_url)"
+      )
+      .eq("participant_id", viewerParticipantId)
+      .eq("visibility", "private")
+      .order("created_at", { ascending: false })
+      .limit(PAGE);
+    const privateRows = (mine ?? []) as unknown as UpdateRow[];
+    if (privateRows.length > 0) {
+      rows = [...rows, ...privateRows]
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        .slice(0, PAGE);
+    }
+  }
 
   return (
     <section>
@@ -154,7 +181,12 @@ export default async function UpdatesFeed({
                           {name}
                         </span>
                       )}
-                      <span className="shrink-0 text-xs text-meta tabular-nums">
+                      <span className="flex shrink-0 items-center gap-1.5 text-xs text-meta tabular-nums">
+                        {u.visibility === "private" && (
+                          <span className="rounded-full bg-ink/[0.06] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-meta">
+                            Only you
+                          </span>
+                        )}
                         {relTime(u.created_at)}
                       </span>
                     </div>

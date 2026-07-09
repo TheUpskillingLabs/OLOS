@@ -19,6 +19,7 @@ import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import ShareSurveyButton from "./share-survey-button";
 import UpdatesFeed from "../directory/updates-feed";
+import PostComposer from "./post-composer";
 import ProfileMiniCard from "./profile-mini-card";
 import MembershipsPanel from "./memberships-panel";
 import AnnouncementsPanel from "./announcements-panel";
@@ -713,6 +714,16 @@ export default async function DashboardPage() {
     </aside>
   );
 
+  // The feed: a "Share an update" composer atop the community stream. A post is
+  // a freeform log — public to the community, or private to just you (the
+  // viewer's own private posts fold into their feed via viewerParticipantId).
+  const feed = (
+    <section className="space-y-4">
+      <PostComposer avatarUrl={avatarUrl} initials={initials} />
+      <UpdatesFeed viewerParticipantId={participant.id} />
+    </section>
+  );
+
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
@@ -743,7 +754,7 @@ export default async function DashboardPage() {
             <div className="mt-8">{logSectionFor(!orgActive)}</div>
             {leadershipSection}
             <div className="mt-8">
-              <UpdatesFeed />
+              {feed}
             </div>
           </div>
           {leftPanel}
@@ -796,7 +807,7 @@ export default async function DashboardPage() {
             <div className="mt-8">{logSectionFor(!orgActive)}</div>
             {leadershipSection}
             <div className="mt-8">
-              <UpdatesFeed />
+              {feed}
             </div>
           </div>
           {leftPanel}
@@ -995,7 +1006,7 @@ export default async function DashboardPage() {
           <div className="mt-8 space-y-8">
             {/* Your commitments — the dated anchor events + .ics, always findable */}
             <CycleCommitments />
-            <UpdatesFeed />
+            {feed}
           </div>
         </div>
 
