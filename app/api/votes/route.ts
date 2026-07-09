@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
-import { isActiveParticipant } from "@/lib/auth/roles";
+import { isEnrolledParticipant, isActiveParticipant } from "@/lib/auth/roles";
+import { isCurrentlyRevoked } from "@/lib/enrollment/revocation";
 import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -32,8 +33,23 @@ export const POST = withAuth(
       return NextResponse.json({ error: window.message }, { status: 403 });
     }
 
-    if (!isActiveParticipant(auth.user, cycle_id)) {
-      return NextResponse.json({ error: "You must be an active participant" }, { status: 403 });
+    // Enrolled (non-revoked) is the right gate for phases 1–2 — see
+    // isEnrolledParticipant docs for why 'active' would deadlock here.
+    if (!isEnrolledParticipant(auth.user, cycle_id)) {
+      return NextResponse.json({ error: "You must be enrolled in this cycle" }, { status: 403 });
+    }
+
+    // Revoked participants also sit at status 'inactive' (the revocation
+    // flow never writes 'revoked') — consult the access_revocations audit
+    // trail so they can't vote.
+    if (
+      !isActiveParticipant(auth.user, cycle_id) &&
+      (await isCurrentlyRevoked(voter_id, cycle_id))
+    ) {
+      return NextResponse.json(
+        { error: "Your access to this cycle has been revoked." },
+        { status: 403 }
+      );
     }
 
     // Same-lab guard (docs/LOCAL_LABS.md): you may only vote on your own lab's

@@ -4,6 +4,7 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { can } from "@/lib/auth/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
+import { finalizeProjectsForPod } from "@/lib/projects/finalize";
 
 const PHASE_SEQUENCE = [
   "problem_statement",
@@ -148,10 +149,47 @@ export const POST = withAdminAuth(
       );
     }
 
+    // Opening project_registration implies the solution-voting results are
+    // final — publish each pod's project shortlist now so the phase doesn't
+    // open onto an empty registration page. Per-pod failures (already
+    // finalized, no votes) are reported but never block the transition;
+    // finalizeProjectsForPod is idempotent per pod.
+    let projectsFinalized:
+      | { pod_id: number; ok: boolean; created: number; error?: string }[]
+      | undefined;
+    if (nextPhase === "project_registration") {
+      const { data: cyclePods } = await serviceClient
+        .from("pods")
+        .select("id")
+        .eq("cycle_id", cycleId)
+        .order("created_at");
+
+      projectsFinalized = [];
+      for (const pod of cyclePods ?? []) {
+        try {
+          const result = await finalizeProjectsForPod(pod.id);
+          projectsFinalized.push(
+            result.ok
+              ? { pod_id: pod.id, ok: true, created: result.projects.length }
+              : { pod_id: pod.id, ok: false, created: 0, error: result.error }
+          );
+        } catch (err) {
+          console.error("[ADVANCE_PHASE] project finalize failed", pod.id, err);
+          projectsFinalized.push({
+            pod_id: pod.id,
+            ok: false,
+            created: 0,
+            error: "Unexpected error while finalizing projects.",
+          });
+        }
+      }
+    }
+
     return NextResponse.json({
       previous_phase: currentActivePhase,
       current_phase: nextPhase,
       message: `Advanced to ${nextPhase.replace(/_/g, " ")} phase.`,
+      ...(projectsFinalized ? { projects_finalized: projectsFinalized } : {}),
     });
   }
 );

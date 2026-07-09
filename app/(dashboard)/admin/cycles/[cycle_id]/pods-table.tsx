@@ -29,6 +29,8 @@ export type PodAdminRow = {
   status: string;
   members: PodMember[];
   moderators: PodModerator[];
+  /** Existing projects for this pod — gates the Finalize-projects action. */
+  projectCount: number;
 };
 type ParticipantOption = { participant_id: number; name: string };
 
@@ -204,6 +206,16 @@ function PodManagePanel({
     call(`/api/admin/pods/${pod.id}`, "PATCH", { status: "active" });
   };
 
+  const finalizeProjects = () => {
+    if (
+      !confirm(
+        "Finalize solution voting and create this pod's projects? This uses AI to name projects and cannot be undone."
+      )
+    )
+      return;
+    call(`/api/pods/${pod.id}/projects/finalize`, "POST");
+  };
+
   const addMember = () => {
     if (!selectedId) return;
     call(`/api/admin/pods/${pod.id}/memberships`, "POST", {
@@ -246,6 +258,33 @@ function PodManagePanel({
           )}
         </div>
       </section>
+
+      {mode !== "org" && (
+        <section>
+          <h3 className="lbl mb-3">Projects ({pod.projectCount})</h3>
+          {pod.projectCount > 0 ? (
+            <p className="text-sm text-meta">
+              Projects have been finalized for this pod.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-meta">
+                Turn this pod&rsquo;s solution-proposal votes into projects.
+                Also runs automatically when the cycle advances into Project
+                Registration.
+              </p>
+              <button
+                type="button"
+                onClick={finalizeProjects}
+                disabled={busy}
+                className="btn btn-ghost px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Finalize projects
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       <section>
         <h3 className="lbl mb-3">Members ({pod.members.length})</h3>

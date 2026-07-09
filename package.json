@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "check:migrations": "node scripts/check-migration-numbers.mjs"
+    "test:watch": "vitest",
+    "check:migrations": "node scripts/check-migration-numbers.mjs",
+    "verify:cycle": "node scripts/verify/cycle-e2e.mjs",
+    "seed:test-cycle": "node scripts/ops/seed-test-cycle.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

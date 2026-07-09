@@ -173,3 +173,81 @@ describe("resolveUserRoles authority derivation", () => {
     expect(isAdmin(u)).toBe(false);
   });
 });
+
+/* Enrollment predicates for the cycle phase gates. isEnrolledParticipant is
+   the phase-1/2 gate (problem statements, voting): enrolled-but-'inactive'
+   is the normal pre-pod state and must pass; 'revoked' and not-enrolled must
+   not. isActiveParticipant stays the gate for pod-scoped phases. */
+
+import {
+  isActiveParticipant,
+  isEnrolledParticipant,
+  isModeratorForPod,
+  type UserRoles,
+} from "./roles";
+
+function fixtureUser(overrides: Partial<UserRoles> = {}): UserRoles {
+  return {
+    userId: "00000000-0000-0000-0000-000000000000",
+    participantId: 1,
+    roles: [],
+    permissions: [],
+    moderatorPodIds: [],
+    labLeadLabIds: [],
+    cycleEnrollments: [],
+    ...overrides,
+  };
+}
+
+describe("isActiveParticipant", () => {
+  it("requires an active enrollment in the given cycle", () => {
+    const u = fixtureUser({
+      cycleEnrollments: [
+        { cycleId: 1, status: "active" },
+        { cycleId: 2, status: "inactive" },
+      ],
+    });
+    expect(isActiveParticipant(u, 1)).toBe(true);
+    expect(isActiveParticipant(u, 2)).toBe(false);
+    expect(isActiveParticipant(u, 3)).toBe(false);
+  });
+
+  it("rejects revoked enrollments", () => {
+    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 1, status: "revoked" }] });
+    expect(isActiveParticipant(u, 1)).toBe(false);
+  });
+});
+
+describe("isEnrolledParticipant", () => {
+  it("accepts active enrollments", () => {
+    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 1, status: "active" }] });
+    expect(isEnrolledParticipant(u, 1)).toBe(true);
+  });
+
+  it("accepts inactive enrollments (pre-pod-registration state)", () => {
+    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 1, status: "inactive" }] });
+    expect(isEnrolledParticipant(u, 1)).toBe(true);
+  });
+
+  it("rejects revoked enrollments", () => {
+    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 1, status: "revoked" }] });
+    expect(isEnrolledParticipant(u, 1)).toBe(false);
+  });
+
+  it("rejects users not enrolled in the cycle", () => {
+    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 2, status: "active" }] });
+    expect(isEnrolledParticipant(u, 1)).toBe(false);
+  });
+
+  it("rejects users with no enrollments at all", () => {
+    expect(isEnrolledParticipant(fixtureUser(), 1)).toBe(false);
+  });
+});
+
+describe("isModeratorForPod", () => {
+  it("only matches pods in moderatorPodIds", () => {
+    const u = fixtureUser({ moderatorPodIds: [3, 5] });
+    expect(isModeratorForPod(u, 3)).toBe(true);
+    expect(isModeratorForPod(u, 4)).toBe(false);
+  });
+});
