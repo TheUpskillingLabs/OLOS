@@ -8,6 +8,9 @@ import { podNoun } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "./pulse-check-dashboard";
 import CharterProjectForm from "./charter-project-form";
+import FollowButton from "@/app/components/follow-button";
+import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
+import { resolvePageContext } from "@/lib/pages/server";
 
 type PodStatus = "active" | "forming" | "closed" | "inactive";
 
@@ -146,6 +149,8 @@ export default async function PodDetailPage({
   }
 
   const podVariant = POD_STATUS_VARIANT[pod.status as PodStatus] ?? "inactive";
+  const podName = pod.name || `${podNoun(mode)} ${pod.id}`;
+  const pageCtx = await resolvePageContext("pod", pod.id);
 
   return (
     <div>
@@ -165,9 +170,17 @@ export default async function PodDetailPage({
             An organization workstream &mdash; part of the org cycle.
           </p>
         )}
-        <span className="mt-2 inline-block">
+        <div className="mt-2 flex items-center justify-between gap-3">
           <StatusBadge variant={podVariant}>{pod.status}</StatusBadge>
-        </span>
+          {pageCtx.viewerId != null && (
+            <FollowButton
+              type="pod"
+              id={pod.id}
+              initialFollowing={pageCtx.following}
+              size="sm"
+            />
+          )}
+        </div>
       </div>
 
       {ps?.statement_text && (
@@ -263,6 +276,15 @@ export default async function PodDetailPage({
           )}
         </div>
       )}
+
+      <section className="mt-8">
+        <PageUpdatesSection
+          type="pod"
+          id={pod.id}
+          name={podName}
+          ctx={pageCtx}
+        />
+      </section>
 
       {canViewDashboard && (
         <PulseCheckDashboard members={pulseCheckData} />

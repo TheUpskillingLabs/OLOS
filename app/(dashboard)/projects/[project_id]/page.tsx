@@ -9,6 +9,8 @@ import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
 import FollowButton from "./follow-button";
 import ContributorsSection from "./contributors-section";
+import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
+import { resolvePageContext } from "@/lib/pages/server";
 
 type ProjectStatus = "active" | "forming" | "closed" | "inactive";
 
@@ -214,6 +216,8 @@ export default async function ProjectDetailPage({
 
   const projectVariant =
     PROJECT_STATUS_VARIANT[project.status as ProjectStatus] ?? "inactive";
+  const projectName = project.name || `Project ${project.id}`;
+  const pageCtx = await resolvePageContext("project", project.id);
 
   return (
     <div>
@@ -313,6 +317,15 @@ export default async function ProjectDetailPage({
           participantOptions={participantOptions}
         />
       </div>
+
+      <section className="mb-8">
+        <PageUpdatesSection
+          type="project"
+          id={project.id}
+          name={projectName}
+          ctx={pageCtx}
+        />
+      </section>
 
       {mode !== "org" && canViewDashboard && (
         <PulseCheckDashboard members={pulseCheckData} />

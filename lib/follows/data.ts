@@ -7,7 +7,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * and the follow buttons all agree.
  */
 
-export type FollowType = "user" | "sector" | "workstream" | "lab";
+export type FollowType =
+  | "user"
+  | "sector"
+  | "workstream"
+  | "lab"
+  | "pod"
+  | "project";
 
 export interface FollowTarget {
   type: FollowType;
@@ -51,6 +57,28 @@ export async function getFollowedParticipantIds(
   return (data ?? [])
     .map((r) => r.followee_participant_id as number | null)
     .filter((id): id is number => id != null);
+}
+
+/** The pages (type + id) this viewer follows — for the page-post feed inclusion. */
+export async function getFollowedPages(
+  service: SupabaseClient,
+  viewerId: number
+): Promise<{ type: Exclude<FollowType, "user">; id: number }[]> {
+  const { data, error } = await service
+    .from("follows")
+    .select("page_type, page_id")
+    .eq("follower_participant_id", viewerId)
+    .not("page_type", "is", null);
+  if (error) {
+    console.error("[follows] followed-pages query failed:", error.message);
+    return [];
+  }
+  return (data ?? [])
+    .filter((r) => r.page_type != null && r.page_id != null)
+    .map((r) => ({
+      type: r.page_type as Exclude<FollowType, "user">,
+      id: r.page_id as number,
+    }));
 }
 
 /** Whether this viewer already follows the given target. */

@@ -7,7 +7,8 @@ import { cycleStatusVariant, workstreamStatusVariant } from "@/lib/cycle/labels"
 import { formatDate } from "@/lib/format/date";
 import { getSectorPage } from "@/lib/content/org-pages";
 import FollowButton from "@/app/components/follow-button";
-import { pageFollowState } from "@/lib/follows/server";
+import { resolvePageContext } from "@/lib/pages/server";
+import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 
 /* Public sector detail — the durable, cross-cohort home for a theme's cohorts
    and teams (docs/SECTOR_MODEL.md). Deep-link target for the dashboard left
@@ -38,7 +39,7 @@ export default async function SectorPage({
   const data = await getSectorPage(slug);
   if (!data) notFound();
   const { sector, cycles, workstreams } = data;
-  const follow = await pageFollowState({ type: "sector", id: sector.id });
+  const ctx = await resolvePageContext("sector", sector.id);
 
   return (
     <>
@@ -49,12 +50,12 @@ export default async function SectorPage({
       />
 
       <div className="container" style={{ paddingTop: 48, paddingBottom: 72 }}>
-        {follow && (
+        {ctx.viewerId != null && (
           <div className="mb-8 flex justify-end">
             <FollowButton
               type="sector"
               id={sector.id}
-              initialFollowing={follow.following}
+              initialFollowing={ctx.following}
             />
           </div>
         )}
@@ -111,6 +112,15 @@ export default async function SectorPage({
               ))}
             </div>
           )}
+        </section>
+
+        <section className="mt-10">
+          <PageUpdatesSection
+            type="sector"
+            id={sector.id}
+            name={sector.name}
+            ctx={ctx}
+          />
         </section>
       </div>
     </>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
+import type { PageRef } from "@/lib/pages/authz";
 
 /**
  * The feed composer — one LinkedIn-style card at the top of the community feed
@@ -28,6 +29,7 @@ export default function FeedComposer({
   journal = false,
   logCycles = [],
   pendingCycleIds = [],
+  postAsPages = [],
 }: {
   avatarUrl: string | null;
   initials: string;
@@ -36,9 +38,17 @@ export default function FeedComposer({
   journal?: boolean;
   logCycles?: { id: number; name: string; mode: string }[];
   pendingCycleIds?: number[];
+  /** Pages this member can post AS (they admin them). Empty → just "You". */
+  postAsPages?: PageRef[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(gateActive ? "log" : "update");
+  // "self" or a "type:id" key into postAsPages.
+  const [postAs, setPostAs] = useState("self");
+  const selectedPage =
+    postAs === "self"
+      ? null
+      : postAsPages.find((p) => `${p.type}:${p.id}` === postAs) ?? null;
 
   // Deep links to #learning-log (the checklist row, the cycle pages, the
   // top-of-page "log is due" banner) open the Learning Log tab — whether the
@@ -64,10 +74,13 @@ export default function FeedComposer({
     setBusy(true);
     setError(null);
     try {
+      const payload = selectedPage
+        ? { body: text, as: { type: selectedPage.type, id: selectedPage.id } }
+        : { body: text, visibility };
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text, visibility }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -142,10 +155,29 @@ export default function FeedComposer({
       <div className="p-4">
         {tab === "update" ? (
           <div>
+            {postAsPages.length > 0 && (
+              <label className="mb-2 flex items-center gap-1.5 text-xs text-meta">
+                <span className="shrink-0">Post as</span>
+                <select
+                  value={postAs}
+                  onChange={(e) => setPostAs(e.target.value)}
+                  className="min-w-0 flex-1 rounded-card border border-ink/15 bg-white px-2 py-1.5 text-xs font-semibold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                >
+                  <option value="self">You</option>
+                  {postAsPages.map((p) => (
+                    <option key={`${p.type}:${p.id}`} value={`${p.type}:${p.id}`}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Share an update…"
+              placeholder={
+                selectedPage ? `Share an update as ${selectedPage.name}…` : "Share an update…"
+              }
               rows={3}
               maxLength={3000}
               className="w-full resize-none rounded-card border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-meta-soft transition-[border-color,box-shadow] duration-150 focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15"
@@ -156,19 +188,25 @@ export default function FeedComposer({
               </p>
             )}
             <div className="mt-2 flex items-center justify-between gap-2">
-              <label className="flex items-center gap-1.5 text-xs text-meta">
-                <span className="sr-only">Audience</span>
-                <select
-                  value={visibility}
-                  onChange={(e) =>
-                    setVisibility(e.target.value as "public" | "private")
-                  }
-                  className="rounded-card border border-ink/15 bg-white px-2 py-1.5 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
-                >
-                  <option value="public">Public · everyone at The Labs</option>
-                  <option value="private">Private · only you</option>
-                </select>
-              </label>
+              {selectedPage ? (
+                <span className="text-xs text-meta">
+                  Public · from this page
+                </span>
+              ) : (
+                <label className="flex items-center gap-1.5 text-xs text-meta">
+                  <span className="sr-only">Audience</span>
+                  <select
+                    value={visibility}
+                    onChange={(e) =>
+                      setVisibility(e.target.value as "public" | "private")
+                    }
+                    className="rounded-card border border-ink/15 bg-white px-2 py-1.5 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                  >
+                    <option value="public">Public · everyone at The Labs</option>
+                    <option value="private">Private · only you</option>
+                  </select>
+                </label>
+              )}
               <button
                 type="button"
                 className="btn btn-teal px-4 py-2 text-sm"

@@ -5,7 +5,8 @@ import { EditorialHeader } from "@/app/components/chrome/editorial";
 import { StatusBadge } from "@/app/components/ui";
 import { getWorkstreamPage } from "@/lib/content/org-pages";
 import FollowButton from "@/app/components/follow-button";
-import { pageFollowState } from "@/lib/follows/server";
+import { resolvePageContext } from "@/lib/pages/server";
+import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 
 function runVariant(status: string): "active" | "forming" | "inactive" {
   if (status === "active") return "active";
@@ -43,7 +44,7 @@ export default async function WorkstreamPage({
   const data = await getWorkstreamPage(slug);
   if (!data) notFound();
   const { workstream, home, runs } = data;
-  const follow = await pageFollowState({ type: "workstream", id: workstream.id });
+  const ctx = await resolvePageContext("workstream", workstream.id);
 
   return (
     <>
@@ -68,12 +69,12 @@ export default async function WorkstreamPage({
       </EditorialHeader>
 
       <div className="container" style={{ paddingTop: 48, paddingBottom: 72 }}>
-        {follow && (
+        {ctx.viewerId != null && (
           <div className="mb-8 flex justify-end">
             <FollowButton
               type="workstream"
               id={workstream.id}
-              initialFollowing={follow.following}
+              initialFollowing={ctx.following}
             />
           </div>
         )}
@@ -108,6 +109,15 @@ export default async function WorkstreamPage({
               ))}
             </div>
           )}
+        </section>
+
+        <section className="mt-10">
+          <PageUpdatesSection
+            type="workstream"
+            id={workstream.id}
+            name={workstream.name}
+            ctx={ctx}
+          />
         </section>
       </div>
     </>

@@ -10,7 +10,8 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import JoinButton from "./join-button";
 import JoinActiveButton from "./join-active-button";
 import FollowButton from "@/app/components/follow-button";
-import { pageFollowState } from "@/lib/follows/server";
+import { resolvePageContext } from "@/lib/pages/server";
+import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 
 /* The lab (metro) detail page — the prototype generator's labPage(), both
    branches: the active lab's dark gravity cover (labs/dc) and the waitlist
@@ -100,11 +101,11 @@ export default async function LabPage({
   if (!m) notFound();
 
   if (m.status === "active") {
-    const [events, { signedIn }, member, follow] = await Promise.all([
+    const [events, { signedIn }, member, ctx] = await Promise.all([
       getEvents().then((e) => e.slice(0, 3)),
       publicSession(),
       alreadyMember(m.id),
-      pageFollowState({ type: "lab", id: m.id }),
+      resolvePageContext("lab", m.id),
     ]);
     return (
       <>
@@ -172,17 +173,22 @@ export default async function LabPage({
             />
           </div>
         </section>
-        {follow && (
+        {ctx.viewerId != null && (
           <div className="container" style={{ marginTop: 24 }}>
             <div className="flex justify-end">
               <FollowButton
                 type="lab"
                 id={m.id}
-                initialFollowing={follow.following}
+                initialFollowing={ctx.following}
               />
             </div>
           </div>
         )}
+        <section className="section">
+          <div className="container">
+            <PageUpdatesSection type="lab" id={m.id} name={m.name} ctx={ctx} />
+          </div>
+        </section>
         <section className="section">
           <div className="container">
             <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>

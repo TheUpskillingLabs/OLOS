@@ -32,3 +32,33 @@ export async function isProjectDri(
 
   return !!data;
 }
+
+/**
+ * True when `userRoles` is a member OR maintainer of `projectId` (whose pod is
+ * `podId`) — the broader set that admins the project page: admins, co-leads of
+ * its pod, or anyone holding ANY active `project_roles` row (dri OR
+ * contributor). Used for "post as this project" — a project is run by all its
+ * members/maintainers, not only its DRI.
+ */
+export async function isProjectMember(
+  serviceClient: SupabaseClient,
+  userRoles: UserRoles,
+  projectId: number,
+  podId: number
+): Promise<boolean> {
+  if (isAdmin(userRoles)) return true;
+  if (isModeratorForPod(userRoles, podId)) return true;
+
+  const participantId = userRoles.participantId;
+  if (!participantId) return false;
+
+  const { data } = await serviceClient
+    .from("project_roles")
+    .select("id")
+    .eq("project_id", projectId)
+    .eq("participant_id", participantId)
+    .is("removed_at", null)
+    .maybeSingle();
+
+  return !!data;
+}

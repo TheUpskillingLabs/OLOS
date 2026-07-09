@@ -25,10 +25,12 @@ import MembershipsPanel from "./memberships-panel";
 import AnnouncementsPanel from "./announcements-panel";
 import PeopleYouMayKnow from "../people-you-may-know";
 import { getParticipantMemberships } from "@/lib/participants/memberships";
-import { ensureLabFollowSeeded } from "@/lib/follows/seed";
+import { ensurePageFollowsSeeded } from "@/lib/follows/seed";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
+import { resolveUserRoles } from "@/lib/auth/roles";
+import { pagesUserCanPostAs } from "@/lib/pages/authz";
 import {
   workstreamLeadContext,
   labLeadContext,
@@ -58,15 +60,16 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle, lab_follow_seeded").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle, page_follows_seeded").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
   ]);
 
   if (!participant) redirect("/register");
 
-  // One-time seed: a member with an active lab follows that lab page by default
-  // (respects a later manual unfollow via the lab_follow_seeded flag).
-  await ensureLabFollowSeeded(serviceClient, participant);
+  // One-time seed: a member auto-follows the pages they belong to (lab, pods,
+  // projects, workstreams) so page updates reach their feed. Respects later
+  // manual unfollows via the page_follows_seeded flag.
+  await ensurePageFollowsSeeded(serviceClient, participant);
 
   // Local Labs are sub-cohorts of the single HQ participant cycle
   // (docs/LOCAL_LABS.md, 00067): the open track always resolves to the HQ
@@ -282,6 +285,11 @@ export default async function DashboardPage() {
     participant.id,
     (myLabLeadRows ?? []).map((r) => r.lab_id)
   );
+
+  // The pages this member can post AS (they admin them) — feeds the composer's
+  // "Post as" selector.
+  const userRoles = await resolveUserRoles(supabase, user.id);
+  const postAsPages = await pagesUserCanPostAs(serviceClient, userRoles);
   const leadershipCardScopes: LeadershipCardScope[] = await Promise.all(
     leadScopes
       .filter((s) => s.armed)
@@ -748,6 +756,7 @@ export default async function DashboardPage() {
         journal={journal}
         logCycles={logCycles}
         pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
+        postAsPages={postAsPages}
       />
       <UpdatesFeed viewerParticipantId={participant.id} />
     </section>

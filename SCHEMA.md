@@ -564,9 +564,19 @@ erDiagram
         int id PK
         int follower_participant_id FK "the follower"
         int followee_participant_id FK "user target (XOR page)"
-        varchar page_type "sector/workstream/lab (XOR user)"
+        varchar page_type "sector/workstream/lab/pod/project (XOR user; pod+project 00076)"
         int page_id "page target id (no FK — polymorphic)"
         timestamptz created_at
+    }
+
+    page_admins {
+        int id PK
+        varchar page_type "lab/sector/workstream/pod/project"
+        int page_id "no FK — polymorphic"
+        int participant_id FK "the admin"
+        int added_by_participant_id FK "who added them"
+        timestamptz created_at
+        timestamptz removed_at "NULL = active"
     }
 
     metros ||--o{ metro_waitlist_signups : "collects"
@@ -582,6 +592,7 @@ erDiagram
     participants ||--o{ profile_update_likes : "likes"
     participants ||--o{ profile_update_comments : "comments"
     participants ||--o{ follows : "follows (00074)"
+    participants ||--o{ page_admins : "admins pages (00076)"
     events ||--o{ event_rsvps : "collects"
 ```
 
@@ -815,7 +826,8 @@ erDiagram
 | `announcements` | Public Content | Admin-authored org news for the dashboard rail; `lab_id` NULL = global, else lab-scoped (00070) |
 | `learning_logs` | Practice | The weekly ritual: health check + reflection + share flag (replaces pulse_checks for new cycles). For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
 | `leadership_logs` | Practice | The org leadership cascade (00069): weekly reflections by `workstream_lead` (Thu) and `lab_lead` (Fri) tiers, scoped to a run pod or a lab; non-blocking, written in the context of the tier below |
-| `profile_updates` | Practice | Member updates feed — Learning Log shares plus freeform posts from the feed composer (00072): `visibility` `labs` (public/members-wide) or `private` (author-only) |
+| `profile_updates` | Practice | The feed's updates. Polymorphic author: a member (`participant_id`) OR a **page** (`author_page_type`+`author_page_id` = lab/sector/workstream/pod/project, with `posted_by_participant_id` provenance; 00076) — exactly one. `visibility` `labs` (public/members-wide) or `private` (member posts only; page posts are always `labs`). Learning Log shares + freeform member posts (00072) + page updates (00076) |
+| `page_admins` | Practice | Explicit admins of a page (00076) — the "others can be added" list beyond a page's auto-admins (leads; a project's members/maintainers). Polymorphic (`page_type`+`page_id`). A page admin may post as the page and manage its admin list. Active = `removed_at IS NULL` |
 | `profile_update_likes` | Practice | Per-member like TOGGLE on a feed update (00073); `UNIQUE(update_id, participant_id)`, cascade-deletes with the update/participant |
 | `profile_update_comments` | Practice | Freeform comments on a feed update (00073); RLS: visible when the parent update is, self INSERT/DELETE, service-role writes bind the author from the session |
 | `follows` | Practice | The follow graph (00074): a member follows other members (`followee_participant_id`) or org pages (`page_type`+`page_id` = sector/workstream/lab), polymorphic (exactly one target). Powers the "Following" feed — `profile_updates` are filtered to followed users + self. RLS: manage your own follows, read rows targeting you. Members auto-follow their local lab once on first dashboard load (`participants.lab_follow_seeded`, 00075); "People you may know" (`lib/follows/suggestions.ts`) suggests podmates/labmates/cyclemates |
