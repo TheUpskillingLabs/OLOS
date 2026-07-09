@@ -2,10 +2,16 @@
 slug: privacy-policy
 title: Privacy Policy
 type: page
-status: published
+status: superseded
 summary: "The Upskilling Labs Effective Date: March 2, 2026"
 source_url: https://theupskillinglabs.org/privacy-policy
 ---
+
+> **Superseded.** This is the legacy Squarespace privacy policy, kept for
+> provenance only. The live, go-forward policy is the OLOS `/privacy` page
+> (source: [`docs/legal/PRIVACY_POLICY.md`](../../legal/PRIVACY_POLICY.md)),
+> which consolidates the platform and this site. Do **not** import or
+> republish this file.
 
 # Privacy Policy
 
