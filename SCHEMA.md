@@ -544,6 +544,22 @@ erDiagram
         timestamptz updated_at
     }
 
+    profile_update_likes {
+        int id PK
+        int update_id FK "→ profile_updates(id)"
+        int participant_id FK "the liker"
+        timestamptz created_at
+    }
+
+    profile_update_comments {
+        int id PK
+        int update_id FK "→ profile_updates(id)"
+        int participant_id FK "the commenter"
+        text body
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     metros ||--o{ metro_waitlist_signups : "collects"
     metros ||--o{ cycles : "lab stream (00062; NULL = HQ)"
     metros ||--o{ workstreams : "lab workstreams (00062)"
@@ -552,6 +568,10 @@ erDiagram
     participants ||--o{ lab_leads : "leads"
     participants ||--o{ metro_waitlist_signups : "joins"
     participants ||--o{ announcements : "authors"
+    profile_updates ||--o{ profile_update_likes : "liked by (00073)"
+    profile_updates ||--o{ profile_update_comments : "commented on (00073)"
+    participants ||--o{ profile_update_likes : "likes"
+    participants ||--o{ profile_update_comments : "comments"
     events ||--o{ event_rsvps : "collects"
 ```
 
@@ -786,6 +806,8 @@ erDiagram
 | `learning_logs` | Practice | The weekly ritual: health check + reflection + share flag (replaces pulse_checks for new cycles). For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
 | `leadership_logs` | Practice | The org leadership cascade (00069): weekly reflections by `workstream_lead` (Thu) and `lab_lead` (Fri) tiers, scoped to a run pod or a lab; non-blocking, written in the context of the tier below |
 | `profile_updates` | Practice | Member updates feed — Learning Log shares plus freeform posts from the feed composer (00072): `visibility` `labs` (public/members-wide) or `private` (author-only) |
+| `profile_update_likes` | Practice | Per-member like TOGGLE on a feed update (00073); `UNIQUE(update_id, participant_id)`, cascade-deletes with the update/participant |
+| `profile_update_comments` | Practice | Freeform comments on a feed update (00073); RLS: visible when the parent update is, self INSERT/DELETE, service-role writes bind the author from the session |
 | `saved_items` | Practice | A member's saved events/resources (the /learning hearts) — polymorphic by slug |
 | `spotlights` | Public Content | Upskiller Spotlights + their submission pipeline (public /stories) |
 | `field_surveys` | Data Sensemaker | The field-survey instrument — one row per sector/cycle problem domain (public `/survey/[slug]`) |

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/app/components/ui";
+import UpdateSocial from "./update-social";
+import { fetchSocialForUpdates } from "@/lib/updates/social";
 
 /**
  * Community updates — the reader that finally pays off the Learning Log's
@@ -76,6 +78,37 @@ export default async function UpdatesFeed({
   renderRetract,
 }: UpdatesFeedProps) {
   const service = createServiceClient();
+
+  // Resolve the viewer once — powers "liked by me", own-comment retract, the
+  // comment composer's avatar, and (feed mode) folding in the viewer's own
+  // private posts. Prefer the caller's hint; otherwise look them up from the
+  // session so likes/comments work everywhere this feed renders.
+  let viewer: {
+    id: number;
+    initials: string;
+    avatarUrl: string | null;
+  } | null = null;
+  {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: me } = await service
+        .from("participants")
+        .select("id, first_name, last_name, profile_image_url")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+      if (me) {
+        const initials =
+          `${me.first_name?.[0] ?? ""}${me.last_name?.[0] ?? ""}`.toUpperCase() ||
+          "•";
+        viewer = { id: me.id, initials, avatarUrl: me.profile_image_url };
+      }
+    }
+  }
+  const viewerId = viewer?.id ?? viewerParticipantId ?? null;
+
   // !inner so the poster filter (global feed) applies as a join predicate.
   let query = service
     .from("profile_updates")
@@ -107,15 +140,15 @@ export default async function UpdatesFeed({
   }
   let rows = (data ?? []) as unknown as UpdateRow[];
 
-  // On the dashboard (global feed) fold in the viewer's OWN private posts, so a
+  // In the global feed, fold in the viewer's OWN private posts, so a
   // "Private · only you" post is visible to its author but no one else.
-  if (participantId == null && viewerParticipantId != null) {
+  if (participantId == null && viewerId != null) {
     const { data: mine } = await service
       .from("profile_updates")
       .select(
         "id, participant_id, body, created_at, visibility, participants:participant_id!inner(handle, preferred_name, first_name, last_name, profile_image_url)"
       )
-      .eq("participant_id", viewerParticipantId)
+      .eq("participant_id", viewerId)
       .eq("visibility", "private")
       .order("created_at", { ascending: false })
       .limit(PAGE);
@@ -129,6 +162,13 @@ export default async function UpdatesFeed({
         .slice(0, PAGE);
     }
   }
+
+  // Likes + comments for the visible page, in two batched queries.
+  const social = await fetchSocialForUpdates(
+    service,
+    rows.map((r) => r.id),
+    viewerId
+  );
 
   return (
     <section>
@@ -198,6 +238,15 @@ export default async function UpdatesFeed({
                     )}
                   </div>
                 </div>
+                <UpdateSocial
+                  updateId={u.id}
+                  initialLikeCount={social.likeCount.get(u.id) ?? 0}
+                  initialLiked={social.likedByViewer.has(u.id)}
+                  initialComments={social.comments.get(u.id) ?? []}
+                  viewerParticipantId={viewerId}
+                  viewerAvatarUrl={viewer?.avatarUrl ?? null}
+                  viewerInitials={viewer?.initials ?? "•"}
+                />
               </li>
             );
           })}
