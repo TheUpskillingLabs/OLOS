@@ -390,7 +390,7 @@ export default async function UpdatesFeed({
                         {relTime(it.createdAt)}
                       </span>
                     </div>
-                    <p className="mt-1 whitespace-pre-line break-words text-sm leading-relaxed text-charcoal">
+                    <p className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-sm leading-relaxed text-charcoal">
                       {it.body}
                     </p>
                     {canDelete && (

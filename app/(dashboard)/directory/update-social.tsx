@@ -262,7 +262,7 @@ export default function UpdateSocial({
                       {relTime(c.createdAt)}
                     </span>
                   </div>
-                  <p className="mt-0.5 whitespace-pre-line break-words text-sm leading-relaxed text-charcoal">
+                  <p className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere] text-sm leading-relaxed text-charcoal">
                     {c.body}
                   </p>
                   {c.participantId === viewerParticipantId && (
