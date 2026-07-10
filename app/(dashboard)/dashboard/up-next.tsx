@@ -70,7 +70,7 @@ export default function UpNext({ todos }: { todos: TodoCard[] }) {
               type="button"
               aria-label="Dismiss"
               onClick={() => dismiss(t.id)}
-              className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-meta transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+              className="absolute right-1.5 top-1.5 flex h-11 w-11 items-center justify-center rounded-full text-meta transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
             >
               <svg width="14" height="14" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 5L17 17M17 5L5 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

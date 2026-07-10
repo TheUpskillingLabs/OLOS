@@ -143,7 +143,7 @@ export default function UpdateSocial({
     <button
       type="button"
       onClick={() => setShowComments((v) => !v)}
-      className="flex flex-1 items-center justify-center gap-2 rounded-card px-3 py-2 text-sm font-semibold text-meta transition-colors duration-150 hover:bg-ink/[0.03] hover:text-charcoal"
+      className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-card px-3 py-2 text-sm font-semibold text-meta transition-colors duration-150 hover:bg-ink/[0.03] hover:text-charcoal"
       aria-expanded={showComments}
     >
       <MessageCircle className="h-4 w-4" aria-hidden />
@@ -180,7 +180,7 @@ export default function UpdateSocial({
           onClick={toggleLike}
           disabled={!canInteract || likeBusy}
           aria-pressed={liked}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-card px-3 py-2 text-sm font-semibold transition-colors duration-150 disabled:cursor-default ${
+          className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-card px-3 py-2 text-sm font-semibold transition-colors duration-150 disabled:cursor-default ${
             liked
               ? "text-teal-deep"
               : "text-meta hover:bg-ink/[0.03] hover:text-charcoal"
@@ -222,7 +222,7 @@ export default function UpdateSocial({
                       type="button"
                       onClick={submitComment}
                       disabled={commentBusy}
-                      className="btn btn-teal px-3 py-1.5 text-xs"
+                      className="btn btn-teal min-h-11 px-3 py-1.5 text-xs"
                     >
                       {commentBusy ? "Posting…" : "Comment"}
                     </button>
@@ -262,7 +262,7 @@ export default function UpdateSocial({
                       {relTime(c.createdAt)}
                     </span>
                   </div>
-                  <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed text-charcoal">
+                  <p className="mt-0.5 whitespace-pre-line break-words text-sm leading-relaxed text-charcoal">
                     {c.body}
                   </p>
                   {c.participantId === viewerParticipantId && (

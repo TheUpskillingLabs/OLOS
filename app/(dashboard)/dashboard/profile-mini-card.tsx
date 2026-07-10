@@ -56,14 +56,14 @@ export default function ProfileMiniCard({
         {handle && (
           <Link
             href={`/u/${handle}`}
-            className="btn btn-ghost w-full justify-center px-4 py-2 text-sm"
+            className="btn btn-ghost min-h-11 w-full justify-center px-4 py-2 text-sm"
           >
             View profile
           </Link>
         )}
         <Link
           href="/profile/edit"
-          className="btn btn-ghost w-full justify-center px-4 py-2 text-sm"
+          className="btn btn-ghost min-h-11 w-full justify-center px-4 py-2 text-sm"
         >
           Edit profile
         </Link>

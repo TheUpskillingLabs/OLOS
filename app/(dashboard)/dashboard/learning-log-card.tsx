@@ -486,7 +486,7 @@ export default function LearningLogCard({
       {/* Part 3 — share preview */}
       {preview && (
         <div className="mt-6 rounded-card border border-ink/10 bg-paper p-4">
-          <p className="text-sm text-charcoal">{preview}</p>
+          <p className="break-words text-sm text-charcoal">{preview}</p>
           <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-ink">
             <input
               type="checkbox"
@@ -568,7 +568,7 @@ export default function LearningLogCard({
                     </span>
                   </button>
                   {open && (
-                    <div className="space-y-1.5 border-t border-ink/10 px-3 py-2.5 text-sm text-charcoal">
+                    <div className="space-y-1.5 border-t border-ink/10 px-3 py-2.5 text-sm text-charcoal break-words">
                       {log.accomplished && (
                         <p>
                           <span className="font-semibold text-ink">

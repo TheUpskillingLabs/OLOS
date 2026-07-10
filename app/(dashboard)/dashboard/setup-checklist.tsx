@@ -77,7 +77,7 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
             {!item.done && item.href && (
               <Link
                 href={item.href}
-                className="flex-shrink-0 rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                className="flex min-h-11 flex-shrink-0 items-center rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
               >
                 {item.cta ?? "Start"} →
               </Link>

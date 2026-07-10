@@ -669,6 +669,10 @@ button:focus-visible {
   /* ── avatars + profile stat rows ── */
   .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--teal); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; cursor: pointer; flex-shrink: 0; }
   .avatar-lg { width: 88px; height: 88px; border-radius: 50%; background: var(--teal); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 32px; letter-spacing: -0.02em; flex-shrink: 0; }
+  /* small phones: an 88px avatar can't share a row with the greeting text */
+  @media (max-width: 479.98px) {
+    .avatar-lg { width: 64px; height: 64px; font-size: 24px; }
+  }
   .stat-row { display: flex; gap: 0; border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; background: var(--white); }
   .stat-cell { flex: 1; padding: 20px; text-align: center; }
   .stat-cell + .stat-cell { border-left: 1px solid var(--rule); }
@@ -750,18 +754,26 @@ button:focus-visible {
      Dark-navy header, so icons ride light. */
   .appnav .appnav-mobile { display: none; }
   @media (max-width: 767.98px) {
-    /* tighten the bar so logo + nav + avatar fit one row on a phone */
+    /* tighten the bar so logo + nav + avatar fit one row on a phone; the tabs
+       are hard 44x44 (tap-target minimum) and never shrink — the LOGO is the
+       element that gives way (28px here, smaller again <380px). */
     .sitenav.appnav .sitenav-inner { gap: 6px; padding-inline: 14px; }
-    .appnav .sitenav-brand img { height: 34px !important; }
+    .appnav .sitenav-brand img { height: 28px !important; }
     /* the <900px search icon is redundant now that Directory rides the bar */
     .appnav .appnav-search-icon { display: none !important; }
     .appnav .appnav-mobile { display: flex; flex: 1 1 auto; min-width: 0; justify-content: space-around; align-items: center; gap: 2px; }
-    .appnav .appnav-mobile .am-tab { display: grid; place-items: center; width: 44px; height: 40px; color: var(--od2); text-decoration: none; border-radius: var(--r); transition: color 0.15s, background 0.15s; }
+    .appnav .appnav-mobile .am-tab { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; color: var(--od2); text-decoration: none; border-radius: var(--r); transition: color 0.15s, background 0.15s; }
     .appnav .appnav-mobile .am-tab:hover { color: var(--od1); background: rgba(255, 255, 255, 0.06); }
     .appnav .appnav-mobile .am-tab.active { color: var(--od1); background: rgba(255, 255, 255, 0.1); }
     .appnav .appnav-mobile .am-icon { position: relative; display: inline-flex; }
     .appnav .appnav-mobile .am-icon svg { width: 22px; height: 22px; }
     .appnav .appnav-mobile .am-pip { position: absolute; top: -2px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+  }
+  /* very small phones: shrink logo + avatar further so four 44px tabs still fit */
+  @media (max-width: 379.98px) {
+    .sitenav.appnav .sitenav-inner { gap: 4px; padding-inline: 10px; }
+    .appnav .sitenav-brand img { height: 22px !important; }
+    .appnav .appbar-avatar { width: 36px; height: 36px; font-size: 12px; }
   }
 
   /* avatar account menu */

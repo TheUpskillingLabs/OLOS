@@ -96,7 +96,7 @@ export default function FeedComposer({
   }
 
   const tabClass = (on: boolean) =>
-    `flex-1 rounded-card border px-3 py-2 text-sm font-semibold transition-colors duration-150 ${
+    `min-h-11 flex-1 rounded-card border px-3 py-2 text-sm font-semibold transition-colors duration-150 ${
       on
         ? "border-teal-deep bg-teal-deep text-white"
         : "border-ink/15 bg-white text-charcoal hover:border-teal"
@@ -170,7 +170,7 @@ export default function FeedComposer({
                 <select
                   value={postAs}
                   onChange={(e) => setPostAs(e.target.value)}
-                  className="min-w-0 flex-1 rounded-card border border-ink/15 bg-white px-2 py-1.5 text-xs font-semibold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                  className="min-h-11 min-w-0 flex-1 rounded-card border border-ink/15 bg-white px-2 py-2.5 text-xs font-semibold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
                 >
                   <option value="self">You</option>
                   {postAsPages.map((p) => (
@@ -209,7 +209,7 @@ export default function FeedComposer({
                     onChange={(e) =>
                       setVisibility(e.target.value as "public" | "private")
                     }
-                    className="rounded-card border border-ink/15 bg-white px-2 py-1.5 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                    className="min-h-11 rounded-card border border-ink/15 bg-white px-2 py-2.5 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
                   >
                     <option value="public">Public · everyone at The Labs</option>
                     <option value="private">Private · only you</option>
@@ -218,7 +218,7 @@ export default function FeedComposer({
               )}
               <button
                 type="button"
-                className="btn btn-teal px-4 py-2 text-sm"
+                className="btn btn-teal min-h-11 px-4 py-2 text-sm"
                 disabled={busy || !body.trim()}
                 onClick={submitPost}
               >

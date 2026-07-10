@@ -47,7 +47,10 @@ export default function FollowButton({
     }
   }
 
-  const pad = size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm";
+  // Both sizes keep a 44px minimum height (tap-target rule); "sm" only tightens
+  // the horizontal footprint + type.
+  const pad =
+    size === "sm" ? "min-h-11 px-3 py-1.5 text-xs" : "min-h-11 px-4 py-2 text-sm";
   return (
     <button
       type="button"

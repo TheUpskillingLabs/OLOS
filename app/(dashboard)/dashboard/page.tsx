@@ -737,8 +737,11 @@ export default async function DashboardPage() {
     </div>
   );
 
+  // Hidden on phones (<768px): the single mobile column would dump this rail at
+  // the very bottom, below the whole feed — the condensed strip inside feedFor
+  // carries org news + PYMK there instead. Tablet/desktop render it in the rail.
   const rightPanel = (
-    <aside className="dash-right flex flex-col gap-6">
+    <aside className="dash-right hidden md:flex flex-col gap-6">
       <AnnouncementsPanel labId={memberLabId} labName={labName} />
       <PeopleYouMayKnow
         viewerId={participant.id}
@@ -755,6 +758,23 @@ export default async function DashboardPage() {
   // matching per-state value the old Learning Log section used.
   const feedFor = (journal: boolean) => (
     <section className="space-y-4">
+      {/* Phone-only condensed rail: org news + PYMK live above the feed here,
+          since the full right rail is hidden on <768px (it would otherwise land
+          below every feed item at the bottom of the page). */}
+      <div className="flex flex-col gap-4 md:hidden">
+        <AnnouncementsPanel
+          labId={memberLabId}
+          labName={labName}
+          limit={2}
+          compact
+        />
+        <PeopleYouMayKnow
+          viewerId={participant.id}
+          metroId={memberLabId}
+          limit={3}
+          variant="rail"
+        />
+      </div>
       <FeedComposer
         avatarUrl={avatarUrl}
         initials={initials}

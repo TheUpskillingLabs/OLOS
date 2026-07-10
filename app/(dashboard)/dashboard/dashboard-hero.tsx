@@ -55,7 +55,10 @@ export default function DashboardHero({
               {initials}
             </div>
           )}
-          <div className="min-w-[220px] flex-1">
+          {/* min-w only from sm: — on a 360-390px phone a hard 220px floor
+              can't fit beside the avatar and forces an awkward avatar-only
+              wrap line. */}
+          <div className="min-w-0 flex-1 sm:min-w-[220px]">
             <div className="lbl lbl-teal mb-2">{eyebrow}</div>
             <h1 className="t-h1">{greeting}</h1>
             <p className="t-lede mt-2">{lede}</p>
