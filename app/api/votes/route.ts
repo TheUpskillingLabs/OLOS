@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { createServiceClient } from "@/lib/supabase/server";
 import { isActiveParticipant } from "@/lib/auth/roles";
 import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
@@ -38,7 +39,7 @@ export const POST = withAuth(
     // (audit fix: cross-cycle vote injection).
     const { data: targetStatement } = await auth.supabase
       .from("problem_statements")
-      .select("cycle_id")
+      .select("cycle_id, participant_id")
       .eq("id", problem_statement_id)
       .maybeSingle();
 
@@ -47,6 +48,33 @@ export const POST = withAuth(
         { error: "That problem statement is not part of this cycle." },
         { status: 400 }
       );
+    }
+
+    // Per-lab pool: in an HQ-open cycle (no cycle metro) each Local Lab votes
+    // only within its own lab, so pods form per lab. The voter's lab must match
+    // the statement author's lab. In a local-lab cycle everyone is one lab, so
+    // no extra check is needed. The author's metro is read via the service
+    // client because a voter can't read another participant's row under RLS.
+    const { data: voteCycle } = await auth.supabase
+      .from("cycles")
+      .select("metro_slug")
+      .eq("id", cycle_id)
+      .maybeSingle();
+    if (voteCycle && voteCycle.metro_slug === null) {
+      const svc = createServiceClient();
+      const { data: author } = await svc
+        .from("participants")
+        .select("metro_slug")
+        .eq("id", targetStatement.participant_id)
+        .maybeSingle();
+      const statementLab = author?.metro_slug ?? null;
+      const voterLab = auth.user.metroSlug;
+      if (!voterLab || statementLab !== voterLab) {
+        return NextResponse.json(
+          { error: "You can only vote on problem statements from your own lab." },
+          { status: 403 }
+        );
+      }
     }
 
     // Determine budget

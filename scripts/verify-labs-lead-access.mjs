@@ -99,6 +99,7 @@ async function teardown() {
     const { data: pods } = await db.from("pods").select("id").eq("cycle_id", cid);
     for (const p of pods ?? []) await db.from("pod_memberships").delete().eq("pod_id", p.id);
     await db.from("pods").delete().eq("cycle_id", cid);
+    await db.from("votes").delete().eq("cycle_id", cid);
     await db.from("problem_statements").delete().eq("cycle_id", cid);
     await db.from("cycle_enrollments").delete().eq("cycle_id", cid);
     await db.from("cycle_config").delete().eq("cycle_id", cid);
@@ -135,6 +136,16 @@ async function seedCycle(suffix, { metro = null, internal = false } = {}) {
     .single();
   await db.from("cycle_config").insert(configFor(cycle.id));
   return cycle.id;
+}
+
+/** A participant in a given lab, namespaced for teardown. */
+async function seedParticipant(metro, suffix) {
+  const { data } = await db
+    .from("participants")
+    .insert({ google_id: `zzauth-${suffix}`, email: `zzauth+${suffix}@example.test`, first_name: "Seed", last_name: suffix, metro_slug: metro })
+    .select("id")
+    .single();
+  return data.id;
 }
 
 /** A pod (+ forming project) stamped with a lab, inside cycle `cid`. */
@@ -250,6 +261,40 @@ async function main() {
     assert("created cycle is forced to the lead's lab (dc)", made.metro_slug === "dc", `got ${made.metro_slug}`);
     assert("created cycle is not HQ-internal", made.is_hq_internal === false, `got ${made.is_hq_internal}`);
   }
+
+  console.log("\n[HTTP] per-lab pod formation (HQ-open cycle)");
+  const formCycle = await seedCycle("FORM", { metro: null, internal: false });
+  const dc1 = await seedParticipant("dc", "form-dc1");
+  const dc2 = await seedParticipant("dc", "form-dc2");
+  const bal1 = await seedParticipant("baltimore", "form-bal1");
+  const bal2 = await seedParticipant("baltimore", "form-bal2");
+  await db.from("cycle_enrollments").insert(
+    [dc1, dc2, bal1, bal2].map((pid) => ({ participant_id: pid, cycle_id: formCycle, status: "active" }))
+  );
+  const { data: dcStmt } = await db.from("problem_statements").insert({ cycle_id: formCycle, participant_id: dc1, statement_text: `${MARKER} dc problem` }).select("id").single();
+  const { data: balStmt } = await db.from("problem_statements").insert({ cycle_id: formCycle, participant_id: bal1, statement_text: `${MARKER} bal problem` }).select("id").single();
+  await db.from("votes").insert([
+    { cycle_id: formCycle, voter_id: dc1, problem_statement_id: dcStmt.id, vote_count: 1 },
+    { cycle_id: formCycle, voter_id: bal1, problem_statement_id: balStmt.id, vote_count: 1 },
+  ]);
+
+  const finRes = await fetch(`${BASE}/api/voting/finalize/${formCycle}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+  });
+  const finBody = await finRes.json().catch(() => ({}));
+  assert("dc lead finalize → 200", finRes.status === 200, `got ${finRes.status}`);
+  const createdPods = Array.isArray(finBody.pods) ? finBody.pods : [];
+  assert("dc lead created only dc-stamped pods", createdPods.length >= 1 && createdPods.every((p) => p.metro_slug === "dc"), JSON.stringify(finBody));
+  const { count: balPodCount } = await db.from("pods").select("id", { count: "exact", head: true }).eq("cycle_id", formCycle).eq("metro_slug", "baltimore");
+  assert("no baltimore pods formed by the dc lead", (balPodCount ?? 0) === 0, `got ${balPodCount}`);
+  const { count: dcPodCount } = await db.from("pods").select("id", { count: "exact", head: true }).eq("cycle_id", formCycle).eq("metro_slug", "dc");
+  assert("dc pods exist", (dcPodCount ?? 0) >= 1, `got ${dcPodCount}`);
+  const fin2 = await fetch(`${BASE}/api/voting/finalize/${formCycle}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+  });
+  assert("re-finalize same lab → 409", fin2.status === 409, `got ${fin2.status}`);
 
   console.log(`\n${pass} passed, ${fail} failed.`);
   await teardown();

@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withPermissionAuth } from "@/lib/auth/middleware";
-import { requireCycleConfig } from "@/lib/auth/cycle-access";
+import { canSeeCycle, isFullCycleAdmin } from "@/lib/auth/cycle-access";
 import { createServiceClient } from "@/lib/supabase/server";
 import { reconcilePodMembers } from "@/lib/enrollment/reconciler";
 import { parseIntParam } from "@/lib/api/params";
@@ -33,10 +33,25 @@ export const POST = withPermissionAuth(
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
 
-    // Interim (Stage A): HQ, or a lab lead in their OWN local cycle. Stage B
-    // scopes dissolve/reconcile per-lab inside shared HQ-open cycles.
-    const guard = await requireCycleConfig(auth.supabase, auth.user, cycleId);
-    if (guard) return guard;
+    // HQ resolves the whole cycle; a labs lead resolves only their own lab's
+    // pods/projects (visible cycles only).
+    const { data: cycle } = await auth.supabase
+      .from("cycles")
+      .select("id, metro_slug, is_hq_internal")
+      .eq("id", cycleId)
+      .maybeSingle();
+    if (!cycle) return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
+    if (!canSeeCycle(auth.user, cycle)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    // Full admins act on all labs; a labs lead only on their own.
+    const scopeMetro = isFullCycleAdmin(auth.user) ? null : auth.user.metroSlug;
+    if (!isFullCycleAdmin(auth.user) && !scopeMetro) {
+      return NextResponse.json(
+        { error: "You must be assigned to a lab to resolve formation." },
+        { status: 403 }
+      );
+    }
 
     const client = createServiceClient();
 
@@ -77,11 +92,13 @@ export const POST = withPermissionAuth(
     // ── Pods ──────────────────────────────────────────────────────────────
     if (podsResolvable) {
       const podMin = Math.max(1, config.pod_min);
-      const { data: formingPods } = await client
+      let formingPodsQuery = client
         .from("pods")
         .select("id")
         .eq("cycle_id", cycleId)
         .eq("status", "forming");
+      if (scopeMetro) formingPodsQuery = formingPodsQuery.eq("metro_slug", scopeMetro);
+      const { data: formingPods } = await formingPodsQuery;
 
       for (const pod of formingPods ?? []) {
         const { count } = await client
@@ -115,11 +132,13 @@ export const POST = withPermissionAuth(
     // ── Projects ──────────────────────────────────────────────────────────
     if (projectsResolvable) {
       const projectMin = Math.max(1, config.project_min);
-      const { data: formingProjects } = await client
+      let formingProjectsQuery = client
         .from("projects")
         .select("id")
         .eq("cycle_id", cycleId)
         .eq("status", "forming");
+      if (scopeMetro) formingProjectsQuery = formingProjectsQuery.eq("metro_slug", scopeMetro);
+      const { data: formingProjects } = await formingProjectsQuery;
 
       for (const project of formingProjects ?? []) {
         const { count } = await client
