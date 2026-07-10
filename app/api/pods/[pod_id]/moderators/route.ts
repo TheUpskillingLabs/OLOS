@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth, withAuth } from "@/lib/auth/middleware";
+import { withPermissionAuth, withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -43,7 +44,8 @@ export const GET = withAuth(
   }
 );
 
-export const POST = withAdminAuth(
+export const POST = withPermissionAuth(
+  "pods:write",
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
@@ -51,6 +53,9 @@ export const POST = withAdminAuth(
     const body = await parseBody(request, moderatorAssignmentSchema);
     if (isErrorResponse(body)) return body;
     const { participant_id, cycle_id } = body;
+
+    const guard = await requireCycleManagement(auth.supabase, auth.user, cycle_id);
+    if (guard) return guard;
 
     const { data, error } = await auth.supabase
       .from("moderator_assignments")

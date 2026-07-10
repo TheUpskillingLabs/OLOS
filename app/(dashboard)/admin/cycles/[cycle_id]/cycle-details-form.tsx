@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
+import { METROS } from "@/lib/metros";
 
 type DetailsFormData = {
   name: string;
   description: string;
   what_you_build: string;
+  metro_slug: string;
 };
 
 export function CycleDetailsForm({
@@ -15,11 +17,13 @@ export function CycleDetailsForm({
   name,
   description,
   whatYouBuild,
+  metroSlug,
 }: {
   cycleId: number;
   name: string;
   description: string | null;
   whatYouBuild: string | null;
+  metroSlug: string | null;
 }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +36,7 @@ export function CycleDetailsForm({
       name,
       description: description ?? "",
       what_you_build: whatYouBuild ?? "",
+      metro_slug: metroSlug ?? "",
     },
   });
 
@@ -45,6 +50,7 @@ export function CycleDetailsForm({
         name: data.name.trim(),
         description: data.description.trim() || null,
         what_you_build: data.what_you_build.trim() || null,
+        metro_slug: data.metro_slug || null,
       }),
     });
     if (res.ok) {
@@ -89,6 +95,23 @@ export function CycleDetailsForm({
           rows={4}
           {...register("what_you_build")}
         />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-semibold text-charcoal">
+          Metro / region
+        </label>
+        <p className="mb-1.5 text-xs text-meta">
+          Assign this cycle to a metro so its local labs lead can manage it.
+          Leave unassigned to keep it admin-only.
+        </p>
+        <select className={inputClass} {...register("metro_slug")}>
+          <option value="">Unassigned</option>
+          {Object.values(METROS).map((m) => (
+            <option key={m.slug} value={m.slug}>
+              {m.name}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="flex flex-wrap items-center gap-4">
         <button

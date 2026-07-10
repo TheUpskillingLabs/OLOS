@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withPermissionAuth } from "@/lib/auth/middleware";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -86,8 +87,9 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  * optional reason field. No structural change to the route's control
  * flow.
  */
-export const PATCH = withAdminAuth(
-  async (request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const PATCH = withPermissionAuth(
+  "pods:write",
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
 
@@ -105,6 +107,10 @@ export const PATCH = withAdminAuth(
     if (!pod) {
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
+
+    // Metro scope for labs leads (full admins pass).
+    const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+    if (guard) return guard;
 
     // No-op fast path: status already matches.
     if (pod.status === newStatus) {

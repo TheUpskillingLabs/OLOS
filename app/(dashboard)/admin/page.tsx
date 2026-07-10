@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { resolveUserRoles } from "@/lib/auth/roles";
+import {
+  canManageLifecycle,
+  isFullCycleAdmin,
+  scopeCyclesForUser,
+} from "@/lib/auth/cycle-access";
 import { StatusBadge } from "@/app/components/ui";
 import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
 // The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
@@ -18,13 +23,18 @@ export default async function AdminPage() {
 
   const serviceClient = createServiceClient();
 
-  const [userRoles, { data: cycles }, { data: enrollmentRows }] = await Promise.all([
+  const [userRoles, { data: allCycles }, { data: enrollmentRows }] = await Promise.all([
     resolveUserRoles(serviceClient, user.id),
-    serviceClient.from("cycles").select("id, name, start_date, end_date, status").order("start_date", { ascending: false }),
+    serviceClient.from("cycles").select("id, name, start_date, end_date, status, metro_slug").order("start_date", { ascending: false }),
     serviceClient.from("cycle_enrollments").select("cycle_id, status"),
   ]);
 
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  // Anyone who can manage the lifecycle (admins/owners + metro labs leads) sees
+  // this page; labs leads see only their metro's cycles and none of the
+  // admin-only actions (create cycle, invitations, participants, explore).
+  if (!canManageLifecycle(userRoles)) redirect("/cycles");
+  const fullAdmin = isFullCycleAdmin(userRoles);
+  const cycles = scopeCyclesForUser(userRoles, allCycles ?? []);
 
   const countsByCycle = new Map<number, { total: number; active: number }>();
   for (const e of enrollmentRows || []) {
@@ -46,32 +56,34 @@ export default async function AdminPage() {
             {cycles?.length ?? 0} cycle{cycles?.length !== 1 ? "s" : ""} total
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/admin/invitations"
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            Invitations
-          </Link>
-          <Link
-            href="/admin/participants"
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            All participants
-          </Link>
-          {ENTITY_EXPLORER_ENABLED && (
+        {fullAdmin && (
+          <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/admin/explore"
-              className="btn btn-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
+              href="/admin/invitations"
+              className="btn btn-ghost px-4 py-2 text-sm"
             >
-              Explore
-              <span className="rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-deep">
-                flag
-              </span>
+              Invitations
             </Link>
-          )}
-          <CreateCycleForm />
-        </div>
+            <Link
+              href="/admin/participants"
+              className="btn btn-ghost px-4 py-2 text-sm"
+            >
+              All participants
+            </Link>
+            {ENTITY_EXPLORER_ENABLED && (
+              <Link
+                href="/admin/explore"
+                className="btn btn-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
+              >
+                Explore
+                <span className="rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-deep">
+                  flag
+                </span>
+              </Link>
+            )}
+            <CreateCycleForm />
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">

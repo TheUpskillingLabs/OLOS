@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
+import { resolveUserRoles, isModerator, can } from "@/lib/auth/roles";
+import { canManageLifecycle } from "@/lib/auth/cycle-access";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import AppNav, { type EnforcementStatus } from "@/app/components/chrome/app-nav";
 import TabBar from "@/app/components/chrome/tab-bar";
@@ -114,7 +115,9 @@ export default async function DashboardLayout({
   }
 
   const userRoles = await resolveUserRoles(serviceClient, user.id);
-  const adminUser = isAdmin(userRoles);
+  // The Admin nav destination is available to anyone who can manage the
+  // lifecycle — full admins/owners and metro-scoped labs leads.
+  const adminUser = canManageLifecycle(userRoles);
   const moderatorUser = isModerator(userRoles);
   const showPods = can(userRoles, "pods:read") || moderatorUser;
 

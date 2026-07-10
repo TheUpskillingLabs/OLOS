@@ -2,7 +2,12 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { resolveUserRoles, can } from "@/lib/auth/roles";
+import {
+  canManageLifecycle,
+  canManageCycle,
+  isFullCycleAdmin,
+} from "@/lib/auth/cycle-access";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
 import CycleStatusForm from "./cycle-status-form";
@@ -10,9 +15,13 @@ import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
 import { CycleDetailsForm } from "./cycle-details-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
+import FinalizeProjectsButton from "./finalize-projects-button";
 import ResolveFormationButton from "./resolve-formation-button";
 import RevocationsSection from "./revocations-section";
 import AssignModeratorButton from "./assign-moderator-button";
+import ManageMembersButton from "./manage-members-button";
+import EntityAdminActions from "./entity-admin-actions";
+import VoteTallies from "./vote-tallies";
 import TestingControls from "./testing-controls";
 
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -59,14 +68,14 @@ export default async function AdminCycleDetailPage({
 
   const serviceClient = createServiceClient();
   const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  if (!canManageLifecycle(userRoles)) redirect("/cycles");
 
   const cycleId = parseInt(cycle_id);
 
   const [{ data: cycle }, { data: config }] = await Promise.all([
     serviceClient
       .from("cycles")
-      .select("id, name, start_date, end_date, status, description, what_you_build")
+      .select("id, name, start_date, end_date, status, description, what_you_build, metro_slug")
       .eq("id", cycleId)
       .single(),
     serviceClient
@@ -77,6 +86,17 @@ export default async function AdminCycleDetailPage({
   ]);
 
   if (!cycle) notFound();
+
+  // Metro scope: a labs lead may only manage cycles in their own metro. Full
+  // admins (cycles:write) pass regardless.
+  if (!canManageCycle(userRoles, cycle)) redirect("/cycles");
+
+  // Which section groups this viewer may see. Lifecycle sections (pod/project
+  // voting, tables, resolve-formation, moderator) are always shown here since
+  // the page already requires pods:write. The rest are admin/owner-only.
+  const fullAdmin = isFullCycleAdmin(userRoles);
+  const canManageParticipants = can(userRoles, "participants:write");
+  const canUseTesting = can(userRoles, "testing:use");
 
   const { data: enrollments } = await serviceClient
     .from("cycle_enrollments")
@@ -173,13 +193,58 @@ export default async function AdminCycleDetailPage({
 
   const activeCount = participants.filter((p) => p.status === "active").length;
 
-  // Participant list for moderator assignment dropdown
+  // Participant list for moderator assignment / membership dropdowns
   const participantOptions = participants.map((p) => ({
     participant_id: p.participant_id,
     name: p.preferred_name
       ? `${p.preferred_name} ${p.last_name}`
       : `${p.first_name} ${p.last_name}`,
   }));
+  const nameById = new Map(participantOptions.map((p) => [p.participant_id, p.name]));
+
+  // Active pod members per pod (for the pod membership manager).
+  const podMembersByPod: Record<number, { participant_id: number; name: string }[]> = {};
+  for (const m of podMemberships ?? []) {
+    (podMembersByPod[m.pod_id] ??= []).push({
+      participant_id: m.participant_id,
+      name: nameById.get(m.participant_id) ?? `#${m.participant_id}`,
+    });
+  }
+
+  // Project layer: projects grouped by pod, member counts + rosters, and how
+  // many solutions each pod has (to know which pods can be finalized).
+  const { data: projects } = await serviceClient
+    .from("projects")
+    .select("id, name, status, pod_id")
+    .eq("cycle_id", cycleId)
+    .order("created_at");
+  const projectIds = (projects ?? []).map((p) => p.id);
+  const { data: projectMemberships } = projectIds.length
+    ? await serviceClient
+        .from("project_memberships")
+        .select("participant_id, project_id")
+        .in("project_id", projectIds)
+        .is("left_at", null)
+    : { data: [] as { participant_id: number; project_id: number }[] };
+  const { data: solutionRows } = await serviceClient
+    .from("solution_proposals")
+    .select("pod_id")
+    .eq("cycle_id", cycleId);
+
+  const solutionCountByPod = new Map<number, number>();
+  for (const s of solutionRows ?? [])
+    solutionCountByPod.set(s.pod_id, (solutionCountByPod.get(s.pod_id) ?? 0) + 1);
+  const projectMembersByProject: Record<number, { participant_id: number; name: string }[]> = {};
+  for (const m of projectMemberships ?? []) {
+    (projectMembersByProject[m.project_id] ??= []).push({
+      participant_id: m.participant_id,
+      name: nameById.get(m.participant_id) ?? `#${m.participant_id}`,
+    });
+  }
+  const projectsByPod: Record<number, { id: number; name: string | null; status: string }[]> = {};
+  for (const pr of projects ?? []) {
+    (projectsByPod[pr.pod_id] ??= []).push({ id: pr.id, name: pr.name, status: pr.status });
+  }
 
   return (
     <div>
@@ -217,62 +282,84 @@ export default async function AdminCycleDetailPage({
       </div>
 
       <div className="space-y-10">
-        {/* Status */}
-        <section>
-          <h2 className="mb-4 t-h3 text-ink">
-            Cycle Status
-          </h2>
-          <CycleStatusForm cycleId={cycle.id} currentStatus={cycle.status} />
-        </section>
+        {/* Config sections — full cycle admins only (cycles:write) */}
+        {fullAdmin && (
+          <>
+            {/* Status */}
+            <section>
+              <h2 className="mb-4 t-h3 text-ink">Cycle Status</h2>
+              <CycleStatusForm cycleId={cycle.id} currentStatus={cycle.status} />
+            </section>
 
-        <hr className="border-ink/10" />
+            <hr className="border-ink/10" />
 
-        {/* About / information page */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">Information page</h2>
-          <p className="mb-4 text-sm text-meta">
-            Public-facing copy for this cycle&rsquo;s info page ({`/c/${cycle.id}`}).
-          </p>
-          <CycleDetailsForm
-            cycleId={cycle.id}
-            name={cycle.name}
-            description={cycle.description}
-            whatYouBuild={cycle.what_you_build}
-          />
-        </section>
+            {/* About / information page */}
+            <section>
+              <h2 className="mb-1 t-h3 text-ink">Information page</h2>
+              <p className="mb-4 text-sm text-meta">
+                Public-facing copy for this cycle&rsquo;s info page ({`/c/${cycle.id}`}).
+              </p>
+              <CycleDetailsForm
+                cycleId={cycle.id}
+                name={cycle.name}
+                description={cycle.description}
+                whatYouBuild={cycle.what_you_build}
+                metroSlug={cycle.metro_slug}
+              />
+            </section>
 
-        <hr className="border-ink/10" />
+            <hr className="border-ink/10" />
 
-        {/* Schedule */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
-          <p className="mb-4 text-sm text-meta">
-            Open and close times for each phase.
-          </p>
-          {config && <CycleScheduleForm cycleId={cycle.id} config={config} />}
-        </section>
+            {/* Schedule */}
+            <section>
+              <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
+              <p className="mb-4 text-sm text-meta">
+                Open and close times for each phase.
+              </p>
+              {config && <CycleScheduleForm cycleId={cycle.id} config={config} />}
+            </section>
 
-        <hr className="border-ink/10" />
+            <hr className="border-ink/10" />
 
-        {/* Parameters */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">Parameters</h2>
-          <p className="mb-4 text-sm text-meta">
-            Voting thresholds and pod / project limits.
-          </p>
-          {config && <CycleParamsForm cycleId={cycle.id} config={config} />}
-        </section>
+            {/* Parameters */}
+            <section>
+              <h2 className="mb-1 t-h3 text-ink">Parameters</h2>
+              <p className="mb-4 text-sm text-meta">
+                Voting thresholds and pod / project limits.
+              </p>
+              {config && <CycleParamsForm cycleId={cycle.id} config={config} />}
+            </section>
 
-        <hr className="border-ink/10" />
+            <hr className="border-ink/10" />
+          </>
+        )}
 
-        {/* Pod Voting */}
+        {/* Pod Voting — lifecycle (pods:write) */}
         <section>
           <h2 className="mb-1 t-h3 text-ink">Pod Voting</h2>
           <p className="mb-4 text-sm text-meta">
             Finalize problem-statement voting to create pods. Uses AI to
             generate pod names.
           </p>
+          <VoteTallies cycleId={cycle.id} />
           <FinalizeVotingButton cycleId={cycle.id} />
+        </section>
+
+        <hr className="border-ink/10" />
+
+        {/* Solution Voting → Projects — lifecycle (pods:write) */}
+        <section>
+          <h2 className="mb-1 t-h3 text-ink">Solution Voting</h2>
+          <p className="mb-4 text-sm text-meta">
+            Finalize each pod&rsquo;s solution voting to create its projects
+            (below, in the Projects table).{" "}
+            <Link
+              href={`/moderator/cycles/${cycle.id}/vote-progress`}
+              className="font-semibold text-teal-deep hover:underline"
+            >
+              View vote progress →
+            </Link>
+          </p>
         </section>
 
         <hr className="border-ink/10" />
@@ -288,23 +375,24 @@ export default async function AdminCycleDetailPage({
           <ResolveFormationButton cycleId={cycle.id} />
         </section>
 
-        <hr className="border-ink/10" />
-
-        {/* Testing Controls */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">
-            Testing Mode
-          </h2>
-          <p className="mb-4 text-sm text-meta">
-            Advance through cycle phases one step at a time for testing.
-          </p>
-          {config && (
-            <TestingControls
-              cycleId={cycle.id}
-              initialConfig={config as unknown as Record<string, unknown>}
-            />
-          )}
-        </section>
+        {/* Testing Controls — developers (testing:use) */}
+        {canUseTesting && (
+          <>
+            <hr className="border-ink/10" />
+            <section>
+              <h2 className="mb-1 t-h3 text-ink">Testing Mode</h2>
+              <p className="mb-4 text-sm text-meta">
+                Advance through cycle phases one step at a time for testing.
+              </p>
+              {config && (
+                <TestingControls
+                  cycleId={cycle.id}
+                  initialConfig={config as unknown as Record<string, unknown>}
+                />
+              )}
+            </section>
+          </>
+        )}
 
         {pods && pods.length > 0 && (
           <>
@@ -366,13 +454,27 @@ export default async function AdminCycleDetailPage({
                               initialModerators={moderatorsByPod[pod.id] ?? []}
                             />
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            <Link
-                              href={`/pods/${pod.id}`}
-                              className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
-                            >
-                              View &rarr;
-                            </Link>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <EntityAdminActions
+                                entity="pod"
+                                entityId={pod.id}
+                                currentName={pod.name ?? `Pod ${pod.id}`}
+                                status={pod.status}
+                              />
+                              <ManageMembersButton
+                                entity="pod"
+                                entityId={pod.id}
+                                participants={participantOptions}
+                                initialMembers={podMembersByPod[pod.id] ?? []}
+                              />
+                              <Link
+                                href={`/pods/${pod.id}`}
+                                className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                              >
+                                View &rarr;
+                              </Link>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -384,32 +486,128 @@ export default async function AdminCycleDetailPage({
           </>
         )}
 
-        <hr className="border-ink/10" />
+        {/* Projects — lifecycle (pods:write). Grouped by pod, with per-pod
+            finalize (solution voting → projects) and per-project management. */}
+        {pods && pods.length > 0 && (
+          <>
+            <hr className="border-ink/10" />
+            <section>
+              <h2 className="mb-1 t-h3 text-ink">Projects</h2>
+              <p className="mb-4 text-sm text-meta">
+                Finalize each pod&rsquo;s solution voting into projects, then
+                manage them.
+              </p>
+              <div className="space-y-6">
+                {pods.map((pod) => {
+                  const podProjects = projectsByPod[pod.id] ?? [];
+                  const solCount = solutionCountByPod.get(pod.id) ?? 0;
+                  return (
+                    <div key={pod.id}>
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <h3 className="t-h4 text-ink">{pod.name ?? `Pod ${pod.id}`}</h3>
+                        {podProjects.length === 0 && solCount > 0 && (
+                          <FinalizeProjectsButton
+                            podId={pod.id}
+                            podName={pod.name ?? `Pod ${pod.id}`}
+                          />
+                        )}
+                      </div>
+                      {podProjects.length === 0 ? (
+                        <p className="text-xs text-meta">
+                          {solCount > 0
+                            ? `${solCount} solution${solCount !== 1 ? "s" : ""} submitted — not finalized into projects yet.`
+                            : "No solutions submitted."}
+                        </p>
+                      ) : (
+                        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+                          <table className="w-full text-sm">
+                            <thead className="bg-ink/[0.02]">
+                              <tr>
+                                <th className="lbl px-4 py-3 text-left">Project</th>
+                                <th className="lbl px-4 py-3 text-left">Status</th>
+                                <th className="lbl px-4 py-3 text-left">Members</th>
+                                <th className="lbl px-4 py-3 text-right" />
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-ink/10">
+                              {podProjects.map((pr) => (
+                                <tr key={pr.id} className="transition-colors duration-150 hover:bg-ink/[0.02]">
+                                  <td className="px-4 py-3 font-medium text-ink">
+                                    {pr.name ?? `Project ${pr.id}`}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <StatusBadge
+                                      variant={POD_STATUS_VARIANT[pr.status as PodStatus] ?? "inactive"}
+                                    >
+                                      {pr.status}
+                                    </StatusBadge>
+                                  </td>
+                                  <td className="px-4 py-3 text-meta tabular-nums">
+                                    {(projectMembersByProject[pr.id] ?? []).length}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex flex-wrap items-center justify-end gap-2">
+                                      <EntityAdminActions
+                                        entity="project"
+                                        entityId={pr.id}
+                                        currentName={pr.name ?? `Project ${pr.id}`}
+                                        status={pr.status}
+                                      />
+                                      <ManageMembersButton
+                                        entity="project"
+                                        entityId={pr.id}
+                                        participants={participantOptions}
+                                        initialMembers={projectMembersByProject[pr.id] ?? []}
+                                      />
+                                      <Link
+                                        href={`/projects/${pr.id}`}
+                                        className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                                      >
+                                        View &rarr;
+                                      </Link>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        )}
 
-        {/* Participants */}
-        <section>
-          <h2 className="mb-4 t-h3 text-ink">
-            Participants ({participants.length})
-          </h2>
-          <ParticipantsTable participants={participants} cycleId={cycleId} />
-        </section>
+        {/* Participants + Revocations — participants:write (admins/owners) */}
+        {canManageParticipants && (
+          <>
+            <hr className="border-ink/10" />
 
-        <hr className="border-ink/10" />
+            <section>
+              <h2 className="mb-4 t-h3 text-ink">
+                Participants ({participants.length})
+              </h2>
+              <ParticipantsTable participants={participants} cycleId={cycleId} />
+            </section>
 
-        {/* Revocations */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">
-            Access Revocations
-          </h2>
-          <p className="mb-4 text-sm text-meta">
-            Check for inactive participants and manage revocations.
-          </p>
-          <RevocationsSection
-            cycleId={cycle.id}
-            initialRevocations={revocations ?? []}
-            participants={participants}
-          />
-        </section>
+            <hr className="border-ink/10" />
+
+            <section>
+              <h2 className="mb-1 t-h3 text-ink">Access Revocations</h2>
+              <p className="mb-4 text-sm text-meta">
+                Check for inactive participants and manage revocations.
+              </p>
+              <RevocationsSection
+                cycleId={cycle.id}
+                initialRevocations={revocations ?? []}
+                participants={participants}
+              />
+            </section>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withPermissionAuth } from "@/lib/auth/middleware";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { createServiceClient } from "@/lib/supabase/server";
 import { reconcilePodMembers } from "@/lib/enrollment/reconciler";
 import { parseIntParam } from "@/lib/api/params";
@@ -26,10 +27,14 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  * (checkWindow can't distinguish "before open" from "after close", and we only
  * want to act after close).
  */
-export const POST = withAdminAuth(
-  async (_request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const POST = withPermissionAuth(
+  "pods:write",
+  async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
+
+    const guard = await requireCycleManagement(auth.supabase, auth.user, cycleId);
+    if (guard) return guard;
 
     const client = createServiceClient();
 

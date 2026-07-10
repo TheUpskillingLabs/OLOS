@@ -8,6 +8,7 @@ const ROLE_COLORS: Record<string, string> = {
   owner: "bg-ink/10 text-ink",
   admin: "bg-teal/10 text-teal-deep",
   developer: "bg-forest/10 text-forest",
+  labs_lead: "bg-teal/10 text-teal-deep",
   moderator: "bg-navy/10 text-navy",
   observer: "bg-ink/[0.04] text-meta",
 };

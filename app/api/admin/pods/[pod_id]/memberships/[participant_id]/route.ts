@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withPermissionAuth } from "@/lib/auth/middleware";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
@@ -54,8 +55,9 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  * concerns: enrollment status changes (access_revocations) vs membership
  * actions (pod_memberships audit columns).
  */
-export const DELETE = withAdminAuth(
-  async (_request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const DELETE = withPermissionAuth(
+  "pods:write",
+  async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
     const participantId = parseIntParam(params.participant_id, "participant_id");
@@ -71,6 +73,9 @@ export const DELETE = withAdminAuth(
     if (!pod) {
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
+
+    const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+    if (guard) return guard;
 
     const { error } = await client
       .from("pod_memberships")

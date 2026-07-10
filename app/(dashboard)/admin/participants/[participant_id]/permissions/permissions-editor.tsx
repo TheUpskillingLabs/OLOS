@@ -13,6 +13,7 @@ const PRESET_COLORS: Record<string, string> = {
   owner: "bg-ink/10 text-ink ring-ink/30",
   admin: "bg-teal/10 text-teal-deep ring-teal/30",
   developer: "bg-forest/10 text-forest ring-forest/30",
+  labs_lead: "bg-teal/10 text-teal-deep ring-teal/30",
   moderator: "bg-navy/10 text-navy ring-navy/30",
   observer: "bg-ink/[0.04] text-meta ring-ink/10",
 };

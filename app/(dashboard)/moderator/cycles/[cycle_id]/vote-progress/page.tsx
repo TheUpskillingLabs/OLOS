@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModerator } from "@/lib/auth/roles";
+import { resolveUserRoles, isModerator } from "@/lib/auth/roles";
+import { canManageCycle } from "@/lib/auth/cycle-access";
 
 type Proposal = {
   id: number;
@@ -39,17 +40,20 @@ export default async function ModeratorVoteProgressPage({
   const serviceClient = createServiceClient();
   const userRoles = await resolveUserRoles(serviceClient, user.id);
 
-  if (!isAdmin(userRoles) && !isModerator(userRoles)) {
-    redirect("/cycles");
-  }
-
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name")
+    .select("id, name, metro_slug")
     .eq("id", cycleId)
     .single();
 
   if (!cycle) notFound();
+
+  // Cycle managers (full admins + metro-scoped labs leads) and moderators may
+  // view tallies. Managers see every pod; moderators see only their assigned.
+  const isCycleManager = canManageCycle(userRoles, cycle);
+  if (!isCycleManager && !isModerator(userRoles)) {
+    redirect("/cycles");
+  }
 
   const { data: config } = await serviceClient
     .from("cycle_config")
@@ -64,7 +68,7 @@ export default async function ModeratorVoteProgressPage({
 
   // Scope: admins see every pod; moderators see only their assigned pods.
   let pods: { id: number; name: string | null }[] = [];
-  if (isAdmin(userRoles)) {
+  if (isCycleManager) {
     const { data } = await serviceClient
       .from("pods")
       .select("id, name")
@@ -170,7 +174,7 @@ export default async function ModeratorVoteProgressPage({
         <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
           <p className="text-charcoal">
             No pods to display for this cycle.
-            {!isAdmin(userRoles) && " You are not assigned to any pods here."}
+            {!isCycleManager && " You are not assigned to any pods here."}
           </p>
         </div>
       ) : (

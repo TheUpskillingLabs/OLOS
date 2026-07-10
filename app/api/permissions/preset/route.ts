@@ -52,7 +52,7 @@ export const POST = withAdminAuth(
       .not("revoked_at", "is", null);
 
     // Also record in user_roles for audit trail (if applicable preset)
-    if (["owner", "admin", "developer", "observer"].includes(preset)) {
+    if (["owner", "admin", "developer", "observer", "labs_lead"].includes(preset)) {
       await serviceClient
         .from("user_roles")
         .upsert(

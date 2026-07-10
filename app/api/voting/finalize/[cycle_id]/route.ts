@@ -1,13 +1,18 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withPermissionAuth } from "@/lib/auth/middleware";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { generateName } from "@/lib/llm/names";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
 
-export const POST = withAdminAuth(
+export const POST = withPermissionAuth(
+  "pods:write",
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
+
+    const guard = await requireCycleManagement(auth.supabase, auth.user, cycleId);
+    if (guard) return guard;
 
     // Get cycle config
     const { data: config } = await auth.supabase

@@ -73,7 +73,7 @@ export async function fulfillInvitation(
   }
 
   // Record role preset in user_roles for audit
-  if (invitation.role_preset && ["owner", "admin", "developer", "observer"].includes(invitation.role_preset)) {
+  if (invitation.role_preset && ["owner", "admin", "developer", "observer", "labs_lead"].includes(invitation.role_preset)) {
     await serviceClient
       .from("user_roles")
       .upsert(

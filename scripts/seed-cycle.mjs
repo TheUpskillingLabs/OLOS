@@ -197,6 +197,21 @@ async function main() {
   const { count: pvCount } = await db.from("project_votes").select("id", { count: "exact", head: true }).eq("solution_proposal_id", sp.id).eq("voter_id", parts[0]);
   assert("project withdraw deletes the row", pvCount === 0);
 
+  // ── ADMIN: project status override + membership cap + cycle metro ───────────
+  console.log("\n[ADMIN] project status override + 1-per-cycle cap + metro");
+  const { data: prj3 } = await db.from("projects").insert({ cycle_id: cid, pod_id: pod1.id, solution_proposal_id: sp.id, name: "ZZ Project Three", status: "forming" }).select("id").single();
+  await db.from("projects").update({ status: "active", updated_at: new Date().toISOString() }).eq("id", prj3.id).eq("status", "forming");
+  const { data: prj3row } = await db.from("projects").select("status").eq("id", prj3.id).single();
+  assert("admin project status override forming -> active", prj3row.status === "active");
+
+  await db.from("project_memberships").insert({ participant_id: parts[4], project_id: prj3.id, cycle_id: cid });
+  const dup = await db.from("project_memberships").insert({ participant_id: parts[4], project_id: prj1.id, cycle_id: cid });
+  assert("1-project-per-cycle cap enforced by partial unique index", !!dup.error);
+
+  await db.from("cycles").update({ metro_slug: "dc" }).eq("id", cid);
+  const { data: cyc } = await db.from("cycles").select("metro_slug").eq("id", cid).single();
+  assert("cycle.metro_slug set/read", cyc.metro_slug === "dc");
+
   // ── T3: resolve-formation (dissolve under-min + reconcile) ──────────────────
   console.log("\n[T3] failed-formation resolution");
   // pods

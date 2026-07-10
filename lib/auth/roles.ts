@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import type { Permission } from "./permissions";
 
-export type Role = "owner" | "admin" | "observer" | "developer" | "moderator" | "participant";
+export type Role = "owner" | "admin" | "observer" | "developer" | "moderator" | "labs_lead" | "participant";
 export type ParticipantStatus = "active" | "inactive" | "revoked";
 
 export interface UserRoles {
@@ -14,6 +14,9 @@ export interface UserRoles {
     cycleId: number;
     status: ParticipantStatus;
   }[];
+  // The participant's metro (from participants.metro_slug), used to scope a
+  // labs_lead to their region's cycles. null when unset or no participant row.
+  metroSlug: string | null;
 }
 
 export async function resolveUserRoles(
@@ -23,18 +26,19 @@ export async function resolveUserRoles(
   // Get participant record
   const { data: participant } = await supabase
     .from("participants")
-    .select("id")
+    .select("id, metro_slug")
     .eq("auth_user_id", authUserId)
     .single();
 
   const participantId = participant?.id ?? null;
+  const metroSlug = participant?.metro_slug ?? null;
   const roles: Role[] = [];
   const permissions: Permission[] = [];
   const moderatorPodIds: number[] = [];
   const cycleEnrollments: UserRoles["cycleEnrollments"] = [];
 
   if (!participantId) {
-    return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments };
+    return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments, metroSlug };
   }
 
   const [
@@ -77,7 +81,7 @@ export async function resolveUserRoles(
     }
   }
 
-  return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments };
+  return { userId: authUserId, participantId, roles, permissions, moderatorPodIds, cycleEnrollments, metroSlug };
 }
 
 /** Check if user has a specific permission */

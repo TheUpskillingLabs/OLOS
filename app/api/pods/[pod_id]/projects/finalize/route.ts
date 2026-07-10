@@ -1,7 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { createServiceClient } from "@/lib/supabase/server";
-import { isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { isModeratorForPod } from "@/lib/auth/roles";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { generateName } from "@/lib/llm/names";
 import { parseIntParam } from "@/lib/api/params";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
@@ -10,10 +11,6 @@ export const POST = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
-
-    if (!isAdmin(auth.user) && !isModeratorForPod(auth.user, podId)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     // Get pod for cycle_id
     const { data: pod } = await auth.supabase
@@ -24,6 +21,13 @@ export const POST = withAuth(
 
     if (!pod) {
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
+    }
+
+    // Auth: the pod's moderator, OR a lifecycle manager (pods:write) scoped to
+    // this cycle's metro — full admins/owners plus local labs leads.
+    if (!isModeratorForPod(auth.user, podId)) {
+      const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+      if (guard) return guard;
     }
 
     // Get config

@@ -12,6 +12,8 @@ export const updateCycleDetailsSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(5000).nullable().optional(),
   what_you_build: z.string().max(5000).nullable().optional(),
+  // Metro/region assignment — scopes a local labs lead to this cycle.
+  metro_slug: z.string().max(50).nullable().optional(),
 });
 
 export const updateCycleConfigSchema = z.object({

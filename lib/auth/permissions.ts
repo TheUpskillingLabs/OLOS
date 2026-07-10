@@ -45,6 +45,17 @@ export const ROLE_PRESETS: Record<string, Permission[]> = {
     "invitations:read", "invitations:write",
     "testing:use",
   ],
+  // Metro-scoped local labs lead: manages the pod/project lifecycle for their
+  // own region. Deliberately NOT granted cycles:write (config/schedule) or
+  // roles:write — the lifecycle surfaces are gated on pods:write, and the
+  // cycle-admin page hides the admin-only sections for this preset. Region
+  // scoping is enforced via cycle.metro_slug (see lib/auth/cycle-access.ts).
+  labs_lead: [
+    "pods:read",
+    "pods:write",
+    "participants:read",
+    "pulse_checks:read",
+  ],
   moderator: [
     "pods:read",
     "pulse_checks:read",

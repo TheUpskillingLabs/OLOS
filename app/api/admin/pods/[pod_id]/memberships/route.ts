@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withPermissionAuth } from "@/lib/auth/middleware";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -62,8 +63,9 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  * columns in one coordinated migration rather than three separate
  * follow-ups. Tracked at #115.
  */
-export const POST = withAdminAuth(
-  async (request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const POST = withPermissionAuth(
+  "pods:write",
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
 
@@ -81,6 +83,9 @@ export const POST = withAdminAuth(
     if (!pod) {
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
+
+    const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+    if (guard) return guard;
     if (!["forming", "active"].includes(pod.status)) {
       return NextResponse.json(
         { error: "Pod is not accepting memberships" },

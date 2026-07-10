@@ -1,7 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { createServiceClient } from "@/lib/supabase/server";
-import { isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { isModeratorForPod } from "@/lib/auth/roles";
+import { requireCycleManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -13,8 +14,16 @@ export const PATCH = withAuth(
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
 
-    if (!isAdmin(auth.user) && !isModeratorForPod(auth.user, podId)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // The pod's moderator, or a lifecycle manager scoped to this cycle's metro.
+    if (!isModeratorForPod(auth.user, podId)) {
+      const { data: pod } = await auth.supabase
+        .from("pods")
+        .select("cycle_id")
+        .eq("id", podId)
+        .maybeSingle();
+      if (!pod) return NextResponse.json({ error: "Pod not found" }, { status: 404 });
+      const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+      if (guard) return guard;
     }
 
     const body = await parseBody(request, nameUpdateSchema);
