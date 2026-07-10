@@ -9,7 +9,13 @@ import { createCycleSchema } from "@/lib/validations/cycles";
 
 type FormData = z.infer<typeof createCycleSchema>;
 
-export default function CreateCycleForm() {
+export default function CreateCycleForm({
+  lockedLabName,
+}: {
+  // When set (a labs lead), the new cycle will belong to this lab — shown as a
+  // note; the server forces the metro regardless.
+  lockedLabName?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
@@ -61,6 +67,12 @@ export default function CreateCycleForm() {
         <h2 className="mb-3 text-sm font-semibold tracking-tight text-ink">
           New cycle
         </h2>
+        {lockedLabName && (
+          <p className="mb-3 text-xs text-meta">
+            This will be a <strong>{lockedLabName}</strong> lab cycle — your lab
+            runs it end to end.
+          </p>
+        )}
         <div className="flex flex-wrap items-start gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-charcoal" htmlFor="cycle-name">

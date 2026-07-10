@@ -3,7 +3,11 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { resolveUserRoles, isModerator } from "@/lib/auth/roles";
-import { canManageCycle } from "@/lib/auth/cycle-access";
+import {
+  canSeeCycle,
+  canManageLifecycle,
+  isFullCycleAdmin,
+} from "@/lib/auth/cycle-access";
 
 type Proposal = {
   id: number;
@@ -42,15 +46,17 @@ export default async function ModeratorVoteProgressPage({
 
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, metro_slug")
+    .select("id, name, metro_slug, is_hq_internal")
     .eq("id", cycleId)
     .single();
 
   if (!cycle) notFound();
 
-  // Cycle managers (full admins + metro-scoped labs leads) and moderators may
-  // view tallies. Managers see every pod; moderators see only their assigned.
-  const isCycleManager = canManageCycle(userRoles, cycle);
+  // Cycle managers (HQ admins + labs leads who can see this cycle) and
+  // moderators may view tallies. Full admins see every pod; a labs lead sees
+  // only their lab's pods; moderators see only their assigned pods.
+  const fullAdmin = isFullCycleAdmin(userRoles);
+  const isCycleManager = canSeeCycle(userRoles, cycle) && canManageLifecycle(userRoles);
   if (!isCycleManager && !isModerator(userRoles)) {
     redirect("/cycles");
   }
@@ -66,14 +72,19 @@ export default async function ModeratorVoteProgressPage({
   const closeAt = config?.solution_voting_close ? new Date(config.solution_voting_close) : null;
   const isOpen = openAt !== null && closeAt !== null && now >= openAt && now <= closeAt;
 
-  // Scope: admins see every pod; moderators see only their assigned pods.
+  // Scope: full admins see every pod; a labs-lead manager sees only their own
+  // lab's pods; moderators see only their assigned pods.
   let pods: { id: number; name: string | null }[] = [];
   if (isCycleManager) {
-    const { data } = await serviceClient
+    let podsQuery = serviceClient
       .from("pods")
       .select("id, name")
       .eq("cycle_id", cycleId)
       .order("created_at");
+    if (!fullAdmin && userRoles.metroSlug) {
+      podsQuery = podsQuery.eq("metro_slug", userRoles.metroSlug);
+    }
+    const { data } = await podsQuery;
     pods = data ?? [];
   } else {
     const scopedIds = userRoles.moderatorPodIds;

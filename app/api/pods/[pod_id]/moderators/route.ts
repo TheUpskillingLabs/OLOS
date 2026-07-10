@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withPermissionAuth, withAuth } from "@/lib/auth/middleware";
 import { isAdmin } from "@/lib/auth/roles";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { requirePodManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -54,7 +54,8 @@ export const POST = withPermissionAuth(
     if (isErrorResponse(body)) return body;
     const { participant_id, cycle_id } = body;
 
-    const guard = await requireCycleManagement(auth.supabase, auth.user, cycle_id);
+    // Scope on the pod's own lab, not the body-provided cycle_id.
+    const guard = await requirePodManagement(auth.supabase, auth.user, podId);
     if (guard) return guard;
 
     const { data, error } = await auth.supabase

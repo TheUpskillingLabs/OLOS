@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isModeratorForPod } from "@/lib/auth/roles";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { canManageEntity } from "@/lib/auth/cycle-access";
 import { generateName } from "@/lib/llm/names";
 import { parseIntParam } from "@/lib/api/params";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
@@ -12,10 +12,11 @@ export const POST = withAuth(
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
 
-    // Get pod for cycle_id
+    // Get pod for cycle_id + lab (metro_slug is stamped onto the projects it
+    // creates, so a project inherits its pod's lab).
     const { data: pod } = await auth.supabase
       .from("pods")
-      .select("cycle_id")
+      .select("cycle_id, metro_slug")
       .eq("id", podId)
       .single();
 
@@ -24,10 +25,9 @@ export const POST = withAuth(
     }
 
     // Auth: the pod's moderator, OR a lifecycle manager (pods:write) scoped to
-    // this cycle's metro — full admins/owners plus local labs leads.
-    if (!isModeratorForPod(auth.user, podId)) {
-      const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
-      if (guard) return guard;
+    // this pod's lab — full admins/owners plus the pod's own local labs lead.
+    if (!isModeratorForPod(auth.user, podId) && !canManageEntity(auth.user, pod)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Get config
@@ -141,6 +141,8 @@ export const POST = withAuth(
       solution_proposal_id: prop.solution_proposal_id,
       name: names[i],
       status: "forming",
+      // A project belongs to the same lab as its pod.
+      metro_slug: pod.metro_slug ?? null,
     }));
 
     // Insert via the service client: authorization is already enforced above

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissionAuth } from "@/lib/auth/middleware";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { requirePodManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
@@ -74,7 +74,7 @@ export const DELETE = withPermissionAuth(
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
 
-    const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+    const guard = await requirePodManagement(auth.supabase, auth.user, podId);
     if (guard) return guard;
 
     const { error } = await client

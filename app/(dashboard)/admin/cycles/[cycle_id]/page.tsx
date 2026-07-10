@@ -5,7 +5,8 @@ import { redirect, notFound } from "next/navigation";
 import { resolveUserRoles, can } from "@/lib/auth/roles";
 import {
   canManageLifecycle,
-  canManageCycle,
+  canSeeCycle,
+  canConfigureCycle,
   isFullCycleAdmin,
 } from "@/lib/auth/cycle-access";
 import { StatCard, StatusBadge } from "@/app/components/ui";
@@ -76,7 +77,7 @@ export default async function AdminCycleDetailPage({
   const [{ data: cycle }, { data: config }] = await Promise.all([
     serviceClient
       .from("cycles")
-      .select("id, name, start_date, end_date, status, description, what_you_build, metro_slug")
+      .select("id, name, start_date, end_date, status, description, what_you_build, metro_slug, is_hq_internal")
       .eq("id", cycleId)
       .single(),
     serviceClient
@@ -88,16 +89,25 @@ export default async function AdminCycleDetailPage({
 
   if (!cycle) notFound();
 
-  // Metro scope: a labs lead may only manage cycles in their own metro. Full
-  // admins (cycles:write) pass regardless.
-  if (!canManageCycle(userRoles, cycle)) redirect("/cycles");
+  // Visibility: HQ sees all; a labs lead sees HQ-open cycles + their own lab's
+  // cycles, never other labs' or HQ-internal cycles.
+  if (!canSeeCycle(userRoles, cycle)) redirect("/cycles");
 
-  // Which section groups this viewer may see. Lifecycle sections (pod/project
-  // voting, tables, resolve-formation, moderator) are always shown here since
-  // the page already requires pods:write. The rest are admin/owner-only.
+  // Which section groups this viewer may see.
+  //   - fullAdmin (cycles:write): everything.
+  //   - canConfigure: HQ, or a labs lead in their OWN local cycle → cycle
+  //     config sections (status/schedule/params/details). A labs lead viewing a
+  //     shared HQ-open cycle can manage their lab's pods/projects but NOT config.
+  //   - Lifecycle tables/actions: always shown (page already requires pods:write),
+  //     but scoped to the viewer's lab below for non-full-admins.
   const fullAdmin = isFullCycleAdmin(userRoles);
+  const canConfigure = canConfigureCycle(userRoles, cycle);
   const canManageParticipants = can(userRoles, "participants:write");
   const canUseTesting = can(userRoles, "testing:use");
+
+  // A labs lead only sees/manages their own lab's pods & projects within a
+  // cycle; full admins see every lab's.
+  const scopeMetro = fullAdmin ? null : userRoles.metroSlug;
 
   const { data: enrollments } = await serviceClient
     .from("cycle_enrollments")
@@ -107,11 +117,15 @@ export default async function AdminCycleDetailPage({
     )
     .eq("cycle_id", cycleId);
 
-  const { data: pods } = await serviceClient
+  let podsQuery = serviceClient
     .from("pods")
-    .select("id, name, status")
+    .select("id, name, status, metro_slug")
     .eq("cycle_id", cycleId)
     .order("created_at");
+  // Labs leads only see their own lab's pods (in a shared HQ cycle these are a
+  // subset; in their own local cycle they're all of them).
+  if (scopeMetro) podsQuery = podsQuery.eq("metro_slug", scopeMetro);
+  const { data: pods } = await podsQuery;
 
   const podIds = pods?.map((p) => p.id) ?? [];
   const { data: podMemberships } = podIds.length
@@ -214,11 +228,13 @@ export default async function AdminCycleDetailPage({
 
   // Project layer: projects grouped by pod, member counts + rosters, and how
   // many solutions each pod has (to know which pods can be finalized).
-  const { data: projects } = await serviceClient
+  let projectsQuery = serviceClient
     .from("projects")
-    .select("id, name, status, pod_id")
+    .select("id, name, status, pod_id, metro_slug")
     .eq("cycle_id", cycleId)
     .order("created_at");
+  if (scopeMetro) projectsQuery = projectsQuery.eq("metro_slug", scopeMetro);
+  const { data: projects } = await projectsQuery;
   const projectIds = (projects ?? []).map((p) => p.id);
   const { data: projectMemberships } = projectIds.length
     ? await serviceClient
@@ -293,8 +309,10 @@ export default async function AdminCycleDetailPage({
       </div>
 
       <div className="space-y-10">
-        {/* Config sections — full cycle admins only (cycles:write) */}
-        {fullAdmin && (
+        {/* Config sections — HQ (cycles:write), or a labs lead in their OWN
+            local cycle (canConfigureCycle). Hidden for a labs lead viewing a
+            shared HQ-open cycle they only participate in. */}
+        {canConfigure && (
           <>
             {/* Status */}
             <section>
@@ -316,6 +334,8 @@ export default async function AdminCycleDetailPage({
                 description={cycle.description}
                 whatYouBuild={cycle.what_you_build}
                 metroSlug={cycle.metro_slug}
+                isHqInternal={cycle.is_hq_internal}
+                canEditKind={fullAdmin}
               />
             </section>
 

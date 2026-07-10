@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { createServiceClient } from "@/lib/supabase/server";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { requireProjectManagement } from "@/lib/auth/cycle-access";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
@@ -24,9 +24,9 @@ export const PATCH = withAuth(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // The owning pod's moderator, or a lifecycle manager scoped to this metro.
+    // The owning pod's moderator, or a lifecycle manager scoped to this project's lab.
     if (!auth.user.moderatorPodIds.includes(project.pod_id)) {
-      const guard = await requireCycleManagement(auth.supabase, auth.user, project.cycle_id);
+      const guard = await requireProjectManagement(auth.supabase, auth.user, projectId);
       if (guard) return guard;
     }
 

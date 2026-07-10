@@ -215,16 +215,22 @@ async function main() {
   const dup = await db.from("project_memberships").insert({ participant_id: parts[4], project_id: prj1.id, cycle_id: cid });
   assert("1-project-per-cycle cap enforced by partial unique index", !!dup.error);
 
-  await db.from("cycles").update({ metro_slug: "dc" }).eq("id", cid);
-  const { data: cyc } = await db.from("cycles").select("metro_slug").eq("id", cid).single();
-  assert("cycle.metro_slug set/read", cyc.metro_slug === "dc");
+  // ── ACCESS: HQ / local-lab taxonomy + pod/project-scoped management ──────────
+  // Mirrors lib/auth/cycle-access.ts at the data level: the lab boundary lives
+  // on the pod/project (canManageEntity), cycles are classified by metro_slug +
+  // is_hq_internal (canSeeCycle / canConfigureCycle). The authenticated HTTP
+  // path is exercised separately by scripts/verify-labs-lead-access.mjs.
+  console.log("\n[ACCESS] HQ / local-lab access model");
 
-  // ── ACCESS: labs_lead metro-scoped cycle management ─────────────────────────
-  // Mirrors lib/auth/cycle-access.ts::canManageCycle at the data level: a labs
-  // lead (pods:write, no cycles:write) with a metro may manage same-metro
-  // cycles only. The authenticated HTTP path is exercised separately by
-  // scripts/verify-labs-lead-access.mjs.
-  console.log("\n[ACCESS] labs_lead metro-scoped cycle management");
+  // Column writes: stamp a pod with a lab and flag a cycle HQ-internal, read back.
+  await db.from("pods").update({ metro_slug: "dc" }).eq("id", pod1.id);
+  const { data: podLab } = await db.from("pods").select("metro_slug").eq("id", pod1.id).single();
+  assert("pods.metro_slug set/read", podLab.metro_slug === "dc");
+  await db.from("cycles").update({ is_hq_internal: true }).eq("id", cid);
+  const { data: cycFlag } = await db.from("cycles").select("is_hq_internal").eq("id", cid).single();
+  assert("cycles.is_hq_internal set/read", cycFlag.is_hq_internal === true);
+  await db.from("cycles").update({ is_hq_internal: false }).eq("id", cid);
+
   const { data: lead } = await db
     .from("participants")
     .insert({ google_id: "zzseed-lead", email: "zzseed+lead@example.test", first_name: "Seed", last_name: "Lead", metro_slug: "dc" })
@@ -241,18 +247,37 @@ async function main() {
     .is("revoked_at", null);
   const permSet = new Set((permRows ?? []).map((r) => r.permission));
 
-  // Faithful mirror of canManageLifecycle / isFullCycleAdmin / canManageCycle.
+  // Faithful mirrors of the cycle-access.ts helpers.
+  const metroSlug = lead.metro_slug;
   const canManageLifecycle = permSet.has("pods:write");
   const isFullCycleAdmin = permSet.has("cycles:write");
-  const canManageCycle = (cycleMetro) =>
+  const canManageEntity = (entityMetro) =>
     canManageLifecycle &&
-    (isFullCycleAdmin ||
-      (!!cycleMetro && !!lead.metro_slug && cycleMetro === lead.metro_slug));
+    (isFullCycleAdmin || (!!entityMetro && !!metroSlug && entityMetro === metroSlug));
+  const canSeeCycle = (c) =>
+    isFullCycleAdmin ||
+    (canManageLifecycle && !c.is_hq_internal && (c.metro_slug === null || c.metro_slug === metroSlug));
+  const canConfigureCycle = (c) =>
+    isFullCycleAdmin ||
+    (canManageLifecycle && !c.is_hq_internal && !!c.metro_slug && !!metroSlug && c.metro_slug === metroSlug);
 
   assert("labs_lead has pods:write but not cycles:write", canManageLifecycle && !isFullCycleAdmin);
-  assert("labs_lead can manage a same-metro cycle (dc == dc)", canManageCycle("dc") === true);
-  assert("labs_lead cannot manage a different-metro cycle (baltimore)", canManageCycle("baltimore") === false);
-  assert("labs_lead cannot manage a metro-less cycle", canManageCycle(null) === false);
+
+  // Manage pods/projects by lab.
+  assert("manages a same-lab pod (dc)", canManageEntity("dc") === true);
+  assert("cannot manage a different-lab pod (baltimore)", canManageEntity("baltimore") === false);
+  assert("cannot manage a metro-less (HQ/legacy) pod", canManageEntity(null) === false);
+
+  // See cycles by taxonomy.
+  assert("sees an HQ-open cycle", canSeeCycle({ metro_slug: null, is_hq_internal: false }) === true);
+  assert("sees own lab's cycle (dc)", canSeeCycle({ metro_slug: "dc", is_hq_internal: false }) === true);
+  assert("cannot see another lab's cycle (baltimore)", canSeeCycle({ metro_slug: "baltimore", is_hq_internal: false }) === false);
+  assert("cannot see an HQ-internal cycle", canSeeCycle({ metro_slug: null, is_hq_internal: true }) === false);
+
+  // Configure only own local cycle.
+  assert("configures own lab's cycle (dc)", canConfigureCycle({ metro_slug: "dc", is_hq_internal: false }) === true);
+  assert("cannot configure an HQ-open cycle", canConfigureCycle({ metro_slug: null, is_hq_internal: false }) === false);
+  assert("cannot configure another lab's cycle", canConfigureCycle({ metro_slug: "baltimore", is_hq_internal: false }) === false);
 
   // ── T3: resolve-formation (dissolve under-min + reconcile) ──────────────────
   console.log("\n[T3] failed-formation resolution");

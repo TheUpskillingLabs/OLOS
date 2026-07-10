@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withPermissionAuth } from "@/lib/auth/middleware";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { requireCycleConfig } from "@/lib/auth/cycle-access";
 import { generateName } from "@/lib/llm/names";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
@@ -11,7 +11,10 @@ export const POST = withPermissionAuth(
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
 
-    const guard = await requireCycleManagement(auth.supabase, auth.user, cycleId);
+    // Interim (Stage A): only HQ, or a lab lead in their OWN local cycle, may
+    // finalize. Per-lab finalization inside a shared HQ-open cycle lands in
+    // Stage B, which makes this metro-aware.
+    const guard = await requireCycleConfig(auth.supabase, auth.user, cycleId);
     if (guard) return guard;
 
     // Get cycle config

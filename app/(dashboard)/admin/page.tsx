@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/cycle-access";
 import { StatusBadge } from "@/app/components/ui";
 import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
+import { METROS } from "@/lib/metros";
 // The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
 // as the route; removing the feature = delete this block + the two folders.
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
@@ -25,16 +26,20 @@ export default async function AdminPage() {
 
   const [userRoles, { data: allCycles }, { data: enrollmentRows }] = await Promise.all([
     resolveUserRoles(serviceClient, user.id),
-    serviceClient.from("cycles").select("id, name, start_date, end_date, status, metro_slug").order("start_date", { ascending: false }),
+    serviceClient.from("cycles").select("id, name, start_date, end_date, status, metro_slug, is_hq_internal").order("start_date", { ascending: false }),
     serviceClient.from("cycle_enrollments").select("cycle_id, status"),
   ]);
 
-  // Anyone who can manage the lifecycle (admins/owners + metro labs leads) sees
-  // this page; labs leads see only their metro's cycles and none of the
-  // admin-only actions (create cycle, invitations, participants, explore).
+  // Anyone who can manage the lifecycle (HQ admins/owners + labs leads) sees
+  // this page. Labs leads see HQ-open + their own lab's cycles (scopeCyclesForUser)
+  // and none of the HQ-only actions (invitations, participants, explore); they
+  // may create their OWN lab's cycle if they carry a metro.
   if (!canManageLifecycle(userRoles)) redirect("/cycles");
   const fullAdmin = isFullCycleAdmin(userRoles);
   const cycles = scopeCyclesForUser(userRoles, allCycles ?? []);
+  const canCreateCycle = fullAdmin || !!userRoles.metroSlug;
+  const leadLabName =
+    !fullAdmin && userRoles.metroSlug ? METROS[userRoles.metroSlug]?.name ?? null : null;
 
   const countsByCycle = new Map<number, { total: number; active: number }>();
   for (const e of enrollmentRows || []) {
@@ -56,32 +61,36 @@ export default async function AdminPage() {
             {cycles?.length ?? 0} cycle{cycles?.length !== 1 ? "s" : ""} total
           </p>
         </div>
-        {fullAdmin && (
+        {(fullAdmin || canCreateCycle) && (
           <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/admin/invitations"
-              className="btn btn-ghost px-4 py-2 text-sm"
-            >
-              Invitations
-            </Link>
-            <Link
-              href="/admin/participants"
-              className="btn btn-ghost px-4 py-2 text-sm"
-            >
-              All participants
-            </Link>
-            {ENTITY_EXPLORER_ENABLED && (
-              <Link
-                href="/admin/explore"
-                className="btn btn-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
-              >
-                Explore
-                <span className="rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-deep">
-                  flag
-                </span>
-              </Link>
+            {fullAdmin && (
+              <>
+                <Link
+                  href="/admin/invitations"
+                  className="btn btn-ghost px-4 py-2 text-sm"
+                >
+                  Invitations
+                </Link>
+                <Link
+                  href="/admin/participants"
+                  className="btn btn-ghost px-4 py-2 text-sm"
+                >
+                  All participants
+                </Link>
+                {ENTITY_EXPLORER_ENABLED && (
+                  <Link
+                    href="/admin/explore"
+                    className="btn btn-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
+                  >
+                    Explore
+                    <span className="rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-deep">
+                      flag
+                    </span>
+                  </Link>
+                )}
+              </>
             )}
-            <CreateCycleForm />
+            {canCreateCycle && <CreateCycleForm lockedLabName={leadLabName} />}
           </div>
         )}
       </div>

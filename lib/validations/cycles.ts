@@ -5,6 +5,10 @@ export const createCycleSchema = z.object({
   slug: z.string().max(200).optional(),
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
+  // Optional lab/kind assignment (full admins only; the route forces a labs
+  // lead's own metro and ignores is_hq_internal for them).
+  metro_slug: z.string().max(50).nullable().optional(),
+  is_hq_internal: z.boolean().optional(),
 });
 
 // Cycle "About" / information-page content (admin-authored, optional).
@@ -12,8 +16,10 @@ export const updateCycleDetailsSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(5000).nullable().optional(),
   what_you_build: z.string().max(5000).nullable().optional(),
-  // Metro/region assignment — scopes a local labs lead to this cycle.
+  // Lab/kind assignment (full admins only; the route strips these for a labs
+  // lead so they can't move a cycle to another lab or mark it HQ-internal).
   metro_slug: z.string().max(50).nullable().optional(),
+  is_hq_internal: z.boolean().optional(),
 });
 
 export const updateCycleConfigSchema = z.object({

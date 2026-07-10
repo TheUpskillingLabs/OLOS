@@ -1,28 +1,31 @@
 /**
- * Authenticated end-to-end verification for the metro-scoped labs_lead access
- * model — the HTTP counterpart to the [ACCESS] block in seed-cycle.mjs, which
- * only asserts the predicate at the data level.
+ * Authenticated end-to-end verification for the HQ / Local-Lab access model —
+ * the HTTP counterpart to the [ACCESS] block in seed-cycle.mjs.
  *
- * This seeds a real password auth user, grants it the labs_lead permission set
- * + a metro, signs it in through @supabase/ssr (so the exact sb-<ref>-auth-token
- * cookie the server decodes is produced for us — no hand-rolled base64/chunking),
- * and drives the running app over HTTP:
+ * Seeds a real password auth user, grants it the labs_lead permission set + a
+ * metro (dc), signs it in through @supabase/ssr (so the exact sb-<ref>-auth-token
+ * cookie the server decodes is produced for us), and drives the running app:
  *
- *   1. no cookie                       → 401  (withAuth)
- *   2. labs lead, DIFFERENT-metro proj → 403  (requireCycleManagement)
- *   3. labs lead, SAME-metro project   → 200  (gate passes; forming→active)
- *   4. labs lead, admin-only route     → 403  (withAdminAuth / cycles:write)
+ *   Pod/project management (lab boundary is on the pod/project):
+ *     - no cookie                                   → 401
+ *     - lead, SAME-lab project in a shared HQ cycle → 200 (forming→active)
+ *     - lead, OTHER-lab project in the same cycle   → 403
+ *   Cycle config (only your own lab's cycle):
+ *     - lead configures own dc local cycle          → 200
+ *     - lead configures a shared HQ-open cycle      → 403
+ *     - lead configures another lab's (bal) cycle   → 403
+ *     - lead configures an HQ-internal/org cycle    → 403
+ *   Cycle create:
+ *     - lead creates a cycle (forced to their lab)  → 201, metro_slug = dc
  *
  * Usage:
- *   npm run dev                                   # in one shell (or set APP_URL)
- *   node scripts/verify-labs-lead-access.mjs      # seed + assert + teardown
+ *   npm run dev                               # or set APP_URL
+ *   node scripts/verify-labs-lead-access.mjs  # seed + assert + teardown
  *   node scripts/verify-labs-lead-access.mjs --teardown
  *
- * Reads NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and
- * SUPABASE_SERVICE_ROLE_KEY from .env.local (falls back to process.env).
- * Refuses to run against the prod project ref. Everything is namespaced under
- * the ZZ_AUTH_VERIFY cycles and zzauth+%@example.test emails so teardown is
- * precise.
+ * Reads NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY /
+ * SUPABASE_SERVICE_ROLE_KEY from .env.local. Refuses to run against prod.
+ * Everything is namespaced under ZZ_AUTH_VERIFY cycles + zzauth+%@example.test.
  */
 
 import { readFileSync } from "fs";
@@ -82,7 +85,6 @@ function assert(label, ok, detail = "") {
 }
 
 async function findLeadAuthUser() {
-  // admin.listUsers is paginated; the seed set is tiny so page 1 suffices.
   const { data } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
   return (data?.users ?? []).find((u) => u.email === LEAD_EMAIL) ?? null;
 }
@@ -110,8 +112,6 @@ async function teardown() {
   if (authUser) await db.auth.admin.deleteUser(authUser.id);
 }
 
-// Minimal cycle_config so the cycle rows are valid; the values are irrelevant to
-// the access checks (they gate on metro_slug only).
 function configFor(cid) {
   return {
     cycle_id: cid, submitter_votes: 3, non_submitter_votes: 1, vote_threshold: 1,
@@ -120,22 +120,31 @@ function configFor(cid) {
   };
 }
 
-async function seedCycle(metro, authorId) {
+async function seedCycle(suffix, { metro = null, internal = false } = {}) {
   const { data: cycle } = await db
     .from("cycles")
-    .insert({ name: `${MARKER}_${metro.toUpperCase()}`, start_date: new Date().toISOString(), end_date: new Date(Date.now() + 90 * 864e5).toISOString(), status: "draft", metro_slug: metro })
+    .insert({
+      name: `${MARKER}_${suffix}`,
+      start_date: new Date().toISOString(),
+      end_date: new Date(Date.now() + 90 * 864e5).toISOString(),
+      status: "draft",
+      metro_slug: metro,
+      is_hq_internal: internal,
+    })
     .select("id")
     .single();
-  const cid = cycle.id;
-  await db.from("cycle_config").insert(configFor(cid));
-  const { data: ps } = await db.from("problem_statements").insert({ cycle_id: cid, participant_id: authorId, statement_text: `${MARKER} problem` }).select("id").single();
-  const { data: pod } = await db.from("pods").insert({ cycle_id: cid, problem_statement_id: ps.id, name: `${MARKER} Pod`, status: "active" }).select("id").single();
-  const { data: sp } = await db.from("solution_proposals").insert({ cycle_id: cid, pod_id: pod.id, participant_id: authorId, name: `${MARKER} Solution`, summary: "s", proposal_data: { description: "d" } }).select("id").single();
-  const { data: project } = await db.from("projects").insert({ cycle_id: cid, pod_id: pod.id, solution_proposal_id: sp.id, name: `${MARKER} Project`, status: "forming" }).select("id").single();
-  return { cid, projectId: project.id };
+  await db.from("cycle_config").insert(configFor(cycle.id));
+  return cycle.id;
 }
 
-/** Sign the lead in through @supabase/ssr and return the Cookie header string. */
+/** A pod (+ forming project) stamped with a lab, inside cycle `cid`. */
+async function seedLabPod(cid, authorId, metro) {
+  const { data: ps } = await db.from("problem_statements").insert({ cycle_id: cid, participant_id: authorId, statement_text: `${MARKER} problem` }).select("id").single();
+  const { data: pod } = await db.from("pods").insert({ cycle_id: cid, problem_statement_id: ps.id, name: `${MARKER} ${metro} Pod`, status: "active", metro_slug: metro }).select("id").single();
+  const { data: project } = await db.from("projects").insert({ cycle_id: cid, pod_id: pod.id, name: `${MARKER} ${metro} Project`, status: "forming", metro_slug: metro }).select("id").single();
+  return { podId: pod.id, projectId: project.id };
+}
+
 async function buildLeadCookie() {
   const jar = new Map();
   const ssr = createServerClient(URL, ANON, {
@@ -150,22 +159,12 @@ async function buildLeadCookie() {
   return [...jar.entries()].map(([n, v]) => `${n}=${encodeURIComponent(v)}`).join("; ");
 }
 
-async function patchStatus(projectId, cookie) {
-  const res = await fetch(`${BASE}/api/admin/projects/${projectId}`, {
-    method: "PATCH",
+function req(method, path, cookie, body) {
+  return fetch(`${BASE}${path}`, {
+    method,
     headers: { "Content-Type": "application/json", ...(cookie ? { Cookie: cookie } : {}) },
-    body: JSON.stringify({ status: "active" }),
-  });
-  return res.status;
-}
-
-async function patchCycleStatus(cycleId, cookie) {
-  const res = await fetch(`${BASE}/api/cycles/${cycleId}/status`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", ...(cookie ? { Cookie: cookie } : {}) },
-    body: JSON.stringify({ status: "upcoming" }),
-  });
-  return res.status;
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).then((r) => r.status);
 }
 
 async function main() {
@@ -174,8 +173,6 @@ async function main() {
     return console.log("Teardown complete.");
   }
 
-  // Confirm the app is reachable before seeding, so a forgotten `npm run dev`
-  // fails fast with a clear message instead of mid-run.
   try {
     await fetch(`${BASE}/api/cycles`, { method: "GET" });
   } catch {
@@ -185,8 +182,8 @@ async function main() {
 
   await teardown();
 
-  // Auth user + participant (metro dc) + labs_lead permission set. Created first
-  // because problem_statements / solution_proposals require a NOT NULL author.
+  // Lead auth user + participant (dc) + labs_lead perms. Created first because
+  // problem_statements require a NOT NULL author.
   const { data: created, error: cErr } = await db.auth.admin.createUser({
     email: LEAD_EMAIL, password: LEAD_PASSWORD, email_confirm: true,
   });
@@ -200,25 +197,59 @@ async function main() {
     ["pods:read", "pods:write", "participants:read", "pulse_checks:read"].map((permission) => ({ participant_id: lead.id, permission }))
   );
 
-  const dc = await seedCycle("dc", lead.id);
-  const bal = await seedCycle("baltimore", lead.id);
+  // Shared HQ-open cycle with one dc pod/project and one baltimore pod/project.
+  const hqOpen = await seedCycle("HQOPEN", { metro: null, internal: false });
+  const dcEntities = await seedLabPod(hqOpen, lead.id, "dc");
+  const balEntities = await seedLabPod(hqOpen, lead.id, "baltimore");
 
-  console.log(`Seeded dc cycle ${dc.cid} (project ${dc.projectId}), baltimore cycle ${bal.cid} (project ${bal.projectId}).`);
+  // A dc local cycle (lead's own), a baltimore local cycle, an HQ-internal cycle.
+  const dcLocal = await seedCycle("DCLOCAL", { metro: "dc", internal: false });
+  const balLocal = await seedCycle("BALLOCAL", { metro: "baltimore", internal: false });
+  const orgCycle = await seedCycle("ORG", { metro: null, internal: true });
+
+  console.log(
+    `Seeded HQ-open ${hqOpen} (dc proj ${dcEntities.projectId}, bal proj ${balEntities.projectId}); ` +
+      `dcLocal ${dcLocal}, balLocal ${balLocal}, org ${orgCycle}.`
+  );
 
   const cookie = await buildLeadCookie();
 
-  console.log("\n[HTTP] metro-scoped labs_lead access");
-  const s1 = await patchStatus(dc.projectId, null);
-  assert("no cookie → 401", s1 === 401, `got ${s1}`);
+  console.log("\n[HTTP] pod/project management (lab boundary on the entity)");
+  assert("no cookie → 401", (await req("PATCH", `/api/admin/projects/${dcEntities.projectId}`, null, { status: "active" })) === 401);
+  const s2 = await req("PATCH", `/api/admin/projects/${dcEntities.projectId}`, cookie, { status: "active" });
+  assert("lead, same-lab project in a shared HQ cycle → 200", s2 === 200, `got ${s2}`);
+  const s3 = await req("PATCH", `/api/admin/projects/${balEntities.projectId}`, cookie, { status: "active" });
+  assert("lead, other-lab project in the same cycle → 403", s3 === 403, `got ${s3}`);
 
-  const s2 = await patchStatus(bal.projectId, cookie);
-  assert("labs lead, cross-metro project → 403", s2 === 403, `got ${s2}`);
+  console.log("\n[HTTP] cycle config (only your own lab's cycle)");
+  const c1 = await req("PATCH", `/api/cycles/${dcLocal}/config`, cookie, { vote_threshold: 2 });
+  assert("lead configures own dc local cycle → 200", c1 === 200, `got ${c1}`);
+  const c2 = await req("PATCH", `/api/cycles/${hqOpen}/config`, cookie, { vote_threshold: 2 });
+  assert("lead configures a shared HQ-open cycle → 403", c2 === 403, `got ${c2}`);
+  const c3 = await req("PATCH", `/api/cycles/${balLocal}/config`, cookie, { vote_threshold: 2 });
+  assert("lead configures another lab's cycle → 403", c3 === 403, `got ${c3}`);
+  const c4 = await req("PATCH", `/api/cycles/${orgCycle}/config`, cookie, { vote_threshold: 2 });
+  assert("lead configures an HQ-internal cycle → 403", c4 === 403, `got ${c4}`);
 
-  const s3 = await patchStatus(dc.projectId, cookie);
-  assert("labs lead, same-metro project → 200", s3 === 200, `got ${s3}`);
-
-  const s4 = await patchCycleStatus(dc.cid, cookie);
-  assert("labs lead, admin-only cycle-status route → 403", s4 === 403, `got ${s4}`);
+  console.log("\n[HTTP] cycle create (forced to the lead's own lab)");
+  const createRes = await fetch(`${BASE}/api/cycles`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify({
+      name: `${MARKER}_LEADMADE`,
+      start_date: new Date().toISOString(),
+      end_date: new Date(Date.now() + 60 * 864e5).toISOString(),
+      // Attempt to smuggle another lab / HQ-open — must be ignored.
+      metro_slug: "baltimore",
+      is_hq_internal: true,
+    }),
+  });
+  assert("lead creates a cycle → 201", createRes.status === 201, `got ${createRes.status}`);
+  if (createRes.status === 201) {
+    const made = await createRes.json();
+    assert("created cycle is forced to the lead's lab (dc)", made.metro_slug === "dc", `got ${made.metro_slug}`);
+    assert("created cycle is not HQ-internal", made.is_hq_internal === false, `got ${made.is_hq_internal}`);
+  }
 
   console.log(`\n${pass} passed, ${fail} failed.`);
   await teardown();

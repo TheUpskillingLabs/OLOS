@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissionAuth } from "@/lib/auth/middleware";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { requireProjectManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -32,7 +32,7 @@ export const DELETE = withPermissionAuth(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    const guard = await requireCycleManagement(auth.supabase, auth.user, project.cycle_id);
+    const guard = await requireProjectManagement(auth.supabase, auth.user, projectId);
     if (guard) return guard;
 
     const { error } = await client

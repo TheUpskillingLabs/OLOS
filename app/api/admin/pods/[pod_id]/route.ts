@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissionAuth } from "@/lib/auth/middleware";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { requirePodManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -109,7 +109,7 @@ export const PATCH = withPermissionAuth(
     }
 
     // Metro scope for labs leads (full admins pass).
-    const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+    const guard = await requirePodManagement(auth.supabase, auth.user, podId);
     if (guard) return guard;
 
     // No-op fast path: status already matches.

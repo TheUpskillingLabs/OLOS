@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withPermissionAuth } from "@/lib/auth/middleware";
-import { requireCycleManagement } from "@/lib/auth/cycle-access";
+import { requirePodManagement } from "@/lib/auth/cycle-access";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -84,7 +84,7 @@ export const POST = withPermissionAuth(
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
 
-    const guard = await requireCycleManagement(auth.supabase, auth.user, pod.cycle_id);
+    const guard = await requirePodManagement(auth.supabase, auth.user, podId);
     if (guard) return guard;
     if (!["forming", "active"].includes(pod.status)) {
       return NextResponse.json(

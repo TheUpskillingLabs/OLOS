@@ -49,6 +49,8 @@ erDiagram
         varchar status
         text description
         text what_you_build
+        varchar metro_slug "NULL=HQ; set=a lab's own cycle"
+        boolean is_hq_internal "NOT NULL DEFAULT false; HQ org/structure cycle"
     }
 
     cycle_config {
@@ -263,6 +265,7 @@ erDiagram
         int problem_statement_id FK
         varchar name
         varchar status
+        varchar metro_slug "lab; NULL=HQ/legacy"
         varchar slack_channel_id
         varchar github_repo_url
         varchar drive_folder_id
@@ -354,6 +357,7 @@ erDiagram
         int solution_proposal_id FK
         varchar name
         varchar status
+        varchar metro_slug "lab; inherited from pod"
         varchar slack_channel_id
         varchar github_repo_url
         varchar drive_folder_id
