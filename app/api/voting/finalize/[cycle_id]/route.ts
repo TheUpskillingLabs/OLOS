@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
-import { generateName } from "@/lib/llm/names";
+import { checkWindow } from "@/lib/auth/windows";
+import { generateName, nameFallback } from "@/lib/llm/names";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
@@ -17,6 +18,38 @@ export const POST = withAdminAuth(
       "Organization cycles don't form pods by voting — create workstream runs instead."
     );
     if (orgRejection) return orgRejection;
+
+    // Idempotency guard first: finalize is destructive-by-append (one INSERT
+    // per winning statement, no unique constraint). A double-click or proxy
+    // retry would otherwise create a second full set of pods. Checked before
+    // the phase gate so an already-finalized cycle reports that accurately
+    // rather than a misleading "voting is still open".
+    const { count: existingPodCount } = await auth.supabase
+      .from("pods")
+      .select("id", { count: "exact", head: true })
+      .eq("cycle_id", cycleId);
+
+    if ((existingPodCount ?? 0) > 0) {
+      return NextResponse.json(
+        { error: "Voting has already been finalized for this cycle." },
+        { status: 409 }
+      );
+    }
+
+    // Phase gate: finalizing while voting is still open would freeze a
+    // partial tally into permanent pods (the idempotency guard above then
+    // blocks a redo). Blocked while the window is open; cycles that never
+    // set a voting window are unaffected.
+    const votingWindow = await checkWindow(auth.supabase, cycleId, "voting");
+    if (votingWindow.open) {
+      return NextResponse.json(
+        {
+          error:
+            "Voting is still open for this cycle. Close it (or advance the phase) before finalizing.",
+        },
+        { status: 409 }
+      );
+    }
 
     // Get cycle config
     const { data: config } = await auth.supabase
@@ -114,7 +147,7 @@ export const POST = withAdminAuth(
         name = await generateName("pod", text);
       } catch {
         // Fallback: first 40 chars trimmed to nearest word
-        name = text.slice(0, 40).replace(/\s+\S*$/, "").trim();
+        name = nameFallback(text);
       }
 
       const { data: pod, error } = await auth.supabase

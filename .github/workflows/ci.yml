@@ -21,5 +21,6 @@ jobs:
       - run: npm ci
       - run: npm run check:migrations
       - run: npm run lint
+      - run: npx tsc --noEmit
       - run: npm run test
       - run: npm run build

@@ -194,12 +194,28 @@ export default async function AdminCycleDetailPage({
       name: nameByParticipant.get(m.participant_id) ?? `Participant ${m.participant_id}`,
     });
   }
+  // Projects per pod — drives the Finalize-projects affordance in the pod
+  // Manage drawer (hidden once a pod's projects exist; finalize is
+  // append-only and idempotency-guarded).
+  const { data: cycleProjects } = podIds.length
+    ? await serviceClient
+        .from("projects")
+        .select("id, pod_id")
+        .in("pod_id", podIds)
+    : { data: [] as { id: number; pod_id: number }[] };
+
+  const projectCountByPod: Record<number, number> = {};
+  for (const proj of cycleProjects ?? []) {
+    projectCountByPod[proj.pod_id] = (projectCountByPod[proj.pod_id] ?? 0) + 1;
+  }
+
   const podAdminRows: PodAdminRow[] = (pods ?? []).map((pod) => ({
     id: pod.id,
     name: pod.name,
     status: pod.status,
     members: membersByPod[pod.id] ?? [],
     moderators: moderatorsByPod[pod.id] ?? [],
+    projectCount: projectCountByPod[pod.id] ?? 0,
   }));
 
   // Formation-tab workstreams roster — org cycles only (docs/ORG_CYCLES.md

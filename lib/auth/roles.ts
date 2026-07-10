@@ -155,3 +155,22 @@ export function isActiveParticipant(roles: UserRoles, cycleId: number): boolean 
     (e) => e.cycleId === cycleId && e.status === "active"
   );
 }
+
+/**
+ * True if the user is enrolled in the cycle and not revoked.
+ *
+ * Use this — not isActiveParticipant — to gate the pre-pod phases (problem
+ * statement submission, problem-statement voting). Enrollment `status`
+ * tracks pod-membership reality: self-service registration writes
+ * 'inactive' by design, and the reconciler (lib/enrollment/reconciler.ts)
+ * only flips it to 'active' once the participant has an active pod
+ * membership — which cannot exist before pod registration (phase 3).
+ * Gating phases 1–2 on status='active' therefore deadlocks every cycle
+ * populated through the app: nobody can submit or vote, so pods are never
+ * created, so nobody ever becomes 'active'.
+ */
+export function isEnrolledParticipant(roles: UserRoles, cycleId: number): boolean {
+  return roles.cycleEnrollments.some(
+    (e) => e.cycleId === cycleId && e.status !== "revoked"
+  );
+}

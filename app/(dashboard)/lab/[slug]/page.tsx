@@ -129,6 +129,16 @@ export default async function LabWorkspacePage({
         : Promise.resolve({ data: [] as { cycle_id: number; participant_id: number; status: string; participants: unknown }[] }),
     ]);
 
+  // Projects per pod — gates the Finalize-projects action in the pod
+  // Manage drawer (same as the admin cycle page).
+  const { data: labProjects } = podIds.length
+    ? await serviceClient.from("projects").select("id, pod_id").in("pod_id", podIds)
+    : { data: [] as { id: number; pod_id: number }[] };
+  const projectCountByPod: Record<number, number> = {};
+  for (const proj of labProjects ?? []) {
+    projectCountByPod[proj.pod_id] = (projectCountByPod[proj.pod_id] ?? 0) + 1;
+  }
+
   const membersByPod: Record<number, { participant_id: number; name: string }[]> = {};
   for (const m of membershipRows ?? []) {
     const p = one(m.participants as EmbeddedPerson | EmbeddedPerson[] | null);
@@ -309,6 +319,7 @@ export default async function LabWorkspacePage({
             status: p.status,
             members: membersByPod[p.id] ?? [],
             moderators: moderatorsByPod[p.id] ?? [],
+            projectCount: projectCountByPod[p.id] ?? 0,
           }));
         return (
           <section key={cycle.id}>
