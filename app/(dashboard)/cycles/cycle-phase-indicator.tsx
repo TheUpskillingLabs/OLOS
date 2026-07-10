@@ -127,10 +127,11 @@ export default function CyclePhaseIndicator({
   cycle: Cycle;
   config: CycleConfig;
 }) {
-  if (!config.phase_2_start || !config.phase_3_start) {
-    return null;
-  }
-
+  // The timeline is driven entirely by the cycle's start/end dates and the
+  // operational window timestamps below — phase_2_start/phase_3_start are not
+  // used here, so we no longer bail when they're unset (that early return used
+  // to silently remove the dashboard's only stage CTA on cycles that hadn't set
+  // the quarterly-milestone columns).
   const now = new Date();
   const startDate = new Date(cycle.start_date);
   const endDate = new Date(cycle.end_date);

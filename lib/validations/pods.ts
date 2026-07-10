@@ -37,22 +37,22 @@ export const solutionProposalSchema = z.object({
 
 export type SolutionProposalInput = z.infer<typeof solutionProposalSchema>;
 
-// Atomic project-vote ballot — W2-001 (#74). A submitter allocates their
-// entire vote budget at once. Server validates sum equals
-// cycle_config.project_submitter_votes and rejects re-submissions on the
-// (voter_id, solution_proposal_id, pod_id) unique constraint.
-export const projectBallotSchema = z.object({
-  votes: z
-    .array(
-      z.object({
-        solution_proposal_id: z.number().int(),
-        vote_count: z.number().int().min(0),
-      })
-    )
-    .min(1, "Ballot must include at least one entry"),
+// Per-proposal project vote — converged onto the pod-vote model (live tallies,
+// incremental allocation, editable/withdrawable). One allocation at a time,
+// upserted on the (voter_id, solution_proposal_id, pod_id) unique constraint;
+// the server checks the running total against cycle_config.project_submitter_votes.
+export const projectVoteSchema = z.object({
+  solution_proposal_id: z.number().int({
+    message: "solution_proposal_id must be a number",
+  }),
+  vote_count: z.number().int().min(1, "vote_count must be >= 1"),
 });
 
-export type ProjectBallotInput = z.infer<typeof projectBallotSchema>;
+export const projectVoteDeleteSchema = z.object({
+  solution_proposal_id: z.number().int({
+    message: "solution_proposal_id must be a number",
+  }),
+});
 
 export const moderatorAssignmentSchema = z.object({
   participant_id: z.number().int({

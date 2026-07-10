@@ -186,6 +186,17 @@ async function main() {
   const { count: voteCount } = await db.from("votes").select("id", { count: "exact", head: true }).eq("problem_statement_id", ps.id).eq("voter_id", parts[0]);
   assert("withdraw deletes the row", voteCount === 0);
 
+  // ── 4a: project vote upsert + withdraw (unified onto the pod model) ─────────
+  console.log("\n[4a] project vote upsert (re-allocate) + withdraw");
+  await db.from("project_votes").delete().eq("solution_proposal_id", sp.id).eq("voter_id", parts[0]);
+  await db.from("project_votes").insert({ cycle_id: cid, pod_id: pod1.id, voter_id: parts[0], solution_proposal_id: sp.id, vote_count: 1 });
+  await db.from("project_votes").upsert({ cycle_id: cid, pod_id: pod1.id, voter_id: parts[0], solution_proposal_id: sp.id, vote_count: 3 }, { onConflict: "voter_id,solution_proposal_id,pod_id" });
+  const { data: pvAfter } = await db.from("project_votes").select("vote_count").eq("solution_proposal_id", sp.id).eq("voter_id", parts[0]);
+  assert("project upsert keeps one row and updates 1 -> 3", pvAfter.length === 1 && pvAfter[0].vote_count === 3, JSON.stringify(pvAfter));
+  await db.from("project_votes").delete().eq("pod_id", pod1.id).eq("voter_id", parts[0]).eq("solution_proposal_id", sp.id);
+  const { count: pvCount } = await db.from("project_votes").select("id", { count: "exact", head: true }).eq("solution_proposal_id", sp.id).eq("voter_id", parts[0]);
+  assert("project withdraw deletes the row", pvCount === 0);
+
   // ── T3: resolve-formation (dissolve under-min + reconcile) ──────────────────
   console.log("\n[T3] failed-formation resolution");
   // pods

@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { solutionProposalSchema } from "@/lib/validations/pods";
 import { FormField, Input, Textarea } from "@/app/components/ui/form";
+import SuccessScreen from "@/app/components/flow/success-screen";
+import NextStepFooter from "@/app/components/flow/next-step-footer";
 
 type FormData = z.infer<typeof solutionProposalSchema>;
 
@@ -35,11 +37,13 @@ function hydrateInitialValues(initial: InitialProposal | null): FormData {
 }
 
 export default function ProposalForm({
+  cycleId,
   pods,
   initialProposal,
   submissionOpen,
   closeAt,
 }: {
+  cycleId: number;
   pods: { id: number; name: string | null }[];
   initialProposal: InitialProposal | null;
   submissionOpen: boolean;
@@ -103,44 +107,36 @@ export default function ProposalForm({
 
   if (hasSubmitted) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-card border border-teal/30 bg-teal/10 p-5">
-          <div className="flex items-start gap-3">
-            <div
-              className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-teal/20"
-              aria-hidden
-            >
-              <svg className="h-3.5 w-3.5 text-teal-deep" viewBox="0 0 20 20" fill="none">
-                <path d="M5 10.5l3.5 3.5L15 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold tracking-tight text-ink">Project submitted &nbsp;✓</p>
-              <p className="mt-1 text-sm text-slate">{submittedName}</p>
-              {submissionOpen && closeAt && (
-                <p className="mt-2 text-xs text-meta tabular-nums">
-                  You can edit until{" "}
-                  {new Date(closeAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+      <SuccessScreen
+        title="Solution submitted"
+        detail={submittedName}
+        meta={
+          submissionOpen && closeAt ? (
+            <>
+              You can edit until{" "}
+              {new Date(closeAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </>
+          ) : undefined
+        }
+      >
         {submissionOpen && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="btn btn-ghost btn-sm"
-          >
-            Edit submission
-          </button>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="btn btn-ghost btn-sm"
+            >
+              Edit submission
+            </button>
+          </div>
         )}
-      </div>
+        <NextStepFooter cycleId={cycleId} currentStage="solution_proposal" />
+      </SuccessScreen>
     );
   }
 
@@ -169,7 +165,7 @@ export default function ProposalForm({
           </div>
         )}
 
-        <FormField name="name" label="Project name" required charCount={`${(watched.name ?? "").length}/100`}>
+        <FormField name="name" label="Solution name" required charCount={`${(watched.name ?? "").length}/100`}>
           <Input {...register("name")} disabled={fieldDisabled} invalid={!!errors.name} />
         </FormField>
 
@@ -209,7 +205,7 @@ export default function ProposalForm({
             disabled={fieldDisabled}
             className="btn btn-teal btn-sm"
           >
-            {isSubmitting ? "Submitting..." : initialProposal ? "Save changes" : "Submit project"}
+            {isSubmitting ? "Submitting..." : initialProposal ? "Save changes" : "Submit solution"}
           </button>
           {initialProposal && editing && (
             <button

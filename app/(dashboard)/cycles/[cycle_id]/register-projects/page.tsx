@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ProjectRegistration from "./project-registration";
+import NextStepFooter from "@/app/components/flow/next-step-footer";
 
 export default async function RegisterProjectsPage({
   params,
@@ -25,7 +26,7 @@ export default async function RegisterProjectsPage({
   const { data: config } = await serviceClient
     .from("cycle_config")
     .select(
-      "project_registration_open, project_registration_close, project_max"
+      "project_registration_open, project_registration_close, project_max, project_min"
     )
     .eq("cycle_id", cycleId)
     .single();
@@ -168,8 +169,11 @@ export default async function RegisterProjectsPage({
           projects={projects}
           initialCurrentProjectId={currentProjectId}
           projectMax={config?.project_max ?? 7}
+          projectMin={config?.project_min ?? 2}
         />
       )}
+
+      <NextStepFooter cycleId={cycleId} currentStage="project_registration" />
     </div>
   );
 }

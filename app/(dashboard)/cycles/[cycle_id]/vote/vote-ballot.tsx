@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Ballot, { type BallotItem } from "@/app/components/flow/ballot";
+import { EmptyState } from "@/app/components/ui";
 
 interface ProposalData {
   about?: { background?: string; experience?: string };
@@ -22,11 +24,6 @@ interface ProblemStatement {
   created_at: string;
 }
 
-interface Tally {
-  problem_statement_id: number;
-  total_votes: number;
-}
-
 export default function VoteBallot({
   cycleId,
   submitterBudget,
@@ -41,16 +38,9 @@ export default function VoteBallot({
   const budget = isSubmitter ? submitterBudget : nonSubmitterBudget;
 
   const [statements, setStatements] = useState<ProblemStatement[]>([]);
-  const [tallies, setTallies] = useState<Tally[]>([]);
-  const [pendingVotes, setPendingVotes] = useState<Record<number, number>>({});
-  // The caller's committed allocations per statement (server truth).
+  const [tallies, setTallies] = useState<Record<number, number>>({});
   const [myVotes, setMyVotes] = useState<Record<number, number>>({});
-  const [totalUsed, setTotalUsed] = useState(0);
-  const [submitting, setSubmitting] = useState<number | null>(null);
-  const [error, setError] = useState("");
-  const [successId, setSuccessId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -58,133 +48,15 @@ export default function VoteBallot({
       fetch(`/api/votes/${cycleId}`).then((r) => r.json()),
     ]).then(([stmts, voteData]) => {
       if (Array.isArray(stmts)) setStatements(stmts);
-      if (voteData?.tallies) setTallies(voteData.tallies);
-      // Seed the caller's existing allocations so the ballot reflects prior
-      // votes on reload (and totalUsed is correct, not stuck at 0).
+      const t: Record<number, number> = {};
+      for (const row of voteData?.tallies ?? []) t[row.problem_statement_id] = row.total_votes;
+      setTallies(t);
       const mine: Record<number, number> = {};
-      const myVoteRows = (voteData?.my_votes ?? []) as Array<{
-        problem_statement_id: number;
-        vote_count: number;
-      }>;
-      for (const v of myVoteRows) {
-        mine[v.problem_statement_id] = v.vote_count;
-      }
+      for (const row of voteData?.my_votes ?? []) mine[row.problem_statement_id] = row.vote_count;
       setMyVotes(mine);
-      setPendingVotes(mine);
-      setTotalUsed(Object.values(mine).reduce((s, n) => s + n, 0));
       setLoading(false);
     });
   }, [cycleId]);
-
-  function getTallyFor(stmtId: number): number {
-    return (
-      tallies.find((t) => t.problem_statement_id === stmtId)?.total_votes ?? 0
-    );
-  }
-
-  async function castVote(problemStatementId: number) {
-    const voteCount = pendingVotes[problemStatementId];
-    if (!voteCount || voteCount < 1) return;
-
-    // Editing re-allocates: the net change against budget/tally is the delta
-    // vs the caller's prior allocation on THIS statement (the server measures
-    // the same way — it excludes the prior allocation before the budget check).
-    const previous = myVotes[problemStatementId] ?? 0;
-    const delta = voteCount - previous;
-
-    setError("");
-    setSuccessId(null);
-    setSubmitting(problemStatementId);
-
-    try {
-      const res = await fetch("/api/votes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cycle_id: cycleId,
-          problem_statement_id: problemStatementId,
-          vote_count: voteCount,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body.error || "Failed to cast vote");
-        return;
-      }
-
-      setSuccessId(problemStatementId);
-      setMyVotes((prev) => ({ ...prev, [problemStatementId]: voteCount }));
-      setTotalUsed((prev) => prev + delta);
-      setTallies((prev) => {
-        const existing = prev.find(
-          (t) => t.problem_statement_id === problemStatementId
-        );
-        if (existing) {
-          return prev.map((t) =>
-            t.problem_statement_id === problemStatementId
-              ? { ...t, total_votes: t.total_votes + delta }
-              : t
-          );
-        }
-        return [
-          ...prev,
-          { problem_statement_id: problemStatementId, total_votes: voteCount },
-        ];
-      });
-    } catch {
-      setError("Network error. Try again.");
-    } finally {
-      setSubmitting(null);
-    }
-  }
-
-  async function withdrawVote(problemStatementId: number) {
-    const previous = myVotes[problemStatementId] ?? 0;
-    if (previous < 1) return;
-
-    setError("");
-    setSuccessId(null);
-    setSubmitting(problemStatementId);
-
-    try {
-      const res = await fetch("/api/votes", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cycle_id: cycleId,
-          problem_statement_id: problemStatementId,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body.error || "Failed to withdraw vote");
-        return;
-      }
-
-      setMyVotes((prev) => {
-        const next = { ...prev };
-        delete next[problemStatementId];
-        return next;
-      });
-      setPendingVotes((prev) => ({ ...prev, [problemStatementId]: 0 }));
-      setTotalUsed((prev) => prev - previous);
-      setTallies((prev) =>
-        prev.map((t) =>
-          t.problem_statement_id === problemStatementId
-            ? { ...t, total_votes: Math.max(0, t.total_votes - previous) }
-            : t
-        )
-      );
-    } catch {
-      setError("Network error. Try again.");
-    } finally {
-      setSubmitting(null);
-    }
-  }
-
-  const remaining = budget - totalUsed;
 
   if (loading) {
     return (
@@ -194,219 +66,83 @@ export default function VoteBallot({
           aria-label="Loading"
           className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-ink/10 border-t-teal"
         />
-        Loading proposals...
+        Loading proposals…
       </div>
     );
   }
 
   if (statements.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
-        <p className="text-sm text-meta">
-          No problem statements have been submitted yet.
-        </p>
-      </div>
+      <EmptyState
+        title="No problem statements yet"
+        description="No one has submitted a problem statement for this cycle yet. Once the submission window has run, they'll show up here to vote on."
+      />
     );
   }
 
+  const items: BallotItem[] = statements.map((stmt) => ({
+    id: stmt.id,
+    content: <StatementContent stmt={stmt} />,
+  }));
+
   return (
-    <div className="space-y-6">
-      {/* Budget indicator */}
-      <div className="sticky top-[60px] z-30 flex items-center justify-between gap-4 rounded-card border border-ink/10 bg-white/95 p-4 shadow-card backdrop-blur-sm backdrop-saturate-150">
-        <div>
-          <p className="lbl">
-            Vote budget
-          </p>
-          <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-teal-deep">
-            {remaining}
-          </p>
-          <p className="text-xs text-meta tabular-nums">votes remaining</p>
-        </div>
-        <div className="text-right text-xs text-meta tabular-nums">
+    <Ballot
+      items={items}
+      budget={budget}
+      idField="problem_statement_id"
+      castUrl="/api/votes"
+      deleteUrl="/api/votes"
+      extraBody={{ cycle_id: cycleId }}
+      initialMyVotes={myVotes}
+      initialTallies={tallies}
+      budgetNote={
+        <>
           <p>Submitters get {submitterBudget} votes</p>
           <p>Non-submitters get {nonSubmitterBudget} votes</p>
-        </div>
-      </div>
+        </>
+      }
+    />
+  );
+}
 
-      {error && (
-        <p
-          role="alert"
-          className="rounded-card border border-red/20 bg-red/10 px-3 py-2 text-sm text-red"
-        >
-          {error}
-        </p>
+function StatementContent({ stmt }: { stmt: ProblemStatement }) {
+  const [expanded, setExpanded] = useState(false);
+  const pd = stmt.proposal_data;
+  const hasDetails = pd?.problem || pd?.voter_context;
+
+  return (
+    <div>
+      <p className="font-semibold tracking-tight text-ink">{stmt.statement_text}</p>
+
+      {pd?.statement?.question && (
+        <p className="mt-2 text-sm italic text-slate">{pd.statement.question}</p>
+      )}
+      {pd?.about?.background && (
+        <p className="mt-2 text-xs text-meta">Submitted by: {pd.about.background}</p>
       )}
 
-      {/* Proposals list */}
-      <div className="space-y-4">
-        {statements.map((stmt) => {
-          const pd = stmt.proposal_data;
-          const isExpanded = expandedId === stmt.id;
-          const hasDetails = pd?.problem || pd?.voter_context;
+      {hasDetails && (
+        <button
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 inline-flex items-center text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
+        >
+          {expanded ? "Show less" : "Read full proposal"}
+        </button>
+      )}
 
-          return (
-            <div
-              key={stmt.id}
-              className="rounded-card border border-ink/10 bg-white shadow-card transition-colors duration-150 hover:border-ink/20"
-            >
-              <div className="p-4">
-                {/* Problem statement */}
-                <p className="font-semibold tracking-tight text-ink">
-                  {stmt.statement_text}
-                </p>
-
-                {/* HMW question */}
-                {pd?.statement?.question && (
-                  <p className="mt-2 text-sm italic text-slate">
-                    {pd.statement.question}
-                  </p>
-                )}
-
-                {/* Submitter background */}
-                {pd?.about?.background && (
-                  <p className="mt-2 text-xs text-meta">
-                    Submitted by: {pd.about.background}
-                  </p>
-                )}
-
-                {/* Expand toggle */}
-                {hasDetails && (
-                  <button
-                    aria-expanded={isExpanded}
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : stmt.id)
-                    }
-                    className="mt-2 inline-flex items-center text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
-                  >
-                    {isExpanded ? "Show less" : "Read full proposal"}
-                  </button>
-                )}
-
-                {/* Expanded details */}
-                {isExpanded && pd && (
-                  <div className="mt-4 space-y-3 border-t border-ink/10 pt-4">
-                    {pd.problem?.who && (
-                      <DetailBlock
-                        label="Who is struggling"
-                        text={pd.problem.who}
-                      />
-                    )}
-                    {pd.problem?.need && (
-                      <DetailBlock
-                        label="What they need to do"
-                        text={pd.problem.need}
-                      />
-                    )}
-                    {pd.problem?.barrier && (
-                      <DetailBlock
-                        label="Why they can't do it now"
-                        text={pd.problem.barrier}
-                      />
-                    )}
-                    {pd.problem?.success && (
-                      <DetailBlock
-                        label="What success looks like"
-                        text={pd.problem.success}
-                      />
-                    )}
-                    {pd.voter_context?.tried && (
-                      <DetailBlock
-                        label="What has been tried"
-                        text={pd.voter_context.tried}
-                      />
-                    )}
-                    {pd.voter_context?.scale && (
-                      <DetailBlock
-                        label="Why it matters beyond the individual"
-                        text={pd.voter_context.scale}
-                      />
-                    )}
-                    {pd.voter_context?.pod_work && (
-                      <DetailBlock
-                        label="What the Research Pod would do"
-                        text={pd.voter_context.pod_work}
-                      />
-                    )}
-                    {pd.voter_context?.skills_needed && (
-                      <DetailBlock
-                        label="Skills & people needed"
-                        text={pd.voter_context.skills_needed}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Vote controls */}
-                {(() => {
-                  const mine = myVotes[stmt.id] ?? 0;
-                  const pending = pendingVotes[stmt.id] ?? 0;
-                  // You may allocate up to what's remaining plus whatever you've
-                  // already committed to this statement (re-allocating frees it).
-                  const maxForThis = remaining + mine;
-                  const unchanged = pending === mine;
-                  return (
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-ink/10 pt-3">
-                      <span className="text-xs font-medium text-meta tabular-nums">
-                        {getTallyFor(stmt.id)} vote
-                        {getTallyFor(stmt.id) !== 1 ? "s" : ""}
-                        {mine > 0 && (
-                          <span className="ml-2 text-teal-deep">
-                            &middot; you: {mine}
-                          </span>
-                        )}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={0}
-                          max={maxForThis}
-                          value={pendingVotes[stmt.id] ?? ""}
-                          onChange={(e) =>
-                            setPendingVotes((prev) => ({
-                              ...prev,
-                              [stmt.id]: parseInt(e.target.value, 10) || 0,
-                            }))
-                          }
-                          placeholder="0"
-                          aria-label="Vote count"
-                          className="w-16 rounded-card border border-ink/10 bg-white px-2 py-1 text-center text-base tabular-nums text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                        />
-                        <button
-                          onClick={() => castVote(stmt.id)}
-                          disabled={
-                            submitting !== null || pending < 1 || unchanged
-                          }
-                          className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                        >
-                          {submitting === stmt.id
-                            ? "..."
-                            : mine > 0
-                              ? "Update"
-                              : "Vote"}
-                        </button>
-                        {mine > 0 && (
-                          <button
-                            onClick={() => withdrawVote(stmt.id)}
-                            disabled={submitting !== null}
-                            className="rounded-card ring-1 ring-ink/10 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                          >
-                            Withdraw
-                          </button>
-                        )}
-                        {successId === stmt.id && (
-                          <span className="text-xs font-medium text-teal-deep">
-                            Saved
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {expanded && pd && (
+        <div className="mt-4 space-y-3 border-t border-ink/10 pt-4">
+          {pd.problem?.who && <DetailBlock label="Who is struggling" text={pd.problem.who} />}
+          {pd.problem?.need && <DetailBlock label="What they need to do" text={pd.problem.need} />}
+          {pd.problem?.barrier && <DetailBlock label="Why they can't do it now" text={pd.problem.barrier} />}
+          {pd.problem?.success && <DetailBlock label="What success looks like" text={pd.problem.success} />}
+          {pd.voter_context?.tried && <DetailBlock label="What has been tried" text={pd.voter_context.tried} />}
+          {pd.voter_context?.scale && <DetailBlock label="Why it matters beyond the individual" text={pd.voter_context.scale} />}
+          {pd.voter_context?.pod_work && <DetailBlock label="What the Research Pod would do" text={pd.voter_context.pod_work} />}
+          {pd.voter_context?.skills_needed && <DetailBlock label="Skills & people needed" text={pd.voter_context.skills_needed} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -414,9 +150,7 @@ export default function VoteBallot({
 function DetailBlock({ label, text }: { label: string; text: string }) {
   return (
     <div>
-      <p className="lbl">
-        {label}
-      </p>
+      <p className="lbl">{label}</p>
       <p className="mt-0.5 text-sm text-charcoal">{text}</p>
     </div>
   );

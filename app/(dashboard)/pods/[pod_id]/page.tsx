@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod, can } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import FormationMeter from "@/app/components/cycle/formation-meter";
 import PulseCheckDashboard from "./pulse-check-dashboard";
 
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -56,6 +57,14 @@ export default async function PodDetailPage({
     .order("created_at");
 
   const ps = (pod.problem_statements as unknown) as Record<string, string> | null;
+
+  const { data: podCfg } = await serviceClient
+    .from("cycle_config")
+    .select("pod_min")
+    .eq("cycle_id", pod.cycle_id)
+    .maybeSingle();
+  const podMin = podCfg?.pod_min ?? 2;
+  const activeMemberCount = (members ?? []).filter((m) => !m.inactive_at).length;
 
   // Check if viewer is admin or moderator for this pod
   const userRoles = user
@@ -133,7 +142,7 @@ export default async function PodDetailPage({
   const podVariant = POD_STATUS_VARIANT[pod.status as PodStatus] ?? "inactive";
 
   return (
-    <div>
+    <div className="[animation:viewIn_0.18s_cubic-bezier(0.2,0.7,0.1,1)]">
       <div className="mb-8">
         <Link
           href={`/cycles/${pod.cycle_id}`}
@@ -148,6 +157,11 @@ export default async function PodDetailPage({
         <span className="mt-2 inline-block">
           <StatusBadge variant={podVariant}>{pod.status}</StatusBadge>
         </span>
+        <FormationMeter
+          count={activeMemberCount}
+          min={podMin}
+          className="mt-3 max-w-xs"
+        />
       </div>
 
       {ps?.statement_text && (

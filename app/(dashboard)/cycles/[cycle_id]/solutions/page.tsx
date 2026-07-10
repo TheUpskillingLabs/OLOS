@@ -96,18 +96,19 @@ export default async function SolutionsPage({
           {cycle.name}
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
-          Submit a project
+          Propose a solution
         </h1>
         <p className="mt-1 text-sm text-charcoal">
-          Propose a project for your pod to vote on. One submission per cycle —
-          you can edit until the window closes.
+          Pitch a solution for your pod to vote on. One submission per cycle —
+          you can edit until the window closes. Top solutions become the projects
+          you&rsquo;ll build.
         </p>
       </div>
 
       {!tabVisible ? (
         <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
           <p className="text-charcoal">
-            Project submission is not currently open.
+            Solution submission is not currently open.
           </p>
           {openAt && now < openAt && (
             <p className="mt-2 text-sm text-meta tabular-nums">
@@ -141,7 +142,7 @@ export default async function SolutionsPage({
               className="mb-6 rounded-card border border-red/20 bg-red/10 px-4 py-3 text-sm text-red"
             >
               <strong className="font-semibold">Heads up:</strong>{" "}if you don&apos;t
-              submit a project by{" "}
+              submit a solution by{" "}
               <span className="tabular-nums">
                 {closeAt.toLocaleDateString("en-US", {
                   month: "short",
@@ -154,6 +155,7 @@ export default async function SolutionsPage({
             </div>
           )}
           <ProposalForm
+            cycleId={cycleId}
             pods={myPods}
             initialProposal={initialProposal}
             submissionOpen={submissionOpen}

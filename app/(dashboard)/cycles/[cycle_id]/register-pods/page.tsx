@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import PodRegistration from "./pod-registration";
+import NextStepFooter from "@/app/components/flow/next-step-footer";
 
 export default async function RegisterPodsPage({
   params,
@@ -15,13 +16,14 @@ export default async function RegisterPodsPage({
 
   const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
     supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
-    createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close, pod_limit").eq("cycle_id", cycleId).single(),
+    createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close, pod_limit, pod_min").eq("cycle_id", cycleId).single(),
     supabase.auth.getUser(),
   ]);
 
   if (!cycle) notFound();
 
   const podLimit = config?.pod_limit ?? 2;
+  const podMin = config?.pod_min ?? 2;
 
   const now = new Date();
   const isOpen =
@@ -53,10 +55,14 @@ export default async function RegisterPodsPage({
   return (
     <div>
       <div className="mb-8">
-        <p className="lbl">
+        <Link
+          href={`/cycles/${cycle.id}`}
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
-        </p>
-        <h1 className="t-h1 mt-1 text-ink">
+        </Link>
+        <h1 className="t-h1 mt-2 text-ink">
           Choose your pods
         </h1>
         <p className="mt-2 text-sm text-meta">
@@ -67,7 +73,7 @@ export default async function RegisterPodsPage({
 
       {isOpen ? (
         <>
-          <PodRegistration cycleId={cycleId} initialMyPodIds={myPodIds} podLimit={podLimit} />
+          <PodRegistration cycleId={cycleId} initialMyPodIds={myPodIds} podLimit={podLimit} podMin={podMin} />
           <div className="mt-8">
             <Link
               href="/dashboard"
@@ -106,6 +112,8 @@ export default async function RegisterPodsPage({
           </div>
         </div>
       )}
+
+      <NextStepFooter cycleId={cycleId} currentStage="pod_registration" />
     </div>
   );
 }

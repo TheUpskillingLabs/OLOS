@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import FormationMeter from "@/app/components/cycle/formation-meter";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
 
 type ProjectStatus = "active" | "forming" | "closed" | "inactive";
@@ -46,6 +47,16 @@ export default async function ProjectDetailPage({
     .select("id, name")
     .eq("id", project.pod_id)
     .single();
+
+  // Min size to form, for the (neutral) formation meter. We deliberately do not
+  // surface the seeding solution/submitter here: a project belongs equally to
+  // everyone who registered for it, not to whoever's submission seeded it.
+  const { data: cfg } = await serviceClient
+    .from("cycle_config")
+    .select("project_min")
+    .eq("cycle_id", project.cycle_id)
+    .maybeSingle();
+  const projectMin = cfg?.project_min ?? 2;
 
   // Get project members
   const { data: memberships } = await supabase
@@ -117,7 +128,7 @@ export default async function ProjectDetailPage({
     PROJECT_STATUS_VARIANT[project.status as ProjectStatus] ?? "inactive";
 
   return (
-    <div>
+    <div className="[animation:viewIn_0.18s_cubic-bezier(0.2,0.7,0.1,1)]">
       <div className="mb-8">
         <nav
           aria-label="Breadcrumb"
@@ -145,6 +156,11 @@ export default async function ProjectDetailPage({
         <span className="mt-2 inline-block">
           <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
         </span>
+        <FormationMeter
+          count={activeMembers.length}
+          min={projectMin}
+          className="mt-3 max-w-xs"
+        />
       </div>
 
       <div className="mb-8">

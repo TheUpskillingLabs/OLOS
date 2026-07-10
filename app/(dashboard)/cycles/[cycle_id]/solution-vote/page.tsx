@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import SolutionBallot from "./solution-ballot";
+import NextStepFooter from "@/app/components/flow/next-step-footer";
 
 export default async function SolutionVotePage({
   params,
@@ -86,17 +87,17 @@ export default async function SolutionVotePage({
           {cycle.name}
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
-          Vote on projects
+          Vote on solutions
         </h1>
         <p className="mt-1 text-sm text-charcoal">
-          Allocate your votes to the projects you want your pod to build. Submit
-          your full ballot at once.
+          Allocate your votes to the solutions you want your pod to build. You can
+          change or withdraw your votes any time until voting closes.
         </p>
       </div>
 
       {!isOpen ? (
         <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
-          <p className="text-charcoal">Project voting is not currently open.</p>
+          <p className="text-charcoal">Solution voting is not currently open.</p>
           {openAt && now < openAt && (
             <p className="mt-2 text-sm text-meta tabular-nums">
               Opens{" "}
@@ -127,7 +128,7 @@ export default async function SolutionVotePage({
             Voting is underway.
           </p>
           <p className="mt-2 text-sm text-meta">
-            You didn&apos;t submit a project, so you&apos;re not eligible to
+            You didn&apos;t submit a solution, so you&apos;re not eligible to
             vote in this phase. You can still register for one of the
             shortlisted projects when registration opens.
           </p>
@@ -138,6 +139,8 @@ export default async function SolutionVotePage({
           voteBudget={config?.project_submitter_votes ?? 0}
         />
       )}
+
+      <NextStepFooter cycleId={cycleId} currentStage="solution_voting" />
     </div>
   );
 }

@@ -10,7 +10,9 @@ import {
 } from "@/lib/cycles/status";
 import { getRegistrationCycle } from "@/lib/cycles/registration";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
-import PodJoinSection from "./pod-join-section";
+import PodRegistration from "../cycles/[cycle_id]/register-pods/pod-registration";
+import NextStepCard from "@/app/components/cycle/next-step-card";
+import { resolveStages, type StageConfig } from "@/lib/cycles/stages";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -41,7 +43,7 @@ export default async function DashboardPage() {
       serviceClient
         .from("cycle_config")
         .select(
-          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit"
+          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit, pod_min"
         )
         .eq("cycle_id", activeCycle.id)
         .single(),
@@ -267,6 +269,19 @@ export default async function DashboardPage() {
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
+      {/* "What's live for you today" — the one place a returning, cold user
+          learns whether any day-separated stage is open right now. */}
+      {activeCycle &&
+        activeCycleConfig &&
+        (state === "interest_submitted_window_closed" ||
+          state === "interest_submitted_window_open" ||
+          state === "active") && (
+          <NextStepCard
+            cycleId={activeCycle.id}
+            stages={resolveStages(activeCycleConfig as StageConfig)}
+          />
+        )}
+
       {/* Pulse Check CTA — show when user is active (has pods or active enrollment) */}
       {state === "active" && (
         <Link
@@ -295,37 +310,18 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      {/* Status block */}
-      {state === "interest_submitted_window_closed" && activeCycleConfig && (
-        <div className="mb-8 rounded-card border border-ink/10 bg-white p-5 shadow-card">
-          <h2 className="t-h3 text-ink">
-            Interest submitted
-          </h2>
-          <p className="mt-1 text-sm text-meta">
-            Pod registration opens{" "}
-            {activeCycleConfig.pod_registration_open
-              ? new Date(
-                  activeCycleConfig.pod_registration_open
-                ).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                })
-              : "soon"}
-            . We&rsquo;ll let you know when it&rsquo;s time to choose your pods.
-          </p>
-        </div>
-      )}
-
       {(state === "interest_submitted_window_open" || state === "active") &&
         activeCycle &&
-        podWindowOpen &&
-        myPods.length < (activeCycleConfig?.pod_limit ?? 2) && (
-          <PodJoinSection
-            cycleId={activeCycle.id}
-            participantId={participant.id}
-            myPodIds={myPods.map((m) => m.pod_id)}
-            podLimit={activeCycleConfig?.pod_limit ?? 2}
-          />
+        podWindowOpen && (
+          <div className="mb-8">
+            <h2 className="t-h3 mb-4 text-ink">Choose your pods</h2>
+            <PodRegistration
+              cycleId={activeCycle.id}
+              initialMyPodIds={myPods.map((m) => m.pod_id)}
+              podLimit={activeCycleConfig?.pod_limit ?? 2}
+              podMin={activeCycleConfig?.pod_min ?? 2}
+            />
+          </div>
         )}
 
       {/* My Pods */}

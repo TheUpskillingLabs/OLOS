@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import VoteBallot from "./vote-ballot";
+import NextStepFooter from "@/app/components/flow/next-step-footer";
 
 export default async function VotePage({
   params,
@@ -103,6 +104,8 @@ export default async function VotePage({
           )}
         </div>
       )}
+
+      <NextStepFooter cycleId={cycleId} currentStage="voting" />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import SuccessScreen from "@/app/components/flow/success-screen";
+import NextStepFooter from "@/app/components/flow/next-step-footer";
 
 const STEP_NAMES = [
   "About you",
@@ -79,6 +81,70 @@ export default function ProposeForm({
     checkSpecific &&
     checkSamePicture;
 
+  // ── Draft persistence ──────────────────────────────────────────────────
+  // The form holds six parts of long-form text entirely in memory; a refresh or
+  // accidental navigation used to wipe everything. Autosave to localStorage and
+  // restore on mount so a returning/refreshing user never loses their work.
+  const DRAFT_KEY = `olos:propose-draft:${cycleId}`;
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    // Hydration-safe restore of a saved draft: localStorage isn't available
+    // during SSR, so this must run in an effect and set state on mount. That
+    // trips react-hooks/set-state-in-effect, which is fine for a one-shot
+    // client-only restore.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (typeof d.name === "string" && d.name) setName(d.name);
+        if (typeof d.background === "string") setBackground(d.background);
+        if (d.experience) setExperience(d.experience);
+        if (typeof d.who === "string") setWho(d.who);
+        if (typeof d.need === "string") setNeed(d.need);
+        if (typeof d.barrier === "string") setBarrier(d.barrier);
+        if (typeof d.success === "string") setSuccess(d.success);
+        if (typeof d.statementText === "string") setStatementText(d.statementText);
+        if (typeof d.question === "string") setQuestion(d.question);
+        if (typeof d.impactTrack === "string") setImpactTrack(d.impactTrack);
+        if (typeof d.impactTrackOther === "string") setImpactTrackOther(d.impactTrackOther);
+        if (d.themeAlignment) setThemeAlignment(d.themeAlignment);
+        if (typeof d.themeConnection === "string") setThemeConnection(d.themeConnection);
+        if (typeof d.tried === "string") setTried(d.tried);
+        if (typeof d.scale === "string") setScale(d.scale);
+        if (typeof d.podWork === "string") setPodWork(d.podWork);
+        if (typeof d.skillsNeeded === "string") setSkillsNeeded(d.skillsNeeded);
+      }
+    } catch {
+      /* corrupt draft — ignore */
+    }
+    hydrated.current = true;
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // Run once on mount; setters are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated.current) return;
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          name, background, experience, who, need, barrier, success,
+          statementText, question, impactTrack, impactTrackOther,
+          themeAlignment, themeConnection, tried, scale, podWork, skillsNeeded,
+        })
+      );
+    } catch {
+      /* storage full/unavailable — non-fatal */
+    }
+  }, [
+    DRAFT_KEY, name, background, experience, who, need, barrier, success,
+    statementText, question, impactTrack, impactTrackOther, themeAlignment,
+    themeConnection, tried, scale, podWork, skillsNeeded,
+  ]);
+
   function canAdvance(): boolean {
     switch (step) {
       case 1:
@@ -100,6 +166,35 @@ export default function ProposeForm({
         return allChecked;
       default:
         return false;
+    }
+  }
+
+  // Tells the user *why* Continue is disabled, instead of a silently greyed
+  // button, by naming the specific missing required field(s) for this step.
+  function stepHint(): string {
+    switch (step) {
+      case 1:
+        return name.trim() ? "" : "Add your name to continue.";
+      case 2: {
+        const missing: string[] = [];
+        if (!who.trim()) missing.push("who is struggling");
+        if (!need.trim()) missing.push("what they need to do");
+        if (!barrier.trim()) missing.push("why they can't do it now");
+        if (!success.trim()) missing.push("what success looks like");
+        return missing.length ? `Still needed: ${missing.join("; ")}.` : "";
+      }
+      case 3: {
+        const missing: string[] = [];
+        if (!statementText.trim()) missing.push("your problem statement");
+        if (!question.trim()) missing.push('your "How might we" question');
+        return missing.length ? `Still needed: ${missing.join("; ")}.` : "";
+      }
+      case 6:
+        return allChecked
+          ? ""
+          : "Check every box to confirm your statement is ready to submit.";
+      default:
+        return "";
     }
   }
 
@@ -162,6 +257,11 @@ export default function ProposeForm({
       }
 
       setSubmitted(true);
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* non-fatal */
+      }
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -171,48 +271,45 @@ export default function ProposeForm({
 
   if (submitted) {
     return (
-      <div className="rounded-card border border-teal/30 bg-teal/10 p-8 text-center">
-        <h2 className="t-h3 text-ink">
-          Proposal submitted
-        </h2>
-        <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-charcoal">
-          Your proposal enters the Open Cycle queue. At the start of each cycle,
-          active participants vote during Phase 1 to build a shortlist. If your
-          proposal makes the shortlist, it opens for registration. Research pods
-          that reach the minimum number of registrants officially form and begin
-          work. You&rsquo;ll be notified at each stage.
-        </p>
-        <button
-          onClick={() => {
-            setSubmitted(false);
-            setStep(1);
-            setBackground("");
-            setExperience("");
-            setWho("");
-            setNeed("");
-            setBarrier("");
-            setSuccess("");
-            setStatementText("");
-            setQuestion("");
-            setImpactTrack("");
-            setImpactTrackOther("");
-            setThemeAlignment("none");
-            setThemeConnection("");
-            setTried("");
-            setScale("");
-            setPodWork("");
-            setSkillsNeeded("");
-            setCheckRealPerson(false);
-            setCheckAction(false);
-            setCheckNoSolution(false);
-            setCheckSpecific(false);
-            setCheckSamePicture(false);
-          }}
-          className="mt-6 rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-        >
-          Submit another proposal
-        </button>
-      </div>
+      <SuccessScreen
+        title="Problem statement submitted"
+        detail={statementText.trim() || undefined}
+        meta="Active participants vote to build a shortlist. If yours makes it, it opens for pod registration — you'll be notified at each stage."
+      >
+        <div className="mt-4">
+          <button
+            onClick={() => {
+              setSubmitted(false);
+              setStep(1);
+              setBackground("");
+              setExperience("");
+              setWho("");
+              setNeed("");
+              setBarrier("");
+              setSuccess("");
+              setStatementText("");
+              setQuestion("");
+              setImpactTrack("");
+              setImpactTrackOther("");
+              setThemeAlignment("none");
+              setThemeConnection("");
+              setTried("");
+              setScale("");
+              setPodWork("");
+              setSkillsNeeded("");
+              setCheckRealPerson(false);
+              setCheckAction(false);
+              setCheckNoSolution(false);
+              setCheckSpecific(false);
+              setCheckSamePicture(false);
+            }}
+            className="btn btn-ghost btn-sm"
+          >
+            Submit another proposal
+          </button>
+        </div>
+        <NextStepFooter cycleId={cycleId} currentStage="problem_statement" />
+      </SuccessScreen>
     );
   }
 
@@ -662,8 +759,14 @@ export default function ProposeForm({
         </p>
       )}
 
+      {/* Why Continue / Submit is disabled */}
+      {((step < 6 && !canAdvance()) || (step === 6 && !allChecked)) &&
+        stepHint() && (
+          <p className="mt-6 text-xs text-meta">{stepHint()}</p>
+        )}
+
       {/* Navigation */}
-      <div className="mt-8 flex items-center justify-between border-t border-ink/10 pt-6">
+      <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-6">
         <div>
           {step > 1 && (
             <button

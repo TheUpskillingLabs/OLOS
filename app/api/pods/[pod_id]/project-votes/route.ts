@@ -5,7 +5,7 @@ import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
-import { projectBallotSchema } from "@/lib/validations/pods";
+import { projectVoteSchema, projectVoteDeleteSchema } from "@/lib/validations/pods";
 import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
@@ -38,20 +38,19 @@ export const GET = withAuth(
 
     const result: Record<string, unknown> = { tallies };
 
-    // Tell the caller whether THEY have already submitted a ballot here, so the
-    // ballot can render the "already voted" state on load instead of only after
-    // a full submit + 409 (audit fix). A boolean about oneself isn't sensitive.
+    // The caller's own allocations, so the ballot can render current votes and
+    // support editing/withdrawing (mirrors the pod-vote GET). A fact about
+    // oneself isn't sensitive.
     if (auth.user.participantId) {
-      const { count } = await auth.supabase
-        .from("project_votes")
-        .select("id", { count: "exact", head: true })
-        .eq("pod_id", podId)
-        .eq("voter_id", auth.user.participantId);
-      result.has_voted = (count ?? 0) > 0;
+      result.my_votes = (votes || [])
+        .filter((v) => v.voter_id === auth.user.participantId)
+        .map((v) => ({
+          solution_proposal_id: v.solution_proposal_id,
+          vote_count: v.vote_count,
+        }));
     }
 
     // Per-voter attribution is admin-only; moderators see tallies only.
-    // The W2-001 moderator dashboard intentionally omits voter-level data.
     if (isAdmin(auth.user) || isModeratorForPod(auth.user, podId)) {
       result.ballot_count = new Set((votes || []).map((v) => v.voter_id)).size;
     }
@@ -63,21 +62,13 @@ export const GET = withAuth(
   }
 );
 
-// Atomic ballot submission — W2-001 (#74). The voter sends their entire
-// ballot at once (one entry per shortlisted proposal, including zero-vote
-// entries from the UI). Server enforces:
-//   * voting window open
+// Cast or re-allocate a single project vote. Converged onto the pod-vote model
+// (app/api/votes/route.ts): incremental per-proposal upsert with live tallies
+// and edit/withdraw, replacing the old atomic all-budget ballot. Gates:
+//   * solution_voting window open
 //   * voter is an active member of this pod
-//   * voter has submitted a proposal in this cycle (submitter-only voting)
-//   * voter has not previously submitted a ballot for this pod (idempotent)
-//   * sum of vote_count equals cycle_config.project_submitter_votes
-//   * every solution_proposal_id belongs to this pod
-//
-// Not wrapped in an explicit transaction — Supabase JS doesn't expose one
-// here. The (voter_id, solution_proposal_id, pod_id) unique constraint
-// backstops the existence check if two requests race. Given the voting
-// window is days long and one participant only submits their own ballot,
-// the race window is effectively zero.
+//   * voter submitted a proposal in this cycle (submitter-only voting)
+//   * running total (excluding this proposal's prior allocation) + new <= budget
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
@@ -91,9 +82,9 @@ export const POST = withAuth(
     const guard = await requireCompleteProfile(auth.supabase, voterId);
     if (guard) return guard;
 
-    const body = await parseBody(request, projectBallotSchema);
+    const body = await parseBody(request, projectVoteSchema);
     if (isErrorResponse(body)) return body;
-    const { votes } = body;
+    const { solution_proposal_id, vote_count } = body;
 
     const { data: pod } = await auth.supabase
       .from("pods")
@@ -135,27 +126,28 @@ export const POST = withAuth(
 
     if (!ownProposal) {
       return NextResponse.json(
-        { error: "Only participants who submitted a project can vote." },
+        { error: "Only participants who submitted a solution can vote." },
         { status: 403 }
       );
     }
 
-    // Idempotency — reject if voter already cast any votes in this pod.
-    const { data: existingVotes } = await auth.supabase
-      .from("project_votes")
+    // Target proposal must belong to this pod.
+    const { data: targetProposal } = await auth.supabase
+      .from("solution_proposals")
       .select("id")
+      .eq("id", solution_proposal_id)
       .eq("pod_id", podId)
-      .eq("voter_id", voterId)
-      .limit(1);
+      .maybeSingle();
 
-    if (existingVotes && existingVotes.length > 0) {
+    if (!targetProposal) {
       return NextResponse.json(
-        { error: "You have already submitted your ballot for this pod." },
-        { status: 409 }
+        { error: "That solution is not part of this pod." },
+        { status: 400 }
       );
     }
 
-    // Budget check
+    // Budget check — exclude any existing allocation on THIS proposal so a
+    // re-allocation is measured against the other proposals' spend.
     const { data: config } = await auth.supabase
       .from("cycle_config")
       .select("project_submitter_votes")
@@ -166,61 +158,98 @@ export const POST = withAuth(
       return NextResponse.json({ error: "Cycle config not found" }, { status: 500 });
     }
 
-    const sum = votes.reduce((s, v) => s + v.vote_count, 0);
-    if (sum !== config.project_submitter_votes) {
+    const { data: existingVotes } = await auth.supabase
+      .from("project_votes")
+      .select("solution_proposal_id, vote_count")
+      .eq("pod_id", podId)
+      .eq("voter_id", voterId);
+
+    const totalOther = (existingVotes || [])
+      .filter((v) => v.solution_proposal_id !== solution_proposal_id)
+      .reduce((sum, v) => sum + v.vote_count, 0);
+
+    if (totalOther + vote_count > config.project_submitter_votes) {
       return NextResponse.json(
         {
-          error: `Allocate exactly ${config.project_submitter_votes} vote${config.project_submitter_votes === 1 ? "" : "s"}. You submitted ${sum}.`,
+          error: `Vote budget exceeded. Budget: ${config.project_submitter_votes}, already allocated: ${totalOther}, requested: ${vote_count}`,
         },
         { status: 400 }
       );
     }
 
-    // Validate every proposal_id belongs to this pod.
-    const proposalIds = votes.map((v) => v.solution_proposal_id);
-    const { data: proposalsInPod } = await auth.supabase
-      .from("solution_proposals")
-      .select("id")
-      .eq("pod_id", podId)
-      .in("id", proposalIds.length ? proposalIds : [0]);
-
-    const validIds = new Set((proposalsInPod || []).map((p) => p.id));
-    if (proposalIds.some((id) => !validIds.has(id))) {
-      return NextResponse.json(
-        { error: "Ballot includes proposals not in this pod." },
-        { status: 400 }
-      );
-    }
-
-    const rowsToInsert = votes
-      .filter((v) => v.vote_count > 0)
-      .map((v) => ({
-        cycle_id: pod.cycle_id,
-        pod_id: podId,
-        voter_id: voterId,
-        solution_proposal_id: v.solution_proposal_id,
-        vote_count: v.vote_count,
-      }));
-
-    if (rowsToInsert.length === 0) {
-      return NextResponse.json(
-        { error: "Ballot must allocate at least one vote." },
-        { status: 400 }
-      );
-    }
-
+    // Upsert on the (voter_id, solution_proposal_id, pod_id) unique constraint;
+    // the project_votes_update policy (migration 00037) permits the DO UPDATE.
     const { data, error } = await auth.supabase
       .from("project_votes")
-      .insert(rowsToInsert)
-      .select("id");
+      .upsert(
+        {
+          cycle_id: pod.cycle_id,
+          pod_id: podId,
+          voter_id: voterId,
+          solution_proposal_id,
+          vote_count,
+        },
+        { onConflict: "voter_id,solution_proposal_id,pod_id" }
+      )
+      .select("id, created_at")
+      .single();
 
     if (error) {
       return dbError(error);
     }
 
     return NextResponse.json(
-      { inserted: data?.length ?? 0, votes_remaining: 0 },
+      {
+        ...data,
+        votes_remaining: config.project_submitter_votes - totalOther - vote_count,
+      },
       { status: 201 }
     );
+  }
+);
+
+// Withdraw a project vote from a single proposal (project_votes_delete policy,
+// migration 00037). Deleting the row keeps the budget math simple.
+export const DELETE = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
+    const podId = parseIntParam(params.pod_id, "pod_id");
+    if (podId instanceof NextResponse) return podId;
+    const voterId = auth.user.participantId;
+
+    if (!voterId) {
+      return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
+    }
+
+    const body = await parseBody(request, projectVoteDeleteSchema);
+    if (isErrorResponse(body)) return body;
+    const { solution_proposal_id } = body;
+
+    const { data: pod } = await auth.supabase
+      .from("pods")
+      .select("cycle_id")
+      .eq("id", podId)
+      .single();
+
+    if (!pod) {
+      return NextResponse.json({ error: "Pod not found" }, { status: 404 });
+    }
+
+    const window = await checkWindow(auth.supabase, pod.cycle_id, "solution_voting");
+    if (!window.open) {
+      return NextResponse.json({ error: window.message }, { status: 403 });
+    }
+
+    const { error } = await auth.supabase
+      .from("project_votes")
+      .delete()
+      .eq("pod_id", podId)
+      .eq("voter_id", voterId)
+      .eq("solution_proposal_id", solution_proposal_id);
+
+    if (error) {
+      return dbError(error);
+    }
+
+    return NextResponse.json({ success: true });
   }
 );
