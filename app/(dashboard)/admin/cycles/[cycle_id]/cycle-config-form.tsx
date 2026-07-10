@@ -10,6 +10,7 @@ type Config = {
   vote_threshold: number;
   max_pods: number;
   pod_min: number;
+  pod_limit: number;
   project_submitter_votes: number;
   project_vote_threshold: number;
   max_projects: number;
@@ -233,6 +234,7 @@ const PARAM_GROUPS = [
       { label: "Vote threshold (pods)", name: "vote_threshold" },
       { label: "Max pods", name: "max_pods" },
       { label: "Pod minimum size", name: "pod_min" },
+      { label: "Pods per participant", name: "pod_limit" },
     ],
   },
   {

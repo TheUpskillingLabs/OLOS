@@ -10,6 +10,7 @@ import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
 import { CycleDetailsForm } from "./cycle-details-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
+import ResolveFormationButton from "./resolve-formation-button";
 import RevocationsSection from "./revocations-section";
 import AssignModeratorButton from "./assign-moderator-button";
 import TestingControls from "./testing-controls";
@@ -272,6 +273,19 @@ export default async function AdminCycleDetailPage({
             generate pod names.
           </p>
           <FinalizeVotingButton cycleId={cycle.id} />
+        </section>
+
+        <hr className="border-ink/10" />
+
+        {/* Resolve Formation */}
+        <section>
+          <h2 className="mb-1 t-h3 text-ink">Resolve Formation</h2>
+          <p className="mb-4 text-sm text-meta">
+            After the pod and project registration windows close, dissolve any
+            pods or projects that never reached their minimum size and reconcile
+            affected members&rsquo; enrollments.
+          </p>
+          <ResolveFormationButton cycleId={cycle.id} />
         </section>
 
         <hr className="border-ink/10" />

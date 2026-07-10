@@ -14,9 +14,11 @@ interface Pod {
 export default function PodRegistration({
   cycleId,
   initialMyPodIds,
+  podLimit,
 }: {
   cycleId: number;
   initialMyPodIds: number[];
+  podLimit: number;
 }) {
   const [pods, setPods] = useState<Pod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +154,7 @@ export default function PodRegistration({
         <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-teal-deep">
           {registeredCount}
         </p>
-        <p className="text-xs text-meta tabular-nums">of 2 maximum</p>
+        <p className="text-xs text-meta tabular-nums">of {podLimit} maximum</p>
       </div>
 
       {error && (
@@ -202,7 +204,7 @@ export default function PodRegistration({
                   onClick={() => registerForPod(pod.id)}
                   disabled={
                     actionPodId !== null ||
-                    registeredCount >= 2 ||
+                    registeredCount >= podLimit ||
                     (pod.status !== "forming" && pod.status !== "active")
                   }
                   className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"

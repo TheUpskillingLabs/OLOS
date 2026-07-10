@@ -36,6 +36,18 @@ export const GET = withAuth(
 
     const result: Record<string, unknown> = { tallies };
 
+    // The caller's own allocations, so the ballot can render current votes and
+    // support editing/withdrawing. A fact about oneself is not sensitive
+    // (mirrors the has_voted self-disclosure in project-votes).
+    if (auth.user.participantId) {
+      result.my_votes = (votes || [])
+        .filter((v) => v.voter_id === auth.user.participantId)
+        .map((v) => ({
+          problem_statement_id: v.problem_statement_id,
+          vote_count: v.vote_count,
+        }));
+    }
+
     // Voter-level detail — admin only
     if (isAdmin(auth.user)) {
       result.votes = votes;

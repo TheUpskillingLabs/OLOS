@@ -31,16 +31,21 @@ export default function VoteBallot({
   cycleId,
   submitterBudget,
   nonSubmitterBudget,
+  isSubmitter,
 }: {
   cycleId: number;
   submitterBudget: number;
   nonSubmitterBudget: number;
+  isSubmitter: boolean;
 }) {
+  const budget = isSubmitter ? submitterBudget : nonSubmitterBudget;
+
   const [statements, setStatements] = useState<ProblemStatement[]>([]);
   const [tallies, setTallies] = useState<Tally[]>([]);
   const [pendingVotes, setPendingVotes] = useState<Record<number, number>>({});
+  // The caller's committed allocations per statement (server truth).
+  const [myVotes, setMyVotes] = useState<Record<number, number>>({});
   const [totalUsed, setTotalUsed] = useState(0);
-  const [budget, setBudget] = useState(nonSubmitterBudget);
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [successId, setSuccessId] = useState<number | null>(null);
@@ -54,6 +59,19 @@ export default function VoteBallot({
     ]).then(([stmts, voteData]) => {
       if (Array.isArray(stmts)) setStatements(stmts);
       if (voteData?.tallies) setTallies(voteData.tallies);
+      // Seed the caller's existing allocations so the ballot reflects prior
+      // votes on reload (and totalUsed is correct, not stuck at 0).
+      const mine: Record<number, number> = {};
+      const myVoteRows = (voteData?.my_votes ?? []) as Array<{
+        problem_statement_id: number;
+        vote_count: number;
+      }>;
+      for (const v of myVoteRows) {
+        mine[v.problem_statement_id] = v.vote_count;
+      }
+      setMyVotes(mine);
+      setPendingVotes(mine);
+      setTotalUsed(Object.values(mine).reduce((s, n) => s + n, 0));
       setLoading(false);
     });
   }, [cycleId]);
@@ -67,6 +85,12 @@ export default function VoteBallot({
   async function castVote(problemStatementId: number) {
     const voteCount = pendingVotes[problemStatementId];
     if (!voteCount || voteCount < 1) return;
+
+    // Editing re-allocates: the net change against budget/tally is the delta
+    // vs the caller's prior allocation on THIS statement (the server measures
+    // the same way — it excludes the prior allocation before the budget check).
+    const previous = myVotes[problemStatementId] ?? 0;
+    const delta = voteCount - previous;
 
     setError("");
     setSuccessId(null);
@@ -89,12 +113,9 @@ export default function VoteBallot({
         return;
       }
 
-      const result = await res.json();
       setSuccessId(problemStatementId);
-      setTotalUsed((prev) => prev + voteCount);
-      if (result.votes_remaining !== undefined) {
-        setBudget(result.votes_remaining + totalUsed + voteCount);
-      }
+      setMyVotes((prev) => ({ ...prev, [problemStatementId]: voteCount }));
+      setTotalUsed((prev) => prev + delta);
       setTallies((prev) => {
         const existing = prev.find(
           (t) => t.problem_statement_id === problemStatementId
@@ -102,7 +123,7 @@ export default function VoteBallot({
         if (existing) {
           return prev.map((t) =>
             t.problem_statement_id === problemStatementId
-              ? { ...t, total_votes: t.total_votes + voteCount }
+              ? { ...t, total_votes: t.total_votes + delta }
               : t
           );
         }
@@ -111,7 +132,51 @@ export default function VoteBallot({
           { problem_statement_id: problemStatementId, total_votes: voteCount },
         ];
       });
+    } catch {
+      setError("Network error. Try again.");
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  async function withdrawVote(problemStatementId: number) {
+    const previous = myVotes[problemStatementId] ?? 0;
+    if (previous < 1) return;
+
+    setError("");
+    setSuccessId(null);
+    setSubmitting(problemStatementId);
+
+    try {
+      const res = await fetch("/api/votes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cycle_id: cycleId,
+          problem_statement_id: problemStatementId,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json();
+        setError(body.error || "Failed to withdraw vote");
+        return;
+      }
+
+      setMyVotes((prev) => {
+        const next = { ...prev };
+        delete next[problemStatementId];
+        return next;
+      });
       setPendingVotes((prev) => ({ ...prev, [problemStatementId]: 0 }));
+      setTotalUsed((prev) => prev - previous);
+      setTallies((prev) =>
+        prev.map((t) =>
+          t.problem_statement_id === problemStatementId
+            ? { ...t, total_votes: Math.max(0, t.total_votes - previous) }
+            : t
+        )
+      );
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -272,45 +337,71 @@ export default function VoteBallot({
                 )}
 
                 {/* Vote controls */}
-                <div className="mt-4 flex items-center justify-between gap-3 border-t border-ink/10 pt-3">
-                  <span className="text-xs font-medium text-meta tabular-nums">
-                    {getTallyFor(stmt.id)} vote
-                    {getTallyFor(stmt.id) !== 1 ? "s" : ""}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      max={remaining}
-                      value={pendingVotes[stmt.id] || ""}
-                      onChange={(e) =>
-                        setPendingVotes((prev) => ({
-                          ...prev,
-                          [stmt.id]: parseInt(e.target.value, 10) || 0,
-                        }))
-                      }
-                      placeholder="0"
-                      aria-label="Vote count"
-                      className="w-16 rounded-card border border-ink/10 bg-white px-2 py-1 text-center text-base tabular-nums text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                    />
-                    <button
-                      onClick={() => castVote(stmt.id)}
-                      disabled={
-                        submitting !== null ||
-                        !pendingVotes[stmt.id] ||
-                        pendingVotes[stmt.id] < 1
-                      }
-                      className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                    >
-                      {submitting === stmt.id ? "..." : "Vote"}
-                    </button>
-                    {successId === stmt.id && (
-                      <span className="text-xs font-medium text-teal-deep">
-                        Voted
+                {(() => {
+                  const mine = myVotes[stmt.id] ?? 0;
+                  const pending = pendingVotes[stmt.id] ?? 0;
+                  // You may allocate up to what's remaining plus whatever you've
+                  // already committed to this statement (re-allocating frees it).
+                  const maxForThis = remaining + mine;
+                  const unchanged = pending === mine;
+                  return (
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-ink/10 pt-3">
+                      <span className="text-xs font-medium text-meta tabular-nums">
+                        {getTallyFor(stmt.id)} vote
+                        {getTallyFor(stmt.id) !== 1 ? "s" : ""}
+                        {mine > 0 && (
+                          <span className="ml-2 text-teal-deep">
+                            &middot; you: {mine}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </div>
-                </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={0}
+                          max={maxForThis}
+                          value={pendingVotes[stmt.id] ?? ""}
+                          onChange={(e) =>
+                            setPendingVotes((prev) => ({
+                              ...prev,
+                              [stmt.id]: parseInt(e.target.value, 10) || 0,
+                            }))
+                          }
+                          placeholder="0"
+                          aria-label="Vote count"
+                          className="w-16 rounded-card border border-ink/10 bg-white px-2 py-1 text-center text-base tabular-nums text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                        />
+                        <button
+                          onClick={() => castVote(stmt.id)}
+                          disabled={
+                            submitting !== null || pending < 1 || unchanged
+                          }
+                          className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                        >
+                          {submitting === stmt.id
+                            ? "..."
+                            : mine > 0
+                              ? "Update"
+                              : "Vote"}
+                        </button>
+                        {mine > 0 && (
+                          <button
+                            onClick={() => withdrawVote(stmt.id)}
+                            disabled={submitting !== null}
+                            className="rounded-card ring-1 ring-ink/10 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                          >
+                            Withdraw
+                          </button>
+                        )}
+                        {successId === stmt.id && (
+                          <span className="text-xs font-medium text-teal-deep">
+                            Saved
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );

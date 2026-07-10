@@ -54,3 +54,10 @@ export const voteSchema = z.object({
     .int()
     .min(1, "vote_count must be >= 1"),
 });
+
+export const voteDeleteSchema = z.object({
+  cycle_id: z.number().int({ message: "cycle_id must be a number" }),
+  problem_statement_id: z.number().int({
+    message: "problem_statement_id must be a number",
+  }),
+});

@@ -41,7 +41,7 @@ export default async function DashboardPage() {
       serviceClient
         .from("cycle_config")
         .select(
-          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit"
         )
         .eq("cycle_id", activeCycle.id)
         .single(),
@@ -319,11 +319,12 @@ export default async function DashboardPage() {
       {(state === "interest_submitted_window_open" || state === "active") &&
         activeCycle &&
         podWindowOpen &&
-        myPods.length < 2 && (
+        myPods.length < (activeCycleConfig?.pod_limit ?? 2) && (
           <PodJoinSection
             cycleId={activeCycle.id}
             participantId={participant.id}
             myPodIds={myPods.map((m) => m.pod_id)}
+            podLimit={activeCycleConfig?.pod_limit ?? 2}
           />
         )}
 

@@ -66,7 +66,17 @@ export const POST = withAuth(
 
     const isReactivation = existing !== null;
 
-    // Check 2-pod cap for this cycle (active memberships only)
+    // Per-cycle pod cap. Configurable via cycle_config.pod_limit (default 2,
+    // migration 00036). Kept in sync with the admin membership route
+    // (admin/pods/[pod_id]/memberships) — both read the same config column.
+    const { data: limitConfig } = await auth.supabase
+      .from("cycle_config")
+      .select("pod_limit")
+      .eq("cycle_id", pod.cycle_id)
+      .single();
+    const podLimit = limitConfig?.pod_limit ?? 2;
+
+    // Check pod cap for this cycle (active memberships only)
     const { data: cyclePods } = await auth.supabase
       .from("pod_memberships")
       .select("id, pods!inner(cycle_id)")
@@ -74,9 +84,9 @@ export const POST = withAuth(
       .eq("pods.cycle_id", pod.cycle_id)
       .is("inactive_at", null);
 
-    if ((cyclePods || []).length >= 2) {
+    if ((cyclePods || []).length >= podLimit) {
       return NextResponse.json(
-        { error: "You are already registered in 2 pods for this cycle." },
+        { error: `You are already registered in ${podLimit} pods for this cycle.` },
         { status: 400 }
       );
     }

@@ -36,6 +36,32 @@ export default async function VotePage({
     now >= new Date(config.voting_open) &&
     now <= new Date(config.voting_close);
 
+  // The voter's budget depends on whether they submitted a problem statement
+  // this cycle. Resolve it server-side so the ballot shows the correct
+  // remaining count on first paint (and after a reload), not just after the
+  // first cast.
+  let isSubmitter = false;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: participant } = await supabase
+      .from("participants")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .single();
+    if (participant) {
+      const { data: submission } = await serviceClient
+        .from("problem_statements")
+        .select("id")
+        .eq("cycle_id", cycleId)
+        .eq("participant_id", participant.id)
+        .limit(1)
+        .maybeSingle();
+      isSubmitter = !!submission;
+    }
+  }
+
   return (
     <div>
       <div className="mb-8">
@@ -59,6 +85,7 @@ export default async function VotePage({
           cycleId={cycleId}
           submitterBudget={config?.submitter_votes ?? 0}
           nonSubmitterBudget={config?.non_submitter_votes ?? 0}
+          isSubmitter={isSubmitter}
         />
       ) : (
         <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">

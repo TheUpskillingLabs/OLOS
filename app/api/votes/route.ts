@@ -4,7 +4,7 @@ import { isActiveParticipant } from "@/lib/auth/roles";
 import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
-import { voteSchema } from "@/lib/validations/votes";
+import { voteSchema, voteDeleteSchema } from "@/lib/validations/votes";
 import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
@@ -70,30 +70,37 @@ export const POST = withAuth(
 
     const budget = submission ? config.submitter_votes : config.non_submitter_votes;
 
-    // Check total allocated votes
+    // Check allocated votes. Exclude any existing allocation on THIS statement
+    // so a re-allocation (upsert below) is measured against the OTHER
+    // statements' spend rather than being double-counted against the budget.
     const { data: existingVotes } = await auth.supabase
       .from("votes")
-      .select("vote_count")
+      .select("problem_statement_id, vote_count")
       .eq("cycle_id", cycle_id)
       .eq("voter_id", voter_id);
 
-    const totalAllocated = (existingVotes || []).reduce(
-      (sum, v) => sum + v.vote_count,
-      0
-    );
+    const totalOther = (existingVotes || [])
+      .filter((v) => v.problem_statement_id !== problem_statement_id)
+      .reduce((sum, v) => sum + v.vote_count, 0);
 
-    if (totalAllocated + vote_count > budget) {
+    if (totalOther + vote_count > budget) {
       return NextResponse.json(
         {
-          error: `Vote budget exceeded. Budget: ${budget}, already allocated: ${totalAllocated}, requested: ${vote_count}`,
+          error: `Vote budget exceeded. Budget: ${budget}, already allocated: ${totalOther}, requested: ${vote_count}`,
         },
         { status: 400 }
       );
     }
 
+    // Upsert so a voter can change their allocation on a statement they already
+    // voted on. Backed by UNIQUE(voter_id, problem_statement_id, cycle_id); the
+    // votes_update RLS policy (migration 00035) permits the DO UPDATE path.
     const { data, error } = await auth.supabase
       .from("votes")
-      .insert({ cycle_id, voter_id, problem_statement_id, vote_count })
+      .upsert(
+        { cycle_id, voter_id, problem_statement_id, vote_count },
+        { onConflict: "voter_id,problem_statement_id,cycle_id" }
+      )
       .select("id, created_at")
       .single();
 
@@ -102,8 +109,43 @@ export const POST = withAuth(
     }
 
     return NextResponse.json(
-      { ...data, votes_remaining: budget - totalAllocated - vote_count },
+      { ...data, votes_remaining: budget - totalOther - vote_count },
       { status: 201 }
     );
+  }
+);
+
+// Withdraw a vote from a single statement. Deleting the row (rather than
+// setting vote_count to 0) keeps the budget math simple — absence reads as
+// zero — and is permitted by the votes_delete RLS policy (migration 00035).
+export const DELETE = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest) => {
+    const body = await parseBody(request, voteDeleteSchema);
+    if (isErrorResponse(body)) return body;
+    const { cycle_id, problem_statement_id } = body;
+    const voter_id = auth.user.participantId;
+
+    if (!voter_id) {
+      return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
+    }
+
+    // Withdrawals are only allowed while voting is open, matching POST.
+    const window = await checkWindow(auth.supabase, cycle_id, "voting");
+    if (!window.open) {
+      return NextResponse.json({ error: window.message }, { status: 403 });
+    }
+
+    const { error } = await auth.supabase
+      .from("votes")
+      .delete()
+      .eq("cycle_id", cycle_id)
+      .eq("voter_id", voter_id)
+      .eq("problem_statement_id", problem_statement_id);
+
+    if (error) {
+      return dbError(error);
+    }
+
+    return NextResponse.json({ success: true });
   }
 );

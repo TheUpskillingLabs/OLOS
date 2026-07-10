@@ -15,11 +15,13 @@ export default async function RegisterPodsPage({
 
   const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
     supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
-    createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close").eq("cycle_id", cycleId).single(),
+    createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close, pod_limit").eq("cycle_id", cycleId).single(),
     supabase.auth.getUser(),
   ]);
 
   if (!cycle) notFound();
+
+  const podLimit = config?.pod_limit ?? 2;
 
   const now = new Date();
   const isOpen =
@@ -58,13 +60,14 @@ export default async function RegisterPodsPage({
           Choose your pods
         </h1>
         <p className="mt-2 text-sm text-meta">
-          Join up to 2 pods to explore problems that interest you.
+          Join up to {podLimit} {podLimit === 1 ? "pod" : "pods"} to explore
+          problems that interest you.
         </p>
       </div>
 
       {isOpen ? (
         <>
-          <PodRegistration cycleId={cycleId} initialMyPodIds={myPodIds} />
+          <PodRegistration cycleId={cycleId} initialMyPodIds={myPodIds} podLimit={podLimit} />
           <div className="mt-8">
             <Link
               href="/dashboard"

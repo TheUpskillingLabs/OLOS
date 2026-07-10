@@ -5,6 +5,7 @@ import { checkWindow } from "@/lib/auth/windows";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
+import { requireCompleteProfile } from "@/lib/participants/placeholder";
 
 export const POST = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -15,6 +16,9 @@ export const POST = withAuth(
     if (!participantId) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
+
+    const guard = await requireCompleteProfile(auth.supabase, participantId);
+    if (guard) return guard;
 
     // Get project
     const { data: project } = await auth.supabase
@@ -107,19 +111,53 @@ export const POST = withAuth(
       );
     }
 
-    // Register
-    const { data: membership, error } = await auth.supabase
+    // Register. project_memberships has UNIQUE(participant_id, project_id), so
+    // a participant who previously withdrew (left_at set) cannot be re-INSERTed
+    // for the same project — the constraint would 500. Mirror the pod register
+    // route (pods/[pod_id]/register): reactivate the soft-deleted row by
+    // clearing left_at, preserving the original registered_at + audit trail.
+    const { data: existing } = await auth.supabase
       .from("project_memberships")
-      .insert({
-        participant_id: participantId,
-        project_id: projectId,
-        cycle_id: project.cycle_id,
-      })
-      .select("id, registered_at")
-      .single();
+      .select("id, left_at")
+      .eq("project_id", projectId)
+      .eq("participant_id", participantId)
+      .maybeSingle();
 
-    if (error) {
-      return dbError(error);
+    if (existing && existing.left_at === null) {
+      // True duplicate. (Mostly pre-empted by the 1-project-per-cycle guard
+      // above, but keep for symmetry with the pod route.)
+      return NextResponse.json(
+        { error: "You are already registered for this project." },
+        { status: 400 }
+      );
+    }
+
+    let membership: { id: number; registered_at: string };
+    if (existing) {
+      const { data: reactivated, error: reactivateError } = await auth.supabase
+        .from("project_memberships")
+        .update({ left_at: null })
+        .eq("id", existing.id)
+        .select("id, registered_at")
+        .single();
+      if (reactivateError) {
+        return dbError(reactivateError);
+      }
+      membership = reactivated;
+    } else {
+      const { data: inserted, error: insertError } = await auth.supabase
+        .from("project_memberships")
+        .insert({
+          participant_id: participantId,
+          project_id: projectId,
+          cycle_id: project.cycle_id,
+        })
+        .select("id, registered_at")
+        .single();
+      if (insertError) {
+        return dbError(insertError);
+      }
+      membership = inserted;
     }
 
     // Check if project should activate. The projects_update RLS policy

@@ -111,21 +111,25 @@ export const POST = withAdminAuth(
       );
     }
 
-    // 2-pod-per-cycle cap. NOTE: hardcoded as `>= 2` to match the
-    // participant register route's existing behavior; roadmap §2.1
-    // ('Move the hardcoded 2-pod cap to cycle_config.pod_limit')
-    // tracks the cleanup that should update both call sites together.
-    // Until §2.1 lands, the cap here MUST stay in sync with
-    // app/api/pods/[pod_id]/register/route.ts.
+    // Per-cycle pod cap, configurable via cycle_config.pod_limit (default 2,
+    // migration 00036). Stays in sync with the participant register route
+    // (app/api/pods/[pod_id]/register) — both read the same config column.
+    const { data: limitConfig } = await client
+      .from("cycle_config")
+      .select("pod_limit")
+      .eq("cycle_id", pod.cycle_id)
+      .single();
+    const podLimit = limitConfig?.pod_limit ?? 2;
+
     const { data: cyclePods } = await client
       .from("pod_memberships")
       .select("id, pods!inner(cycle_id)")
       .eq("participant_id", participant_id)
       .eq("pods.cycle_id", pod.cycle_id)
       .is("inactive_at", null);
-    if ((cyclePods ?? []).length >= 2) {
+    if ((cyclePods ?? []).length >= podLimit) {
       return NextResponse.json(
-        { error: "Participant is already in 2 pods for this cycle" },
+        { error: `Participant is already in ${podLimit} pods for this cycle` },
         { status: 400 }
       );
     }

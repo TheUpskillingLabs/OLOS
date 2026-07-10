@@ -15,10 +15,12 @@ export default function PodJoinSection({
   cycleId,
   participantId,
   myPodIds: initialMyPodIds,
+  podLimit,
 }: {
   cycleId: number;
   participantId: number;
   myPodIds: number[];
+  podLimit: number;
 }) {
   const router = useRouter();
   const [pods, setPods] = useState<Pod[]>([]);
@@ -93,7 +95,7 @@ export default function PodJoinSection({
     );
   }
 
-  const atCap = myPodIds.size >= 2;
+  const atCap = myPodIds.size >= podLimit;
 
   return (
     <div className="mb-8">
@@ -101,7 +103,7 @@ export default function PodJoinSection({
         Choose your pods
       </h2>
       <p className="mb-4 text-sm text-meta">
-        You can join up to 2 pods per cycle.
+        You can join up to {podLimit} {podLimit === 1 ? "pod" : "pods"} per cycle.
         {atCap && " You've reached the limit."}
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -146,7 +148,7 @@ export default function PodJoinSection({
                   disabled={!canJoin || isActing}
                   title={
                     atCap
-                      ? "You can join at most 2 pods per cycle"
+                      ? `You can join at most ${podLimit} pods per cycle`
                       : undefined
                   }
                   className="btn btn-teal btn-block px-4 py-2 text-sm"

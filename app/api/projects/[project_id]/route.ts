@@ -39,7 +39,7 @@ export const GET = withAuth(
       const p = (m.participants as unknown) as Record<string, unknown>;
       return {
         participant_id: m.participant_id,
-        name: `${p?.first_name || ""} ${p?.last_name || ""}`.trim(),
+        name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
         registered_at: m.registered_at,
       };
     });

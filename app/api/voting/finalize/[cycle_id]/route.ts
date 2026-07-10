@@ -12,7 +12,7 @@ export const POST = withAdminAuth(
     // Get cycle config
     const { data: config } = await auth.supabase
       .from("cycle_config")
-      .select("vote_threshold, max_pods")
+      .select("vote_threshold, max_pods, pod_min")
       .eq("cycle_id", cycleId)
       .single();
 
@@ -76,8 +76,25 @@ export const POST = withAdminAuth(
     const eligible = ranked.filter((r) => r.total_votes >= config.vote_threshold);
     const ineligible = ranked.filter((r) => r.total_votes < config.vote_threshold);
 
+    // Shortlist cap: min(max_pods, floor(active_enrollments / pod_min)).
+    // Capacity-aware, mirroring the project finalize route
+    // (pods/[pod_id]/projects/finalize) — never mint more forming pods than the
+    // active cohort could ever fill to pod_min, which would otherwise strand
+    // pods in 'forming' forever (see the resolve-formation backstop).
+    const { count: activeEnrollments } = await auth.supabase
+      .from("cycle_enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("cycle_id", cycleId)
+      .eq("status", "active");
+
+    const podMin = Math.max(1, config.pod_min);
+    const podCap = Math.min(
+      config.max_pods,
+      Math.floor((activeEnrollments ?? 0) / podMin)
+    );
+
     // Create pods for top eligible
-    const toCreate = eligible.slice(0, config.max_pods);
+    const toCreate = eligible.slice(0, podCap);
     const pods = [];
 
     for (let i = 0; i < toCreate.length; i++) {

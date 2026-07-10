@@ -59,6 +59,7 @@ erDiagram
         smallint vote_threshold
         smallint max_pods
         smallint pod_min
+        smallint pod_limit
         smallint project_submitter_votes
         smallint project_vote_threshold
         smallint max_projects
