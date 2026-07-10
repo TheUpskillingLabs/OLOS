@@ -7,8 +7,12 @@
 > schema, restore only what's needed, point `main` at it. Chosen because the owner is
 > willing to back up and reset prod, which removes the two hardest hazards of an
 > in-place migration (see §1).
-> **Overall readiness: 🟡 — straightforward once the two decisions in §3 are made and
-> one rehearsal passes.**
+> **Locked decisions (2026-07-10):** **A1 — reset the existing prod project in place**
+> (keep `auth`/`storage`, same keys/domain/env) · **Restore identities only** — bring back
+> `participants` so members can still sign in, but **do not** restore the old role graph;
+> seed just the bootstrap owner(s) and re-grant everything else via `/admin/access` after
+> cutover. Still open: which account is the bootstrap owner (§7).
+> **Overall readiness: 🟡 — straightforward once the owner is named and one rehearsal passes.**
 
 ---
 
@@ -75,17 +79,18 @@ choices only affect the *live* rebuilt DB and the infra:
   Auth URLs + the Google OAuth redirect URI; `auth.users` don't carry, so users re-link
   Google on first sign-in (seamless — the callback links by email).
 
-### Decision B — restore scope
-- **B1 · Identities + roles (recommended).** Restore `participants` (email + `auth_user_id`)
-  so members can still log in, plus owner/admin/poderator role grants. Archive the closing
-  cohort's pods/proposals/pulses. Good continuity, low effort.
-- **B2 · Owners/admins only.** Cleanest reset; members re-register or get re-invited next
-  cycle via the bulk-invite flow.
-- **B3 · Everything.** Restore all cohort data too — most work, because old rows are in the
-  old schema shape and must be transformed for changed tables. Partly defeats "simple."
+### Decision B — restore scope → **CHOSEN: identities only**
+Restore `participants` (email + `auth_user_id`) so members can still sign in, but **do not**
+restore the old role graph (`user_roles` / `moderator_assignments` / `participant_permissions`).
+Archive the closing cohort's pods/proposals/pulses. Because the post-unification code removed
+the auto-owner bootstrap, a fresh DB has **no owner** — so we still deliberately seed the
+**bootstrap owner(s)** (Phase 4.5); every other grant (admin, poderator, …) is re-issued
+through the app's `/admin/access` console after cutover.
 
-> This document is written for the **recommended defaults (A1 + B1)**. Where A2 or B2/B3
-> changes a step, it's called out inline.
+> Not chosen (kept for reference): *owners/admins only* (skip restoring members — they
+> re-register/get re-invited), or *everything* (also transform + restore all cohort data —
+> most work). This document is written for the locked path: **A1 + identities-only**;
+> where the **A2 (fresh project)** variant changes a step, it's called out inline.
 
 ---
 
@@ -138,8 +143,8 @@ Each phase has a **gate** — don't advance until its checks pass.
 | 4.1 | Take a Supabase snapshot / note PITR timestamp (belt-and-suspenders atop the Phase 2 archive) | snapshot recorded | — |
 | 4.2 | `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` then restore baseline grants (`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role; GRANT ALL ON SCHEMA public TO postgres;`). **Leave `auth` + `storage` untouched.** | `\dn` shows public empty; auth.users intact | PITR restore |
 | 4.3 | `supabase db push --linked` the full chain `00001–00077` | `migration list` shows all applied, zero-padded; no drift | PITR restore |
-| 4.4 | Restore **identities**: `INSERT INTO participants (<columns present in new schema>) SELECT … FROM archive` preserving `id`, `auth_user_id`, `email`; then reset the id sequence | prod participant count == restored set; a known member can sign in | re-run from archive |
-| 4.5 | Seed **roles** in the new model: insert owner/admin rows into `participant_roles` (+ mirror `user_roles`) for the decided owner/admin set; poderators only if pods are restored | `/admin/access` shows the expected tree; owner/admin sign-in works | fix grants |
+| 4.4 | Restore **identities only**: `INSERT INTO participants (<columns present in new schema>) SELECT … FROM archive` preserving `id`, `auth_user_id`, `email`; reset the id sequence. **No** role/enrollment/pod data | prod participant count == restored set; a known member can sign in (lands role-less, e.g. on `/register`-completion or home) | re-run from archive |
+| 4.5 | **Bootstrap owner(s) only:** insert the decided primary owner into `participant_roles (role='owner', granted_by=NULL)` (+ mirror `user_roles`); optionally seed a second co-owner. **All other roles (admin, poderator, …) are granted later via `/admin/access`** | owner can sign in and `/admin/access` loads; no other roles present | delete the seeded owner row |
 | 4.6 | Set/confirm all prod env vars in Vercel **Production** scope (Appendix A) | `vercel env ls production` complete | — |
 | 4.7 | Merge `dev → main` (`--no-ff`) → Vercel deploys Production | Vercel Production deploy READY | Vercel instant rollback |
 | 4.8 | Confirm cron surface (Appendix B) + `CRON_SECRET`; curl each cron | 200 with secret, 401 without | fix `vercel.json`/env |
@@ -176,9 +181,9 @@ T+0   Snapshot/PITR checkpoint on prod.                         [4.1]
 T+5   DROP SCHEMA public CASCADE; CREATE; restore grants.       [4.2]
 T+10  supabase db push (00001–00077); migration list clean.    [4.3]
       ── GATE: 00066 logged 'fresh DB skip'; no errors. ──
-T+20  Restore participants (id + auth_user_id + email).         [4.4]
-T+30  Seed owners/admins in participant_roles (+ user_roles).   [4.5]
-      ── GO/NO-GO: owner AND member can sign in. Fail → restore. ──
+T+20  Restore participants (id + auth_user_id + email) — no roles. [4.4]
+T+30  Bootstrap the primary owner in participant_roles only.       [4.5]
+      ── GO/NO-GO: owner AND a member can sign in. Fail → restore. ──
 T+40  Confirm Vercel Production env vars.                       [4.6]
 T+45  Merge dev→main; Vercel Production deploy READY.           [4.7]
 T+55  Verify crons + smoke-test all 4 roles.                    [4.8/5.1]
@@ -207,9 +212,9 @@ PITR/snapshot restore (fast; prod is small) and, if already merged, Vercel rollb
 
 ## 7. Open decisions for the owner
 
-1. **Decision A** — reset existing prod in place (A1, recommended) vs fresh project (A2). — ______
-2. **Decision B** — restore identities+roles (B1, recommended) vs owners/admins only (B2) vs everything (B3). — ______
-3. **Prod primary owner + owner set** for role-seeding (prod owners today: adm2216@, amg@withlevy.com, brendan@withlevy.com, hq@theupskillinglabs.org, mjalan@). — ______
+1. ~~Decision A~~ — **LOCKED: A1 (reset existing prod in place).**
+2. ~~Decision B~~ — **LOCKED: identities only** (restore participants; bootstrap owner only; re-grant the rest via `/admin/access`).
+3. **Bootstrap owner** — which account is seeded as the single rooted owner? *(still open — recommend `hq@theupskillinglabs.org` as the org apex, optionally with `brendan@withlevy.com` as a co-owner.)* — ______
 4. **Cutover timing** — recommend after 2026-07-14 (cohort closed). — ______
 5. **Cron surface** — retire `pulse-check-reminder` (route removed on dev)? schedule `revocation-check`? keep `sync-luma-events` (needs Luma keys)? — ______
 6. **Feature gating** — any experimental surfaces to ship flag-off? — ______
