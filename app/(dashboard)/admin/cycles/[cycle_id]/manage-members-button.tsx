@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/app/components/ui";
 
 type Participant = { participant_id: number; name: string };
 type Member = { participant_id: number; name: string };
@@ -28,6 +29,7 @@ export default function ManageMembersButton({
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<Member | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const base = `/api/admin/${entity}s/${entityId}/memberships`;
@@ -59,6 +61,7 @@ export default function ManageMembersButton({
     setError(null);
     const res = await fetch(`${base}/${participantId}`, { method: "DELETE" });
     setLoading(false);
+    setPendingRemoval(null);
     if (res.ok) {
       setMembers((prev) => prev.filter((m) => m.participant_id !== participantId));
       router.refresh();
@@ -83,7 +86,7 @@ export default function ManageMembersButton({
             <div key={m.participant_id} className="flex items-center justify-between gap-3 text-sm">
               <span className="text-charcoal">{m.name || `#${m.participant_id}`}</span>
               <button
-                onClick={() => remove(m.participant_id)}
+                onClick={() => setPendingRemoval(m)}
                 disabled={loading}
                 className="text-xs font-medium text-red transition-colors duration-150 disabled:opacity-50"
               >
@@ -129,6 +132,25 @@ export default function ManageMembersButton({
       >
         Close
       </button>
+
+      <ConfirmDialog
+        open={pendingRemoval !== null}
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={() => pendingRemoval && remove(pendingRemoval.participant_id)}
+        loading={loading}
+        destructive
+        title={`Remove ${entity} member?`}
+        confirmLabel="Remove"
+        body={
+          <>
+            Remove{" "}
+            <span className="font-medium">
+              {pendingRemoval?.name || `#${pendingRemoval?.participant_id}`}
+            </span>{" "}
+            from this {entity}? They can be added back afterward.
+          </>
+        }
+      />
     </div>
   );
 }

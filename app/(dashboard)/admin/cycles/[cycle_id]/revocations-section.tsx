@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/app/components/ui";
 import type { ParticipantRow } from "./page";
 
 type Revocation = {
@@ -29,6 +30,7 @@ export default function RevocationsSection({
 }) {
   const [revocations, setRevocations] = useState(initialRevocations);
   const [checkLoading, setCheckLoading] = useState(false);
+  const [checkConfirmOpen, setCheckConfirmOpen] = useState(false);
   const [checkResult, setCheckResult] = useState<{ count: number } | null>(
     null
   );
@@ -52,13 +54,6 @@ export default function RevocationsSection({
   );
 
   async function runCheck() {
-    if (
-      !confirm(
-        "Run inactivity check? This may revoke access for inactive participants."
-      )
-    )
-      return;
-
     setCheckLoading(true);
     setCheckError(null);
     setCheckResult(null);
@@ -67,6 +62,7 @@ export default function RevocationsSection({
       method: "POST",
     });
     setCheckLoading(false);
+    setCheckConfirmOpen(false);
 
     if (res.ok) {
       const data = await res.json();
@@ -118,12 +114,23 @@ export default function RevocationsSection({
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
-          onClick={runCheck}
+          onClick={() => setCheckConfirmOpen(true)}
           disabled={checkLoading}
           className="btn btn-ghost px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {checkLoading ? "Checking…" : "Run inactivity check"}
         </button>
+
+        <ConfirmDialog
+          open={checkConfirmOpen}
+          onCancel={() => setCheckConfirmOpen(false)}
+          onConfirm={runCheck}
+          loading={checkLoading}
+          destructive
+          title="Run inactivity check?"
+          confirmLabel="Run check"
+          body="This may revoke access for participants who have been inactive."
+        />
         {checkResult && (
           <span className="text-sm text-charcoal tabular-nums">
             {checkResult.count === 0

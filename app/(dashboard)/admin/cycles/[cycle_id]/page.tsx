@@ -16,6 +16,7 @@ import { CycleDetailsForm } from "./cycle-details-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import FinalizeProjectsButton from "./finalize-projects-button";
+import FinalizeAllProjectsButton from "./finalize-all-projects-button";
 import ResolveFormationButton from "./resolve-formation-button";
 import RevocationsSection from "./revocations-section";
 import AssignModeratorButton from "./assign-moderator-button";
@@ -246,6 +247,16 @@ export default async function AdminCycleDetailPage({
     (projectsByPod[pr.pod_id] ??= []).push({ id: pr.id, name: pr.name, status: pr.status });
   }
 
+  // Pods eligible for the "Finalize all pods" convenience: they have solutions
+  // to draw from but no projects created yet.
+  const eligibleFinalizePodIds = (pods ?? [])
+    .filter(
+      (p) =>
+        (solutionCountByPod.get(p.id) ?? 0) > 0 &&
+        (projectsByPod[p.id]?.length ?? 0) === 0
+    )
+    .map((p) => p.id);
+
   return (
     <div>
       {/* Header */}
@@ -352,7 +363,8 @@ export default async function AdminCycleDetailPage({
           <h2 className="mb-1 t-h3 text-ink">Solution Voting</h2>
           <p className="mb-4 text-sm text-meta">
             Finalize each pod&rsquo;s solution voting to create its projects
-            (below, in the Projects table).{" "}
+            (below, in the Projects table), or finalize every waiting pod at
+            once.{" "}
             <Link
               href={`/moderator/cycles/${cycle.id}/vote-progress`}
               className="font-semibold text-teal-deep hover:underline"
@@ -360,6 +372,7 @@ export default async function AdminCycleDetailPage({
               View vote progress →
             </Link>
           </p>
+          <FinalizeAllProjectsButton eligiblePodIds={eligibleFinalizePodIds} />
         </section>
 
         <hr className="border-ink/10" />

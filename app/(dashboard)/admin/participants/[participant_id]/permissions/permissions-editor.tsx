@@ -5,6 +5,7 @@ import {
   PERMISSION_GROUPS,
   ROLE_PRESETS,
   permissionLabel,
+  presetLabel,
   activePresets,
   type Permission,
 } from "@/lib/auth/permissions";
@@ -122,7 +123,7 @@ export default function PermissionsEditor({
               >
                 {presetLoading === preset
                   ? "Applying..."
-                  : `${preset.charAt(0).toUpperCase() + preset.slice(1)}${isActive ? " \u2713" : ""}`}
+                  : `${presetLabel(preset)}${isActive ? " \u2713" : ""}`}
               </button>
             );
           })}

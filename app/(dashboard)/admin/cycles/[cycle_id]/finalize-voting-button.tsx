@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/app/components/ui";
 
 type Pod = {
   id: number;
@@ -12,18 +13,12 @@ type Pod = {
 
 export default function FinalizeVotingButton({ cycleId }: { cycleId: number }) {
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState<{ pods: Pod[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function finalize() {
-    if (
-      !confirm(
-        "Finalize voting and create pods? This uses AI to name pods and cannot be undone."
-      )
-    )
-      return;
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -33,6 +28,7 @@ export default function FinalizeVotingButton({ cycleId }: { cycleId: number }) {
     });
 
     setLoading(false);
+    setConfirmOpen(false);
     if (res.ok) {
       const data = await res.json();
       setResult(data);
@@ -46,12 +42,22 @@ export default function FinalizeVotingButton({ cycleId }: { cycleId: number }) {
   return (
     <div>
       <button
-        onClick={finalize}
+        onClick={() => setConfirmOpen(true)}
         disabled={loading}
         className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? "Finalizing…" : "Finalize pod voting"}
       </button>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={finalize}
+        loading={loading}
+        title="Finalize pod voting?"
+        confirmLabel="Finalize"
+        body="This creates pods from the winning problem statements, using AI to name them. It cannot be undone."
+      />
 
       {error && (
         <p role="alert" className="mt-2 text-sm text-red">

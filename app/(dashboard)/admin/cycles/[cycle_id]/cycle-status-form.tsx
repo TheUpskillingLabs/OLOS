@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cycleStatusLabel } from "@/lib/cycles/status";
+import { ConfirmDialog } from "@/app/components/ui";
 
 // Valid forward transitions — must mirror VALID_TRANSITIONS in
 // app/api/cycles/[cycle_id]/status/route.ts. `upcoming` is the state a cycle
@@ -29,18 +30,12 @@ export default function CycleStatusForm({
   currentStatus: string;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const nextStatuses = VALID_NEXT[currentStatus] ?? [];
 
   async function advance(nextStatus: string) {
-    if (
-      !confirm(
-        `Change cycle status to "${nextStatus}"? ${nextStatus === "closed" ? "This cannot be undone." : ""}`
-      )
-    )
-      return;
-
     setLoading(nextStatus);
     setError(null);
 
@@ -51,6 +46,7 @@ export default function CycleStatusForm({
     });
 
     setLoading(null);
+    setPending(null);
     if (res.ok) {
       router.refresh();
     } else {
@@ -76,7 +72,7 @@ export default function CycleStatusForm({
         nextStatuses.map((s) => (
           <button
             key={s}
-            onClick={() => advance(s)}
+            onClick={() => setPending(s)}
             disabled={loading !== null}
             className={`btn px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
               s === "closed" ? "btn-red" : "btn-teal"
@@ -96,6 +92,21 @@ export default function CycleStatusForm({
           {error}
         </p>
       )}
+
+      <ConfirmDialog
+        open={pending !== null}
+        onCancel={() => setPending(null)}
+        onConfirm={() => pending && advance(pending)}
+        loading={loading !== null}
+        destructive={pending === "closed"}
+        title={pending ? `Change status to “${cycleStatusLabel(pending)}”?` : ""}
+        confirmLabel={pending ? BUTTON_LABELS[pending] : "Confirm"}
+        body={
+          pending === "closed"
+            ? "This closes the cycle and cannot be undone."
+            : "This advances the cycle to its next lifecycle stage."
+        }
+      />
     </div>
   );
 }

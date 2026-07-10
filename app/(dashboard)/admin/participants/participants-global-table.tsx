@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { presetLabel } from "@/lib/auth/permissions";
 import type { GlobalParticipant } from "./page";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -63,6 +64,7 @@ export default function ParticipantsGlobalTable({
           <option value="owner">Owners</option>
           <option value="admin">Admins</option>
           <option value="developer">Developers</option>
+          <option value="labs_lead">Labs Leads</option>
           <option value="observer">Observers</option>
           <option value="moderator">Moderators</option>
           <option value="none">No role</option>
@@ -131,7 +133,7 @@ export default function ParticipantsGlobalTable({
                             ROLE_COLORS[role] ?? "bg-ink/[0.04] text-meta"
                           }`}
                         >
-                          {role}
+                          {presetLabel(role)}
                         </span>
                       ))}
                       {displayRoles.length === 0 && (

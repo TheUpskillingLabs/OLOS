@@ -13,11 +13,18 @@ type Statement = { id: number; statement_text: string };
 export default function VoteTallies({ cycleId }: { cycleId: number }) {
   const [rows, setRows] = useState<{ text: string; votes: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/votes/${cycleId}`).then((r) => r.json()),
-      fetch(`/api/problem-statements/${cycleId}`).then((r) => r.json()),
+      fetch(`/api/votes/${cycleId}`).then((r) => {
+        if (!r.ok) throw new Error(`votes ${r.status}`);
+        return r.json();
+      }),
+      fetch(`/api/problem-statements/${cycleId}`).then((r) => {
+        if (!r.ok) throw new Error(`statements ${r.status}`);
+        return r.json();
+      }),
     ])
       .then(([voteData, statements]) => {
         const tallies: Tally[] = voteData?.tallies ?? [];
@@ -32,10 +39,17 @@ export default function VoteTallies({ cycleId }: { cycleId: number }) {
           .sort((a, b) => b.votes - a.votes);
         setRows(merged);
       })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [cycleId]);
 
   if (loading) return <p className="text-xs text-meta">Loading tallies…</p>;
+  if (error)
+    return (
+      <p role="alert" className="text-xs text-red">
+        Couldn&rsquo;t load tallies. Refresh to try again.
+      </p>
+    );
   if (rows.length === 0) return <p className="text-xs text-meta">No votes cast yet.</p>;
 
   const max = rows.reduce((m, r) => Math.max(m, r.votes), 0);

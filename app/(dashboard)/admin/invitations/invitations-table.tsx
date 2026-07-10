@@ -5,6 +5,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormField, Input } from "@/app/components/ui/form";
+import { presetLabel } from "@/lib/auth/permissions";
 
 const inviteFormSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -137,7 +138,7 @@ export default function InvitationsTable({
   }
 
   const availablePresets = canManageRoles
-    ? ["", "observer", "moderator", "admin", "developer", "owner"]
+    ? ["", "observer", "moderator", "labs_lead", "admin", "developer", "owner"]
     : ["", "observer", "moderator"];
 
   return (
@@ -168,7 +169,7 @@ export default function InvitationsTable({
                   .filter((p) => p !== "")
                   .map((p) => (
                     <option key={p} value={p}>
-                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                      {presetLabel(p)}
                     </option>
                   ))}
               </select>
@@ -278,12 +279,14 @@ export default function InvitationsTable({
                               ? "bg-teal/10 text-teal-deep"
                               : inv.role_preset === "developer"
                                 ? "bg-forest/10 text-forest"
-                                : inv.role_preset === "moderator"
-                                  ? "bg-navy/10 text-navy"
-                                  : "bg-ink/[0.04] text-meta"
+                                : inv.role_preset === "labs_lead"
+                                  ? "bg-teal/10 text-teal-deep"
+                                  : inv.role_preset === "moderator"
+                                    ? "bg-navy/10 text-navy"
+                                    : "bg-ink/[0.04] text-meta"
                         }`}
                       >
-                        {inv.role_preset}
+                        {presetLabel(inv.role_preset)}
                       </span>
                     ) : (
                       <span className="text-xs text-meta tabular-nums">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/app/components/ui";
 
 /**
  * Inline rename + force-activate for a pod or project, used in the admin cycle
@@ -23,6 +24,7 @@ export default function EntityAdminActions({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(currentName);
   const [loading, setLoading] = useState(false);
+  const [activateConfirmOpen, setActivateConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function saveName() {
@@ -43,7 +45,6 @@ export default function EntityAdminActions({
   }
 
   async function activate() {
-    if (!confirm(`Activate this ${entity} now, even if it hasn't reached its minimum size?`)) return;
     setLoading(true);
     setError(null);
     const res = await fetch(`/api/admin/${entity}s/${entityId}`, {
@@ -52,6 +53,7 @@ export default function EntityAdminActions({
       body: JSON.stringify({ status: "active" }),
     });
     setLoading(false);
+    setActivateConfirmOpen(false);
     if (res.ok) {
       router.refresh();
     } else {
@@ -89,7 +91,7 @@ export default function EntityAdminActions({
       </button>
       {status === "forming" && (
         <button
-          onClick={activate}
+          onClick={() => setActivateConfirmOpen(true)}
           disabled={loading}
           className="rounded-card bg-teal/10 px-2.5 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:opacity-50"
         >
@@ -97,6 +99,16 @@ export default function EntityAdminActions({
         </button>
       )}
       {error && <span role="alert" className="text-xs text-red">{error}</span>}
+
+      <ConfirmDialog
+        open={activateConfirmOpen}
+        onCancel={() => setActivateConfirmOpen(false)}
+        onConfirm={activate}
+        loading={loading}
+        title={`Activate this ${entity}?`}
+        confirmLabel="Activate"
+        body={`This activates the ${entity} now, even if it hasn't reached its minimum size.`}
+      />
     </div>
   );
 }

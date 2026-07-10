@@ -8,4 +8,5 @@ export { Spinner } from "./spinner";
 export { Field, Input, Textarea, Select } from "./form";
 export type { FieldProps, InputProps, TextareaProps, SelectProps } from "./form";
 export { Sheet } from "./sheet";
+export { ConfirmDialog } from "./confirm-dialog";
 export { Tooltip, TooltipIcon } from "./tooltip";

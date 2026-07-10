@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { METROS } from "@/lib/metros";
+
+const METRO_SLUGS = Object.keys(METROS) as [string, ...string[]];
 
 // Reject the literal placeholder value 'Unknown' (case-insensitive, trimmed)
 // that scripts/migration/migrate.py wrote for participants missing name data.
@@ -26,6 +29,10 @@ const nameField = z
  *
  * Whitelist of editable fields (intentionally narrow for Phase B):
  *   - first_name, last_name, preferred_name
+ *   - metro_slug (admin-only in practice: assigns a participant to a local
+ *     lab/region, which is what scopes a labs_lead's cycle access — see
+ *     lib/auth/cycle-access.ts. Constrained to known METROS slugs; nullable
+ *     to allow un-assigning.)
  *
  * Profile-expansion fields (neighborhood, work_situation, linkedin, etc.) can
  * be added to this schema in a follow-up without changing the route logic.
@@ -35,6 +42,7 @@ export const participantsUpdateSchema = z
     first_name: nameField,
     last_name: nameField,
     preferred_name: z.string().min(1).max(100).nullable(),
+    metro_slug: z.enum(METRO_SLUGS).nullable(),
   })
   .partial()
   .strict();

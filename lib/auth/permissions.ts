@@ -71,6 +71,24 @@ export const ROLE_PRESETS: Record<string, Permission[]> = {
 
 export const ROLE_PRESET_NAMES = Object.keys(ROLE_PRESETS) as (keyof typeof ROLE_PRESETS)[];
 
+/**
+ * Human-readable name for a role preset or role key. Handles the
+ * underscore-carrying keys (e.g. `labs_lead` → "Labs Lead") that a naive
+ * `charAt(0).toUpperCase()` would leave as "Labs_lead". Falls back to
+ * title-casing each underscore-separated word, so it is safe for any
+ * preset/role string.
+ */
+export function presetLabel(name: string): string {
+  const overrides: Record<string, string> = {
+    labs_lead: "Labs Lead",
+  };
+  if (overrides[name]) return overrides[name];
+  return name
+    .split("_")
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
 export function permissionLabel(permission: Permission): string {
   const labels: Record<Permission, string> = {
     "cycles:read": "View Cycles",

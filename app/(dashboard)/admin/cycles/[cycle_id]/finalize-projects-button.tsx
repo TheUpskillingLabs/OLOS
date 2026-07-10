@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/app/components/ui";
 
 type Project = { id: number; name: string; total_votes: number };
 
@@ -18,24 +19,19 @@ export default function FinalizeProjectsButton({
   podName: string;
 }) {
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState<{ projects: Project[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function finalize() {
-    if (
-      !confirm(
-        `Finalize solution voting for ${podName} and create its projects? Uses AI to name projects and cannot be undone.`
-      )
-    )
-      return;
-
     setLoading(true);
     setError(null);
     setResult(null);
 
     const res = await fetch(`/api/pods/${podId}/projects/finalize`, { method: "POST" });
     setLoading(false);
+    setConfirmOpen(false);
     if (res.ok) {
       setResult(await res.json());
       router.refresh();
@@ -56,7 +52,7 @@ export default function FinalizeProjectsButton({
   return (
     <span className="inline-flex items-center gap-2">
       <button
-        onClick={finalize}
+        onClick={() => setConfirmOpen(true)}
         disabled={loading}
         className="rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
       >
@@ -67,6 +63,21 @@ export default function FinalizeProjectsButton({
           {error}
         </span>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={finalize}
+        loading={loading}
+        title="Finalize solution voting?"
+        confirmLabel="Finalize"
+        body={
+          <>
+            Creates projects for <span className="font-medium">{podName}</span>{" "}
+            from its winning solutions, using AI to name them. It cannot be
+            undone.
+          </>
+        }
+      />
     </span>
   );
 }

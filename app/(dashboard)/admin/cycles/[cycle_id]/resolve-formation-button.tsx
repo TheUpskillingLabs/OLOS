@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ConfirmDialog } from "@/app/components/ui";
 
 type ResolveResult = {
   pods_dissolved: number;
@@ -12,18 +13,12 @@ type ResolveResult = {
 
 export default function ResolveFormationButton({ cycleId }: { cycleId: number }) {
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState<ResolveResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function resolve() {
-    if (
-      !confirm(
-        "Resolve formation? Pods and projects that never reached their minimum size will be marked inactive, and affected members' enrollments reconciled. Only runs after registration windows close."
-      )
-    )
-      return;
-
     setLoading(true);
     setError(null);
     setResult(null);
@@ -33,6 +28,7 @@ export default function ResolveFormationButton({ cycleId }: { cycleId: number })
     });
 
     setLoading(false);
+    setConfirmOpen(false);
     if (res.ok) {
       const data = await res.json();
       setResult(data);
@@ -51,12 +47,22 @@ export default function ResolveFormationButton({ cycleId }: { cycleId: number })
   return (
     <div>
       <button
-        onClick={resolve}
+        onClick={() => setConfirmOpen(true)}
         disabled={loading}
         className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? "Resolving…" : "Resolve formation"}
       </button>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={resolve}
+        loading={loading}
+        title="Resolve formation?"
+        confirmLabel="Resolve"
+        body="Pods and projects that never reached their minimum size will be marked inactive, and affected members' enrollments reconciled. Only runs after registration windows close."
+      />
 
       {error && (
         <p role="alert" className="mt-2 text-sm text-red">

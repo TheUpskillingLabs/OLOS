@@ -3,9 +3,10 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
-import type { Permission } from "@/lib/auth/permissions";
+import { presetLabel, type Permission } from "@/lib/auth/permissions";
 import PermissionsEditor from "./permissions-editor";
 import AdminNameEditForm from "./admin-name-edit-form";
+import AdminMetroEditForm from "./admin-metro-edit-form";
 
 export default async function ParticipantPermissionsPage({
   params,
@@ -27,7 +28,7 @@ export default async function ParticipantPermissionsPage({
   const [userRoles, { data: participant }, { data: permRows }, { data: roleRows }, { data: modAssignments }] =
     await Promise.all([
       resolveUserRoles(serviceClient, user.id),
-      serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email").eq("id", participantId).single(),
+      serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, metro_slug").eq("id", participantId).single(),
       serviceClient.from("participant_permissions").select("permission").eq("participant_id", participantId).is("revoked_at", null),
       serviceClient.from("user_roles").select("role").eq("participant_id", participantId).is("revoked_at", null),
       serviceClient.from("moderator_assignments").select("pod_id, pods (name, cycle_id, cycles (name))").eq("participant_id", participantId).is("removed_at", null),
@@ -80,10 +81,12 @@ export default async function ParticipantPermissionsPage({
                       ? "bg-teal/10 text-teal-deep"
                       : role === "developer"
                         ? "bg-forest/10 text-forest"
-                        : "bg-ink/[0.04] text-meta"
+                        : role === "labs_lead"
+                          ? "bg-teal/10 text-teal-deep"
+                          : "bg-ink/[0.04] text-meta"
                 }`}
               >
-                {role}
+                {presetLabel(role)}
               </span>
             ))}
           </div>
@@ -97,6 +100,11 @@ export default async function ParticipantPermissionsPage({
           last_name: participant.last_name ?? "",
           preferred_name: participant.preferred_name ?? "",
         }}
+      />
+
+      <AdminMetroEditForm
+        participantId={participantId}
+        initialMetroSlug={participant.metro_slug ?? ""}
       />
 
       <PermissionsEditor

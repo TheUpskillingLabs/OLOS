@@ -96,6 +96,13 @@ async function teardown() {
     await db.from("cycle_config").delete().eq("cycle_id", cid);
     await db.from("cycles").delete().eq("id", cid);
   }
+  // Clean up seeded participants and their permission rows (the [ACCESS] block
+  // grants a labs_lead permission set; participant_permissions may not cascade).
+  const { data: seededParts } = await db.from("participants").select("id").like("email", EMAIL_LIKE);
+  const seededIds = (seededParts ?? []).map((p) => p.id);
+  if (seededIds.length) {
+    await db.from("participant_permissions").delete().in("participant_id", seededIds);
+  }
   await db.from("participants").delete().like("email", EMAIL_LIKE);
 }
 
@@ -211,6 +218,41 @@ async function main() {
   await db.from("cycles").update({ metro_slug: "dc" }).eq("id", cid);
   const { data: cyc } = await db.from("cycles").select("metro_slug").eq("id", cid).single();
   assert("cycle.metro_slug set/read", cyc.metro_slug === "dc");
+
+  // ── ACCESS: labs_lead metro-scoped cycle management ─────────────────────────
+  // Mirrors lib/auth/cycle-access.ts::canManageCycle at the data level: a labs
+  // lead (pods:write, no cycles:write) with a metro may manage same-metro
+  // cycles only. The authenticated HTTP path is exercised separately by
+  // scripts/verify-labs-lead-access.mjs.
+  console.log("\n[ACCESS] labs_lead metro-scoped cycle management");
+  const { data: lead } = await db
+    .from("participants")
+    .insert({ google_id: "zzseed-lead", email: "zzseed+lead@example.test", first_name: "Seed", last_name: "Lead", metro_slug: "dc" })
+    .select("id, metro_slug")
+    .single();
+  const labsLeadPerms = ["pods:read", "pods:write", "participants:read", "pulse_checks:read"];
+  await db.from("participant_permissions").insert(
+    labsLeadPerms.map((permission) => ({ participant_id: lead.id, permission }))
+  );
+  const { data: permRows } = await db
+    .from("participant_permissions")
+    .select("permission")
+    .eq("participant_id", lead.id)
+    .is("revoked_at", null);
+  const permSet = new Set((permRows ?? []).map((r) => r.permission));
+
+  // Faithful mirror of canManageLifecycle / isFullCycleAdmin / canManageCycle.
+  const canManageLifecycle = permSet.has("pods:write");
+  const isFullCycleAdmin = permSet.has("cycles:write");
+  const canManageCycle = (cycleMetro) =>
+    canManageLifecycle &&
+    (isFullCycleAdmin ||
+      (!!cycleMetro && !!lead.metro_slug && cycleMetro === lead.metro_slug));
+
+  assert("labs_lead has pods:write but not cycles:write", canManageLifecycle && !isFullCycleAdmin);
+  assert("labs_lead can manage a same-metro cycle (dc == dc)", canManageCycle("dc") === true);
+  assert("labs_lead cannot manage a different-metro cycle (baltimore)", canManageCycle("baltimore") === false);
+  assert("labs_lead cannot manage a metro-less cycle", canManageCycle(null) === false);
 
   // ── T3: resolve-formation (dissolve under-min + reconcile) ──────────────────
   console.log("\n[T3] failed-formation resolution");
