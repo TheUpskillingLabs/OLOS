@@ -86,6 +86,7 @@
 **Problem Voting**
 - Voting is buggy — vote allocation doesn't match the rules — *Bug*
 - Helper text is broken/inaccurate: says submitters get 3 votes and non-submitters get 1, but a submitter received only 1 vote — *Bug*
+- Voting doesn't allow stacking multiple votes on one problem — it should — *Bug*
 
 ---
 
