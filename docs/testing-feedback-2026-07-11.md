@@ -83,6 +83,10 @@
 - Redo the problem registration form — question order doesn't make sense, and some questions aren't relevant (e.g. impact tracks) — *Confusing interaction*
 - After submitting a problem registration form, offer a "back to dashboard" button (or similar next step) — *Missing behavior*
 
+**Problem Voting**
+- Voting is buggy — vote allocation doesn't match the rules — *Bug*
+- Helper text is broken/inaccurate: says submitters get 3 votes and non-submitters get 1, but a submitter received only 1 vote — *Bug*
+
 ---
 
 ## Outside the App
