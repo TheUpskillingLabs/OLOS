@@ -213,7 +213,13 @@ describe("ensureActivePodMembership", () => {
   });
 
   it("no-ops the membership write when already active, but still seeds the enrollment", async () => {
+    // The admin add-member route (POST /api/admin/pods/[pod_id]/memberships)
+    // depends on this branch: it inserts the membership itself, then calls
+    // this helper for org runs — the helper must tolerate the row it didn't
+    // create and still seed + reconcile the enrollment.
     state.membershipRow = { id: 99, inactive_at: null };
+    state.enrollment = { id: 20, status: "inactive" };
+    state.memberships = [activePod];
 
     await ensureActivePodMembership(7, 6, 2);
 
@@ -224,5 +230,7 @@ describe("ensureActivePodMembership", () => {
       cycle_id: 2,
       status: "active",
     });
+    // Reconcile still runs after the (skipped) membership write.
+    expect(state.updates[0]).toMatchObject({ status: "active", inactive_date: null });
   });
 });
