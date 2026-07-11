@@ -137,24 +137,17 @@ export default async function LandingPage() {
           <div className="hero-photo" aria-hidden="true" />
           <div className="hero-tint" aria-hidden="true" />
           <HeroFade>
-            <div
-              className="lbl lbl-teal"
-              style={{ gridColumn: "1 / -1", marginBottom: 14 }}
-            >
-              Local communities of practice — for lifelong upskilling
-            </div>
             <h1 className="t-display">
               Find your people.
               <br />
               Build your edge.
             </h1>
             <div className="hero-cta">
-              <p className="t-lede" style={{ marginBottom: 24, maxWidth: "58ch" }}>
-                The Upskilling Labs is a network of local communities of
-                practice — people who learn by doing, together, and keep
-                leveling up for life. OLOS is the platform that runs it: sign in
-                with Google to join your local lab, form a cohort, and build
-                something real.
+              <p className="t-lede" style={{ marginBottom: 24, maxWidth: "54ch" }}>
+                Nobody gets good at the hard stuff alone. So we help you find
+                your crew — a handful of people near you who meet up for a few
+                months, build something real, and keep each other going. Sign in
+                with Google to jump in.
               </p>
               {signedIn ? (
                 <Link className="btn btn-teal btn-lg" href="/dashboard">
