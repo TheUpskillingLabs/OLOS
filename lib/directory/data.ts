@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/embed";
+import { metroLabel } from "@/lib/metros-label";
 import type {
   DirectoryData,
   DirectoryPerson,
@@ -171,7 +172,7 @@ export async function fetchDirectoryData(): Promise<DirectoryData> {
 
   const metroBySlug = new Map<string, string>();
   for (const m of metrosRes.data ?? []) {
-    metroBySlug.set(m.slug, [m.name, m.st].filter(Boolean).join(", "));
+    metroBySlug.set(m.slug, metroLabel(m.name, m.st));
   }
 
   const cycleIdsByParticipant = new Map<number, number[]>();

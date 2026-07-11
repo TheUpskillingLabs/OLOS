@@ -321,6 +321,17 @@ export default function ProfileEditForm({
   return (
     <FormProvider {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
+        {/* Saving scrolls to the top — the confirmation has to be waiting
+            where the scroll lands, not only down by the submit bar
+            (July 2026 feedback). */}
+        {saved && !required && (
+          <p className="rounded-card border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal-deep">
+            Saved.{" "}
+            <Link href="/profile" className="underline">
+              Back to profile
+            </Link>
+          </p>
+        )}
         <FormField name="first_name" label="First name" required htmlFor="first_name">
           <Input id="first_name" type="text" autoComplete="given-name" invalid={!!errors.first_name} {...register("first_name")} />
         </FormField>

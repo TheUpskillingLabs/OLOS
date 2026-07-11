@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/embed";
+import { metroLabel } from "@/lib/metros-label";
 
 /**
  * The left-rail "pages/groups" aggregator — the LinkedIn-style list of the
@@ -48,9 +49,11 @@ export interface MembershipsContext {
   } | null;
 }
 
-/** "Baltimore, MD" — lab name with its state suffix when present. */
+/** "Baltimore, MD" — lab name with its state suffix when present. Delegates
+    to metroLabel so names that already embed the state (e.g. "Washington, DC")
+    don't double it. */
 export function labDisplayName(name: string, st: string | null): string {
-  return [name, st].filter(Boolean).join(", ");
+  return metroLabel(name, st);
 }
 
 /** A "Mar 2026 – Jun 2026" range for a cycle sublabel; null when no dates. */

@@ -14,6 +14,9 @@ describe("labDisplayName", () => {
     expect(labDisplayName("Washington", null)).toBe("Washington");
     expect(labDisplayName("Washington", "")).toBe("Washington");
   });
+  it("never doubles a state the name already embeds", () => {
+    expect(labDisplayName("Washington, DC", "DC")).toBe("Washington, DC");
+  });
 });
 
 describe("cycleDateRange", () => {

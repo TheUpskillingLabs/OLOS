@@ -4,6 +4,7 @@ import MemberProfileView from "../../profile/member-profile-view";
 import UpdatesFeed from "../../directory/updates-feed";
 import FollowButton from "@/app/components/follow-button";
 import { isFollowing } from "@/lib/follows/data";
+import { metroLabel } from "@/lib/metros-label";
 
 /**
  * /u/[handle] — a member's public-to-members profile (visitor mode).
@@ -56,7 +57,7 @@ export default async function MemberProfilePage({
       .select("name, st")
       .eq("slug", member.metro_slug)
       .maybeSingle();
-    metroName = metro ? [metro.name, metro.st].filter(Boolean).join(", ") : null;
+    metroName = metro ? metroLabel(metro.name, metro.st) : null;
   }
 
   // Cycle enrollments (membership is visible within the members-only directory).
@@ -110,6 +111,7 @@ export default async function MemberProfilePage({
               type="user"
               id={member.id}
               initialFollowing={followingMember}
+              refreshOnChange
             />
           )}
         </span>
