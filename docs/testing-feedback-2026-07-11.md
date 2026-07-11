@@ -76,6 +76,10 @@
 **Library**
 - Put Learning Library behind login (with preview navigable to non-logged-in visitors) — *Missing behavior*
 
+**Problem Statements**
+- Submitting problem statements doesn't work in production — *Bug*
+- Re-evaluate what the submission process should look like — *Confusing interaction*
+
 ---
 
 ## Outside the App
