@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
+import { isAdmin } from "@/lib/auth/roles";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -10,10 +11,10 @@ import {
   invitationEmailText,
 } from "@/lib/email/invitation-template";
 
-export const POST = withAdminAuth(
+export const POST = withAuth(
   async (
     _request: NextRequest,
-    _auth: AuthenticatedRequest,
+    auth: AuthenticatedRequest,
     params: Record<string, string>
   ) => {
     const invitationId = parseIntParam(params.invitation_id, "invitation_id");
@@ -24,13 +25,19 @@ export const POST = withAdminAuth(
     // Fetch invitation with cycle name
     const { data: invitation, error: fetchError } = await serviceClient
       .from("invitations")
-      .select("id, email, token, status, expires_at, role_preset, cycle_id, cycles (name)")
+      .select("id, email, token, status, expires_at, role_preset, cycle_id, invited_by, cycles (name)")
       .eq("id", invitationId)
       .single();
 
     if (fetchError) return dbError(fetchError);
     if (!invitation) {
       return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
+    }
+
+    // Local Labs (docs/LOCAL_LABS.md): admins send anything; a lab lead
+    // may send only invitations they created.
+    if (!isAdmin(auth.user) && invitation.invited_by !== auth.user.participantId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (invitation.status !== "pending") {
       return NextResponse.json(

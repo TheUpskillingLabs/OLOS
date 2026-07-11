@@ -100,12 +100,17 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     key: "votes",
     label: "Votes",
     table: "votes",
-    columns: ["id", "voter_id", "problem_statement_id", "vote_count", "created_at"],
+    // NOTE: voter_id is deliberately NOT displayed and NOT FK-resolved. The UX
+    // constitution (docs/audit/DESIGN_INTENT.md) requires vote data stay
+    // "aggregate only, never per-voter attribution" — so the console shows the
+    // ballot (statement + count) but never who cast it. The column still exists
+    // in the DB; a participant's own "Votes cast" 360 relation reaches it via
+    // voter_id directly.
+    columns: ["id", "problem_statement_id", "vote_count", "created_at"],
     labelField: "id",
     cycleScoped: true,
     softDelete: null,
     foreignKeys: [
-      { column: "voter_id", target: "participants" },
       { column: "problem_statement_id", target: "problem_statements" },
       { column: "cycle_id", target: "cycles" },
     ],
@@ -193,12 +198,13 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     key: "project_votes",
     label: "Project votes",
     table: "project_votes",
-    columns: ["id", "voter_id", "solution_proposal_id", "vote_count", "created_at"],
+    // NOTE: voter_id omitted (display + FK) — same aggregate-only rule as `votes`
+    // above (DESIGN_INTENT.md: "never per-voter attribution").
+    columns: ["id", "solution_proposal_id", "vote_count", "created_at"],
     labelField: "id",
     cycleScoped: true,
     softDelete: null,
     foreignKeys: [
-      { column: "voter_id", target: "participants" },
       { column: "solution_proposal_id", target: "solution_proposals" },
       { column: "cycle_id", target: "cycles" },
     ],
@@ -277,6 +283,66 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
       { column: "cycle_id", target: "cycles" },
     ],
     defaultSort: { column: "created_at", direction: "desc" },
+    relations: [],
+  },
+
+  // Public-content + agreement tables (audit roadmap Phase 0: the explorer is
+  // the read-only transparency stopgap for content and signature records —
+  // Pod Squad memo "direct database access if dashboard features lag").
+  events: {
+    key: "events",
+    label: "Events",
+    table: "events",
+    columns: ["id", "slug", "name", "kind", "anchor", "start_at", "status", "synced_at"],
+    labelField: "name",
+    cycleScoped: false,
+    softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
+    foreignKeys: [],
+    defaultSort: { column: "start_at", direction: "desc" },
+    relations: [],
+  },
+
+  resources: {
+    key: "resources",
+    label: "Library resources",
+    table: "resources",
+    columns: ["id", "slug", "title", "content_type", "author", "from_line", "status", "created_at"],
+    labelField: "title",
+    cycleScoped: false,
+    softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
+    foreignKeys: [],
+    defaultSort: { column: "created_at", direction: "desc" },
+    relations: [],
+  },
+
+  metros: {
+    key: "metros",
+    label: "Metros (local labs)",
+    table: "metros",
+    columns: ["id", "slug", "name", "st", "status", "partner", "members", "waiting_baseline"],
+    labelField: "name",
+    cycleScoped: false,
+    softDelete: null,
+    foreignKeys: [],
+    defaultSort: { column: "id", direction: "asc" },
+    relations: [],
+  },
+
+  cycle_agreements: {
+    key: "cycle_agreements",
+    label: "Cycle agreements",
+    table: "cycle_agreements",
+    // Insert-only signature records (migration 00032). The answers JSONB is
+    // deliberately NOT listed — registration intake stays out of the grid.
+    columns: ["id", "participant_id", "cycle_id", "agreement_version", "signature_name", "signed_at"],
+    labelField: "id",
+    cycleScoped: true,
+    softDelete: null,
+    foreignKeys: [
+      { column: "participant_id", target: "participants" },
+      { column: "cycle_id", target: "cycles" },
+    ],
+    defaultSort: { column: "signed_at", direction: "desc" },
     relations: [],
   },
 };

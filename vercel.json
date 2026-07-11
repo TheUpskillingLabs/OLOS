@@ -2,8 +2,24 @@
   "framework": "nextjs",
   "crons": [
     {
-      "path": "/api/cron/pulse-check-reminder",
+      "path": "/api/cron/learning-log-window",
+      "schedule": "0 21 * * 5"
+    },
+    {
+      "path": "/api/cron/learning-log-reminder",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/leadership-log-window",
+      "schedule": "0 13 * * 3"
+    },
+    {
+      "path": "/api/cron/leadership-log-reminder",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-luma-events",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

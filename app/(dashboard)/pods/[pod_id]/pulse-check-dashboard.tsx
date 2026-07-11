@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { StatCard } from "@/app/components/ui";
+import { formatDate } from "@/lib/format/date";
 
 type PulseCheck = {
   scheduled_date: string;
@@ -68,7 +69,7 @@ export default function PulseCheckDashboard({
       </div>
 
       {/* Per-member table */}
-      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-left text-sm">
           <thead className="bg-ink/[0.03]">
             <tr>
@@ -112,7 +113,7 @@ export default function PulseCheckDashboard({
                       onClick={() =>
                         setExpandedId(isExpanded ? null : m.participant_id)
                       }
-                      className="flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:bg-ink/[0.04]"
+                      className="flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 hover:bg-ink/[0.02] focus-visible:bg-ink/[0.04]"
                     >
                       <span className="flex-1 font-medium text-charcoal">
                         {m.name}
@@ -122,9 +123,7 @@ export default function PulseCheckDashboard({
                       </span>
                       <span className="w-32 text-meta tabular-nums">
                         {lastCompleted
-                          ? new Date(
-                              lastCompleted.completed_at!
-                            ).toLocaleDateString()
+                          ? formatDate(lastCompleted.completed_at!)
                           : "—"}
                       </span>
                       <span className="w-24 text-meta tabular-nums">
@@ -156,9 +155,7 @@ export default function PulseCheckDashboard({
                                   >
                                     <div className="mb-2 flex items-center justify-between">
                                       <span className="text-xs font-medium tracking-tight text-teal-deep tabular-nums">
-                                        {new Date(
-                                          c.scheduled_date
-                                        ).toLocaleDateString()}
+                                        {formatDate(c.scheduled_date)}
                                       </span>
                                       {r?.energy_level != null && (
                                         <span className="rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-deep tabular-nums">

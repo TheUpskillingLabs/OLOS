@@ -99,7 +99,7 @@ export default function ProjectRegistration({
 
   if (projects.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
         <p className="text-sm text-meta">
           No projects available for registration yet.
         </p>

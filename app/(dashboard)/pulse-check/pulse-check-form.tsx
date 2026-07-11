@@ -527,7 +527,7 @@ export default function PulseCheckForm({
             <button
               type="button"
               onClick={() => setShowNominations(true)}
-              className="flex w-full items-center justify-between gap-3 text-left text-sm text-charcoal transition-colors duration-150 ease-out hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+              className="flex w-full items-center justify-between gap-3 text-left text-sm text-charcoal transition-colors duration-150 ease-out hover:text-teal-deep"
             >
               <span>
                 <span className="font-semibold tracking-tight text-ink">
@@ -800,7 +800,7 @@ function ToolsAutocomplete({
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="rounded-full text-teal-deep/70 transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
+                className="rounded-full text-teal-deep/70 transition-colors duration-150 hover:text-ink"
                 aria-label={`Remove ${tag}`}
               >
                 ×
@@ -867,8 +867,8 @@ function ConfirmationView({
   onSubmitAnother: () => void;
 }) {
   return (
-    <div className="rounded-card border border-teal/30 bg-white p-8 text-center shadow-card">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal/10 text-teal-deep">
+    <div className="rounded-card border border-teal/30 bg-white p-8 shadow-card">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-teal/10 text-teal-deep">
         <svg
           className="h-6 w-6"
           fill="none"
@@ -891,7 +891,7 @@ function ConfirmationView({
         {copy.confirmation.body}
         {nominationCount > 0 && copy.confirmation.nominationThanks(nominationCount)}
       </p>
-      <div className="mt-6 flex flex-col items-center gap-3">
+      <div className="mt-6 flex flex-col items-start gap-3">
         <Link
           href="/cycles"
           className="btn btn-teal w-full max-w-xs sm:w-auto"
@@ -901,7 +901,7 @@ function ConfirmationView({
         <button
           type="button"
           onClick={onSubmitAnother}
-          className="text-xs text-meta underline-offset-4 transition-colors duration-150 hover:text-teal-deep hover:underline focus-visible:outline-none focus-visible:text-teal-deep"
+          className="text-xs text-meta underline-offset-4 transition-colors duration-150 hover:text-teal-deep hover:underline"
         >
           {copy.confirmation.secondaryCta}
         </button>

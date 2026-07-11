@@ -19,14 +19,14 @@ export function registrationConfirmationHtml({
         We received your registration to The Upskilling Labs.
       </p>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:rgba(200,210,230,0.75);">
-        Ready to join a Build Cycle? <strong style="color:#ffffff;">${cycleName}</strong> is open for registration. Learn what it involves and register using the button below.
+        If you would like to join the current cycle, <strong style="color:#ffffff;">${cycleName}</strong>, please complete the form by clicking the button below, and then choose your pods.
       </p>
       <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
         <tr>
           <td style="border-radius:8px;background-color:#0094a0;">
             <a href="${cycleJoinUrl}"
                style="display:inline-block;padding:12px 28px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:-0.01em;border-radius:8px;">
-              View ${cycleName}
+              Complete the form
             </a>
           </td>
         </tr>
@@ -111,9 +111,9 @@ export function registrationConfirmationText({
 
 We received your registration to The Upskilling Labs.
 
-Ready to join a Build Cycle? ${cycleName} is open for registration. Learn what it involves and register using the link below.
+If you would like to join the current cycle, ${cycleName}, please complete the form using the link below, and then choose your pods.
 
-View ${cycleName}: ${cycleJoinUrl}
+Complete the form: ${cycleJoinUrl}
 
 If you have any questions, please write to olos-help@theupskillinglabs.org and we will be glad to help.
 

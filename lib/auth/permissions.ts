@@ -60,6 +60,33 @@ export const ROLE_PRESETS: Record<string, Permission[]> = {
 
 export const ROLE_PRESET_NAMES = Object.keys(ROLE_PRESETS) as (keyof typeof ROLE_PRESETS)[];
 
+/**
+ * The capabilities each STORED participant_roles role carries (docs auth
+ * unification). This is the authoritative role→capability definition the app
+ * derives permissions from. Keyed by the DB role string (note `poderator`,
+ * not the app label "moderator"). Roles absent here (staff, lab_lead,
+ * co_lead, member, dri, contributor) carry no GLOBAL capabilities — their
+ * authority is scoped and enforced by the scope guards (lib/auth/lab.ts,
+ * lib/auth/projects.ts), not by a global permission.
+ */
+export const ROLE_CAPABILITIES: Record<string, Permission[]> = {
+  owner: ROLE_PRESETS.owner,
+  admin: ROLE_PRESETS.admin,
+  developer: ROLE_PRESETS.developer,
+  observer: ROLE_PRESETS.observer,
+  poderator: ROLE_PRESETS.moderator,
+  tester: ["testing:use"],
+};
+
+/** Union of the capabilities granted by a set of stored roles. */
+export function capabilitiesForRoles(dbRoles: string[]): Permission[] {
+  const set = new Set<Permission>();
+  for (const r of dbRoles) {
+    for (const p of ROLE_CAPABILITIES[r] ?? []) set.add(p);
+  }
+  return [...set];
+}
+
 export function permissionLabel(permission: Permission): string {
   const labels: Record<Permission, string> = {
     "cycles:read": "View Cycles",

@@ -1,30 +1,103 @@
 import Link from "next/link";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
-import { StatusBadge } from "@/app/components/ui";
-import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
-// The one nav link into the Entity Explorer (DESIGN.md §4). Behind the same flag
-// as the route; removing the feature = delete this block + the two folders.
-import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
+import { requireAdmin } from "@/lib/auth/guards";
+import { StatusBadge, DataTable, type Column } from "@/app/components/ui";
+import { cycleStatusVariant } from "@/lib/cycle/labels";
 import CreateCycleForm from "./cycles/create-cycle-form";
 
+type CycleListRow = {
+  id: number;
+  name: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  mode: string | null;
+  lab_id: number | null;
+};
+
+/** Shared column set for both cycle sections (P-1) — the headcount column's
+    header ("Participants" vs. "Staff") and cell noun ("enrolled" vs. "staff")
+    differ per section. labNameById (non-null once any lab cycle exists) adds
+    a Lab column so the global list stays legible across streams. */
+function cycleColumns(
+  countsByCycle: Map<number, { total: number; active: number }>,
+  countHeader: string,
+  countNoun = "enrolled",
+  labNameById: Map<number, string> | null = null
+): Column<CycleListRow>[] {
+  const labColumn: Column<CycleListRow>[] = labNameById
+    ? [
+        {
+          key: "lab",
+          header: "Lab",
+          className: "text-meta",
+          cell: (cycle) =>
+            cycle.lab_id === null
+              ? "HQ"
+              : (labNameById.get(cycle.lab_id) ?? `Lab ${cycle.lab_id}`),
+        },
+      ]
+    : [];
+  return [
+    {
+      key: "cycle",
+      header: "Cycle",
+      className: "font-medium text-ink",
+      cell: (cycle) => cycle.name,
+    },
+    ...labColumn,
+    {
+      key: "status",
+      header: "Status",
+      cell: (cycle) => (
+        <StatusBadge variant={cycleStatusVariant(cycle.status)}>
+          {cycle.status}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: "dates",
+      header: "Dates",
+      className: "text-meta tabular-nums",
+      cell: (cycle) => (
+        <>
+          {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
+          {new Date(cycle.end_date).toLocaleDateString()}
+        </>
+      ),
+    },
+    {
+      key: "participants",
+      header: countHeader,
+      className: "text-meta tabular-nums",
+      cell: (cycle) => {
+        const counts = countsByCycle.get(cycle.id) ?? { total: 0, active: 0 };
+        return `${counts.active} active / ${counts.total} ${countNoun}`;
+      },
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      cell: (cycle) => (
+        <Link
+          href={`/admin/cycles/${cycle.id}`}
+          className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
+        >
+          Manage &rarr;
+        </Link>
+      ),
+    },
+  ];
+}
+
 export default async function AdminPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { serviceClient } = await requireAdmin();
 
-  const serviceClient = createServiceClient();
-
-  const [userRoles, { data: cycles }, { data: enrollmentRows }] = await Promise.all([
-    resolveUserRoles(serviceClient, user.id),
-    serviceClient.from("cycles").select("id, name, start_date, end_date, status").order("start_date", { ascending: false }),
+  const [{ data: cycles }, { data: enrollmentRows }, { data: metroRows }] = await Promise.all([
+    serviceClient.from("cycles").select("id, name, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
     serviceClient.from("cycle_enrollments").select("cycle_id, status"),
+    serviceClient.from("metros").select("id, name"),
   ]);
-
-  if (!isAdmin(userRoles)) redirect("/cycles");
 
   const countsByCycle = new Map<number, { total: number; active: number }>();
   for (const e of enrollmentRows || []) {
@@ -35,114 +108,59 @@ export default async function AdminPage() {
     });
   }
 
+  const allCycles = (cycles ?? []) as CycleListRow[];
+  const participantCycles = allCycles.filter((c) => c.mode !== "org");
+  const orgCycles = allCycles.filter((c) => c.mode === "org");
+
+  // The Lab column only appears once a lab cycle exists — before that the
+  // list is single-stream and the column would be all "HQ" noise.
+  const labNameById = allCycles.some((c) => c.lab_id !== null)
+    ? new Map((metroRows ?? []).map((m) => [m.id, m.name] as [number, string]))
+    : null;
+
   return (
     <div>
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="t-h1 text-ink">
-            Admin
-          </h1>
+          <h1 className="t-h1 text-ink">Cycles</h1>
           <p className="mt-1 text-sm text-meta tabular-nums">
-            {cycles?.length ?? 0} cycle{cycles?.length !== 1 ? "s" : ""} total
+            {allCycles.length} cycle{allCycles.length !== 1 ? "s" : ""} total
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/admin/invitations"
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            Invitations
-          </Link>
-          <Link
-            href="/admin/participants"
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            All participants
-          </Link>
-          {ENTITY_EXPLORER_ENABLED && (
-            <Link
-              href="/admin/explore"
-              className="btn btn-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
-            >
-              Explore
-              <span className="rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-deep">
-                flag
-              </span>
-            </Link>
-          )}
-          <CreateCycleForm />
-        </div>
+        <CreateCycleForm />
       </div>
 
-      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
-        <table className="w-full text-sm">
-          <thead className="bg-ink/[0.02]">
-            <tr>
-              <th className="lbl px-4 py-3 text-left">
-                Cycle
-              </th>
-              <th className="lbl px-4 py-3 text-left">
-                Status
-              </th>
-              <th className="lbl px-4 py-3 text-left">
-                Dates
-              </th>
-              <th className="lbl px-4 py-3 text-left">
-                Participants
-              </th>
-              <th className="lbl px-4 py-3 text-right" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ink/10">
-            {(cycles ?? []).map((cycle) => {
-              const counts = countsByCycle.get(cycle.id) ?? {
-                total: 0,
-                active: 0,
-              };
-              return (
-                <tr
-                  key={cycle.id}
-                  className="transition-colors duration-150 hover:bg-ink/[0.02]"
-                >
-                  <td className="px-4 py-3 font-medium text-ink">
-                    {cycle.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge variant={cycleStatusVariant(cycle.status)}>
-                      {cycleStatusLabel(cycle.status)}
-                    </StatusBadge>
-                  </td>
-                  <td className="px-4 py-3 text-meta tabular-nums">
-                    {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                    {new Date(cycle.end_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-meta tabular-nums">
-                    {counts.active} active / {counts.total} enrolled
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/admin/cycles/${cycle.id}`}
-                      className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
-                    >
-                      Manage &rarr;
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-            {(!cycles || cycles.length === 0) && (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-4 py-8 text-center text-sm text-meta"
-                >
-                  No cycles yet. Create one to get started.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <section className={orgCycles.length > 0 ? "mb-10" : undefined}>
+        <div className="mb-4 flex items-baseline justify-between gap-3">
+          <h2 className="t-h3 text-ink">Participant cycles</h2>
+          <span className="text-sm text-meta tabular-nums">
+            {participantCycles.length} cycle{participantCycles.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <DataTable<CycleListRow>
+          rows={participantCycles}
+          rowKey={(cycle) => cycle.id}
+          empty="No cycles yet. Create one to get started."
+          columns={cycleColumns(countsByCycle, "Participants", "enrolled", labNameById)}
+        />
+      </section>
+
+      {orgCycles.length > 0 && (
+        <section>
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="t-h3 text-ink">Organization cycles</h2>
+            <span className="text-sm text-meta tabular-nums">
+              {orgCycles.length} cycle{orgCycles.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <DataTable<CycleListRow>
+            rows={orgCycles}
+            rowKey={(cycle) => cycle.id}
+            empty="No organization cycles yet."
+            columns={cycleColumns(countsByCycle, "Staff", "staff", labNameById)}
+          />
+        </section>
+      )}
     </div>
   );
 }

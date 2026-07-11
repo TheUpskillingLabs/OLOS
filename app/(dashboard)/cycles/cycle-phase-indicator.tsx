@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCycleWeek } from "@/lib/cycle/week";
 
 type CycleConfig = {
   phase_2_start: string | null;
@@ -24,7 +25,9 @@ type Cycle = {
   end_date: string;
 };
 
-/* ── The 13-week Build Cycle model ─────────────────────────────────── */
+/* ── The Build Cycle model — ~3 months / ~90 days ──────────────────── */
+/* Thirteen weekly markers numbered 0–12 (owner decision). Week 0 is the
+   kickoff/orientation week; Showcase + Summit closes Week 12. */
 
 const WEEKS: {
   num: number;
@@ -32,25 +35,25 @@ const WEEKS: {
   milestone: boolean;
   phase: 1 | 2 | 3;
 }[] = [
-  { num: 1, label: "Kickoff\n+ Summit", milestone: true, phase: 1 },
-  { num: 2, label: "Problem\nProposals", milestone: false, phase: 1 },
-  { num: 3, label: "Problem\nVoting", milestone: false, phase: 1 },
-  { num: 4, label: "Pod\nCreation", milestone: false, phase: 1 },
-  { num: 5, label: "Meet The\nPods", milestone: true, phase: 2 },
-  { num: 6, label: "Experiments", milestone: false, phase: 2 },
-  { num: 7, label: "Project\nPitches", milestone: false, phase: 2 },
-  { num: 8, label: "Project\nVoting", milestone: false, phase: 2 },
-  { num: 9, label: "Meet The\nProjects", milestone: true, phase: 3 },
+  { num: 0, label: "Kickoff\n+ Summit", milestone: true, phase: 1 },
+  { num: 1, label: "Problem\nProposals", milestone: false, phase: 1 },
+  { num: 2, label: "Problem\nVoting", milestone: false, phase: 1 },
+  { num: 3, label: "Pod\nCreation", milestone: false, phase: 1 },
+  { num: 4, label: "Meet The\nPods", milestone: true, phase: 2 },
+  { num: 5, label: "Experiments", milestone: false, phase: 2 },
+  { num: 6, label: "Project\nPitches", milestone: false, phase: 2 },
+  { num: 7, label: "Project\nVoting", milestone: false, phase: 2 },
+  { num: 8, label: "Meet The\nProjects", milestone: true, phase: 3 },
+  { num: 9, label: "Mentor\nIntensive", milestone: false, phase: 3 },
   { num: 10, label: "Mentor\nIntensive", milestone: false, phase: 3 },
-  { num: 11, label: "Mentor\nIntensive", milestone: false, phase: 3 },
-  { num: 12, label: "Rehearsal", milestone: false, phase: 3 },
-  { num: 13, label: "Showcase\n+ Summit", milestone: true, phase: 3 },
+  { num: 11, label: "Rehearsal", milestone: false, phase: 3 },
+  { num: 12, label: "Showcase\n+ Summit", milestone: true, phase: 3 },
 ];
 
 const PHASES = [
-  { num: 1, title: "Problem Discovery & Definition", weeks: "1–4" },
-  { num: 2, title: "Exploration & Experimentation", weeks: "5–8" },
-  { num: 3, title: "Prototype Building & Iterating", weeks: "9–13" },
+  { num: 1, title: "Problem Discovery & Definition", weeks: "0–3" },
+  { num: 2, title: "Exploration & Experimentation", weeks: "4–7" },
+  { num: 3, title: "Prototype Building & Iterating", weeks: "8–12" },
 ];
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
@@ -73,16 +76,6 @@ function formatDate(iso: string): string {
 
 function daysUntil(from: Date, to: Date): number {
   return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
-}
-
-function getCurrentWeek(now: Date, start: Date, end: Date): number {
-  if (now < start) return 0;
-  if (now > end) return 14;
-  const totalMs = end.getTime() - start.getTime();
-  const elapsed = now.getTime() - start.getTime();
-  // 13 equal segments
-  const week = Math.floor((elapsed / totalMs) * 13) + 1;
-  return Math.min(week, 13);
 }
 
 function getActiveWindows(
@@ -135,7 +128,7 @@ export default function CyclePhaseIndicator({
   const startDate = new Date(cycle.start_date);
   const endDate = new Date(cycle.end_date);
 
-  const currentWeek = getCurrentWeek(now, startDate, endDate);
+  const currentWeek = getCycleWeek(now, startDate, endDate);
   const daysLeft = daysUntil(now, endDate);
   const cycleActive = now >= startDate && now <= endDate;
   const cycleComplete = now > endDate;
@@ -146,7 +139,7 @@ export default function CyclePhaseIndicator({
 
   // Which phase are we in?
   const currentPhaseNum =
-    currentWeek <= 4 ? 1 : currentWeek <= 8 ? 2 : currentWeek <= 13 ? 3 : 0;
+    currentWeek < 0 ? 0 : currentWeek <= 3 ? 1 : currentWeek <= 7 ? 2 : 3;
 
   return (
     <div className="mb-10">
@@ -221,14 +214,14 @@ export default function CyclePhaseIndicator({
 
         {/* Week timeline — staggered above/below rail */}
         <div className="relative min-w-[700px]">
-          {/* ── Top labels (odd weeks: 1,3,5,7,9,11,13) ───────── */}
+          {/* ── Top labels (even weeks — the milestones: 0,4,8,12) ── */}
           <div className="mb-1 flex">
             {WEEKS.map((w) => (
               <div
                 key={w.num}
                 className="flex flex-1 flex-col items-center"
               >
-                {w.num % 2 === 1 ? (
+                {w.num % 2 === 0 ? (
                   <>
                     <p
                       className={`mb-1 text-center text-[10px] font-semibold leading-tight ${
@@ -260,7 +253,7 @@ export default function CyclePhaseIndicator({
                     </p>
                   </>
                 ) : (
-                  /* Spacer for even weeks */
+                  /* Spacer for odd weeks */
                   <div className="h-8" />
                 )}
               </div>
@@ -277,7 +270,7 @@ export default function CyclePhaseIndicator({
               <div
                 className="absolute top-1/2 left-0 h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-teal-deep to-teal"
                 style={{
-                  width: `${((currentWeek - 0.5) / 13) * 100}%`,
+                  width: `${((currentWeek + 0.5) / 13) * 100}%`,
                 }}
               />
             )}
@@ -309,14 +302,14 @@ export default function CyclePhaseIndicator({
             })}
           </div>
 
-          {/* ── Bottom labels (even weeks: 2,4,6,8,10,12) ─────── */}
+          {/* ── Bottom labels (odd weeks: 1,3,5,7,9,11) ───────── */}
           <div className="mt-1 flex">
             {WEEKS.map((w) => (
               <div
                 key={w.num}
                 className="flex flex-1 flex-col items-center"
               >
-                {w.num % 2 === 0 ? (
+                {w.num % 2 === 1 ? (
                   <>
                     <p
                       className={`mt-1 text-center text-[10px] font-semibold leading-tight ${
@@ -346,7 +339,7 @@ export default function CyclePhaseIndicator({
                     </p>
                   </>
                 ) : (
-                  /* Spacer for odd weeks */
+                  /* Spacer for even weeks */
                   <div className="h-8" />
                 )}
               </div>

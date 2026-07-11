@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { moderatorNoun } from "@/lib/cycle/labels";
 
 type Participant = {
   participant_id: number;
@@ -18,11 +19,13 @@ export default function AssignModeratorButton({
   cycleId,
   participants,
   initialModerators,
+  mode,
 }: {
   podId: number;
   cycleId: number;
   participants: Participant[];
   initialModerators: Moderator[];
+  mode?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [moderators, setModerators] = useState<Moderator[]>(initialModerators);
@@ -106,7 +109,7 @@ export default function AssignModeratorButton({
           onClick={() => setOpen(true)}
           className="btn btn-ghost px-2.5 py-1 text-xs"
         >
-          {moderators.length > 0 ? "Manage" : "Assign moderator"}
+          {moderators.length > 0 ? "Manage" : `Assign ${moderatorNoun(mode).toLowerCase()}`}
         </button>
       </div>
     );
@@ -125,7 +128,7 @@ export default function AssignModeratorButton({
               <button
                 onClick={() => remove(m.participant_id)}
                 disabled={loading}
-                className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:text-red"
+                className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Remove
               </button>
@@ -167,7 +170,7 @@ export default function AssignModeratorButton({
 
       <button
         onClick={() => setOpen(false)}
-        className="text-xs text-meta transition-colors duration-150 hover:text-charcoal focus-visible:outline-none focus-visible:text-charcoal"
+        className="text-xs text-meta transition-colors duration-150 hover:text-charcoal"
       >
         Close
       </button>

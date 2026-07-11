@@ -1,30 +1,26 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/guards";
+import { can } from "@/lib/auth/roles";
 import { StatCard, StatusBadge } from "@/app/components/ui";
-import { cycleStatusVariant, cycleStatusLabel } from "@/lib/cycles/status";
 import CycleStatusForm from "./cycle-status-form";
 import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
-import { CycleDetailsForm } from "./cycle-details-form";
+import CycleLogGateForm from "./cycle-log-gate-form";
+import CycleLeadershipLogGateForm from "./cycle-leadership-log-gate-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
-import AssignModeratorButton from "./assign-moderator-button";
 import TestingControls from "./testing-controls";
-
-type PodStatus = "active" | "forming" | "closed" | "inactive";
-
-const POD_STATUS_VARIANT: Record<
-  PodStatus,
-  "active" | "forming" | "inactive"
-> = {
-  active: "active",
-  forming: "forming",
-  closed: "inactive",
-  inactive: "inactive",
-};
+import PodsTable, { type PodAdminRow } from "./pods-table";
+import WorkstreamsPanel, {
+  type WorkstreamAdminRow,
+  type PriorOrgCycleOption,
+} from "./workstreams-panel";
+import CycleWorkspaceTabs from "./cycle-workspace-tabs";
+import { resolveInitialTab } from "./cycle-tabs";
+import { podNoun, cycleStatusVariant } from "@/lib/cycle/labels";
+import { one } from "@/lib/supabase/embed";
 
 export type ParticipantRow = {
   participant_id: number;
@@ -46,26 +42,21 @@ export type ParticipantRow = {
 
 export default async function AdminCycleDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ cycle_id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { cycle_id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  const { tab } = await searchParams;
+  const { userRoles, serviceClient } = await requireAdmin();
 
   const cycleId = parseInt(cycle_id);
 
   const [{ data: cycle }, { data: config }] = await Promise.all([
     serviceClient
       .from("cycles")
-      .select("id, name, start_date, end_date, status, description, what_you_build")
+      .select("id, name, start_date, end_date, status, mode, lab_id, metros(name)")
       .eq("id", cycleId)
       .single(),
     serviceClient
@@ -76,6 +67,18 @@ export default async function AdminCycleDetailPage({
   ]);
 
   if (!cycle) notFound();
+
+  const isOrg = cycle.mode === "org";
+  // Local Labs (docs/LOCAL_LABS.md): lab cycles carry a lab badge in the
+  // header so HQ admins can tell whose stream they're editing.
+  const labName = one(cycle.metros as { name: string } | { name: string }[] | null)
+    ?.name;
+
+  const { data: cycleSurveys } = await serviceClient
+    .from("field_surveys")
+    .select("id, title, share_slug, status")
+    .eq("cycle_id", cycleId)
+    .order("id", { ascending: false });
 
   const { data: enrollments } = await serviceClient
     .from("cycle_enrollments")
@@ -172,7 +175,7 @@ export default async function AdminCycleDetailPage({
 
   const activeCount = participants.filter((p) => p.status === "active").length;
 
-  // Participant list for moderator assignment dropdown
+  // Participant list for the moderator + add-member dropdowns.
   const participantOptions = participants.map((p) => ({
     participant_id: p.participant_id,
     name: p.preferred_name
@@ -180,24 +183,318 @@ export default async function AdminCycleDetailPage({
       : `${p.first_name} ${p.last_name}`,
   }));
 
+  // Pod rows with named members + moderators for the Formation tab.
+  const nameByParticipant = new Map(
+    participantOptions.map((p) => [p.participant_id, p.name])
+  );
+  const membersByPod: Record<number, { participant_id: number; name: string }[]> = {};
+  for (const m of podMemberships ?? []) {
+    (membersByPod[m.pod_id] ??= []).push({
+      participant_id: m.participant_id,
+      name: nameByParticipant.get(m.participant_id) ?? `Participant ${m.participant_id}`,
+    });
+  }
+  // Projects per pod — drives the Finalize-projects affordance in the pod
+  // Manage drawer (hidden once a pod's projects exist; finalize is
+  // append-only and idempotency-guarded).
+  const { data: cycleProjects } = podIds.length
+    ? await serviceClient
+        .from("projects")
+        .select("id, pod_id")
+        .in("pod_id", podIds)
+    : { data: [] as { id: number; pod_id: number }[] };
+
+  const projectCountByPod: Record<number, number> = {};
+  for (const proj of cycleProjects ?? []) {
+    projectCountByPod[proj.pod_id] = (projectCountByPod[proj.pod_id] ?? 0) + 1;
+  }
+
+  const podAdminRows: PodAdminRow[] = (pods ?? []).map((pod) => ({
+    id: pod.id,
+    name: pod.name,
+    status: pod.status,
+    members: membersByPod[pod.id] ?? [],
+    moderators: moderatorsByPod[pod.id] ?? [],
+    projectCount: projectCountByPod[pod.id] ?? 0,
+  }));
+
+  // Formation-tab workstreams roster — org cycles only (docs/ORG_CYCLES.md
+  // §2/§5): the workstream list scoped to this cycle's runs, plus prior org
+  // cycles for the copy-roster dropdown.
+  let workstreamRows: WorkstreamAdminRow[] = [];
+  let priorOrgCycles: PriorOrgCycleOption[] = [];
+  if (isOrg) {
+    const [{ data: workstreamsData }, { data: runPods }, { data: priorCycles }] =
+      await Promise.all([
+        serviceClient
+          .from("workstreams")
+          .select("id, name, description, status")
+          .order("name"),
+        serviceClient
+          .from("pods")
+          .select("id, name, workstream_id")
+          .eq("cycle_id", cycleId)
+          .not("workstream_id", "is", null),
+        serviceClient
+          .from("cycles")
+          .select("id, name")
+          .eq("mode", "org")
+          .neq("id", cycleId)
+          .order("start_date", { ascending: false }),
+      ]);
+
+    const runByWorkstream = new Map<number, { pod_id: number; name: string | null }>();
+    for (const run of runPods ?? []) {
+      if (run.workstream_id) {
+        runByWorkstream.set(run.workstream_id, { pod_id: run.id, name: run.name });
+      }
+    }
+
+    workstreamRows = (workstreamsData ?? []).map((w) => ({
+      id: w.id,
+      name: w.name,
+      description: w.description,
+      status: w.status,
+      run: runByWorkstream.get(w.id) ?? null,
+    }));
+    priorOrgCycles = priorCycles ?? [];
+  }
+
+  const canTesting = can(userRoles, "testing:use");
+  const showDev = canTesting && !isOrg;
+  const initialTab = resolveInitialTab(tab, showDev);
+
+  const overview = (
+    <div className="space-y-10">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label={isOrg ? "Staff" : "Enrolled"}
+          value={participants.length}
+        />
+        <StatCard
+          label="Active"
+          value={<span className="text-teal-deep">{activeCount}</span>}
+        />
+        <StatCard label={podNoun(cycle.mode, true)} value={pods?.length ?? 0} />
+      </div>
+      <section>
+        <h2 className="mb-1 t-h3 text-ink">Cycle status</h2>
+        <p className="mb-4 text-sm text-meta">
+          Move the cycle through its lifecycle.
+          {!isOrg && " Phase windows live in Configuration."}
+        </p>
+        <CycleStatusForm
+          cycleId={cycle.id}
+          currentStatus={cycle.status}
+          mode={cycle.mode}
+        />
+      </section>
+    </div>
+  );
+
+  const configuration = config ? (
+    <div className="space-y-10">
+      {!isOrg && (
+        <>
+          <section>
+            <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
+            <p className="mb-4 text-sm text-meta">
+              Open and close times for each phase.
+            </p>
+            <CycleScheduleForm cycleId={cycle.id} config={config} />
+          </section>
+          <hr className="border-ink/10" />
+        </>
+      )}
+      <section>
+        <h2 className="mb-1 t-h3 text-ink">Parameters</h2>
+        <p className="mb-4 text-sm text-meta">
+          {isOrg
+            ? "Workstream limits and milestone review weeks."
+            : "Voting thresholds and pod / project limits."}
+        </p>
+        <CycleParamsForm cycleId={cycle.id} config={config} mode={cycle.mode} />
+      </section>
+      <hr className="border-ink/10" />
+      <section>
+        <CycleLogGateForm
+          cycleId={cycle.id}
+          logDueAt={config.log_due_at}
+          gatePaused={config.log_gate_paused}
+        />
+        {isOrg && (
+          <div className="mt-4">
+            <CycleLeadershipLogGateForm
+              cycleId={cycle.id}
+              dueAt={config.leadership_log_due_at}
+              paused={config.leadership_log_gate_paused}
+            />
+          </div>
+        )}
+      </section>
+      <hr className="border-ink/10" />
+      <section>
+        <h2 className="mb-1 t-h3 text-ink">Field survey</h2>
+        <p className="mb-4 text-sm text-meta">
+          The cohort&apos;s opening activity — the observations that seed this
+          cycle&apos;s problems. Edit questions in the builder; export responses
+          from Results.
+        </p>
+        {cycleSurveys && cycleSurveys.length > 0 ? (
+          <ul className="flex flex-col gap-2">
+            {cycleSurveys.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-ink/10 bg-white px-4 py-3"
+              >
+                <span className="text-sm font-medium text-ink">
+                  {s.title}
+                  <span className="ml-2 text-xs text-meta">· {s.status}</span>
+                </span>
+                <span className="flex gap-4">
+                  <Link
+                    href={`/admin/surveys/${s.share_slug}`}
+                    className="text-sm font-semibold text-teal-deep hover:underline"
+                  >
+                    Edit questions
+                  </Link>
+                  <Link
+                    href={`/survey/${s.share_slug}/results`}
+                    className="text-sm font-semibold text-teal-deep hover:underline"
+                  >
+                    Results &amp; CSV
+                  </Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-meta">
+            No survey linked to this cycle yet.{" "}
+            <Link
+              href="/admin/surveys"
+              className="font-semibold text-teal-deep hover:underline"
+            >
+              Create one
+            </Link>{" "}
+            and set its cycle to this one.
+          </p>
+        )}
+      </section>
+    </div>
+  ) : (
+    <p className="text-sm text-meta">No configuration row found for this cycle.</p>
+  );
+
+  const formation = (
+    <div className="space-y-10">
+      {isOrg ? (
+        <section>
+          <h2 className="mb-1 t-h3 text-ink">Charter runs</h2>
+          <p className="mb-4 text-sm text-meta">
+            Charter this cycle&rsquo;s runs from the org&rsquo;s durable
+            workstreams, optionally copying a prior run&rsquo;s roster
+            forward.
+          </p>
+          <WorkstreamsPanel
+            cycleId={cycle.id}
+            workstreams={workstreamRows}
+            priorOrgCycles={priorOrgCycles}
+          />
+        </section>
+      ) : (
+        <section>
+          <h2 className="mb-1 t-h3 text-ink">Pod voting</h2>
+          <p className="mb-4 text-sm text-meta">
+            Finalize problem-statement voting to create pods. Uses AI to
+            generate pod names.
+          </p>
+          <FinalizeVotingButton cycleId={cycle.id} cycleName={cycle.name} />
+        </section>
+      )}
+      <hr className="border-ink/10" />
+      <section>
+        <h2 className="mb-4 t-h3 text-ink">
+          {isOrg ? "Chartered runs" : podNoun(cycle.mode, true)} (
+          {pods?.length ?? 0})
+        </h2>
+        <PodsTable
+          cycleId={cycle.id}
+          pods={podAdminRows}
+          participants={participantOptions}
+          mode={cycle.mode}
+        />
+      </section>
+    </div>
+  );
+
+  const people = (
+    <div className="space-y-10">
+      <section>
+        <h2 className="mb-4 t-h3 text-ink">
+          {isOrg ? "Staff" : "Participants"} ({participants.length})
+        </h2>
+        <ParticipantsTable
+          participants={participants}
+          cycleId={cycleId}
+          mode={cycle.mode}
+        />
+      </section>
+      {!isOrg && (
+        <>
+          <hr className="border-ink/10" />
+          <section>
+            <h2 className="mb-1 t-h3 text-ink">Access revocations</h2>
+            <p className="mb-4 text-sm text-meta">
+              Check for inactive participants and manage revocations.
+            </p>
+            <RevocationsSection
+              cycleId={cycle.id}
+              initialRevocations={revocations ?? []}
+              participants={participants}
+            />
+          </section>
+        </>
+      )}
+    </div>
+  );
+
+  const dev = isOrg
+    ? null
+    : config
+      ? (
+        <div className="rounded-card border border-red/30 bg-red/[0.03] p-5">
+          <h2 className="mb-1 t-h3 text-ink">Testing controls</h2>
+          <p className="mb-4 text-sm text-meta">
+            Fast-forward the cycle one phase at a time. This rewrites the
+            phase-window timestamps in the schedule — for testing only.
+          </p>
+          <TestingControls
+            cycleId={cycle.id}
+            initialConfig={config as unknown as Record<string, unknown>}
+          />
+        </div>
+      )
+      : null;
+
   return (
     <div>
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Admin
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="t-h1 text-ink">
-            {cycle.name}
-          </h1>
+          <h1 className="t-h1 text-ink">{cycle.name}</h1>
           <StatusBadge variant={cycleStatusVariant(cycle.status)}>
-            {cycleStatusLabel(cycle.status)}
+            {cycle.status}
           </StatusBadge>
+          {isOrg && <StatusBadge variant="forming">organization</StatusBadge>}
+          {labName && <StatusBadge variant="draft">{labName}</StatusBadge>}
         </div>
         <p className="mt-1 text-sm text-meta tabular-nums">
           {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
@@ -205,198 +502,16 @@ export default async function AdminCycleDetailPage({
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Enrolled" value={participants.length} />
-        <StatCard
-          label="Active"
-          value={<span className="text-teal-deep">{activeCount}</span>}
-        />
-        <StatCard label="Pods" value={pods?.length ?? 0} />
-      </div>
-
-      <div className="space-y-10">
-        {/* Status */}
-        <section>
-          <h2 className="mb-4 t-h3 text-ink">
-            Cycle Status
-          </h2>
-          <CycleStatusForm cycleId={cycle.id} currentStatus={cycle.status} />
-        </section>
-
-        <hr className="border-ink/10" />
-
-        {/* About / information page */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">Information page</h2>
-          <p className="mb-4 text-sm text-meta">
-            Public-facing copy for this cycle&rsquo;s info page ({`/c/${cycle.id}`}).
-          </p>
-          <CycleDetailsForm
-            cycleId={cycle.id}
-            name={cycle.name}
-            description={cycle.description}
-            whatYouBuild={cycle.what_you_build}
-          />
-        </section>
-
-        <hr className="border-ink/10" />
-
-        {/* Schedule */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
-          <p className="mb-4 text-sm text-meta">
-            Open and close times for each phase.
-          </p>
-          {config && <CycleScheduleForm cycleId={cycle.id} config={config} />}
-        </section>
-
-        <hr className="border-ink/10" />
-
-        {/* Parameters */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">Parameters</h2>
-          <p className="mb-4 text-sm text-meta">
-            Voting thresholds and pod / project limits.
-          </p>
-          {config && <CycleParamsForm cycleId={cycle.id} config={config} />}
-        </section>
-
-        <hr className="border-ink/10" />
-
-        {/* Pod Voting */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">Pod Voting</h2>
-          <p className="mb-4 text-sm text-meta">
-            Finalize problem-statement voting to create pods. Uses AI to
-            generate pod names.
-          </p>
-          <FinalizeVotingButton cycleId={cycle.id} />
-        </section>
-
-        <hr className="border-ink/10" />
-
-        {/* Testing Controls */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">
-            Testing Mode
-          </h2>
-          <p className="mb-4 text-sm text-meta">
-            Advance through cycle phases one step at a time for testing.
-          </p>
-          {config && (
-            <TestingControls
-              cycleId={cycle.id}
-              initialConfig={config as unknown as Record<string, unknown>}
-            />
-          )}
-        </section>
-
-        {pods && pods.length > 0 && (
-          <>
-            <hr className="border-ink/10" />
-            <section>
-              <h2 className="mb-4 t-h3 text-ink">
-                Pods ({pods.length})
-              </h2>
-              <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
-                <table className="w-full text-sm">
-                  <thead className="bg-ink/[0.02]">
-                    <tr>
-                      <th className="lbl px-4 py-3 text-left">
-                        Pod
-                      </th>
-                      <th className="lbl px-4 py-3 text-left">
-                        Status
-                      </th>
-                      <th className="lbl px-4 py-3 text-left">
-                        Members
-                      </th>
-                      <th className="lbl px-4 py-3 text-left">
-                        Moderators
-                      </th>
-                      <th className="lbl px-4 py-3 text-right" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-ink/10">
-                    {pods.map((pod) => {
-                      const memberCount = (podMemberships ?? []).filter(
-                        (m) => m.pod_id === pod.id
-                      ).length;
-                      return (
-                        <tr
-                          key={pod.id}
-                          className="transition-colors duration-150 hover:bg-ink/[0.02]"
-                        >
-                          <td className="px-4 py-3 font-medium text-ink">
-                            {pod.name ?? `Pod ${pod.id}`}
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusBadge
-                              variant={
-                                POD_STATUS_VARIANT[pod.status as PodStatus] ??
-                                "inactive"
-                              }
-                            >
-                              {pod.status}
-                            </StatusBadge>
-                          </td>
-                          <td className="px-4 py-3 text-meta tabular-nums">
-                            {memberCount}
-                          </td>
-                          <td className="px-4 py-3">
-                            <AssignModeratorButton
-                              podId={pod.id}
-                              cycleId={cycle.id}
-                              participants={participantOptions}
-                              initialModerators={moderatorsByPod[pod.id] ?? []}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <Link
-                              href={`/pods/${pod.id}`}
-                              className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:text-ink"
-                            >
-                              View &rarr;
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </>
-        )}
-
-        <hr className="border-ink/10" />
-
-        {/* Participants */}
-        <section>
-          <h2 className="mb-4 t-h3 text-ink">
-            Participants ({participants.length})
-          </h2>
-          <ParticipantsTable participants={participants} cycleId={cycleId} />
-        </section>
-
-        <hr className="border-ink/10" />
-
-        {/* Revocations */}
-        <section>
-          <h2 className="mb-1 t-h3 text-ink">
-            Access Revocations
-          </h2>
-          <p className="mb-4 text-sm text-meta">
-            Check for inactive participants and manage revocations.
-          </p>
-          <RevocationsSection
-            cycleId={cycle.id}
-            initialRevocations={revocations ?? []}
-            participants={participants}
-          />
-        </section>
-      </div>
+      <CycleWorkspaceTabs
+        initialTab={initialTab}
+        showDev={showDev}
+        overview={overview}
+        configuration={configuration}
+        formation={formation}
+        people={people}
+        dev={dev}
+        labels={isOrg ? { formation: "Workstreams", people: "Staff" } : undefined}
+      />
     </div>
   );
 }

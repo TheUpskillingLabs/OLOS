@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Roadmap
+    url: https://github.com/TheUpskillingLabs/OLOS/blob/dev/docs/OLOS-roadmap.md
+    about: What's planned, and in what order — check here before proposing new work.
+  - name: Contributing guide
+    url: https://github.com/TheUpskillingLabs/OLOS/blob/dev/CONTRIBUTING.md
+    about: Setup, workflow, and where to start.

@@ -160,7 +160,7 @@ enrolled.
 | `--limit <n>` | none | cap rows processed (after `--only-email` filter) |
 | `--only-email <addr>` | none | restrict to one address (sanity tests) |
 | `--include-pending` | off | do not skip rows with live pending bulk invite |
-| `--app-url <url>` | env / `https://olos.theupskillinglabs.org` | magic-link host |
+| `--app-url <url>` | env / `https://theupskillinglabs.org` | magic-link host |
 
 ### Test plan (executed for #46)
 

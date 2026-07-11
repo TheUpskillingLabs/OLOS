@@ -10,11 +10,14 @@ type Config = {
   vote_threshold: number;
   max_pods: number;
   pod_min: number;
+  pod_limit: number;
   project_submitter_votes: number;
   project_vote_threshold: number;
   max_projects: number;
   project_min: number;
   project_max: number;
+  milestone_mid_week: number;
+  milestone_final_week: number;
   phase_2_start: string | null;
   phase_3_start: string | null;
   problem_statement_open: string | null;
@@ -29,8 +32,6 @@ type Config = {
   solution_voting_close: string | null;
   project_registration_open: string | null;
   project_registration_close: string | null;
-  registration_open: string | null;
-  registration_close: string | null;
 };
 
 function toLocal(iso: string | null): string {
@@ -46,11 +47,6 @@ function fromLocal(val: string): string | null {
 // ─── Schedule form ────────────────────────────────────────────────────────────
 
 const PHASES = [
-  {
-    label: "Cycle Registration",
-    open: "registration_open",
-    close: "registration_close",
-  },
   {
     label: "Problem Statement",
     open: "problem_statement_open",
@@ -167,7 +163,7 @@ export function CycleScheduleForm({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-sm">
           <thead className="bg-ink/[0.02]">
             <tr>
@@ -233,6 +229,7 @@ const PARAM_GROUPS = [
       { label: "Vote threshold (pods)", name: "vote_threshold" },
       { label: "Max pods", name: "max_pods" },
       { label: "Pod minimum size", name: "pod_min" },
+      { label: "Pods per member", name: "pod_limit" },
     ],
   },
   {
@@ -245,6 +242,32 @@ const PARAM_GROUPS = [
       { label: "Project max members", name: "project_max" },
     ],
   },
+  {
+    // Milestone review weeks (0–12), inside the practice — the mid/end-cycle
+    // Learning Log evaluations open on these cycle weeks (migration 00047).
+    heading: "Milestone Reviews",
+    fields: [
+      { label: "Mid-cycle review week", name: "milestone_mid_week", max: 12 },
+      { label: "End-cycle review week", name: "milestone_final_week", max: 12 },
+    ],
+  },
+] as const;
+
+// Org cycles never open a ballot (docs/ORG_CYCLES.md) — the Problem/Project
+// Voting groups mean nothing there. Only `pod_limit` (relabeled) and the
+// milestone-week fields carry over (PRD-admin-org-separation.md M-8).
+const ORG_PARAM_GROUPS = [
+  {
+    heading: "Workstream limits",
+    fields: [{ label: "Workstreams per member", name: "pod_limit" }],
+  },
+  {
+    heading: "Milestone Reviews",
+    fields: [
+      { label: "Mid-cycle review week", name: "milestone_mid_week", max: 12 },
+      { label: "End-cycle review week", name: "milestone_final_week", max: 12 },
+    ],
+  },
 ] as const;
 
 type ParamKey = typeof PARAM_GROUPS[number]["fields"][number]["name"];
@@ -253,16 +276,19 @@ type ParamsFormData = Record<ParamKey, string>;
 export function CycleParamsForm({
   cycleId,
   config,
+  mode,
 }: {
   cycleId: number;
   config: Config;
+  mode?: string | null;
 }) {
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const groups = mode === "org" ? ORG_PARAM_GROUPS : PARAM_GROUPS;
 
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<ParamsFormData>({
     defaultValues: Object.fromEntries(
-      PARAM_GROUPS.flatMap((g) =>
+      groups.flatMap((g) =>
         g.fields.map((f) => [f.name, String(config[f.name as keyof Config] ?? "")])
       )
     ) as ParamsFormData,
@@ -273,7 +299,7 @@ export function CycleParamsForm({
     setServerError(null);
 
     const body: Record<string, number> = {};
-    for (const group of PARAM_GROUPS) {
+    for (const group of groups) {
       for (const field of group.fields) {
         const val = data[field.name as ParamKey];
         if (val !== "") body[field.name] = parseInt(val, 10);
@@ -298,7 +324,7 @@ export function CycleParamsForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-8 sm:grid-cols-2">
-        {PARAM_GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.heading}>
             <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">
               {group.heading}
@@ -313,6 +339,7 @@ export function CycleParamsForm({
                     id={field.name}
                     type="number"
                     min={0}
+                    max={"max" in field ? field.max : undefined}
                     {...register(field.name as ParamKey)}
                     className="w-20 rounded-card border border-ink/10 bg-white px-2 py-1 text-right text-base tabular-nums text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
                   />

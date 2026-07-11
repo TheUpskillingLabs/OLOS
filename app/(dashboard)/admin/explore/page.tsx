@@ -8,15 +8,13 @@
 // NOTE: the ENTITY_EXPLORER_ENABLED flag + nav link land in step 4; until then
 // this route is reachable only by typing the URL and only by admins.
 
-import { notFound, redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
+import { notFound } from "next/navigation";
+import { requireAdmin } from "@/lib/auth/guards";
 import { fetchEntityList } from "@/lib/entity-explorer/fetch";
 import { isEntityKey } from "@/lib/entity-explorer/registry";
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import type { EntityKey } from "@/lib/entity-explorer/types";
 import { Breadcrumbs } from "./breadcrumbs";
-import { EnvBanner } from "./env-banner";
 import { EntityPicker, type CycleOption } from "./entity-picker";
 import { EntityTable } from "./entity-table";
 
@@ -33,15 +31,7 @@ export default async function ExplorePage({
   const sp = await searchParams;
 
   // ── Auth: admin only. This is the sole guard over service-role reads. ──
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-  if (!isAdmin(userRoles)) redirect("/cycles");
+  const { serviceClient } = await requireAdmin();
 
   // ── Parse params. An explicit but unknown entity 404s (DESIGN.md §9.1). ──
   let entity: EntityKey;
@@ -70,8 +60,6 @@ export default async function ExplorePage({
 
   return (
     <div>
-      <EnvBanner />
-
       <Breadcrumbs
         items={[
           { label: "Admin", href: "/admin" },

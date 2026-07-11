@@ -116,14 +116,20 @@ export function RosterTable({
   }, [sort]);
 
   const showInactive = filters.show_inactive === true;
-  const activeCount = members.filter((m) => !m.is_inactive).length;
-  const inactiveCount = members.length - activeCount;
+  // Staff/test accounts hidden by default (memo ask / prototype
+  // visibleMembers() rule) — a visibility toggle, never a permission.
+  const showStaffTest = filters.show_staff_test === true;
+  const staffTestCount = members.filter((m) => m.is_staff_or_test).length;
+  const realMembers = members.filter((m) => !m.is_staff_or_test);
+  const activeCount = realMembers.filter((m) => !m.is_inactive).length;
+  const inactiveCount = realMembers.length - activeCount;
   const trendingCount = members.filter(
     (m) => m.is_trending_at_risk && !m.is_inactive
   ).length;
 
   const visible = React.useMemo(() => {
     let rows = members.slice();
+    if (!showStaffTest) rows = rows.filter((r) => !r.is_staff_or_test);
     if (!showInactive) rows = rows.filter((r) => !r.is_inactive);
     if (filters.status && filters.status.length > 0) {
       const set = new Set(filters.status);
@@ -144,7 +150,7 @@ export function RosterTable({
     }
     rows.sort(comparatorFor(sort));
     return rows;
-  }, [members, filters, sort, showInactive]);
+  }, [members, filters, sort, showInactive, showStaffTest]);
 
   const toggleStatus = (s: string) => {
     setFilters((f) => {
@@ -177,9 +183,21 @@ export function RosterTable({
               onClick={() =>
                 setFilters((f) => ({ ...f, show_inactive: !showInactive }))
               }
-              className="text-teal-deep transition-colors hover:text-ink focus-visible:outline-none focus-visible:underline"
+              className="text-teal-deep transition-colors hover:text-ink focus-visible:underline"
             >
               {showInactive ? "Hide inactive" : "Show inactive"}
+            </button>
+          )}
+          {staffTestCount > 0 && (
+            <button
+              onClick={() =>
+                setFilters((f) => ({ ...f, show_staff_test: !showStaffTest }))
+              }
+              className="text-teal-deep transition-colors hover:text-ink focus-visible:underline"
+            >
+              {showStaffTest
+                ? "Hide staff & test accounts"
+                : "Show staff & test accounts"}
             </button>
           )}
         </div>
@@ -202,7 +220,7 @@ export function RosterTable({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
         <table className="w-full text-left text-sm">
           <thead className="bg-ink/[0.02]">
             <tr>
@@ -292,7 +310,7 @@ export function RosterTable({
             {visible.length === 0 && (
               <tr className="border-t border-ink/10">
                 <td
-                  className="px-4 py-6 text-center text-meta"
+                  className="px-4 py-6 text-meta"
                   colSpan={5}
                 >
                   No members match the current filter.

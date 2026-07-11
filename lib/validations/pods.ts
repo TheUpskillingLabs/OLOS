@@ -70,15 +70,7 @@ export const reactivateSchema = z.object({
 });
 
 export const createOptionSchema = z.object({
-  // 50, not 100: option_lists.list_name is VARCHAR(50). A 51–100 char value
-  // would pass zod then 500 on the DB length violation (audit fix).
-  list_name: z.string().min(1, "List name is required").max(50),
+  list_name: z.string().min(1, "List name is required").max(100),
   value: z.string().min(1, "Value is required").max(200),
   display_order: z.number().int().optional(),
-});
-
-export const observerRoleSchema = z.object({
-  participant_id: z.number().int({
-    message: "participant_id must be a number",
-  }),
 });

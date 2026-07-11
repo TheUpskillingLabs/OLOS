@@ -58,6 +58,12 @@ export type RosterRow = {
    * the roster row.
    */
   is_trending_at_risk: boolean;
+  /**
+   * Staff/test account (participants.is_staff / is_test, migration 00041).
+   * Hidden from the roster by default (memo ask); always excluded from
+   * pod-level health math. A visibility toggle, never a permission.
+   */
+  is_staff_or_test: boolean;
 };
 
 export type PodDetail = {
@@ -66,6 +72,7 @@ export type PodDetail = {
   status: string;
   cycle_id: number;
   cycle_name: string | null;
+  cycle_mode: string | null;
   phase_num: number | null;
   phase_display_name: string | null;
   phase_short_name: string | null;
@@ -96,7 +103,7 @@ export async function getPodDetail(
     .select(`
       id, name, status, cycle_id,
       slack_channel_id, drive_folder_id, github_repo_url,
-      cycles (id, name)
+      cycles (id, name, mode)
     `)
     .eq("id", podId)
     .single();
@@ -122,7 +129,7 @@ export async function getPodDetail(
       participant_id, joined_at, inactive_at,
       participants (
         id, first_name, last_name, preferred_name, email,
-        ai_experience_level, availability_snippet
+        ai_experience_level, availability_snippet, is_staff, is_test
       )
     `)
     .eq("pod_id", podId)
@@ -181,6 +188,8 @@ export async function getPodDetail(
       email: string;
       ai_experience_level: string;
       availability_snippet: string | null;
+      is_staff: boolean;
+      is_test: boolean;
     } | null;
 
     const first = p?.preferred_name?.trim() || p?.first_name?.trim() || "?";
@@ -232,13 +241,20 @@ export async function getPodDetail(
       nudge_dismissed,
       streak,
       is_trending_at_risk: isTrendingAtRisk,
+      is_staff_or_test: !!(p?.is_staff || p?.is_test),
     };
   });
 
-  // Pod-level pulse-health: only count active members.
+  // Pod-level pulse-health: only count active members, never staff/test
+  // accounts (the memo ask / prototype visibleMembers() rule — they're
+  // visibility toggles on the roster, but health math always excludes them).
+  const staffTestIds = new Set(
+    members.filter((m) => m.is_staff_or_test).map((m) => m.participant_id)
+  );
   const activeMemberIds = (memberRows ?? [])
     .filter((m) => m.inactive_at === null)
-    .map((m) => m.participant_id as number);
+    .map((m) => m.participant_id as number)
+    .filter((id) => !staffTestIds.has(id));
   const activeMemberIdSet = new Set(activeMemberIds);
   const activePulses = pulseRows.filter((p) => activeMemberIdSet.has(p.participant_id));
 
@@ -253,7 +269,9 @@ export async function getPodDetail(
     status: pod.status as string,
     cycle_id: pod.cycle_id as number,
     cycle_name:
-      (pod.cycles as unknown as { name: string } | null)?.name ?? null,
+      (pod.cycles as unknown as { name: string; mode: string | null } | null)?.name ?? null,
+    cycle_mode:
+      (pod.cycles as unknown as { name: string; mode: string | null } | null)?.mode ?? null,
     phase_num: phase?.num ?? null,
     phase_display_name: phase?.displayName ?? null,
     phase_short_name: phase?.shortName ?? null,

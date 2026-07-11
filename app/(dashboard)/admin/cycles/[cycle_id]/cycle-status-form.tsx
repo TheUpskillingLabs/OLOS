@@ -2,52 +2,60 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { cycleStatusLabel } from "@/lib/cycles/status";
 
-// Valid forward transitions — must mirror VALID_TRANSITIONS in
-// app/api/cycles/[cycle_id]/status/route.ts. `upcoming` is the state a cycle
-// sits in while it takes registrations before it goes `active`.
-const VALID_NEXT: Record<string, string[]> = {
+// Mirror the API's cycle lifecycle (SECTOR_MODEL.md §4):
+// draft → upcoming → active → closing → archived ('closed' = legacy terminal).
+const NEXT_STATUSES: Record<string, string[]> = {
   draft: ["upcoming", "active"],
   upcoming: ["active"],
   active: ["closing", "closed"],
-  closing: ["closed"],
+  closing: ["archived"],
 };
 
 const BUTTON_LABELS: Record<string, string> = {
-  upcoming: "Mark Upcoming",
-  active: "Activate Cycle",
-  closing: "Begin Closing",
-  closed: "Close Cycle",
+  upcoming: "Open for recruiting",
+  active: "Activate",
+  closing: "Begin closing",
+  // Org cycles really do archive into the org sector; participant cycles
+  // don't, so they get the plainer label (P-9) — see the `mode` override
+  // below, applied only for the terminal `archived` transition.
+  archived: "Archive to sector",
+  closed: "Close (legacy)",
 };
+
+const IRREVERSIBLE = new Set(["closed", "archived"]);
 
 export default function CycleStatusForm({
   cycleId,
   currentStatus,
+  mode,
 }: {
   cycleId: number;
   currentStatus: string;
+  mode?: string | null;
 }) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const nextStatuses = VALID_NEXT[currentStatus] ?? [];
+  const nextOptions = NEXT_STATUSES[currentStatus] ?? [];
+  const buttonLabel = (next: string) =>
+    next === "archived" && mode !== "org" ? "Archive cycle" : BUTTON_LABELS[next] ?? next;
 
-  async function advance(nextStatus: string) {
-    if (
-      !confirm(
-        `Change cycle status to "${nextStatus}"? ${nextStatus === "closed" ? "This cannot be undone." : ""}`
-      )
-    )
-      return;
+  async function advance(next: string) {
+    // Terminal transitions run the close-out (lib/cycle/closeout.ts) —
+    // the confirm names the side effects so archiving is never a surprise.
+    const closeOutNote = IRREVERSIBLE.has(next)
+      ? " This cannot be undone. All of this cycle's pods dissolve (memberships and poderator assignments close), and its projects graduate to open-source sector governance."
+      : "";
+    if (!confirm(`Advance cycle status to "${next}"?${closeOutNote}`)) return;
 
-    setLoading(nextStatus);
+    setLoading(next);
     setError(null);
 
     const res = await fetch(`/api/cycles/${cycleId}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: nextStatus }),
+      body: JSON.stringify({ status: next }),
     });
 
     setLoading(null);
@@ -59,35 +67,39 @@ export default function CycleStatusForm({
     }
   }
 
-  const statusClass =
-    currentStatus === "active"
-      ? "active"
-      : currentStatus === "closed" || currentStatus === "archived"
-        ? ""
-        : "soon";
-
   return (
     <div className="flex flex-wrap items-center gap-4">
       <span className="text-sm text-charcoal">
-        Current status: <span className={`status ${statusClass}`}>{cycleStatusLabel(currentStatus)}</span>
+        Current status:{" "}
+        <span
+          className={`status ${
+            currentStatus === "active"
+              ? "active"
+              : currentStatus === "closed" || currentStatus === "archived"
+                ? ""
+                : "soon"
+          }`}
+        >
+          {currentStatus}
+        </span>
       </span>
 
-      {nextStatuses.length > 0 ? (
-        nextStatuses.map((s) => (
+      {nextOptions.length > 0 ? (
+        nextOptions.map((next) => (
           <button
-            key={s}
-            onClick={() => advance(s)}
+            key={next}
+            onClick={() => advance(next)}
             disabled={loading !== null}
             className={`btn px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
-              s === "closed" ? "btn-red" : "btn-teal"
+              IRREVERSIBLE.has(next) ? "btn-red" : "btn-teal"
             }`}
           >
-            {loading === s ? "Updating…" : BUTTON_LABELS[s]}
+            {loading === next ? "Updating…" : buttonLabel(next)}
           </button>
         ))
       ) : (
         <span className="text-sm text-meta">
-          No further transitions from this status.
+          Cycle is {currentStatus} — no further transitions.
         </span>
       )}
 

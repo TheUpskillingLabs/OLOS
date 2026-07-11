@@ -5,6 +5,8 @@ import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { moderatorAssignmentSchema } from "@/lib/validations/pods";
+import { revokeRole } from "@/lib/auth/grants";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export const POST = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -14,6 +16,16 @@ export const POST = withAdminAuth(
     const body = await parseBody(request, moderatorAssignmentSchema);
     if (isErrorResponse(body)) return body;
     const { participant_id, cycle_id } = body;
+
+    // Revoke the poderator role through the single write path FIRST, so the
+    // participant_roles row records revoked_by before the moderator_assignments
+    // update's sync trigger revokes it (which would leave revoked_by null).
+    await revokeRole(createServiceClient(), {
+      participantId: participant_id,
+      role: "poderator",
+      scope: { podId, cycleId: cycle_id },
+      actor: auth.user,
+    });
 
     const { data, error } = await auth.supabase
       .from("moderator_assignments")

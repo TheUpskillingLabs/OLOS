@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    // The cities directory moved /labs → /local-labs (July 2026); old
+    // links and bookmarks follow permanently.
+    return [
+      { source: "/labs", destination: "/local-labs", permanent: true },
+      {
+        source: "/labs/:slug",
+        destination: "/local-labs/:slug",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

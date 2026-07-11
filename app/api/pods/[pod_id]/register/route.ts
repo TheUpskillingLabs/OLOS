@@ -9,6 +9,7 @@ import {
   reconcilePodMembers,
 } from "@/lib/enrollment/reconciler";
 import { requireCompleteProfile } from "@/lib/participants/placeholder";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -27,12 +28,40 @@ export const POST = withAuth(
     // Get pod to check status and cycle
     const { data: pod } = await auth.supabase
       .from("pods")
-      .select("id, cycle_id, status")
+      .select("id, cycle_id, status, lab_id")
       .eq("id", podId)
       .single();
 
     if (!pod) {
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
+    }
+
+    const orgRejection = await rejectOrgCycle(
+      auth.supabase,
+      pod.cycle_id,
+      "This is an organization workstream — membership is by invitation."
+    );
+    if (orgRejection) return orgRejection;
+
+    // Pods are local (docs/LOCAL_LABS.md): a lab-tagged pod only accepts its
+    // own lab's members. The DB fence (00068) backstops this; here we return a
+    // friendly 403 instead of a raw constraint error. NULL-lab (HQ/
+    // grandfathered) pods stay open.
+    if (pod.lab_id !== null) {
+      const { data: me } = await auth.supabase
+        .from("participants")
+        .select("metro_id")
+        .eq("id", participantId)
+        .maybeSingle();
+      if (me?.metro_id !== pod.lab_id) {
+        return NextResponse.json(
+          {
+            error: "This pod belongs to a different Local Lab.",
+            redirect: "/local-labs",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     if (!["forming", "active"].includes(pod.status)) {
@@ -66,7 +95,16 @@ export const POST = withAuth(
 
     const isReactivation = existing !== null;
 
-    // Check 2-pod cap for this cycle (active memberships only)
+    // Pods-per-member is a per-cycle admin setting (cycle_config.pod_limit,
+    // default 1) — not a hardcoded constant (migration 00043). Read it, then
+    // enforce it against this participant's active memberships in the cycle.
+    const { data: podLimitConfig } = await createServiceClient()
+      .from("cycle_config")
+      .select("pod_limit")
+      .eq("cycle_id", pod.cycle_id)
+      .single();
+    const podLimit = podLimitConfig?.pod_limit ?? 1;
+
     const { data: cyclePods } = await auth.supabase
       .from("pod_memberships")
       .select("id, pods!inner(cycle_id)")
@@ -74,9 +112,14 @@ export const POST = withAuth(
       .eq("pods.cycle_id", pod.cycle_id)
       .is("inactive_at", null);
 
-    if ((cyclePods || []).length >= 2) {
+    if ((cyclePods || []).length >= podLimit) {
       return NextResponse.json(
-        { error: "You are already registered in 2 pods for this cycle." },
+        {
+          error:
+            podLimit === 1
+              ? "You're already in a pod for this cycle. Leave it first to switch pods."
+              : `You're already in ${podLimit} pods for this cycle.`,
+        },
         { status: 400 }
       );
     }
@@ -135,7 +178,7 @@ export const POST = withAuth(
       // ("resources provision at activation" — architecture brief §4).
       await serviceClient
         .from("pods")
-        .update({ status: "active", updated_at: new Date().toISOString() })
+        .update({ status: "active" })
         .eq("id", podId);
 
       await reconcilePodMembers(podId);

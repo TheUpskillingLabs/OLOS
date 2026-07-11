@@ -15,10 +15,13 @@ export default function PodJoinSection({
   cycleId,
   participantId,
   myPodIds: initialMyPodIds,
+  podLimit = 1,
 }: {
   cycleId: number;
   participantId: number;
   myPodIds: number[];
+  /** Per-cycle pods-per-member ceiling (cycle_config.pod_limit; default 1). */
+  podLimit?: number;
 }) {
   const router = useRouter();
   const [pods, setPods] = useState<Pod[]>([]);
@@ -80,11 +83,13 @@ export default function PodJoinSection({
     );
   }
 
+  const single = podLimit === 1;
+
   if (pods.length === 0) {
     return (
       <div className="mb-8 rounded-card border border-ink/10 bg-white p-6 shadow-card">
         <h2 className="t-h3 text-ink">
-          Choose your pods
+          {single ? "Choose your pod" : "Choose your pods"}
         </h2>
         <p className="mt-1 text-sm text-meta">
           No pods are available for registration yet.
@@ -93,18 +98,20 @@ export default function PodJoinSection({
     );
   }
 
-  const atCap = myPodIds.size >= 2;
+  const atCap = myPodIds.size >= podLimit;
 
   return (
     <div className="mb-8">
       <h2 className="t-h3 mb-4 text-ink">
-        Choose your pods
+        {single ? "Choose your pod" : "Choose your pods"}
       </h2>
       <p className="mb-4 text-sm text-meta">
-        You can join up to 2 pods per cycle.
-        {atCap && " You've reached the limit."}
+        {single
+          ? "You join one pod per cycle — pick the problem you want to work on."
+          : `You can join up to ${podLimit} pods per cycle.`}
+        {atCap && !single && " You've reached the limit."}
       </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="autogrid">
         {pods.map((pod) => {
           const isJoined = myPodIds.has(pod.id);
           const isActing = actionPodId === pod.id;
@@ -146,7 +153,9 @@ export default function PodJoinSection({
                   disabled={!canJoin || isActing}
                   title={
                     atCap
-                      ? "You can join at most 2 pods per cycle"
+                      ? single
+                        ? "You're already in a pod for this cycle"
+                        : `You can join at most ${podLimit} pods per cycle`
                       : undefined
                   }
                   className="btn btn-teal btn-block px-4 py-2 text-sm"

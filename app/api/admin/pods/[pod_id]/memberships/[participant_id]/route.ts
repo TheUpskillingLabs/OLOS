@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
+import { requireLabAccessForPod } from "@/lib/auth/lab";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
@@ -54,10 +55,16 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  * concerns: enrollment status changes (access_revocations) vs membership
  * actions (pod_memberships audit columns).
  */
-export const DELETE = withAdminAuth(
-  async (_request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const DELETE = withAuth(
+  async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // manage pods in their own lab's cycles. HQ pods (lab_id NULL) resolve
+    // to no lab and stay admin-only.
+    const guard = await requireLabAccessForPod(auth.user, podId);
+    if (guard) return guard;
     const participantId = parseIntParam(params.participant_id, "participant_id");
     if (participantId instanceof NextResponse) return participantId;
 

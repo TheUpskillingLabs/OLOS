@@ -18,7 +18,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
             {item.href && !isLast ? (
               <Link
                 href={item.href}
-                className="text-teal-deep transition-colors duration-150 hover:text-teal-deep hover:brightness-110 focus-visible:text-teal-deep focus-visible:outline-none"
+                className="text-teal-deep transition-colors duration-150 hover:text-teal-deep hover:brightness-110"
               >
                 {item.label}
               </Link>

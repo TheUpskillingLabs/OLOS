@@ -2,7 +2,14 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
+import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
 
+// Manual (admin-triggered) revocation sweep. Enrollment status is never
+// written here — memberships are soft-deleted and the reconciler derives
+// the demotion (§3.7: one write path for the enrollment lifecycle). The
+// route keeps its own access_revocations insert because it records the
+// richer reason + revoked_systems detail, so the reconciler's logRevocation
+// stays off to avoid a duplicate audit row.
 export const POST = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
@@ -27,18 +34,20 @@ export const POST = withAdminAuth(
       let shouldRevoke = false;
       let reason = "";
 
-      // Check 1: No active pod membership IN THIS CYCLE. Scope the count to the
-      // cycle via the pods join — otherwise a stale active membership from a
-      // prior cycle keeps podCount > 0 and a genuinely pod-less participant is
-      // never flagged (audit fix, matches the cron + add-membership route).
-      const { count: podCount } = await auth.supabase
+      // Check 1: no active pod membership IN THIS CYCLE. The membership →
+      // pod join is required because pod_memberships has no cycle column;
+      // an unscoped count would let an active pod in another cycle mask
+      // this cycle's absence (the cross-cycle bug class from the May
+      // incident — see docs/architecture-review-onboarding-state-machine.md).
+      const { data: activeMemberships } = await auth.supabase
         .from("pod_memberships")
-        .select("id, pods!inner(cycle_id)", { count: "exact", head: true })
+        .select("id, pods!inner(cycle_id)")
         .eq("participant_id", pid)
-        .is("inactive_at", null)
-        .eq("pods.cycle_id", cycleId);
+        .eq("pods.cycle_id", cycleId)
+        .is("inactive_at", null);
 
-      if (!podCount || podCount === 0) {
+      const membershipIds = (activeMemberships ?? []).map((m) => m.id);
+      if (membershipIds.length === 0) {
         shouldRevoke = true;
         reason = "not_in_pod";
       }
@@ -50,10 +59,6 @@ export const POST = withAdminAuth(
           .select("completed_at")
           .eq("cycle_id", cycleId)
           .eq("participant_id", pid)
-          // Only pulses that are actually due — a future-dated (pre-seeded)
-          // pulse row is uncompleted-but-not-late and must not count as a miss
-          // (audit fix).
-          .lte("scheduled_date", now)
           .order("scheduled_date", { ascending: false })
           .limit(2);
 
@@ -61,9 +66,7 @@ export const POST = withAdminAuth(
           const missedConsecutive = checks.every((c) => !c.completed_at);
           if (missedConsecutive) {
             shouldRevoke = true;
-            // Match the cron's value ('missed_pulses') so both paths and the
-            // admin table's label map agree (audit fix).
-            reason = "missed_pulses";
+            reason = "missed_pulse_checks";
           }
         }
       }
@@ -71,14 +74,19 @@ export const POST = withAdminAuth(
       if (!shouldRevoke) continue;
 
       // Apply inactive access profile
-      // 1. Mark pod memberships inactive
-      await auth.supabase
-        .from("pod_memberships")
-        .update({ inactive_at: now })
-        .eq("participant_id", pid)
-        .is("inactive_at", null);
+      // 1. Mark THIS CYCLE's pod memberships inactive. Two-step (select ids,
+      //    then update by id) because PostgREST embedded filters on an
+      //    UPDATE only shape the returned rows — they do not scope the
+      //    mutation — so a joined .eq("pods.cycle_id", …) on the update
+      //    would soft-delete memberships in every cycle.
+      if (membershipIds.length > 0) {
+        await auth.supabase
+          .from("pod_memberships")
+          .update({ inactive_at: now })
+          .in("id", membershipIds);
+      }
 
-      // 2. Revoke project memberships
+      // 2. Revoke project memberships (project_memberships carries cycle_id)
       await auth.supabase
         .from("project_memberships")
         .update({ left_at: now })
@@ -86,42 +94,28 @@ export const POST = withAdminAuth(
         .eq("cycle_id", cycleId)
         .is("left_at", null);
 
-      // 3. Update enrollment status
-      await auth.supabase
-        .from("cycle_enrollments")
-        .update({ status: "inactive", inactive_date: now })
-        .eq("participant_id", pid)
-        .eq("cycle_id", cycleId);
+      // 3. Enrollment status follows membership reality via the reconciler —
+      //    never written directly here.
+      const reconciled = await reconcileEnrollmentActivation(pid, cycleId);
 
-      // 4. Record revocation. Capture the insert error instead of swallowing
-      // it — the unique partial index can collide on a repeat revoke after a
-      // reactivation, and a silent failure hid that de-provisioning happened
-      // without a fresh audit row (audit fix).
-      const { error: revErr } = await auth.supabase
-        .from("access_revocations")
-        .insert({
-          participant_id: pid,
-          cycle_id: cycleId,
-          reason,
-          revocation_scope: "full",
-          revoked_systems: [
-            "pod_membership",
-            "project_membership",
-            "enrollment",
-          ],
-        });
-      if (revErr) {
-        console.error(
-          "[revocations-check] access_revocations insert failed for participant",
-          pid,
-          revErr.message
-        );
-      }
+      // 4. Record revocation
+      await auth.supabase.from("access_revocations").insert({
+        participant_id: pid,
+        cycle_id: cycleId,
+        reason,
+        revocation_scope: "full",
+        revoked_systems: [
+          "pod_membership",
+          "project_membership",
+          "enrollment",
+        ],
+      });
 
       transitioned.push({
         participant_id: pid,
         reason,
         revocation_scope: "full",
+        enrollment_status: reconciled.after,
         systems_affected: [
           "pod_membership",
           "project_membership",

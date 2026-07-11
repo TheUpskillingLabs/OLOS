@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   HEAR_ABOUT_SOURCES,
   PARTICIPANT_AGREEMENT_VERSION,
   type RoleIntent,
+  type LabChoice,
 } from "@/lib/validations/funnel-registration";
 import {
   FlowScreen,
@@ -22,22 +23,30 @@ import {
      FLOWS('signup')   → SIGNUP_STEPS on the shared flow engine
    All user-facing copy is owner-approved — change it in the prototype first.
 
-   Post-signup role branching: picking "Join a Cycle" routes into the cycle
-   registration ceremony (the threshold — flows never silently chain; the
-   ceremony IS the seam). Everything else lands on the dashboard; mentor and
-   volunteer flows arrive with their stages.
+   Post-signup routing: every new member lands on the dashboard, whatever
+   intents they picked. The dashboard is the home base where the next steps
+   surface — the recruiting-cycle join CTA, the setup checklist, the Learning
+   Log — so the intents shape what a member sees there, not where they land.
    ════════════════════════════════════════════════════════════════════════ */
 
-/* The Participant Agreement — rendered in full (not just referenced) on the
-   consent step, behind the scroll-gate. Plain language on purpose. */
+/* The Participant Agreement — the single agreement everyone accepts to join,
+   regardless of role. Rendered in full (a plain-language summary) on the consent
+   step, behind the scroll-gate; it incorporates the canonical Terms, Privacy
+   Policy, and Code of Conduct linked at the end of the gated region.
+   NOTE: owner-approved copy — mirror any change in the onboarding-proto prototype,
+   and treat the version bump as a legal-review item (see funnel-registration.ts). */
 const PARTICIPANT_AGREEMENT: { h: string; p: string }[] = [
   {
     h: "Who this is between",
-    p: "You and The Upskilling Labs, a community R&D lab. This covers your member account; registering for a Build Cycle adds its own agreement later.",
+    p: "You and The Upskilling Labs, a community R&D lab. Everyone joins through the same registration and accepts this same agreement — whether you take part as a learner, mentor, organizer, or builder. It covers your member account; joining a Build Cycle adds its own agreement later.",
+  },
+  {
+    h: "The full terms",
+    p: "This is a plain-language summary. Our Terms of Service, Privacy Policy, and Code of Conduct — linked below — are part of this agreement and govern in full. They apply to every member equally, regardless of role.",
   },
   {
     h: "Be someone people can build with",
-    p: "Real name, honest work, no harassment. The Labs runs on mutual reliance — treat members, mentors, and hosts accordingly.",
+    p: "Real name, honest work, no harassment. The Labs runs on mutual reliance — treat members, mentors, and hosts accordingly. Our Code of Conduct sets this out in full.",
   },
   {
     h: "Your profile is members-only",
@@ -129,7 +138,12 @@ function signupSteps(email: string): FlowStep[] {
       q: "One last thing",
       agreementTitle: "The Participant Agreement",
       agreement: PARTICIPANT_AGREEMENT,
-      text: "I agree to the Participant Agreement and consent to receive updates from The Upskilling Labs.",
+      references: [
+        { label: "Terms of Service", href: "/terms" },
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Code of Conduct", href: "/code-of-conduct" },
+      ],
+      text: "I agree to the Participant Agreement — including the Terms of Service, Privacy Policy, and Code of Conduct — and consent to receive updates from The Upskilling Labs.",
     },
   ];
 }
@@ -144,7 +158,7 @@ const ROLE_OPTIONS: {
     v: "cycle",
     title: "Join a Cycle",
     badge: "Heart of the Labs",
-    sub: "Join a pod, take on a real problem, and ship something you’re proud of. Thirteen weeks.",
+    sub: "Join a pod, take on a real problem, and ship something you’re proud of. Three months.",
   },
   {
     v: "events",
@@ -171,11 +185,17 @@ export default function RegistrationFunnel({
   authUserId: string;
 }) {
   const router = useRouter();
-  const [stage, setStage] = useState<"roles" | "flow" | "already">("roles");
+  const [stage, setStage] = useState<"roles" | "flow" | "lab" | "already">(
+    "roles"
+  );
   const [roles, setRoles] = useState<RoleIntent[]>([]);
+  const [flowAnswers, setFlowAnswers] = useState<FlowAnswers | null>(null);
   const steps = useMemo(() => signupSteps(email), [email]);
 
-  const submit = async (answers: FlowAnswers): Promise<string | null> => {
+  const submit = async (
+    answers: FlowAnswers,
+    labChoice: LabChoice
+  ): Promise<string | null> => {
     const hearAbout = String(answers.hearAbout ?? "");
     const referredBy = String(answers.referredBy ?? "").trim();
     const res = await fetch("/api/registrations/funnel", {
@@ -196,6 +216,7 @@ export default function RegistrationFunnel({
         role_intents: roles,
         contact_consent: answers.consent === true,
         agreement_version: PARTICIPANT_AGREEMENT_VERSION,
+        lab_choice: labChoice,
       }),
     }).catch(() => null);
 
@@ -205,14 +226,11 @@ export default function RegistrationFunnel({
         setStage("already");
         return null;
       }
-      // Role branch: the cycle is the commitment, and its seam is the
-      // threshold ceremony — never a silent chain into more questions. Route to
-      // the cycle currently open for registration (may be `upcoming`).
-      if (roles.includes("cycle") && json.registration_cycle_id) {
-        router.push(`/cycles/${json.registration_cycle_id}/join?from=signup`);
-      } else {
-        router.push("/dashboard");
-      }
+      // Every new member lands on the dashboard, whatever intents they picked.
+      // The next steps (join the recruiting cycle, finish the setup checklist,
+      // start a Learning Log) surface there — no intent silently chains into
+      // another flow.
+      router.push("/dashboard");
       return null;
     }
     return json?.error || "Registration failed — try again.";
@@ -249,14 +267,35 @@ export default function RegistrationFunnel({
     );
   }
 
+  if (stage === "lab") {
+    // Guard: reached only after the flow captured its answers.
+    if (!flowAnswers) {
+      setStage("flow");
+      return null;
+    }
+    return (
+      <LabChoiceScreen
+        zip={String(flowAnswers.zip ?? "")}
+        onBack={() => setStage("flow")}
+        onSubmit={(choice) => submit(flowAnswers, choice)}
+      />
+    );
+  }
+
   return (
     <FlowScreen
       eyebrow="Your profile"
       steps={steps}
-      finalLabel="Become an Upskiller"
+      finalLabel="Continue"
       finalClass="btn-red"
-      submittingLabel="Setting you up…"
-      onComplete={submit}
+      submittingLabel="One moment…"
+      initialAnswers={flowAnswers ?? undefined}
+      initialStepIndex={flowAnswers ? steps.length - 1 : 0}
+      onComplete={async (answers) => {
+        setFlowAnswers(answers);
+        setStage("lab");
+        return null;
+      }}
       onExit={() => setStage("roles")}
     />
   );
@@ -342,6 +381,286 @@ function RoleIntentScreen({
             onClick={onContinue}
           >
             Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Choose your Local Lab (docs/LOCAL_LABS.md — the membership spine) ──
+   Labs are local: join an ACTIVE lab to take part in a cycle, hop on an
+   existing lab's waitlist, or start one for your city. The zip typed on the
+   previous step suggests the nearest lab (metroFromZip, via /api/labs/suggest);
+   the member confirms or chooses otherwise. Only an active-lab join unlocks
+   cycle participation — the waitlist branches hold. */
+interface LabLite {
+  id: number;
+  slug: string;
+  name: string;
+  st: string | null;
+  status: "active" | "waitlist";
+}
+interface SuggestResponse {
+  suggested: LabLite | null;
+  active: LabLite[];
+  waitlist: LabLite[];
+}
+
+function labLabel(l: LabLite): string {
+  return l.name + (l.st ? `, ${l.st}` : "");
+}
+
+function LabOptCard({
+  selected,
+  onSelect,
+  title,
+  badge,
+  sub,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  badge?: string;
+  sub: string;
+}) {
+  return (
+    <label className={`opt-card${selected ? " selected" : ""}`}>
+      <input type="radio" name="lab" checked={selected} onChange={onSelect} />
+      <span className="opt-check">
+        <CheckIcon />
+      </span>
+      <div style={{ flex: 1 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            marginBottom: 4,
+          }}
+        >
+          <span className="t-h4">{title}</span>
+          {badge && (
+            <span className="lbl lbl-teal" style={{ fontSize: 10 }}>
+              {badge}
+            </span>
+          )}
+        </div>
+        <p className="t-small">{sub}</p>
+      </div>
+    </label>
+  );
+}
+
+function LabChoiceScreen({
+  zip,
+  onBack,
+  onSubmit,
+}: {
+  zip: string;
+  onBack: () => void;
+  onSubmit: (choice: LabChoice) => Promise<string | null>;
+}) {
+  const [data, setData] = useState<SuggestResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  // sel keys: `active:<id>` | `wait:<id>` | `start`
+  const [sel, setSel] = useState<string | null>(null);
+  const [city, setCity] = useState("");
+  const [stField, setStField] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/labs/suggest?zip=${encodeURIComponent(zip)}`)
+      .then((r) => r.json())
+      .then((d: SuggestResponse) => {
+        if (cancelled) return;
+        setData(d);
+        if (d.suggested) {
+          setSel(
+            d.suggested.status === "active"
+              ? `active:${d.suggested.id}`
+              : `wait:${d.suggested.id}`
+          );
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [zip]);
+
+  const toChoice = (): LabChoice | null => {
+    if (sel === "start") {
+      if (!city.trim()) return null;
+      return {
+        kind: "start_waitlist",
+        city: city.trim(),
+        st: stField.trim() || undefined,
+      };
+    }
+    if (sel?.startsWith("active:"))
+      return { kind: "join_active", metro_id: Number(sel.slice(7)) };
+    if (sel?.startsWith("wait:"))
+      return { kind: "join_waitlist", metro_id: Number(sel.slice(5)) };
+    return null;
+  };
+
+  const go = async () => {
+    const choice = toChoice();
+    if (!choice) {
+      setError(sel === "start" ? "Enter your city" : "Pick your lab");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const err = await onSubmit(choice);
+    if (err) {
+      setError(err);
+      setSubmitting(false);
+    }
+    // success → the parent navigates to /dashboard
+  };
+
+  const suggestedId = data?.suggested?.id ?? null;
+  const activeOthers = (data?.active ?? []).filter((l) => l.id !== suggestedId);
+  const waitOthers = (data?.waitlist ?? []).filter((l) => l.id !== suggestedId);
+
+  const activeSub = "Active — join now and take part in the current cycle.";
+  const waitSub =
+    "Forming — join the waitlist; you’ll be able to take part when it launches.";
+
+  return (
+    <div className="view light onboard s-paper">
+      <div className="sheet">
+        <div className="topbar">
+          <button className="icon-btn" aria-label="Back" onClick={onBack}>
+            <BackIcon />
+          </button>
+        </div>
+        <div className="vscroll pad">
+          <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
+            Your Local Lab
+          </div>
+          <h2 className="t-h1" style={{ marginBottom: 14 }}>
+            Where will you build?
+          </h2>
+          <p className="t-lede" style={{ marginBottom: 28 }}>
+            The Labs are local. Join an active lab to take part in a Build
+            Cycle, hop on a waitlist, or start one for your city.
+          </p>
+
+          {loading ? (
+            <p className="t-body">Finding labs near you…</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {data?.suggested &&
+                (() => {
+                  const key =
+                    data.suggested.status === "active"
+                      ? `active:${data.suggested.id}`
+                      : `wait:${data.suggested.id}`;
+                  return (
+                    <LabOptCard
+                      selected={sel === key}
+                      onSelect={() => setSel(key)}
+                      title={labLabel(data.suggested)}
+                      badge="Nearest you"
+                      sub={
+                        data.suggested.status === "active" ? activeSub : waitSub
+                      }
+                    />
+                  );
+                })()}
+              {activeOthers.map((l) => (
+                <LabOptCard
+                  key={`active:${l.id}`}
+                  selected={sel === `active:${l.id}`}
+                  onSelect={() => setSel(`active:${l.id}`)}
+                  title={labLabel(l)}
+                  sub={activeSub}
+                />
+              ))}
+              {waitOthers.map((l) => (
+                <LabOptCard
+                  key={`wait:${l.id}`}
+                  selected={sel === `wait:${l.id}`}
+                  onSelect={() => setSel(`wait:${l.id}`)}
+                  title={labLabel(l)}
+                  sub={waitSub}
+                />
+              ))}
+
+              <label className={`opt-card${sel === "start" ? " selected" : ""}`}>
+                <input
+                  type="radio"
+                  name="lab"
+                  checked={sel === "start"}
+                  onChange={() => setSel("start")}
+                />
+                <span className="opt-check">
+                  <CheckIcon />
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div className="t-h4" style={{ marginBottom: 4 }}>
+                    My city isn’t here — start a list
+                  </div>
+                  <p className="t-small">
+                    We come where the list is longest. Yours could be next.
+                  </p>
+                </div>
+              </label>
+
+              {sel === "start" && (
+                <div className="field-grid" style={{ marginTop: 4 }}>
+                  <div className="field">
+                    <label htmlFor="lab-city">City</label>
+                    <input
+                      id="lab-city"
+                      type="text"
+                      placeholder="Austin"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                    />
+                  </div>
+                  <div className="field half">
+                    <label htmlFor="lab-st">State</label>
+                    <input
+                      id="lab-st"
+                      type="text"
+                      placeholder="TX"
+                      maxLength={2}
+                      value={stField}
+                      onChange={(e) => setStField(e.target.value.toUpperCase())}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <p
+              className="t-small"
+              style={{ color: "var(--red)", marginTop: 14 }}
+              role="alert"
+            >
+              {error}
+            </p>
+          )}
+        </div>
+        <div className="actionbar light-bar">
+          <button
+            className="btn btn-red btn-block"
+            disabled={loading || submitting || !sel}
+            onClick={go}
+          >
+            {submitting ? "Setting you up…" : "Become an Upskiller"}
           </button>
         </div>
       </div>

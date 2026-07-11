@@ -2,8 +2,15 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { isProjectDri } from "@/lib/auth/projects";
 import { StatusBadge } from "@/app/components/ui";
+import { podNoun } from "@/lib/cycle/labels";
+import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
+import FollowButton from "@/app/components/follow-button";
+import ContributorsSection from "./contributors-section";
+import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
+import { resolvePageContext } from "@/lib/pages/server";
 
 type ProjectStatus = "active" | "forming" | "closed" | "inactive";
 
@@ -34,11 +41,17 @@ export default async function ProjectDetailPage({
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, name, status, pod_id, cycle_id, solution_proposal_id")
+    .select(
+      "id, name, status, pod_id, cycle_id, solution_proposal_id, cycles(mode)"
+    )
     .eq("id", projectId)
     .single();
 
   if (!project) notFound();
+
+  const mode = one(
+    project.cycles as { mode: string } | { mode: string }[] | null
+  )?.mode;
 
   // Get pod info for breadcrumb
   const { data: pod } = await supabase
@@ -77,7 +90,8 @@ export default async function ProjectDetailPage({
     }[];
   }[] = [];
 
-  if (canViewDashboard && activeMembers.length > 0) {
+  // Org projects have no pulse checks — skip the dashboard data entirely.
+  if (mode !== "org" && canViewDashboard && activeMembers.length > 0) {
     const memberIds = activeMembers.map((m) => m.participant_id);
 
     const { data: pulseChecks } = await serviceClient
@@ -113,8 +127,92 @@ export default async function ProjectDetailPage({
     });
   }
 
+  // Active project_roles (DRI/contributor ladder) with participant names.
+  // The embed must name the FK: project_roles has TWO FKs to participants
+  // (participant_id, invited_by), and a bare `participants(...)` makes
+  // PostgREST fail the whole select with PGRST201 at runtime.
+  const { data: projectRoleRows } = await serviceClient
+    .from("project_roles")
+    .select(
+      "participant_id, role, created_at, participants!project_roles_participant_id_fkey(first_name, last_name, preferred_name)"
+    )
+    .eq("project_id", projectId)
+    .is("removed_at", null)
+    .order("created_at");
+
+  const contributors = (projectRoleRows ?? []).map((r) => {
+    const p = (r.participants as unknown) as Record<string, string> | null;
+    return {
+      participant_id: r.participant_id,
+      name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
+      role: r.role as "dri" | "contributor",
+      created_at: r.created_at,
+    };
+  });
+
+  // Follower count from the follows graph — the population that actually
+  // receives this project's page posts (00077 unification).
+  const { count: followerCount } = await serviceClient
+    .from("follows")
+    .select("id", { count: "exact", head: true })
+    .eq("page_type", "project")
+    .eq("page_id", projectId);
+
+  // One DRI definition, shared with the POST route (lib/auth/projects).
+  const canManageContributors = userRoles
+    ? await isProjectDri(serviceClient, userRoles, projectId, project.pod_id)
+    : false;
+
+  // Add-contributor options: the cycle's enrollees, unioned with the project's
+  // followers (follows graph — 00077 retired project_subscriptions) — org
+  // enrollees are invite-only staff, so followers are how a DRI reaches the ICs
+  // the follow feature is meant to recruit (docs/ORG_CYCLES.md §2). Deduped by
+  // participant_id; follower-only entries are suffixed so the DRI can tell
+  // them apart from enrollees. Only fetched when the viewer can manage.
+  let participantOptions: { participant_id: number; name: string }[] = [];
+  if (canManageContributors) {
+    const [{ data: enrollments }, { data: followerRows }] = await Promise.all([
+      serviceClient
+        .from("cycle_enrollments")
+        .select(
+          "participant_id, participants(first_name, last_name, preferred_name)"
+        )
+        .eq("cycle_id", project.cycle_id),
+      serviceClient
+        .from("follows")
+        .select(
+          "follower_participant_id, participants:follower_participant_id(first_name, last_name, preferred_name)"
+        )
+        .eq("page_type", "project")
+        .eq("page_id", projectId),
+    ]);
+
+    const nameOf = (row: { participants: unknown }) => {
+      const p = (row.participants as unknown) as Record<string, string> | null;
+      return `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim();
+    };
+
+    const optionsByParticipant = new Map<number, string>();
+    for (const e of enrollments ?? []) {
+      optionsByParticipant.set(e.participant_id, nameOf(e));
+    }
+    for (const f of followerRows ?? []) {
+      if (optionsByParticipant.has(f.follower_participant_id)) continue;
+      optionsByParticipant.set(
+        f.follower_participant_id,
+        `${nameOf(f)} (follower)`
+      );
+    }
+
+    participantOptions = [...optionsByParticipant.entries()].map(
+      ([participant_id, name]) => ({ participant_id, name })
+    );
+  }
+
   const projectVariant =
     PROJECT_STATUS_VARIANT[project.status as ProjectStatus] ?? "inactive";
+  const projectName = project.name || `Project ${project.id}`;
+  const pageCtx = await resolvePageContext("project", project.id);
 
   return (
     <div>
@@ -125,7 +223,7 @@ export default async function ProjectDetailPage({
         >
           <Link
             href={`/cycles/${project.cycle_id}`}
-            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+            className="transition-colors duration-150 hover:text-teal-deep"
           >
             Cycle
           </Link>
@@ -134,24 +232,36 @@ export default async function ProjectDetailPage({
           </span>
           <Link
             href={`/pods/${project.pod_id}`}
-            className="transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+            className="transition-colors duration-150 hover:text-teal-deep"
           >
-            {pod?.name || `Pod ${project.pod_id}`}
+            {pod?.name || `${podNoun(mode)} ${project.pod_id}`}
           </Link>
         </nav>
-        <h1 className="t-h1 mt-2 text-ink">
-          {project.name || `Project ${project.id}`}
-        </h1>
-        <span className="mt-2 inline-block">
-          <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
-        </span>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="t-h1 text-ink">
+              {project.name || `Project ${project.id}`}
+            </h1>
+            <span className="mt-2 inline-block">
+              <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
+            </span>
+          </div>
+          {userRoles?.participantId != null && (
+            <FollowButton
+              type="project"
+              id={project.id}
+              initialFollowing={pageCtx.following}
+              size="sm"
+            />
+          )}
+        </div>
       </div>
 
       <div className="mb-8">
         <h2 className="t-h3 mb-3 text-ink">
-          Members ({activeMembers.length})
+          {mode === "org" ? "Core team" : "Members"} ({activeMembers.length})
         </h2>
-        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+        <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
               <tr>
@@ -198,7 +308,26 @@ export default async function ProjectDetailPage({
         </div>
       </div>
 
-      {canViewDashboard && (
+      <div className="mb-8">
+        <ContributorsSection
+          projectId={project.id}
+          contributors={contributors}
+          followerCount={followerCount ?? 0}
+          canManage={canManageContributors}
+          participantOptions={participantOptions}
+        />
+      </div>
+
+      <section className="mb-8">
+        <PageUpdatesSection
+          type="project"
+          id={project.id}
+          name={projectName}
+          ctx={pageCtx}
+        />
+      </section>
+
+      {mode !== "org" && canViewDashboard && (
         <PulseCheckDashboard members={pulseCheckData} />
       )}
     </div>

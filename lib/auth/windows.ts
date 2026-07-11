@@ -1,4 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { one } from "@/lib/supabase/embed";
 
 type WindowField =
   | "problem_statement"
@@ -6,8 +7,7 @@ type WindowField =
   | "pod_registration"
   | "solution_proposal"
   | "solution_voting"
-  | "project_registration"
-  | "registration";
+  | "project_registration";
 
 const WINDOW_MESSAGES: Record<WindowField, string> = {
   problem_statement: "Problem statement submission is not currently open.",
@@ -16,7 +16,6 @@ const WINDOW_MESSAGES: Record<WindowField, string> = {
   solution_proposal: "Solution proposal submission is not currently open.",
   solution_voting: "Solution voting is not currently open.",
   project_registration: "Project registration is not currently open.",
-  registration: "Registration for this cycle is not currently open.",
 };
 
 export async function checkWindow(
@@ -24,9 +23,15 @@ export async function checkWindow(
   cycleId: number,
   field: WindowField
 ): Promise<{ open: boolean; message: string }> {
+  // Fetch the cycle's mode alongside the config row so this chokepoint
+  // never depends on the "org windows are always NULL" invariant — an
+  // admin who stamps a window column on an org cycle's cycle_config
+  // (nothing stops that today) would otherwise open a formation-only
+  // action for a workstream. Org cycles have no formation windows by
+  // design (docs/ORG_CYCLES.md); reject before the timestamp logic runs.
   const { data: config } = await supabase
     .from("cycle_config")
-    .select(`${field}_open, ${field}_close`)
+    .select(`${field}_open, ${field}_close, cycles(mode)`)
     .eq("cycle_id", cycleId)
     .single();
 
@@ -35,6 +40,14 @@ export async function checkWindow(
   }
 
   const configRecord = config as Record<string, unknown>;
+  const cycle = one(configRecord.cycles as { mode: string } | { mode: string }[] | null);
+  if (cycle?.mode === "org") {
+    return {
+      open: false,
+      message: "This action isn't available for organization cycles.",
+    };
+  }
+
   const openTime = configRecord[`${field}_open`] as string | null;
   const closeTime = configRecord[`${field}_close`] as string | null;
 

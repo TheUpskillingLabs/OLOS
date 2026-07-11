@@ -22,7 +22,10 @@ import {
    reader scrolls the box to its end (content that fits counts as read).
    ════════════════════════════════════════════════════════════════════════ */
 
-export type FlowAnswers = Record<string, string | boolean | undefined>;
+export type FlowAnswers = Record<
+  string,
+  string | boolean | string[] | undefined
+>;
 
 export interface ChoiceOption {
   v: string;
@@ -52,6 +55,25 @@ export type FlowStep =
   | { id: string; type: "fields"; q: string; help?: string; fields: FieldDef[] }
   | {
       id: string;
+      type: "multiselect";
+      q: string;
+      help?: string;
+      options: ChoiceOption[];
+      /** minimum picks to be valid; omit ⇒ optional (0). */
+      min?: number;
+    }
+  | {
+      id: string;
+      type: "scale";
+      q: string;
+      help?: string;
+      lowLabel: string;
+      highLabel: string;
+      /** true ⇒ the step can be skipped without a pick. */
+      optional?: boolean;
+    }
+  | {
+      id: string;
       type: "choice";
       q: string;
       help?: string;
@@ -69,6 +91,9 @@ export type FlowStep =
       q: string;
       agreementTitle: string;
       agreement: { h: string; p: string }[];
+      // Canonical documents this agreement incorporates — rendered as links at
+      // the end of the scroll-gated region (open in a new tab).
+      references?: { label: string; href: string }[];
       text: string;
     }
   | {
@@ -149,6 +174,8 @@ export function FlowScreen({
   submittingLabel = "One moment…",
   onComplete,
   onExit,
+  initialAnswers,
+  initialStepIndex,
 }: {
   eyebrow: string;
   steps: FlowStep[];
@@ -158,9 +185,17 @@ export function FlowScreen({
   /** Runs on the last step's confirm. Return an error message to stay put, or null on success. */
   onComplete: (answers: FlowAnswers) => Promise<string | null>;
   onExit: () => void;
+  /** Seed answers when resuming a flow (e.g. returning from a later stage) —
+      defaults to empty. */
+  initialAnswers?: FlowAnswers;
+  /** Start on a specific step (e.g. land back on the last step when resuming) —
+      defaults to 0, clamped to range. */
+  initialStepIndex?: number;
 }) {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [answers, setAnswers] = useState<FlowAnswers>({});
+  const [stepIndex, setStepIndex] = useState(() =>
+    Math.min(Math.max(initialStepIndex ?? 0, 0), Math.max(steps.length - 1, 0))
+  );
+  const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers ?? {});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
   // Signature steps gate on reading — tracked here so the footer button knows.
@@ -171,7 +206,7 @@ export function FlowScreen({
   const isLast = stepIndex === steps.length - 1;
 
   const setAnswer = useCallback(
-    (id: string, value: string | boolean | undefined) =>
+    (id: string, value: string | boolean | string[] | undefined) =>
       setAnswers((a) => ({ ...a, [id]: value })),
     []
   );
@@ -191,6 +226,12 @@ export function FlowScreen({
         );
       case "choice":
         return typeof answers[step.id] === "string";
+      case "multiselect": {
+        const v = answers[step.id];
+        return (Array.isArray(v) ? v.length : 0) >= (step.min ?? 0);
+      }
+      case "scale":
+        return step.optional ? true : typeof answers[step.id] === "string";
       case "consent":
         return answers[step.id] === true;
       case "signature": {
@@ -201,19 +242,12 @@ export function FlowScreen({
     }
   }, [step, answers, gateOpen]);
 
-  const submittingRef = useRef(false);
   const advance = useCallback(async () => {
-    // Re-entrancy guard: the last-step Enter-key handlers gate only on
-    // validity, so a fast double-Enter could fire onComplete twice and create
-    // duplicate ceremony writes (audit fix).
-    if (submittingRef.current) return;
     if (isLast) {
-      submittingRef.current = true;
       setServerError("");
       setSubmitting(true);
       const err = await onComplete(answers);
       if (err) {
-        submittingRef.current = false;
         setServerError(err);
         setSubmitting(false);
       }
@@ -300,7 +334,7 @@ function StepInput({
 }: {
   step: FlowStep;
   answers: FlowAnswers;
-  setAnswer: (id: string, value: string | boolean | undefined) => void;
+  setAnswer: (id: string, value: string | boolean | string[] | undefined) => void;
   valid: boolean;
   advance: () => void;
   onGateChange: (open: boolean) => void;
@@ -324,6 +358,12 @@ function StepInput({
       );
     case "choice":
       return <ChoiceInput step={step} answers={answers} setAnswer={setAnswer} />;
+    case "multiselect":
+      return (
+        <MultiSelectInput step={step} answers={answers} setAnswer={setAnswer} />
+      );
+    case "scale":
+      return <ScaleInput step={step} answers={answers} setAnswer={setAnswer} />;
     case "consent":
       return <ConsentInput step={step} answers={answers} setAnswer={setAnswer} />;
     case "signature":
@@ -506,6 +546,86 @@ function ChoiceInput({
   );
 }
 
+/* type:'multiselect' — pick any number of tags (value stored as string[]) */
+function MultiSelectInput({
+  step,
+  answers,
+  setAnswer,
+}: {
+  step: Extract<FlowStep, { type: "multiselect" }>;
+  answers: FlowAnswers;
+  setAnswer: (id: string, value: string[]) => void;
+}) {
+  const selected = Array.isArray(answers[step.id])
+    ? (answers[step.id] as string[])
+    : [];
+  const toggle = (v: string) =>
+    setAnswer(
+      step.id,
+      selected.includes(v)
+        ? selected.filter((x) => x !== v)
+        : [...selected, v]
+    );
+
+  return (
+    <div className="tag-wrap" role="group" aria-label={step.q}>
+      {step.options.map((o) => {
+        const on = selected.includes(o.v);
+        return (
+          <button
+            key={o.v}
+            type="button"
+            aria-pressed={on}
+            className={`tag-btn${on ? " active" : ""}`}
+            onClick={() => toggle(o.v)}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* type:'scale' — a 1–5 pip row with low/high captions (value stored as "1".."5") */
+function ScaleInput({
+  step,
+  answers,
+  setAnswer,
+}: {
+  step: Extract<FlowStep, { type: "scale" }>;
+  answers: FlowAnswers;
+  setAnswer: (id: string, value: string | undefined) => void;
+}) {
+  const selected =
+    typeof answers[step.id] === "string" ? (answers[step.id] as string) : "";
+  return (
+    <>
+      <div className="scale-row" role="radiogroup" aria-label={step.q}>
+        {["1", "2", "3", "4", "5"].map((n) => {
+          const on = selected === n;
+          return (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              className={`tag-btn scale-cell${on ? " active" : ""}`}
+              onClick={() => setAnswer(step.id, on ? undefined : n)}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      <div className="scale-caption">
+        <span>{step.lowLabel}</span>
+        <span>{step.highLabel}</span>
+      </div>
+    </>
+  );
+}
+
 /* type:'consent' — scroll-gated agreement + checkbox row */
 function ConsentInput({
   step,
@@ -539,6 +659,19 @@ function ConsentInput({
             <p className="t-small">{a.p}</p>
           </div>
         ))}
+        {step.references && step.references.length > 0 && (
+          <p className="t-small" style={{ marginTop: 4 }}>
+            Read in full:{" "}
+            {step.references.map((r, i) => (
+              <span key={r.href}>
+                {i > 0 && " · "}
+                <a href={r.href} target="_blank" rel="noopener">
+                  {r.label}
+                </a>
+              </span>
+            ))}
+          </p>
+        )}
       </div>
       <div className={`agree-hint${read ? " read" : ""}`}>
         {read ? "Read to the end ✓" : "↓ Scroll to the end to agree"}

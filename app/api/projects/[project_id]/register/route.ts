@@ -1,10 +1,10 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
-import { createServiceClient } from "@/lib/supabase/server";
 import { checkWindow } from "@/lib/auth/windows";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 
 export const POST = withAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
@@ -26,6 +26,13 @@ export const POST = withAuth(
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
+
+    const orgRejection = await rejectOrgCycle(
+      auth.supabase,
+      project.cycle_id,
+      "Organization projects take contributors by invitation."
+    );
+    if (orgRejection) return orgRejection;
 
     // Check window
     const window = await checkWindow(auth.supabase, project.cycle_id, "project_registration");
@@ -122,23 +129,13 @@ export const POST = withAuth(
       return dbError(error);
     }
 
-    // Check if project should activate. The projects_update RLS policy
-    // requires is_admin_or_owner(), which a self-registering participant is
-    // not — so this flip must run on the service client or it silently
-    // matches 0 rows and the project stays 'forming' forever (audit fix,
-    // mirrors pods/[pod_id]/register).
+    // Check if project should activate
     const newCount = (count || 0) + 1;
     if (config && newCount >= config.project_min && project.status === "forming") {
-      const serviceClient = createServiceClient();
-      const { error: activationError } = await serviceClient
+      await auth.supabase
         .from("projects")
-        .update({ status: "active", updated_at: new Date().toISOString() })
-        .eq("id", projectId)
-        .eq("status", "forming");
-      if (activationError) {
-        // Non-fatal: the registration itself succeeded. Surface for logs.
-        console.error("[project-register] activation flip failed", activationError);
-      }
+        .update({ status: "active" })
+        .eq("id", projectId);
     }
 
     return NextResponse.json(

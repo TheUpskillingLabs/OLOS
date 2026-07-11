@@ -29,13 +29,10 @@ export default function SolutionBallot({
 
   useEffect(() => {
     if (!selectedPodId) return;
-    let cancelled = false;
 
-    // State resets and fetch both live inside the async body so no setState
-    // runs synchronously in the effect body (lint fix), and so the
-    // already-voted state can be hydrated from the server on load (audit fix)
-    // rather than only surfacing after a full submit + 409.
     (async () => {
+      // Reset inside the async body (not the effect body) so these aren't
+      // synchronous setStates in the effect (react-hooks/set-state-in-effect).
       setLoading(true);
       setAllocations({});
       setError("");
@@ -48,22 +45,26 @@ export default function SolutionBallot({
         ]);
         const proposalData = await proposalsRes.json();
         const voteData = await votesRes.json();
-        if (cancelled) return;
 
         if (Array.isArray(proposalData)) setProposals(proposalData);
-        // Blind voting still hides tallies; we only read whether THIS voter has
-        // already submitted, so we can show the completed state immediately.
-        if (voteData?.has_voted) setAlreadyVoted(true);
+
+        // If the GET returns the per-voter breakdown for admins, we don't use
+        // it here — blind voting hides tallies regardless. But we DO need to
+        // know whether the current user has already submitted a ballot in
+        // this pod. The cleanest signal is to POST and let the server return
+        // 409 — but that's a destructive probe. Instead, we look at the
+        // tallies: if there are any votes at all and the budget is zero we
+        // could be done, but that's noisy. Defer the "already voted" check
+        // to submit time and surface the 409 cleanly.
+        if (voteData && Array.isArray(voteData.tallies)) {
+          // Intentional no-op: we don't surface tallies during voting.
+        }
       } catch {
-        if (!cancelled) setError("Failed to load proposals.");
+        setError("Failed to load proposals.");
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [selectedPodId]);
 
   function bump(proposalId: number, delta: number) {
@@ -219,7 +220,7 @@ export default function SolutionBallot({
           Loading projects...
         </div>
       ) : proposals.length === 0 ? (
-        <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+        <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
           <p className="text-sm text-meta">
             No projects have been submitted in this pod.
           </p>

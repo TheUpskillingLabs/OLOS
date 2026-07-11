@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { DataTable } from "@/app/components/ui";
+import { formatDate } from "@/lib/format/date";
 import type { ParticipantRow } from "./page";
 
 type Revocation = {
@@ -138,77 +140,62 @@ export default function RevocationsSection({
         )}
       </div>
 
-      {revocations.length === 0 ? (
-        <p className="text-sm text-meta">No revocations for this cycle.</p>
-      ) : (
-        <div className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
-          <table className="w-full text-sm">
-            <thead className="bg-ink/[0.02]">
-              <tr>
-                <th className="lbl px-4 py-3 text-left">
-                  Participant
-                </th>
-                <th className="lbl px-4 py-3 text-left">
-                  Reason
-                </th>
-                <th className="lbl px-4 py-3 text-left">
-                  Revoked
-                </th>
-                <th className="lbl px-4 py-3 text-right" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink/10">
-              {revocations.map((rev, i) => {
-                const name =
-                  nameMap.get(rev.participant_id) ??
-                  `Participant ${rev.participant_id}`;
-                const isReactivated = reactivatedIds.has(rev.participant_id);
-                return (
-                  <tr
-                    key={i}
-                    className="transition-colors duration-150 hover:bg-ink/[0.02]"
-                  >
-                    <td className="px-4 py-3 font-medium text-ink">
-                      {name}
-                    </td>
-                    <td className="px-4 py-3 text-meta">
-                      {REASON_LABELS[rev.reason] ?? rev.reason}
-                    </td>
-                    <td className="px-4 py-3 text-meta tabular-nums">
-                      {new Date(rev.revoked_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {reactivateErrors[rev.participant_id] && (
-                        <span
-                          role="alert"
-                          className="mr-2 text-xs text-red"
-                        >
-                          {reactivateErrors[rev.participant_id]}
-                        </span>
-                      )}
-                      {isReactivated ? (
-                        <span className="text-xs font-medium text-teal-deep">
-                          Reactivated
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => reactivate(rev.participant_id)}
-                          disabled={reactivatingIds.has(rev.participant_id)}
-                          className="btn btn-ghost px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {reactivatingIds.has(rev.participant_id)
-                            ? "…"
-                            : "Reactivate"}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable<Revocation>
+        rows={revocations}
+        rowKey={(_rev, i) => i}
+        empty="No revocations for this cycle."
+        columns={[
+          {
+            key: "participant",
+            header: "Participant",
+            className: "font-medium text-ink",
+            cell: (rev) =>
+              nameMap.get(rev.participant_id) ?? `Participant ${rev.participant_id}`,
+          },
+          {
+            key: "reason",
+            header: "Reason",
+            className: "text-meta",
+            cell: (rev) => REASON_LABELS[rev.reason] ?? rev.reason,
+          },
+          {
+            key: "revoked",
+            header: "Revoked",
+            className: "text-meta tabular-nums",
+            cell: (rev) => formatDate(rev.revoked_at),
+          },
+          {
+            key: "actions",
+            header: "",
+            align: "right",
+            cell: (rev) => {
+              const isReactivated = reactivatedIds.has(rev.participant_id);
+              return (
+                <>
+                  {reactivateErrors[rev.participant_id] && (
+                    <span role="alert" className="mr-2 text-xs text-red">
+                      {reactivateErrors[rev.participant_id]}
+                    </span>
+                  )}
+                  {isReactivated ? (
+                    <span className="text-xs font-medium text-teal-deep">
+                      Reactivated
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => reactivate(rev.participant_id)}
+                      disabled={reactivatingIds.has(rev.participant_id)}
+                      className="btn btn-ghost px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {reactivatingIds.has(rev.participant_id) ? "…" : "Reactivate"}
+                    </button>
+                  )}
+                </>
+              );
+            },
+          },
+        ]}
+      />
     </div>
   );
 }

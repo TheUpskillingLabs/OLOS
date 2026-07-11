@@ -32,7 +32,7 @@ export default async function PulseCheckPage() {
 
   if (!participantId) {
     return (
-      <div className="mx-auto max-w-2xl py-10 text-center text-sm text-slate">
+      <div className="max-w-2xl py-10 text-sm text-slate">
         {copy.page.notRegistered}
       </div>
     );
@@ -42,7 +42,7 @@ export default async function PulseCheckPage() {
     await Promise.all([
       service.from("participants").select("last_pulse_completed_at, created_at").eq("id", participantId).single(),
       service.from("option_lists").select("id, list_name, value, display_order").eq("active", true).in("list_name", ["ai_tools", "pulse_benefits"]).order("display_order"),
-      service.from("cycles").select("id, name").eq("status", "active"),
+      service.from("cycles").select("id, name").eq("status", "active").eq("mode", "open"),
       service.from("pulse_checks").select("id, scheduled_date, completed_at, cycle_id, survey_responses").eq("participant_id", participantId).not("completed_at", "is", null).order("completed_at", { ascending: false }).limit(20),
     ]);
 
@@ -55,7 +55,9 @@ export default async function PulseCheckPage() {
     last_completed_at: participant?.last_pulse_completed_at ?? null,
     deadline: new Date(deadlineMs).toISOString(),
     status,
-    locked: status === "overdue",
+    // Phase 1: the Learning Log gate on the dashboard replaced pulse
+    // enforcement — this page is history + legacy submission, never a lock.
+    locked: false,
   };
 
   const aiTools = (optionRows ?? [])
@@ -111,7 +113,7 @@ export default async function PulseCheckPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <h1 className="t-h1 mb-2 text-ink">
         {copy.page.title}
       </h1>

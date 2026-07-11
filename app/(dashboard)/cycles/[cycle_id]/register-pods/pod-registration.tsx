@@ -14,9 +14,12 @@ interface Pod {
 export default function PodRegistration({
   cycleId,
   initialMyPodIds,
+  podLimit = 1,
 }: {
   cycleId: number;
   initialMyPodIds: number[];
+  /** Per-cycle pods-per-member ceiling (cycle_config.pod_limit; default 1). */
+  podLimit?: number;
 }) {
   const [pods, setPods] = useState<Pod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +138,7 @@ export default function PodRegistration({
 
   if (pods.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12 text-center">
+      <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
         <p className="text-sm text-meta">
           No pods available for registration yet.
         </p>
@@ -146,13 +149,13 @@ export default function PodRegistration({
   return (
     <div className="space-y-6">
       <div className="rounded-card border border-ink/10 bg-white p-4 shadow-card">
-        <p className="lbl">
-          Registered pods
-        </p>
+        <p className="lbl">{podLimit === 1 ? "Your pod" : "Registered pods"}</p>
         <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-teal-deep">
           {registeredCount}
         </p>
-        <p className="text-xs text-meta tabular-nums">of 2 maximum</p>
+        <p className="text-xs text-meta tabular-nums">
+          {podLimit === 1 ? "one per cycle" : `of ${podLimit} maximum`}
+        </p>
       </div>
 
       {error && (
@@ -200,18 +203,10 @@ export default function PodRegistration({
               ) : (
                 <button
                   onClick={() => registerForPod(pod.id)}
-                  disabled={
-                    actionPodId !== null ||
-                    registeredCount >= 2 ||
-                    (pod.status !== "forming" && pod.status !== "active")
-                  }
+                  disabled={actionPodId !== null || registeredCount >= podLimit}
                   className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
-                  {actionPodId === pod.id
-                    ? "..."
-                    : pod.status !== "forming" && pod.status !== "active"
-                      ? "Closed"
-                      : "Join"}
+                  {actionPodId === pod.id ? "..." : "Join"}
                 </button>
               )}
             </div>

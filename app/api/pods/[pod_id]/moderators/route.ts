@@ -1,10 +1,15 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth, withAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
+import { requireLabAccessForPod } from "@/lib/auth/lab";
 import { isAdmin } from "@/lib/auth/roles";
+import { grantRole } from "@/lib/auth/grants";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { moderatorAssignmentSchema } from "@/lib/validations/pods";
+import { ensureActivePodMembership } from "@/lib/enrollment/reconciler";
+import { createServiceClient } from "@/lib/supabase/server";
+import { one } from "@/lib/supabase/embed";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const GET = withAuth(
@@ -43,23 +48,81 @@ export const GET = withAuth(
   }
 );
 
-export const POST = withAdminAuth(
+export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // assign poderators/co-leads on pods in their own lab's cycles. HQ
+    // pods stay admin-only.
+    const guard = await requireLabAccessForPod(auth.user, podId);
+    if (guard) return guard;
+
+    // Fetch the pod up front — today's route trusted the body's cycle_id
+    // without ever checking the pod exists. Validating here also gives us
+    // cycles.mode, needed for the org co-lead branch below.
+    const { data: pod } = await auth.supabase
+      .from("pods")
+      .select("id, cycle_id, cycles (mode)")
+      .eq("id", podId)
+      .maybeSingle();
+
+    if (!pod) {
+      return NextResponse.json({ error: "Pod not found" }, { status: 404 });
+    }
 
     const body = await parseBody(request, moderatorAssignmentSchema);
     if (isErrorResponse(body)) return body;
     const { participant_id, cycle_id } = body;
 
+    // The pod's own cycle_id is authoritative — a client-supplied mismatch
+    // would otherwise write a moderator_assignments row for a cycle the pod
+    // doesn't belong to.
+    if (cycle_id !== pod.cycle_id) {
+      return NextResponse.json(
+        { error: "cycle_id does not match the pod's cycle" },
+        { status: 400 }
+      );
+    }
+
+    // Provenance: record the poderator role through the single write path
+    // (grants.ts) FIRST, so the participant_roles row carries granted_by —
+    // moderator_assignments has no assigned_by column, so its sync trigger
+    // would otherwise leave the grant "unrecorded" in the Access console.
+    // Service client because a lab lead (already authorized above) can't
+    // write participant_roles via RLS; the moderator_assignments insert's
+    // sync trigger then no-ops on the row this created (docs auth unification).
+    const grant = await grantRole(createServiceClient(), {
+      participantId: participant_id,
+      role: "poderator",
+      scope: { podId, cycleId: pod.cycle_id },
+      actor: auth.user,
+      scopeAuthorized: true,
+      note: "poderator assigned",
+    });
+    if (!grant.ok) {
+      return NextResponse.json({ error: grant.error }, { status: grant.status });
+    }
+
     const { data, error } = await auth.supabase
       .from("moderator_assignments")
-      .insert({ participant_id, pod_id: podId, cycle_id })
+      .insert({ participant_id, pod_id: podId, cycle_id: pod.cycle_id })
       .select("id, participant_id, pod_id, assigned_at")
       .single();
 
     if (error) {
       return dbError(error);
+    }
+
+    // Org co-leads are members of their workstream (docs/ORG_CYCLES.md);
+    // participant-cycle poderators are deliberately NOT auto-membered — a
+    // poderator shepherds a pod they don't sit in.
+    const cycleMode = one(pod.cycles as { mode: string } | { mode: string }[] | null)?.mode;
+    if (cycleMode === "org") {
+      // Single path an org co-lead/member joins a workstream through
+      // (lib/enrollment/reconciler.ts).
+      await ensureActivePodMembership(participant_id, podId, pod.cycle_id);
     }
 
     return NextResponse.json(

@@ -2,9 +2,41 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NavSearch from "./nav-search";
+
+/* Destination icons for the mobile top strip (< 768px), ported from the retired
+   bottom tab bar. LinkedIn-mobile-web posture: navigation rides the top bar. */
+const HOME_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+const CYCLE_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+    <polyline points="21 3 21 9 15 9" />
+  </svg>
+);
+const LEARNING_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </svg>
+);
+const DIRECTORY_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
 
 /* The signed-in app bar — ported from onboarding-proto chrome.js (.sitenav.appnav).
    Design rules carried over (owner decisions):
@@ -18,35 +50,52 @@ import { createClient } from "@/lib/supabase/client";
    Prototype destinations (Home · My Cycle · Learning · Directory) map onto
    OLOS's live routes; Learning/Directory join when those stages land. */
 
-export type EnforcementStatus = "ok" | "warning_3day" | "warning_1day" | "overdue";
-
 export interface AppNavProps {
   initials: string;
+  /** The member's profile photo (uploaded or Google); initials when null. */
+  avatarUrl: string | null;
   displayName: string;
   isAdmin: boolean;
   isModerator: boolean;
   showPods: boolean;
   hasEnrollment: boolean;
-  enforcementStatus: EnforcementStatus;
-  pulseNavLabel: string;
+  /** The weekly Learning Log gate is armed and unmet — Home carries the
+      red pip (the ritual lives on the dashboard, not in the nav). */
+  logDue: boolean;
+  /** Tester account — the avatar menu carries a "Reset Test Account" item. */
+  isTest: boolean;
+  /** The label for the Poderator persona — "Co-lead" when every pod this
+      member moderates is an org workstream run, "Poderator" otherwise
+      (B-2). Persona derivation from the pathname is unchanged; this only
+      swaps the copy. */
+  moderatorPersonaLabel?: string;
+  /** Local Labs (docs/LOCAL_LABS.md): the /lab/[slug] workspace of the
+      first lab this member leads; null when they lead none. Adds a "Lab
+      lead" entry to the View-as switcher. */
+  labLeadHref?: string | null;
 }
 
 export default function AppNav({
   initials,
+  avatarUrl,
   displayName,
   isAdmin,
   isModerator,
   showPods,
   hasEnrollment,
-  enforcementStatus,
-  pulseNavLabel,
+  logDue,
+  isTest,
+  moderatorPersonaLabel = "Poderator",
+  labLeadHref = null,
 }: AppNavProps) {
   const pathname = usePathname() || "";
   const persona = pathname.startsWith("/admin")
     ? "admin"
     : pathname.startsWith("/moderator")
       ? "poderator"
-      : null;
+      : pathname.startsWith("/lab/")
+        ? "lablead"
+        : null;
 
   return (
     <header className="sitenav appnav" id="site-nav">
@@ -64,20 +113,42 @@ export default function AppNav({
         {persona ? (
           <>
             <span className="persona-lbl">
-              {persona === "admin" ? "Admin" : "Poderator"}
+              {persona === "admin"
+                ? "Admin"
+                : persona === "lablead"
+                  ? "Lab lead"
+                  : moderatorPersonaLabel}
             </span>
             <Link className="nav-link exit-member" href="/dashboard">
               Exit to member view
             </Link>
           </>
         ) : (
-          <nav className="nav-links appnav-links">
+          <>
+            {/* LinkedIn-style global search — logo, then search (owner rule:
+                the logo only ever sits on dark navy; the input matches). */}
+            <NavSearch />
+            <nav className="nav-links appnav-links">
             <Link
               className={`nav-link${isActive(pathname, "/dashboard") ? " active" : ""}`}
               id="nav-home"
               href="/dashboard"
             >
-              Home
+              {logDue && (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: "inline-block",
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    marginRight: 7,
+                    verticalAlign: 2,
+                    background: "var(--red)",
+                  }}
+                />
+              )}
+              Home{logDue ? " · Log due" : ""}
             </Link>
             {hasEnrollment && (
               <Link
@@ -88,44 +159,72 @@ export default function AppNav({
                 My Cycle
               </Link>
             )}
-            {hasEnrollment && (
+            <Link
+              className={`nav-link${isActive(pathname, "/learning") ? " active" : ""}`}
+              id="nav-learning"
+              href="/learning"
+            >
+              Learning
+            </Link>
+            <Link
+              className={`nav-link${isActive(pathname, "/directory") ? " active" : ""}`}
+              id="nav-directory"
+              href="/directory"
+            >
+              Directory
+            </Link>
+            </nav>
+            {/* Mobile destination nav (<768px) — icon-only, sharing the single
+                top row with the logo + avatar (the desktop text nav-links above
+                collapse away). Replaces the old fixed bottom tab bar. */}
+            <nav className="appnav-mobile" aria-label="Sections">
               <Link
-                className={`nav-link${isActive(pathname, "/pulse-check") ? " active" : ""}`}
-                id="nav-pulse"
-                href="/pulse-check"
-                style={
-                  enforcementStatus === "overdue"
-                    ? { color: "#fff", background: "var(--red)" }
-                    : undefined
-                }
+                className={`am-tab${isActive(pathname, "/dashboard") ? " active" : ""}`}
+                href="/dashboard"
+                aria-label={logDue ? "Home — Log due" : "Home"}
               >
-                {enforcementStatus !== "ok" && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      display: "inline-block",
-                      width: 7,
-                      height: 7,
-                      borderRadius: "50%",
-                      marginRight: 7,
-                      verticalAlign: 2,
-                      background:
-                        enforcementStatus === "overdue" ? "#fff" : "var(--red)",
-                    }}
-                  />
-                )}
-                {pulseNavLabel}
+                <span className="am-icon">
+                  {HOME_ICON}
+                  {logDue && <span className="am-pip" aria-hidden />}
+                </span>
               </Link>
-            )}
-          </nav>
+              {hasEnrollment && (
+                <Link
+                  className={`am-tab${isActive(pathname, "/cycles") ? " active" : ""}`}
+                  href="/cycles"
+                  aria-label="My Cycle"
+                >
+                  <span className="am-icon">{CYCLE_ICON}</span>
+                </Link>
+              )}
+              <Link
+                className={`am-tab${isActive(pathname, "/learning") ? " active" : ""}`}
+                href="/learning"
+                aria-label="Learning"
+              >
+                <span className="am-icon">{LEARNING_ICON}</span>
+              </Link>
+              <Link
+                className={`am-tab${isActive(pathname, "/directory") ? " active" : ""}`}
+                href="/directory"
+                aria-label="Directory"
+              >
+                <span className="am-icon">{DIRECTORY_ICON}</span>
+              </Link>
+            </nav>
+          </>
         )}
         <AvatarMenu
           initials={initials}
+          avatarUrl={avatarUrl}
           displayName={displayName}
           isAdmin={isAdmin}
           isModerator={isModerator}
           showPods={showPods}
           persona={persona}
+          isTest={isTest}
+          moderatorPersonaLabel={moderatorPersonaLabel}
+          labLeadHref={labLeadHref}
         />
       </div>
     </header>
@@ -138,23 +237,32 @@ function isActive(pathname: string, prefix: string) {
 
 function AvatarMenu({
   initials,
+  avatarUrl,
   displayName,
   isAdmin,
   isModerator,
   showPods,
   persona,
+  isTest,
+  moderatorPersonaLabel,
+  labLeadHref,
 }: {
   initials: string;
+  avatarUrl: string | null;
   displayName: string;
   isAdmin: boolean;
   isModerator: boolean;
   showPods: boolean;
-  persona: "admin" | "poderator" | null;
+  persona: "admin" | "poderator" | "lablead" | null;
+  isTest: boolean;
+  moderatorPersonaLabel: string;
+  labLeadHref: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
-  const router = useRouter();
-  const canViewAs = isAdmin || isModerator || showPods;
+  const canViewAs = isAdmin || isModerator || showPods || !!labLeadHref;
 
   // Esc / outside-click close + ArrowUp/Down cycling — the shared.js contract.
   useEffect(() => {
@@ -190,7 +298,35 @@ function AvatarMenu({
   const signOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    // Full navigation to the public home page (not router.push) so the
+    // server re-renders with the cleared session — the signed-out landing,
+    // not the login screen.
+    window.location.href = "/";
+  };
+
+  // Tester-only self-reset (testing pathway, migration 00042). Two taps to
+  // confirm — the item stays in the open menu — then wipe, sign out, and
+  // land on the public home page so the whole flow restarts from the front
+  // door. The email-keyed grant survives, so the flag returns on re-signup.
+  const resetTestAccount = async () => {
+    if (!resetConfirm) {
+      setResetConfirm(true);
+      return;
+    }
+    setResetBusy(true);
+    try {
+      const res = await fetch("/api/testing/reset", { method: "POST" });
+      if (!res.ok) {
+        setResetBusy(false);
+        setResetConfirm(false);
+        return;
+      }
+      await createClient().auth.signOut();
+      window.location.href = "/";
+    } catch {
+      setResetBusy(false);
+      setResetConfirm(false);
+    }
   };
 
   const openFeedback = () => {
@@ -232,8 +368,19 @@ function AvatarMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        style={avatarUrl ? { padding: 0, overflow: "hidden" } : undefined}
       >
-        {initials}
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="block h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          initials
+        )}
       </button>
       {open && (
         <div id="avatar-menu" role="menu" aria-label="Account menu">
@@ -251,6 +398,14 @@ function AvatarMenu({
           >
             Profile
           </Link>
+          <Link
+            className="menu-item"
+            role="menuitem"
+            href="/profile/edit"
+            onClick={() => setOpen(false)}
+          >
+            Edit profile
+          </Link>
           {canViewAs && (
             <>
               <div className="menu-rule" />
@@ -259,7 +414,13 @@ function AvatarMenu({
               </div>
               {radio(persona === null, "Upskiller", "/dashboard")}
               {(isModerator || showPods) &&
-                radio(persona === "poderator", "Poderator", "/moderator")}
+                radio(
+                  persona === "poderator",
+                  moderatorPersonaLabel,
+                  "/moderator"
+                )}
+              {labLeadHref &&
+                radio(persona === "lablead", "Lab lead", labLeadHref)}
               {isAdmin && radio(persona === "admin", "Admin", "/admin")}
             </>
           )}
@@ -267,6 +428,21 @@ function AvatarMenu({
           <button className="menu-item" role="menuitem" onClick={openFeedback}>
             Send feedback
           </button>
+          {isTest && (
+            <button
+              className="menu-item"
+              role="menuitem"
+              onClick={resetTestAccount}
+              disabled={resetBusy}
+              style={{ color: "var(--red)" }}
+            >
+              {resetBusy
+                ? "Resetting…"
+                : resetConfirm
+                  ? "Tap again to wipe & restart"
+                  : "Reset Test Account"}
+            </button>
+          )}
           <button className="menu-item" role="menuitem" onClick={signOut}>
             Sign out
           </button>

@@ -24,7 +24,26 @@ export const HEAR_ABOUT_SOURCES = ["referral", "invited", "event", "other"] as c
 
 // The Participant Agreement rendered (and scroll-gated) on the consent step.
 // Bump the version whenever the agreement text changes.
-export const PARTICIPANT_AGREEMENT_VERSION = "participant-2026-07-v1";
+// v2 (2026-07): role-universal framing + explicit incorporation of the hosted
+// Terms of Service, Privacy Policy, and Code of Conduct. Pending owner/legal
+// sign-off (see funnel.tsx). v1 acceptances remain valid; no backfill.
+export const PARTICIPANT_AGREEMENT_VERSION = "participant-2026-07-v2";
+
+// The Local Lab decision made at registration (docs/LOCAL_LABS.md — the
+// membership spine): join an active lab, join an existing lab's waitlist, or
+// start a waitlist for a new city. Active-lab membership is what unlocks cycle
+// participation; the waitlist branches leave metro_id NULL.
+export const labChoiceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("join_active"), metro_id: z.number().int().positive() }),
+  z.object({ kind: z.literal("join_waitlist"), metro_id: z.number().int().positive() }),
+  z.object({
+    kind: z.literal("start_waitlist"),
+    city: z.string().trim().min(1, "Enter a city").max(100),
+    st: z.string().trim().max(2).optional(),
+  }),
+]);
+
+export type LabChoice = z.infer<typeof labChoiceSchema>;
 
 export const funnelRegistrationSchema = z.object({
   auth_user_id: z.string().min(1, "auth_user_id is required"),
@@ -44,6 +63,7 @@ export const funnelRegistrationSchema = z.object({
     "You must agree to the Participant Agreement"
   ),
   agreement_version: z.literal(PARTICIPANT_AGREEMENT_VERSION),
+  lab_choice: labChoiceSchema,
 });
 
 export type FunnelRegistration = z.infer<typeof funnelRegistrationSchema>;

@@ -120,7 +120,7 @@ export default async function RegisterProjectsPage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
@@ -135,7 +135,7 @@ export default async function RegisterProjectsPage({
       </div>
 
       {!isOpen ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             Project registration is not currently open.
           </p>
@@ -151,13 +151,13 @@ export default async function RegisterProjectsPage({
             )}
         </div>
       ) : !enrollmentActive ? (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             You are not an active participant in this cycle.
           </p>
           <Link
             href={`/cycles/${cycle.id}`}
-            className="mt-2 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:outline-none focus-visible:underline"
+            className="mt-2 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline"
           >
             View cycle &rarr;
           </Link>

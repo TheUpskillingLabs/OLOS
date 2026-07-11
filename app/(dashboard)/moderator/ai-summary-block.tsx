@@ -159,12 +159,10 @@ function PreviewDialog({
     if (!open && d.open) d.close();
   }, [open]);
 
-  // Reset copy feedback whenever the dialog reopens. Deferred so the state
-  // update doesn't run synchronously inside the effect body (lint fix).
+  // Reset copy feedback whenever the dialog reopens. Deferred so it isn't a
+  // synchronous setState in the effect body (react-hooks/set-state-in-effect).
   React.useEffect(() => {
-    if (!open) return;
-    const id = setTimeout(() => setDialogCopied(false), 0);
-    return () => clearTimeout(id);
+    if (open) queueMicrotask(() => setDialogCopied(false));
   }, [open]);
 
   const onDialogCopy = async () => {

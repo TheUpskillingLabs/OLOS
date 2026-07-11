@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { isCycleOpenForRegistration } from "@/lib/cycles/registration";
 import CycleCeremony from "./ceremony";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
@@ -30,28 +29,49 @@ export default async function JoinCyclePage({
 
   const { data: participant } = await serviceClient
     .from("participants")
-    .select("id, first_name, last_name, preferred_name")
+    .select("id, first_name, last_name, preferred_name, metro_id")
     .eq("auth_user_id", user.id)
     .maybeSingle();
 
   if (!participant) redirect("/register");
 
+  // Active-lab gate (docs/LOCAL_LABS.md — the membership spine): only members
+  // of an ACTIVE Local Lab can register for a cycle. Waitlisted or lab-less
+  // members are sent to pick/start a lab before any ceremony renders.
+  if (!participant.metro_id) redirect("/local-labs");
+  const { data: memberLab } = await serviceClient
+    .from("metros")
+    .select("status")
+    .eq("id", participant.metro_id)
+    .maybeSingle();
+  if (memberLab?.status !== "active") redirect("/local-labs");
+
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, status, start_date")
+    .select("id, name, status, mode, lab_id")
     .eq("id", cycleId)
     .single();
 
-  if (!cycle) redirect("/cycles");
+  // Registration is open for the running cohort ('active') AND the next cohort
+  // ('upcoming') — the Civics wave pre-registers before kickoff. The agreement
+  // route writes an 'inactive' enrollment either way; the reconciler activates
+  // it when the cycle starts. Anything else (draft/closed/archived) has no
+  // registration ceremony.
+  if (!cycle || (cycle.status !== "active" && cycle.status !== "upcoming"))
+    redirect("/cycles");
 
-  // Joinable when active OR the registration window is open (an `upcoming`
-  // cycle taking sign-ups before it starts).
-  const joinable =
-    cycle.status === "active" ||
-    (await isCycleOpenForRegistration(serviceClient, cycleId));
-  if (!joinable) redirect("/cycles");
+  // Org cycles (docs/ORG_CYCLES.md) are invite-only — no self-serve join
+  // ceremony. Redirect before any interest/agreement UI renders.
+  if (cycle.mode === "org") redirect("/cycles");
 
-  const notYetStarted = cycle.status !== "active";
+  // Sub-cohort model (docs/LOCAL_LABS.md, 00067): the joinable participant
+  // cycle is the single HQ one (live open cycles are lab_id NULL by the
+  // cycles_open_is_hq_when_live CHECK), so this guard never fires for it —
+  // it remains as defense-in-depth against deep links into residual or
+  // historical per-lab cycles. Members with no metro are never blocked.
+  if (cycle.lab_id !== null && cycle.lab_id !== participant.metro_id) {
+    redirect("/cycles");
+  }
 
   // Already signed → the ceremony opens on the confirmation, not the pitch.
   const { data: agreement } = await serviceClient
@@ -86,8 +106,6 @@ export default async function JoinCyclePage({
       alreadySigned={!!agreement}
       signedAt={agreement?.signed_at ?? null}
       podRegistrationOpen={podRegistrationOpen}
-      notYetStarted={notYetStarted}
-      startDate={cycle.start_date}
     />
   );
 }

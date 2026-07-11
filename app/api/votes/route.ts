@@ -1,11 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
-import { isActiveParticipant } from "@/lib/auth/roles";
+import { isEnrolledParticipant, isActiveParticipant } from "@/lib/auth/roles";
+import { isCurrentlyRevoked } from "@/lib/enrollment/revocation";
 import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { voteSchema } from "@/lib/validations/votes";
 import { requireCompleteProfile } from "@/lib/participants/placeholder";
+import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -22,30 +24,55 @@ export const POST = withAuth(
     const guard = await requireCompleteProfile(auth.supabase, voter_id);
     if (guard) return guard;
 
+    const orgRejection = await rejectOrgCycle(auth.supabase, cycle_id);
+    if (orgRejection) return orgRejection;
+
     // Check window
     const window = await checkWindow(auth.supabase, cycle_id, "voting");
     if (!window.open) {
       return NextResponse.json({ error: window.message }, { status: 403 });
     }
 
-    if (!isActiveParticipant(auth.user, cycle_id)) {
-      return NextResponse.json({ error: "You must be an active participant" }, { status: 403 });
+    // Enrolled (non-revoked) is the right gate for phases 1–2 — see
+    // isEnrolledParticipant docs for why 'active' would deadlock here.
+    if (!isEnrolledParticipant(auth.user, cycle_id)) {
+      return NextResponse.json({ error: "You must be enrolled in this cycle" }, { status: 403 });
     }
 
-    // The target statement must belong to THIS cycle. Only an FK to
-    // problem_statements(id) exists, so without this a voter could inject
-    // votes against another cycle's statement and pollute this cycle's tally
-    // (audit fix: cross-cycle vote injection).
-    const { data: targetStatement } = await auth.supabase
-      .from("problem_statements")
-      .select("cycle_id")
-      .eq("id", problem_statement_id)
-      .maybeSingle();
-
-    if (!targetStatement || targetStatement.cycle_id !== cycle_id) {
+    // Revoked participants also sit at status 'inactive' (the revocation
+    // flow never writes 'revoked') — consult the access_revocations audit
+    // trail so they can't vote.
+    if (
+      !isActiveParticipant(auth.user, cycle_id) &&
+      (await isCurrentlyRevoked(voter_id, cycle_id))
+    ) {
       return NextResponse.json(
-        { error: "That problem statement is not part of this cycle." },
-        { status: 400 }
+        { error: "Your access to this cycle has been revoked." },
+        { status: 403 }
+      );
+    }
+
+    // Same-lab guard (docs/LOCAL_LABS.md): you may only vote on your own lab's
+    // problem statements — the ballot already scopes to them, this is the
+    // server-side twin. Also validates the statement belongs to this cycle.
+    const { data: target } = await auth.supabase
+      .from("problem_statements")
+      .select("metro_id")
+      .eq("id", problem_statement_id)
+      .eq("cycle_id", cycle_id)
+      .maybeSingle();
+    if (!target) {
+      return NextResponse.json({ error: "Problem statement not found" }, { status: 404 });
+    }
+    const { data: voter } = await auth.supabase
+      .from("participants")
+      .select("metro_id")
+      .eq("id", voter_id)
+      .maybeSingle();
+    if ((target.metro_id ?? null) !== (voter?.metro_id ?? null)) {
+      return NextResponse.json(
+        { error: "You can only vote on your own lab's problem statements" },
+        { status: 403 }
       );
     }
 

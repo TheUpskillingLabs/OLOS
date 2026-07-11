@@ -24,6 +24,26 @@ const attachmentSchema = z.object({
     ),
 });
 
+/** Triage statuses for a feedback submission (mirrors the DB CHECK on
+ *  feedback.status). Admins move a row through these in /admin/feedback. */
+export const FEEDBACK_STATUSES = [
+  "open",
+  "in_review",
+  "resolved",
+  "closed",
+] as const;
+
+export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
+
+/** Admin status change from the review UI — the only field an admin edits. */
+export const feedbackStatusPatchSchema = z.object({
+  status: z.enum(FEEDBACK_STATUSES, {
+    message: 'Status must be "open", "in_review", "resolved", or "closed"',
+  }),
+});
+
+export type FeedbackStatusPatchInput = z.infer<typeof feedbackStatusPatchSchema>;
+
 export const createFeedbackSchema = z.object({
   category: z.enum(["bug", "suggestion", "other"], {
     message: 'Category must be "bug", "suggestion", or "other"',

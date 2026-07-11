@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
-import { createServiceClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/auth/roles";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
@@ -32,14 +31,9 @@ export const PATCH = withAuth(
     if (isErrorResponse(body)) return body;
     const { name } = body;
 
-    // Authorization is enforced above (admin or the owning pod's moderator).
-    // The write runs on the service client because the projects_update RLS
-    // policy requires is_admin_or_owner(); a moderator would otherwise match
-    // 0 rows and .single() would 500 (audit fix).
-    const serviceClient = createServiceClient();
-    const { data, error } = await serviceClient
+    const { data, error } = await auth.supabase
       .from("projects")
-      .update({ name, updated_at: new Date().toISOString() })
+      .update({ name })
       .eq("id", projectId)
       .select("id, name, updated_at")
       .single();

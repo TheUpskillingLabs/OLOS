@@ -38,18 +38,6 @@ export const GET = withAuth(
 
     const result: Record<string, unknown> = { tallies };
 
-    // Tell the caller whether THEY have already submitted a ballot here, so the
-    // ballot can render the "already voted" state on load instead of only after
-    // a full submit + 409 (audit fix). A boolean about oneself isn't sensitive.
-    if (auth.user.participantId) {
-      const { count } = await auth.supabase
-        .from("project_votes")
-        .select("id", { count: "exact", head: true })
-        .eq("pod_id", podId)
-        .eq("voter_id", auth.user.participantId);
-      result.has_voted = (count ?? 0) > 0;
-    }
-
     // Per-voter attribution is admin-only; moderators see tallies only.
     // The W2-001 moderator dashboard intentionally omits voter-level data.
     if (isAdmin(auth.user) || isModeratorForPod(auth.user, podId)) {

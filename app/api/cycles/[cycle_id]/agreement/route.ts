@@ -5,7 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleAgreementSchema } from "@/lib/validations/cycle-agreement";
-import { isCycleOpenForRegistration } from "@/lib/cycles/registration";
+import { requireActiveLabMembership } from "@/lib/labs/membership";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // The Open Cycle Agreement signature (backend doc §2c) — the completion of
@@ -34,26 +34,49 @@ export const POST = withAuth(
 
     const supabase = createServiceClient();
 
-    // Registration is allowed when the cycle is active OR its registration
-    // window is open (so members can sign up for an `upcoming` cycle before it
-    // starts). The enrollment is still written `inactive` either way.
+    // Active-lab gate (docs/LOCAL_LABS.md): signing the cycle agreement is
+    // cycle registration — only members of an ACTIVE Local Lab may do it.
+    const labGate = await requireActiveLabMembership(supabase, participantId);
+    if (labGate) return labGate;
+
+    // Registration is open for the running cohort ('active') and the next one
+    // ('upcoming') — the upcoming cohort pre-registers before kickoff. The
+    // enrollment written below is 'inactive' either way; activation stays with
+    // reconcileEnrollmentActivation (§3.7).
     const { data: cycle } = await supabase
       .from("cycles")
-      .select("id, status")
+      .select("id, status, lab_id")
       .eq("id", cycleId)
       .single();
 
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
-    const acceptingRegistration =
-      cycle.status === "active" ||
-      (await isCycleOpenForRegistration(supabase, cycleId));
-    if (!acceptingRegistration) {
+    if (cycle.status !== "active" && cycle.status !== "upcoming") {
       return NextResponse.json(
         { error: "This cycle is not currently accepting registrations" },
         { status: 400 }
       );
+    }
+
+    // Sub-cohort model (docs/LOCAL_LABS.md, 00067): the signable participant
+    // cycle is the single HQ one (live open cycles are lab_id NULL by the
+    // cycles_open_is_hq_when_live CHECK) — this server-side twin of the join
+    // page's guard remains as defense-in-depth against direct POSTs at
+    // residual/historical per-lab cycles. HQ cycles are never blocked, so a
+    // mis-zipped member always has a path.
+    if (cycle.lab_id !== null) {
+      const { data: me } = await supabase
+        .from("participants")
+        .select("metro_id")
+        .eq("id", participantId)
+        .maybeSingle();
+      if (me?.metro_id !== cycle.lab_id) {
+        return NextResponse.json(
+          { error: "This cycle belongs to a different local lab" },
+          { status: 403 }
+        );
+      }
     }
 
     const body = await parseBody(request, cycleAgreementSchema);

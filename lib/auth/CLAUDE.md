@@ -109,7 +109,8 @@ User                  Frontend              Supabase Auth        Next.js callbac
 Files:
 
 - [`app/(auth)/login/page.tsx`](../../app/(auth)/login/page.tsx) — landing page;
-  sets the `invite_token` cookie if the URL carries `?invite=…`, then calls
+  a thin shell around [`login-card.tsx`](../../app/(auth)/login/login-card.tsx),
+  which sets the `invite_token` cookie if the URL carries `?invite=…`, then calls
   `supabase.auth.signInWithOAuth({ provider: "google", options.redirectTo })`.
   Invite-flavored UI (the "You've been invited" badge and alternate CTA copy)
   is **derived directly from the `?invite` query param**, not stored in React
@@ -118,6 +119,15 @@ Files:
   and also self-corrects if client-side navigation drops the param. The
   cookie write — the load-bearing side effect that persists the token across
   the OAuth round-trip — remains in `useEffect`.
+
+  The same card has a **popup twin**: soft in-app navigations to `/login`
+  (any `<Link href="/login">` CTA) are intercepted by
+  [`app/@authmodal/(.)login`](../../app/@authmodal/(.)login/page.tsx) and
+  render `LoginCard` inside a modal over the launching page (owner ask,
+  July 2026). Hard navigations — invite emails, the callback's
+  `?error=auth_failed` redirect, refreshes, and the middleware's
+  unauthenticated redirect — skip interception and get the full page.
+  Auth semantics are identical in both hosts; only the shell differs.
 - [`supabase/config.toml`](../../supabase/config.toml) `[auth.external.google]`
   — Google provider enabled, `client_id` / `secret` from `GOOGLE_CLIENT_ID` /
   `GOOGLE_CLIENT_SECRET`. Production credentials are configured in the
@@ -125,16 +135,30 @@ Files:
 - [`app/api/auth/callback/route.ts`](../../app/api/auth/callback/route.ts) —
   the only OAuth landing endpoint. Exchanges the `code`, looks up
   `participants` by email (service-role client, bypasses RLS), links
-  `auth_user_id` if missing, auto-promotes owner emails, fulfills any pending
+  `auth_user_id` if missing, fulfills any pending
   invitation, then redirects.
 
   - **No participant row** → redirect to `/register`. (See §404 vs redirect
     below.)
   - **Auth failure** → `?error=auth_failed` query on `/login`.
 
-- [`lib/auth/owner-emails.ts`](./owner-emails.ts) — `OWNER_EMAILS` env var
-  list; first sign-in from one of those addresses upserts an `owner` row in
-  `user_roles`. This is bootstrap-only and intentional.
+- **Owner is not self-serve (2026-07, authorization unification).**
+  `lib/auth/owner-emails.ts` and its `OWNER_EMAILS` auto-promotion were
+  **removed**: signing in with an allowlisted address no longer mints an
+  `owner`. Ownership is a single rooted tree — `hello@brendanwhitaker.com` is
+  the primary owner (`participant_roles`, `granted_by IS NULL`, migration
+  `00066`); every other owner is a co-owner *granted by* an existing owner
+  (provenance), and the DB `guard_owner_grant` trigger (00064) blocks any
+  authenticated non-owner from minting an owner. `OWNER_EMAILS` survives only
+  as the default-inviter hint for `scripts/ops/send-bulk-invites.ts`.
+- **Authority resolves from `participant_roles` — one source of truth for
+  the app AND DB RLS (2026-07).** `resolveUserRoles` reads `participant_roles`
+  (the same table `is_admin()`/`is_owner()` read, 00058), so the app and
+  database can no longer disagree on who is admin/owner. `isAdmin`/`isOwner`
+  are role-based (owner/admin/developer for admin; owner for owner), matching
+  RLS exactly. Granular capabilities (`permissions[]`) still read
+  `participant_permissions` for now — deriving them from roles is a later
+  commit. See the authorization-unification plan/runbook.
 - [`lib/auth/roles.ts`](./roles.ts) — `resolveUserRoles(supabase, authUserId)`
   produces the `UserRoles` shape every guarded route consumes. **This is the
   spec's "JWT claims" surface.**
@@ -187,7 +211,8 @@ hitches a ride on Google OAuth.
    `invite_token={uuid}` to a `SameSite=Lax` cookie (1 hour TTL) and shows
    the "You've been invited" CTA.
 4. Invitee clicks "Sign in with Google". OAuth completes.
-5. Callback runs `fulfillInvitation()` in
+5. Callback runs `fulfillInvitation()` (extracted to
+   [`lib/auth/invitations.ts`](./invitations.ts)) from
    [`/api/auth/callback`](../../app/api/auth/callback/route.ts):
    - Read the cookie, clear it.
    - Match `invitations.token` AND `invitations.email == user.email` AND
@@ -197,9 +222,27 @@ hitches a ride on Google OAuth.
    - Upsert `user_roles` row for `owner` / `admin` / `developer` / `observer`
      presets (audit trail; `moderator` is *not* added here — moderator is
      derived from `moderator_assignments` rows).
-   - Upsert `cycle_enrollments` (status=active) when `cycle_id` set.
-   - Upsert `moderator_assignments` when `pod_id` set (queries the pod for
-     `cycle_id`).
+   - Upsert `cycle_enrollments` (status=active) when `cycle_id` set, then
+     reconcile.
+   - If `pod_id` is set, branch on `pod_role` (migration 00060 §6):
+     `NULL`/absent → legacy behavior, `moderator_assignments` only
+     (participant-cycle poderator invites; `POST /api/invitations` rejects
+     `NULL` pod_role on an org-mode pod, so this branch only fires for
+     participant-cycle pods). `'co_lead'` → `moderator_assignments`
+     **and** an active pod membership — org co-leads sit in their
+     workstream. `'member'` → pod membership only, no moderator
+     assignment — org core contributors.
+   - The `co_lead`/`member` membership path goes through
+     `ensureActivePodMembership()` in
+     [`lib/enrollment/reconciler.ts`](../enrollment/reconciler.ts): it
+     reactivates/inserts the `pod_memberships` row, seeds an active
+     `cycle_enrollments` row for the **pod's own** `cycle_id` (unconditionally
+     — even when the invitation's `cycle_id` pointed at a different cycle),
+     and only then re-runs the reconciler, since the reconciler only
+     promotes an enrollment by looking at pod memberships as they currently
+     stand. `app/api/pods/[pod_id]/moderators/route.ts` (admin-assigned org
+     co-lead) shares this same helper — it's the single path an org
+     co-lead/member joins a workstream through.
    - Mark invitation `accepted` + `accepted_at`.
 
 **Bulk-invite path** (the unbuilt §1.8 / Issue #46): `cycle_id`, `pod_id`,
@@ -407,12 +450,15 @@ Sequenced — each step depends on the previous:
    `https://<project-ref>.supabase.co/auth/v1/callback`.
 2. **Supabase Studio → Auth → Providers → Google** — paste client_id +
    secret from step 1.
-3. **Supabase Studio → Auth → URL Configuration** — set `Site URL` and
-   add the prod app domain to Redirect URLs
-   (`https://olos.theupskillinglabs.org/api/auth/callback`). The
-   `app.theupskillinglabs.org` subdomain referenced in earlier drafts was
-   never DNS'd; production lives on `olos.theupskillinglabs.org` per the
-   Vercel project's domain configuration.
+3. **Supabase Studio → Auth → URL Configuration** — set `Site URL` to
+   `https://theupskillinglabs.org` and add
+   `https://theupskillinglabs.org/api/auth/callback` to Redirect URLs.
+   Production is moving onto the apex `theupskillinglabs.org` as the legacy
+   Squarespace marketing site is folded into this app; the earlier
+   `olos.theupskillinglabs.org` subdomain and the never-DNS'd
+   `app.theupskillinglabs.org` are both superseded. Leave the
+   `olos.…/api/auth/callback` entry in the allow-list until that subdomain is
+   retired so in-flight sign-ins don't break during cutover.
 4. ✅ **Resend** — verified `enroll.theupskillinglabs.org` (subdomain mode);
    SPF + DKIM + DMARC passing on the 2026-05-08 first prod send. Approved
    sender is `noreply@enroll.theupskillinglabs.org` (in-code default

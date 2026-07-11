@@ -99,7 +99,7 @@ export function RecentPulsesFeed({ podId }: { podId: number }) {
 
   if (payload.pulses.length === 0) {
     return (
-      <div className="rounded-card border border-ink/10 bg-white p-6 text-center text-sm text-meta">
+      <div className="rounded-card border border-ink/10 bg-white p-6 text-sm text-meta">
         No submitted pulses in this pod yet.
       </div>
     );

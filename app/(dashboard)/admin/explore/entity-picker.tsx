@@ -9,12 +9,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { REGISTRY } from "@/lib/entity-explorer/registry";
 import type { EntityKey } from "@/lib/entity-explorer/types";
 
-/** Entity dropdown groups, mirroring the mockup's optgroups. */
+/** Entity dropdown groups. Covers every key in the registry so no registered
+    entity is reachable only by typing the URL. */
 const GROUPS: { label: string; keys: EntityKey[] }[] = [
   { label: "Core", keys: ["cycles", "participants", "cycle_enrollments"] },
   { label: "Pods", keys: ["problem_statements", "votes", "pods", "pod_memberships", "moderator_assignments"] },
   { label: "Projects", keys: ["solution_proposals", "project_votes", "projects", "project_memberships"] },
   { label: "Auth & engagement", keys: ["user_roles", "pulse_checks"] },
+  { label: "Content & agreements", keys: ["events", "resources", "metros", "cycle_agreements"] },
 ];
 
 export type CycleOption = { id: number; name: string };

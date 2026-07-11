@@ -41,7 +41,7 @@ export default async function VotePage({
       <div className="mb-8">
         <Link
           href={`/cycles/${cycle.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep focus-visible:outline-none focus-visible:text-teal-deep"
+          className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
@@ -61,7 +61,7 @@ export default async function VotePage({
           nonSubmitterBudget={config?.non_submitter_votes ?? 0}
         />
       ) : (
-        <div className="rounded-card border border-ink/10 bg-white p-6 text-center shadow-card">
+        <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">Voting is not currently open.</p>
           {config?.voting_open && now < new Date(config.voting_open) && (
             <p className="mt-2 text-sm text-meta tabular-nums">

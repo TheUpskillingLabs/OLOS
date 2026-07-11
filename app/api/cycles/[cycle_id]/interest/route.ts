@@ -5,7 +5,7 @@ import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleInterestSchema } from "@/lib/validations/cycle-interest";
-import { isCycleOpenForRegistration } from "@/lib/cycles/registration";
+import { requireActiveLabMembership } from "@/lib/labs/membership";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -27,21 +27,31 @@ export const POST = withAuth(
 
     const supabase = createServiceClient();
 
-    // Accept interest when the cycle is active OR its registration window is
-    // open (an `upcoming` cycle taking sign-ups before it starts).
+    // Active-lab gate (docs/LOCAL_LABS.md): only a member of an ACTIVE Local
+    // Lab can register for a cycle — waitlisted/lab-less members are held.
+    const labGate = await requireActiveLabMembership(supabase, participantId);
+    if (labGate) return labGate;
+
+    // Open for the running cohort ('active') and the next one ('upcoming') —
+    // the upcoming cohort collects interest pre-kickoff. The enrollment written
+    // below stays 'inactive' until the reconciler activates it. Org cycles
+    // (invite-only, docs/ORG_CYCLES.md) never accept self-serve interest.
     const { data: cycle } = await supabase
       .from("cycles")
-      .select("id, status")
+      .select("id, status, mode")
       .eq("id", cycleId)
-      .single();
+      .maybeSingle();
 
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
     }
-    const acceptingInterest =
-      cycle.status === "active" ||
-      (await isCycleOpenForRegistration(supabase, cycleId));
-    if (!acceptingInterest) {
+    if (cycle.mode === "org") {
+      return NextResponse.json(
+        { error: "Organization cycles are invite-only." },
+        { status: 403 }
+      );
+    }
+    if (cycle.status !== "active" && cycle.status !== "upcoming") {
       return NextResponse.json(
         { error: "This cycle is not currently accepting interest" },
         { status: 400 }

@@ -15,6 +15,9 @@ import { ManagedTooltip } from "../../tooltip-state";
 import { getPodsForUser } from "@/lib/moderator/pods-list";
 import { getUiState } from "@/lib/moderator/ui-state";
 import { PodContentTabs } from "./pod-content-tabs";
+import PodSquadSections from "./pod-squad-sections";
+import PodMilestoneLogs from "./pod-milestone-logs";
+import { podNoun } from "@/lib/cycle/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -61,24 +64,28 @@ export default async function ModeratorPodPage({
     getUiState(serviceClient, userRoles.participantId),
   ]);
   if (!detail) notFound();
+  const isOrg = detail.cycle_mode === "org";
   // Pass last_pod_tab through to seed the tab wrapper. Filter/sort still
   // hydrates from /api/moderator/ui-state in the client (see RosterTable).
   const initialTab = uiState.last_pod_tab ?? "members";
 
   // §7.9.2 pod-level insights — pre-compute both ranges so the client
   // toggle doesn't need a round-trip. Plus the AI-summary prompt for
-  // §7.10.3.
-  const [fourWeeksInsights, fullCycleInsights, aiPromptRow] = await Promise.all([
-    getPodInsights(serviceClient, podId, "4w"),
-    getPodInsights(serviceClient, podId, "full"),
-    serviceClient
-      .from("cycle_config")
-      .select("ai_summary_prompt")
-      .eq("cycle_id", detail.cycle_id)
-      .maybeSingle(),
-  ]);
+  // §7.10.3. Org runs have no pulse checks, so skip the fetches entirely —
+  // the insights section (and its AI summary) only exists for pods.
+  const [fourWeeksInsights, fullCycleInsights, aiPromptRow] = isOrg
+    ? [null, null, null]
+    : await Promise.all([
+        getPodInsights(serviceClient, podId, "4w"),
+        getPodInsights(serviceClient, podId, "full"),
+        serviceClient
+          .from("cycle_config")
+          .select("ai_summary_prompt")
+          .eq("cycle_id", detail.cycle_id)
+          .maybeSingle(),
+      ]);
   const aiSummaryPrompt =
-    (aiPromptRow.data?.ai_summary_prompt as string | null) ?? null;
+    (aiPromptRow?.data?.ai_summary_prompt as string | null) ?? null;
 
   const atRiskMembers = detail.members.filter(
     (m) => m.pulse_status === "at_risk" && !m.is_inactive && !m.nudge_dismissed
@@ -104,11 +111,11 @@ export default async function ModeratorPodPage({
       </div>
       <StatusHeader detail={detail} />
 
-      {atRiskMembers.length > 0 && (
+      {!isOrg && atRiskMembers.length > 0 && (
         <AtRiskSection
           members={atRiskMembers}
           podId={detail.id}
-          podName={detail.name ?? `Pod ${detail.id}`}
+          podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
           threshold={detail.at_risk_threshold}
         />
       )}
@@ -121,11 +128,19 @@ export default async function ModeratorPodPage({
         />
       )}
 
+      {/* Pod Squad sections: Learning-Log health (blocked first), workshop
+          sign-ups, feedback inbox — the memo batch + Phase 1 repoint. */}
+      <PodSquadSections cycleId={detail.cycle_id} members={detail.members} />
+
+      {/* Milestone Logs: wk-mid/final evaluation status per member. */}
+      <PodMilestoneLogs cycleId={detail.cycle_id} members={detail.members} />
+
       <PodContentTabs
         members={detail.members}
         podId={detail.id}
-        podName={detail.name ?? `Pod ${detail.id}`}
+        podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
         initialTab={initialTab}
+        mode={detail.cycle_mode}
       />
     </div>
   );
@@ -175,21 +190,29 @@ const TREND_COLOR: Record<Trend, string> = {
 
 function StatusHeader({ detail }: { detail: PodDetail }) {
   const statusVariant = POD_STATUS_VARIANT[detail.status] ?? "inactive";
+  const noun = podNoun(detail.cycle_mode);
+  // Workstream runs have no pulse checks — drop the pulse cell rather than
+  // show a permanently-empty metric.
+  const isOrg = detail.cycle_mode === "org";
   return (
     <header>
       <div className="lbl mb-1.5">
-        {detail.cycle_name ? `${detail.cycle_name} · Pod` : "Pod"}
+        {detail.cycle_name ? `${detail.cycle_name} · ${noun}` : noun}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="t-h1 text-ink">
-          {detail.name ?? `Pod ${detail.id}`}
+          {detail.name ?? `${noun} ${detail.id}`}
         </h1>
         <StatusBadge variant={statusVariant} withDot>
           {detail.status}
         </StatusBadge>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 rounded-card border border-ink/10 bg-white p-5 shadow-card sm:grid-cols-3">
+      <div
+        className={`mt-5 grid grid-cols-1 gap-4 rounded-card border border-ink/10 bg-white p-5 shadow-card ${
+          isOrg ? "sm:grid-cols-2" : "sm:grid-cols-3"
+        }`}
+      >
         <div>
           <div className="mb-1 text-xs text-meta">Phase</div>
           <div className="text-base font-semibold text-ink">
@@ -208,33 +231,35 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
             </div>
           )}
         </div>
-        <div>
-          <ManagedTooltip
-            tooltipKey="pod_health_indicator"
-            content="Count of active pod members who haven't submitted this week's pulse. Banded into healthy / warning / critical by cycle-configurable thresholds."
-          >
-            <div className="mb-1 text-xs text-meta">Pulse this week</div>
-          </ManagedTooltip>
-          <div className="flex items-baseline gap-1.5">
-            <span
-              className={`text-2xl font-bold tabular-nums ${BAND_TEXT[detail.band]}`}
-            >
-              {detail.missing_this_week}
-            </span>
-            <span className="text-xs text-meta">missing</span>
+        {!isOrg && (
+          <div>
             <ManagedTooltip
-              tooltipKey="trend_arrow"
-              content="Trend vs. the prior 3 weeks. ↑ rising completion, ↓ falling, → flat (within 5pp tolerance)."
+              tooltipKey="pod_health_indicator"
+              content="Count of active pod members who haven't submitted this week's pulse. Banded into healthy / warning / critical by cycle-configurable thresholds."
             >
-              <span className={`ml-auto text-xs ${TREND_COLOR[detail.trend]}`}>
-                {TREND_ARROW[detail.trend]}
-              </span>
+              <div className="mb-1 text-xs text-meta">Pulse this week</div>
             </ManagedTooltip>
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={`text-2xl font-bold tabular-nums ${BAND_TEXT[detail.band]}`}
+              >
+                {detail.missing_this_week}
+              </span>
+              <span className="text-xs text-meta">missing</span>
+              <ManagedTooltip
+                tooltipKey="trend_arrow"
+                content="Trend vs. the prior 3 weeks. ↑ rising completion, ↓ falling, → flat (within 5pp tolerance)."
+              >
+                <span className={`ml-auto text-xs ${TREND_COLOR[detail.trend]}`}>
+                  {TREND_ARROW[detail.trend]}
+                </span>
+              </ManagedTooltip>
+            </div>
+            <div className="mt-1 text-xs text-meta">
+              band: {detail.band}
+            </div>
           </div>
-          <div className="mt-1 text-xs text-meta">
-            band: {detail.band}
-          </div>
-        </div>
+        )}
         <div>
           <div className="mb-1 text-xs text-meta">Active members</div>
           <div className="text-2xl font-bold tabular-nums text-ink">

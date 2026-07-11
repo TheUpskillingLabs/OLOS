@@ -43,11 +43,34 @@ export async function proxy(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     // Redirect unauthenticated users to login (except public routes and API routes)
-    // API routes handle their own auth via withAuth/withAdminAuth wrappers
-    const publicPaths = ["/login", "/api/", "/register", "/c/"];
-    const isPublicPath = publicPaths.some((path) =>
-      request.nextUrl.pathname.startsWith(path)
-    );
+    // API routes handle their own auth via withAuth/withAdminAuth wrappers.
+    // The public web (landing + content pages) browses free — owner rule:
+    // no gated browse.
+    const publicPaths = [
+      "/login",
+      "/api/",
+      "/register",
+      "/c/", // public shareable cycle info pages — browses free, no auth
+      "/events",
+      "/library",
+      "/local-labs",
+      "/labs", // old path — next.config redirects it to /local-labs
+      "/about",
+      "/build-cycles",
+      "/stories", // public Upskiller Spotlights — browses free, no auth
+      "/survey", // public field survey — account-free, anonymous submit
+      // Footer pages — legal, contact, get-involved, donate, team browse free.
+      "/privacy",
+      "/terms",
+      "/code-of-conduct",
+      "/contact",
+      "/get-involved",
+      "/donate",
+      "/team",
+    ];
+    const isPublicPath =
+      request.nextUrl.pathname === "/" ||
+      publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
     if (!user && !isPublicPath && !request.nextUrl.pathname.startsWith("/_next")) {
       const url = request.nextUrl.clone();

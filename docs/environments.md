@@ -8,7 +8,7 @@ Three environments: **local**, **dev**, and **prod**. Local and dev share the sa
 
 | | Local | Dev | Prod |
 |---|---|---|---|
-| **URL** | `http://localhost:3000` | Vercel preview (auto-deployed from `dev` branch) | `https://olos.theupskillinglabs.org` |
+| **URL** | `http://localhost:3000` | Vercel preview (auto-deployed from `dev` branch) | `https://theupskillinglabs.org` |
 | **Git branch** | any | `dev` | `main` |
 | **Supabase project** | `cethihabtddiujzayaxe` (OLOS-dev) | `cethihabtddiujzayaxe` (OLOS-dev) | `cdbgkgkjnomjnpicaxqe` (OLOS-prod) |
 | **Env file** | `.env.development.local` | Vercel env vars (dev) | Vercel env vars (prod) |
@@ -28,8 +28,8 @@ Sign in at `http://localhost:3000/login` with a Google account that has a row in
 **Dev (Vercel)**
 Open the Vercel preview URL for the `dev` branch. Sign in with Google — same dev Supabase, same participant rows.
 
-**Prod (`olos.theupskillinglabs.org`)**
-Open `https://olos.theupskillinglabs.org/login`. Sign in with Google. Your account must have a row in the *prod* `participants` table — dev data does not carry over.
+**Prod (`theupskillinglabs.org`)**
+Open `https://theupskillinglabs.org/login`. Sign in with Google. Your account must have a row in the *prod* `participants` table — dev data does not carry over.
 
 > If someone can authenticate (Google accepts the login) but lands on `/register`, their email is missing from the `participants` table for that environment. Add the row in Supabase Studio, or send them an invitation from the admin panel.
 
@@ -92,7 +92,7 @@ RESEND_API_KEY=<resend key>
 RESEND_FROM_EMAIL=hq@enroll.theupskillinglabs.org
 
 # App URL
-NEXT_PUBLIC_APP_URL=https://olos.theupskillinglabs.org
+NEXT_PUBLIC_APP_URL=https://theupskillinglabs.org
 ```
 
 Keys are in 1Password (or ask Madhu). Do not commit either file — they are git-ignored.

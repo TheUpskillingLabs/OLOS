@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
+import { requireLabAccessForPod } from "@/lib/auth/lab";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -22,7 +23,7 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  *   - pod must exist + be forming/active
  *   - reactivates a soft-deleted membership if one exists (preserves
  *     joined_at and audit trail — architecture brief §5 invariant)
- *   - honors the 2-pod-per-cycle cap (architecture brief §3 invariant)
+ *   - honors the per-cycle pod_limit cap (cycle_config.pod_limit, default 1)
  *   - calls the Phase A reconciler so the participant's cycle_enrollments
  *     status reflects the new pod-membership reality
  *
@@ -62,10 +63,16 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  * columns in one coordinated migration rather than three separate
  * follow-ups. Tracked at #115.
  */
-export const POST = withAdminAuth(
-  async (request: NextRequest, _auth: AuthenticatedRequest, params: Record<string, string>) => {
+export const POST = withAuth(
+  async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const podId = parseIntParam(params.pod_id, "pod_id");
     if (podId instanceof NextResponse) return podId;
+
+    // Local Labs (docs/LOCAL_LABS.md): admin passes first; a lab lead may
+    // manage pods in their own lab's cycles. HQ pods (lab_id NULL) resolve
+    // to no lab and stay admin-only.
+    const guard = await requireLabAccessForPod(auth.user, podId);
+    if (guard) return guard;
 
     const body = await parseBody(request, adminAddPodMembershipSchema);
     if (isErrorResponse(body)) return body;
@@ -75,7 +82,7 @@ export const POST = withAdminAuth(
 
     const { data: pod } = await client
       .from("pods")
-      .select("id, cycle_id, status")
+      .select("id, cycle_id, status, lab_id, cycles!inner(mode)")
       .eq("id", podId)
       .maybeSingle();
     if (!pod) {
@@ -90,11 +97,31 @@ export const POST = withAdminAuth(
 
     const { data: participant } = await client
       .from("participants")
-      .select("id")
+      .select("id, metro_id")
       .eq("id", participant_id)
       .maybeSingle();
     if (!participant) {
       return NextResponse.json({ error: "Participant not found" }, { status: 404 });
+    }
+
+    // Pods are local (docs/LOCAL_LABS.md): requireLabAccessForPod above gates
+    // the ACTING admin/lab-lead; this gates the TARGET — an open-cycle
+    // lab-tagged pod only accepts that lab's members. Org runs (invite-only,
+    // cross-lab by design) and NULL-lab/HQ pods are exempt, matching the DB
+    // fence. Re-tag the member's lab or the pod's lab to override.
+    const podMode = ((pod.cycles as unknown) as { mode: string } | null)?.mode;
+    if (
+      pod.lab_id !== null &&
+      podMode === "open" &&
+      participant.metro_id !== pod.lab_id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "This pod is local to its lab — that participant belongs to a different Local Lab.",
+        },
+        { status: 400 }
+      );
     }
 
     const { data: existing } = await client
@@ -111,21 +138,31 @@ export const POST = withAdminAuth(
       );
     }
 
-    // 2-pod-per-cycle cap. NOTE: hardcoded as `>= 2` to match the
-    // participant register route's existing behavior; roadmap §2.1
-    // ('Move the hardcoded 2-pod cap to cycle_config.pod_limit')
-    // tracks the cleanup that should update both call sites together.
-    // Until §2.1 lands, the cap here MUST stay in sync with
-    // app/api/pods/[pod_id]/register/route.ts.
+    // Pods-per-member cap — reads cycle_config.pod_limit (default 1), the
+    // same per-cycle admin setting the participant register route uses
+    // (migration 00043 resolved roadmap §2.1's hardcoded-cap cleanup, so
+    // both call sites now share one source of truth).
+    const { data: podLimitConfig } = await client
+      .from("cycle_config")
+      .select("pod_limit")
+      .eq("cycle_id", pod.cycle_id)
+      .single();
+    const podLimit = podLimitConfig?.pod_limit ?? 1;
+
     const { data: cyclePods } = await client
       .from("pod_memberships")
       .select("id, pods!inner(cycle_id)")
       .eq("participant_id", participant_id)
       .eq("pods.cycle_id", pod.cycle_id)
       .is("inactive_at", null);
-    if ((cyclePods ?? []).length >= 2) {
+    if ((cyclePods ?? []).length >= podLimit) {
       return NextResponse.json(
-        { error: "Participant is already in 2 pods for this cycle" },
+        {
+          error:
+            podLimit === 1
+              ? "Participant is already in a pod for this cycle"
+              : `Participant is already in ${podLimit} pods for this cycle`,
+        },
         { status: 400 }
       );
     }
@@ -164,7 +201,7 @@ export const POST = withAdminAuth(
     if (config && count && count >= config.pod_min && pod.status === "forming") {
       await client
         .from("pods")
-        .update({ status: "active", updated_at: new Date().toISOString() })
+        .update({ status: "active" })
         .eq("id", podId);
       await reconcilePodMembers(podId);
     } else {

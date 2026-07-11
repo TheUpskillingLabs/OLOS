@@ -27,6 +27,7 @@ export type RosterFilters = {
   status?: string[];
   ai_level?: string[];
   show_inactive?: boolean;
+  show_staff_test?: boolean;
 };
 
 export type RosterSort =
