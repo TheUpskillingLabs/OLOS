@@ -309,7 +309,8 @@ export default async function AdminOrgPage() {
           <p className="text-sm text-meta">No current organization cycle.</p>
         ) : staffRows.length === 0 ? (
           <p className="text-sm text-meta">
-            No staff on runs yet — invite co-leads and members.
+            No core contributors on runs yet — invite them by email, or add
+            already-registered members from the cycle&rsquo;s Workstreams tab.
           </p>
         ) : (
           <DataTable<StaffRow>
@@ -348,12 +349,20 @@ export default async function AdminOrgPage() {
         )}
       </section>
 
-      <div>
+      <div className="flex items-center gap-6">
+        {rosterCycle && (
+          <Link
+            href={`/admin/cycles/${rosterCycle.id}?tab=formation`}
+            className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
+          >
+            Add core contributors &rarr;
+          </Link>
+        )}
         <Link
           href="/admin/people?tab=invitations"
           className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
         >
-          Invite staff &rarr;
+          Invite core contributors &rarr;
         </Link>
       </div>
     </div>
