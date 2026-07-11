@@ -295,7 +295,7 @@ export default async function AccessConsolePage() {
       })}
 
       {((byRole["staff"]?.length ?? 0) + (byRole["tester"]?.length ?? 0)) > 0 &&
-        section("Staff & testers", [...(byRole["staff"] ?? []), ...(byRole["tester"] ?? [])], {
+        section("Core contributors & testers", [...(byRole["staff"] ?? []), ...(byRole["tester"] ?? [])], {
           empty: "None.",
         })}
 

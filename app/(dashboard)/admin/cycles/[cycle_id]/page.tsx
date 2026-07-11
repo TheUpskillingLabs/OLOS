@@ -223,25 +223,46 @@ export default async function AdminCycleDetailPage({
   // cycles for the copy-roster dropdown.
   let workstreamRows: WorkstreamAdminRow[] = [];
   let priorOrgCycles: PriorOrgCycleOption[] = [];
+  let orgParticipantOptions: { participant_id: number; name: string; email?: string }[] = [];
   if (isOrg) {
-    const [{ data: workstreamsData }, { data: runPods }, { data: priorCycles }] =
-      await Promise.all([
-        serviceClient
-          .from("workstreams")
-          .select("id, name, description, status")
-          .order("name"),
-        serviceClient
-          .from("pods")
-          .select("id, name, workstream_id")
-          .eq("cycle_id", cycleId)
-          .not("workstream_id", "is", null),
-        serviceClient
-          .from("cycles")
-          .select("id, name")
-          .eq("mode", "org")
-          .neq("id", cycleId)
-          .order("start_date", { ascending: false }),
-      ]);
+    const [
+      { data: workstreamsData },
+      { data: runPods },
+      { data: priorCycles },
+      { data: allParticipants },
+    ] = await Promise.all([
+      serviceClient
+        .from("workstreams")
+        .select("id, name, description, status")
+        .order("name"),
+      serviceClient
+        .from("pods")
+        .select("id, name, workstream_id")
+        .eq("cycle_id", cycleId)
+        .not("workstream_id", "is", null),
+      serviceClient
+        .from("cycles")
+        .select("id, name")
+        .eq("mode", "org")
+        .neq("id", cycleId)
+        .order("start_date", { ascending: false }),
+      // Org runs are invite-only and cross-lab: the add-member and co-lead
+      // pickers draw from EVERY registered participant, not just this
+      // cycle's enrollees (which is empty on a fresh org cycle — the
+      // chicken-and-egg the email-invite flow can't solve for people who
+      // already have accounts).
+      serviceClient
+        .from("participants")
+        .select("id, first_name, last_name, preferred_name, email")
+        .order("last_name"),
+    ]);
+    orgParticipantOptions = (allParticipants ?? []).map((p) => ({
+      participant_id: p.id,
+      name: p.preferred_name
+        ? `${p.preferred_name} ${p.last_name}`
+        : `${p.first_name} ${p.last_name}`,
+      email: p.email,
+    }));
 
     const runByWorkstream = new Map<number, { pod_id: number; name: string | null }>();
     for (const run of runPods ?? []) {
@@ -268,7 +289,7 @@ export default async function AdminCycleDetailPage({
     <div className="space-y-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label={isOrg ? "Staff" : "Enrolled"}
+          label={isOrg ? "Core contributors" : "Enrolled"}
           value={participants.length}
         />
         <StatCard
@@ -421,7 +442,7 @@ export default async function AdminCycleDetailPage({
         <PodsTable
           cycleId={cycle.id}
           pods={podAdminRows}
-          participants={participantOptions}
+          participants={isOrg ? orgParticipantOptions : participantOptions}
           mode={cycle.mode}
         />
       </section>
@@ -432,7 +453,7 @@ export default async function AdminCycleDetailPage({
     <div className="space-y-10">
       <section>
         <h2 className="mb-4 t-h3 text-ink">
-          {isOrg ? "Staff" : "Participants"} ({participants.length})
+          {isOrg ? "Core contributors" : "Participants"} ({participants.length})
         </h2>
         <ParticipantsTable
           participants={participants}
@@ -510,7 +531,7 @@ export default async function AdminCycleDetailPage({
         formation={formation}
         people={people}
         dev={dev}
-        labels={isOrg ? { formation: "Workstreams", people: "Staff" } : undefined}
+        labels={isOrg ? { formation: "Workstreams", people: "Core contributors" } : undefined}
       />
     </div>
   );

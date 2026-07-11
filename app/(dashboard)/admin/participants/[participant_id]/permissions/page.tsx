@@ -19,7 +19,7 @@ export default async function ParticipantPermissionsPage({
 
   const [{ data: participant }, { data: permRows }, { data: roleRows }, { data: modAssignments }] =
     await Promise.all([
-      serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, is_test").eq("id", participantId).single(),
+      serviceClient.from("participants").select("id, first_name, last_name, preferred_name, email, is_test, is_staff").eq("id", participantId).single(),
       serviceClient.from("participant_permissions").select("permission").eq("participant_id", participantId).is("revoked_at", null),
       serviceClient.from("user_roles").select("role").eq("participant_id", participantId).is("revoked_at", null),
       serviceClient.from("moderator_assignments").select("pod_id, pods (name, cycle_id, cycles (name))").eq("participant_id", participantId).is("removed_at", null),
@@ -96,6 +96,7 @@ export default async function ParticipantPermissionsPage({
         canManageRoles={canManageRoles}
         podAssignments={podAssignments}
         initialIsTest={!!participant.is_test}
+        initialIsStaff={!!participant.is_staff}
       />
     </div>
   );

@@ -18,7 +18,7 @@ export default function ParticipantsTable({
   cycleId,
   mode,
 }: Props) {
-  // Org staff are invite-only: enrollments never go through the activation
+  // Org core contributors are invite-only: enrollments never go through the activation
   // pipeline the reconciler + stuck-inactive tooling exist for, so those
   // affordances only render for participant cycles.
   const isOrg = mode === "org";
@@ -87,7 +87,7 @@ export default function ParticipantsTable({
     return (
       <p className="text-sm text-meta">
         {isOrg
-          ? "No staff enrolled yet — invite co-leads and members from the Organization page."
+          ? "No core contributors enrolled yet — invite co-leads and members from the Organization page, or add registered members from the Workstreams tab."
           : "No participants enrolled."}
       </p>
     );
