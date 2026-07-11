@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isSelf, isApexOwner, checkOwnerGuards } from "./guards";
+import { isSelf, isApexOwner, isDefaultMetro, checkOwnerGuards } from "./guards";
 
 /* Guardrails for owner lifecycle actions. isSelf is pure; isApexOwner and the
    evaluator read participant_roles through a chainable Supabase mock that resolves
@@ -15,10 +15,12 @@ function makeQuery(result: unknown) {
   return q;
 }
 
-function mockClient(participantRolesResult: unknown): SupabaseClient {
+function mockClient(participantRolesResult: unknown, metrosResult: unknown = { data: [] }): SupabaseClient {
   return {
     from: (table: string) =>
-      makeQuery(table === "participant_roles" ? participantRolesResult : { data: [] }),
+      makeQuery(
+        table === "participant_roles" ? participantRolesResult : table === "metros" ? metrosResult : { data: [] }
+      ),
   } as unknown as SupabaseClient;
 }
 
@@ -77,9 +79,27 @@ describe("checkOwnerGuards", () => {
     const client = mockClient({ data: [] });
     const res = await checkOwnerGuards(
       client,
-      ["defaultMetro"] as unknown as (typeof guards)[number][],
+      ["activeCycle"], // reserved GuardKey, not yet wired → fail closed
       { actorParticipantId: 3, targetId: 5 }
     );
     expect(res).toMatchObject({ ok: false, status: 500 });
+  });
+});
+
+describe("isDefaultMetro / defaultMetro guard", () => {
+  it("is true when the metro is the default", async () => {
+    expect(await isDefaultMetro(mockClient({ data: [] }, { data: [{ id: 2 }] }), 2)).toBe(true);
+  });
+
+  it("blocks archiving the default metro", async () => {
+    const client = mockClient({ data: [] }, { data: [{ id: 2 }] });
+    const res = await checkOwnerGuards(client, ["defaultMetro"], { actorParticipantId: 3, targetId: 2 });
+    expect(res).toMatchObject({ ok: false, status: 409 });
+  });
+
+  it("allows archiving a non-default metro", async () => {
+    const client = mockClient({ data: [] }, { data: [] });
+    const res = await checkOwnerGuards(client, ["defaultMetro"], { actorParticipantId: 3, targetId: 9 });
+    expect(res.ok).toBe(true);
   });
 });

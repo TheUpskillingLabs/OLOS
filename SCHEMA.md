@@ -821,7 +821,7 @@ erDiagram
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
 | `events` | Public Content | Public events/workshops (Luma-shaped cache; the source until live sync) |
 | `resources` | Public Content | Learning Library items (guides, recordings, templates, courses, playbooks) |
-| `metros` | Public Content | Local labs / cities — `active` or `waitlist` |
+| `metros` | Public Content | Local labs / cities — `active` or `waitlist`. `archived_at` (00081) = owner-archived (deactivated) lab; NULL = active. The default lab (`is_default`) is never archivable |
 | `metro_waitlist_signups` | Public Content | Participant ↔ metro waitlist joins (unique pair) |
 | `event_rsvps` | Public Content | Email-only public RSVPs (never account-gated) |
 | `announcements` | Public Content | Admin-authored org news for the dashboard rail; `lab_id` NULL = global, else lab-scoped (00070) |

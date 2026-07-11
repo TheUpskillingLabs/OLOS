@@ -32,6 +32,23 @@ export async function isApexOwner(
   return (data?.length ?? 0) > 0;
 }
 
+/**
+ * Is this metro the default (catch-all) lab — `metros.is_default` (00062)? The
+ * default metro is never archivable from the owner console.
+ */
+export async function isDefaultMetro(
+  client: SupabaseClient,
+  metroId: number
+): Promise<boolean> {
+  const { data } = await client
+    .from("metros")
+    .select("id")
+    .eq("id", metroId)
+    .eq("is_default", true)
+    .limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
 export interface GuardContext {
   actorParticipantId: number | null;
   targetId: number;
@@ -42,8 +59,9 @@ export type GuardResult = { ok: true } | { ok: false; status: number; error: str
 /**
  * Evaluate a descriptor's guards. Returns the first failure (409) or { ok: true }.
  * An empty guard list (cycles/pods/projects) is a no-op. `apexOwner`/`self` are the
- * participant hard-blocks; `activeCycle`/`defaultMetro` are Phase 3 entity guards not
- * yet wired — an unrecognized guard fails closed rather than being silently skipped.
+ * participant hard-blocks; `defaultMetro` blocks the catch-all lab. `activeCycle` is
+ * reserved and not yet wired — an unrecognized guard fails closed rather than being
+ * silently skipped.
  */
 export async function checkOwnerGuards(
   client: SupabaseClient,
@@ -60,6 +78,11 @@ export async function checkOwnerGuards(
       case "apexOwner":
         if (await isApexOwner(client, ctx.targetId)) {
           return { ok: false, status: 409, error: "The primary owner cannot be modified from this console." };
+        }
+        break;
+      case "defaultMetro":
+        if (await isDefaultMetro(client, ctx.targetId)) {
+          return { ok: false, status: 409, error: "The default metro cannot be modified from this console." };
         }
         break;
       default:

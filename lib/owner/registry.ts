@@ -8,7 +8,7 @@
 // Phase 1: participants only. cycles/pods/projects (Phase 2) and metros/content
 // (Phase 3) get their entries added alongside their RPCs/helpers.
 
-import type { LifecycleDescriptor, OwnerEntityKey } from "./types";
+import type { LifecycleDescriptor, OwnerAction, OwnerEntityKey } from "./types";
 
 export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>> = {
   participants: {
@@ -66,6 +66,72 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     delete: null,
     guards: [],
   },
+
+  // ── Phase 3: metros + content (archive only). Surfaced via the generalized owner
+  // console (lib/owner/flag.ts) and, for metros, the labs admin page. ──
+  metros: {
+    key: "metros",
+    table: "metros",
+    idColumn: "id",
+    label: "Metro",
+    labelField: "name",
+    // metros.status is CHECK-locked to active/waitlist, so archive is a timestamp
+    // flag (00081). The default metro is never archivable (defaultMetro guard).
+    archive: { kind: "timestamp", column: "archived_at" },
+    reset: null,
+    delete: null,
+    guards: ["defaultMetro"],
+  },
+
+  events: {
+    key: "events",
+    table: "events",
+    idColumn: "id",
+    label: "Event",
+    labelField: "name",
+    archive: { kind: "status", column: "status", archivedValue: "archived" },
+    reset: null,
+    delete: null,
+    guards: [],
+  },
+
+  resources: {
+    key: "resources",
+    table: "resources",
+    idColumn: "id",
+    label: "Resource",
+    labelField: "title",
+    archive: { kind: "status", column: "status", archivedValue: "archived" },
+    reset: null,
+    delete: null,
+    guards: [],
+  },
+
+  announcements: {
+    key: "announcements",
+    table: "announcements",
+    idColumn: "id",
+    label: "Announcement",
+    labelField: "title",
+    archive: { kind: "status", column: "status", archivedValue: "archived" },
+    reset: null,
+    delete: null,
+    guards: [],
+  },
+
+  spotlights: {
+    key: "spotlights",
+    table: "spotlights",
+    idColumn: "id",
+    label: "Spotlight",
+    labelField: "name",
+    // spotlights.status CHECK is (submitted/published/hidden) — 'hidden' is its
+    // soft-hide value (no 'archived'), so archive flips status → 'hidden'.
+    archive: { kind: "status", column: "status", archivedValue: "hidden" },
+    reset: null,
+    delete: null,
+    guards: [],
+  },
 };
 
 /** Ordered list of entity keys currently wired for owner lifecycle actions. */
@@ -81,4 +147,13 @@ export function getLifecycleDescriptor(
   key: string | null | undefined
 ): LifecycleDescriptor | null {
   return isOwnerEntityKey(key) ? OWNER_REGISTRY[key] ?? null : null;
+}
+
+/** The verbs a descriptor supports, in Archive → Reset → Delete order. */
+export function supportedActions(d: LifecycleDescriptor): OwnerAction[] {
+  const actions: OwnerAction[] = [];
+  if (d.archive) actions.push("archive");
+  if (d.reset) actions.push("reset");
+  if (d.delete) actions.push("delete");
+  return actions;
 }
