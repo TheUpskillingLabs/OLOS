@@ -16,16 +16,23 @@ type FormData = z.infer<typeof createCycleSchema>;
  * language used on /admin/org. Absent (the default /admin cycles list use),
  * behavior is unchanged: both cycle types selectable via the Type select.
  *
- * labId: when set (the /admin/labs/[slug] drill-in), the new cycle is pinned
- * to that local lab's stream (docs/LOCAL_LABS.md) — same pattern as
- * fixedMode, no visible control. Absent = HQ/global.
+ * labId: when set (the /admin/labs/[slug] drill-in, or a lab lead creating
+ * their own internal cycle from /lab/[slug]), the new cycle is pinned to
+ * that local lab's stream (docs/LOCAL_LABS.md) — same pattern as fixedMode,
+ * no visible control. Absent = HQ/global.
+ *
+ * redirectTo: when set, success navigates here instead of the admin cycle
+ * detail page, and triggers a router.refresh() so a server component parent
+ * (e.g. the lab workspace page) re-derives its cycle list immediately.
  */
 export default function CreateCycleForm({
   fixedMode,
   labId,
+  redirectTo,
 }: {
   fixedMode?: "open" | "org";
   labId?: number;
+  redirectTo?: string;
 } = {}) {
   const [open, setOpen] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -58,7 +65,8 @@ export default function CreateCycleForm({
 
     if (res.ok) {
       const cycle = await res.json();
-      router.push(`/admin/cycles/${cycle.id}`);
+      router.push(redirectTo ?? `/admin/cycles/${cycle.id}`);
+      if (redirectTo) router.refresh();
     } else {
       const body = await res.json();
       setServerError(body.error ?? "Failed to create cycle");

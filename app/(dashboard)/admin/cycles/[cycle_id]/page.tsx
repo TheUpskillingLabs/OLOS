@@ -225,27 +225,40 @@ export default async function AdminCycleDetailPage({
   let priorOrgCycles: PriorOrgCycleOption[] = [];
   let orgParticipantOptions: { participant_id: number; name: string; email?: string }[] = [];
   if (isOrg) {
+    // Scoped to this cycle's stream (HQ vs. lab) — wrong-stream options
+    // previously failed with 400/404 at charter/copy time; this is scoping,
+    // not errors (PRD-lab-lead-ux §3.5).
+    let wsQuery = serviceClient
+      .from("workstreams")
+      .select("id, name, description, status")
+      .order("name");
+    wsQuery = cycle.lab_id
+      ? wsQuery.eq("lab_id", cycle.lab_id)
+      : wsQuery.is("lab_id", null);
+
+    let priorCyclesQuery = serviceClient
+      .from("cycles")
+      .select("id, name")
+      .eq("mode", "org")
+      .neq("id", cycleId);
+    priorCyclesQuery = cycle.lab_id
+      ? priorCyclesQuery.eq("lab_id", cycle.lab_id)
+      : priorCyclesQuery.is("lab_id", null);
+    priorCyclesQuery = priorCyclesQuery.order("start_date", { ascending: false });
+
     const [
       { data: workstreamsData },
       { data: runPods },
       { data: priorCycles },
       { data: allParticipants },
     ] = await Promise.all([
-      serviceClient
-        .from("workstreams")
-        .select("id, name, description, status")
-        .order("name"),
+      wsQuery,
       serviceClient
         .from("pods")
         .select("id, name, workstream_id")
         .eq("cycle_id", cycleId)
         .not("workstream_id", "is", null),
-      serviceClient
-        .from("cycles")
-        .select("id, name")
-        .eq("mode", "org")
-        .neq("id", cycleId)
-        .order("start_date", { ascending: false }),
+      priorCyclesQuery,
       // Org runs are invite-only and cross-lab: the add-member and co-lead
       // pickers draw from EVERY registered participant, not just this
       // cycle's enrollees (which is empty on a fresh org cycle — the

@@ -1,5 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
+import { isAdmin } from "@/lib/auth/roles";
+import { requireLabAccessForCycle } from "@/lib/auth/lab";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
@@ -10,6 +12,12 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 // Cycle lifecycle (SECTOR_MODEL.md §4): draft → upcoming → active → closing →
 // archived. 'closed' is retained as a legacy terminal for pre-sector cohorts.
+//
+// Decision 3 (PRD-lab-lead-ux, ratified): widened from admin-only. A lab
+// lead may drive their own lab's org (mode='org') cycle through this same
+// lifecycle. The participant (mode='open') cycle lifecycle stays
+// admin-only — labs are sub-cohorts of it, not owners of it. See the guard
+// below.
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ["upcoming", "active"],
   upcoming: ["active"],
@@ -17,7 +25,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   closing: ["archived"],
 };
 
-export const PATCH = withAdminAuth(
+export const PATCH = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
@@ -35,6 +43,17 @@ export const PATCH = withAdminAuth(
 
     if (!cycle) {
       return NextResponse.json({ error: "Cycle not found" }, { status: 404 });
+    }
+
+    if (!isAdmin(auth.user)) {
+      if (cycle.mode !== "org") {
+        return NextResponse.json(
+          { error: "Only HQ admins manage participant-cycle lifecycle." },
+          { status: 403 }
+        );
+      }
+      const guard = await requireLabAccessForCycle(auth.user, cycleId);
+      if (guard) return guard;
     }
 
     if (cycle.status === "closed" || cycle.status === "archived") {
@@ -103,7 +122,13 @@ export const PATCH = withAdminAuth(
       }
     }
 
-    const { data, error } = await auth.supabase
+    // cycles_update RLS is is_admin_or_owner() (00002:45) — a lead's session
+    // client would fail RLS on their own lab's cycle, so this write goes
+    // through the service client. The app-level guard above (mode='org' +
+    // requireLabAccessForCycle) is the actual protection line, the standard
+    // /lab posture (see lib/auth/lab.ts header).
+    const serviceClient = createServiceClient();
+    const { data, error } = await serviceClient
       .from("cycles")
       .update({ status })
       .eq("id", cycleId)
@@ -111,6 +136,18 @@ export const PATCH = withAdminAuth(
       .single();
 
     if (error) {
+      // Activation/upcoming can trip the 00067 one-active-or-upcoming-
+      // org-cycle-per-lab unique index (e.g. a race between two requests).
+      // Map it to a clear message rather than a raw constraint violation.
+      if (error.code === "23505") {
+        return NextResponse.json(
+          {
+            error:
+              "Your lab already has an active or upcoming internal cycle — one per lab at a time.",
+          },
+          { status: 409 }
+        );
+      }
       return dbError(error);
     }
 
@@ -120,7 +157,7 @@ export const PATCH = withAdminAuth(
     // "pods are ephemeral, projects go global." Idempotent, so a legacy
     // 'closed' followed by a later re-archive can't double-fire effects.
     if (status === "archived" || status === "closed") {
-      const closeOut = await closeOutCycle(createServiceClient(), cycleId);
+      const closeOut = await closeOutCycle(serviceClient, cycleId);
       return NextResponse.json({ ...data, close_out: closeOut });
     }
 
