@@ -289,7 +289,7 @@ export default async function AdminCycleDetailPage({
     <div className="space-y-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
-          label={isOrg ? "Staff" : "Enrolled"}
+          label={isOrg ? "Core contributors" : "Enrolled"}
           value={participants.length}
         />
         <StatCard
@@ -453,7 +453,7 @@ export default async function AdminCycleDetailPage({
     <div className="space-y-10">
       <section>
         <h2 className="mb-4 t-h3 text-ink">
-          {isOrg ? "Staff" : "Participants"} ({participants.length})
+          {isOrg ? "Core contributors" : "Participants"} ({participants.length})
         </h2>
         <ParticipantsTable
           participants={participants}
@@ -531,7 +531,7 @@ export default async function AdminCycleDetailPage({
         formation={formation}
         people={people}
         dev={dev}
-        labels={isOrg ? { formation: "Workstreams", people: "Staff" } : undefined}
+        labels={isOrg ? { formation: "Workstreams", people: "Core contributors" } : undefined}
       />
     </div>
   );
