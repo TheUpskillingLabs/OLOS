@@ -15,7 +15,7 @@ type CycleListRow = {
 };
 
 /** Shared column set for both cycle sections (P-1) — the headcount column's
-    header ("Participants" vs. "Staff") and cell noun ("enrolled" vs. "staff")
+    header ("Participants" vs. "Core contributors") and cell noun ("enrolled" vs. "core contributors")
     differ per section. labNameById (non-null once any lab cycle exists) adds
     a Lab column so the global list stays legible across streams. */
 function cycleColumns(
@@ -157,7 +157,7 @@ export default async function AdminPage() {
             rows={orgCycles}
             rowKey={(cycle) => cycle.id}
             empty="No organization cycles yet."
-            columns={cycleColumns(countsByCycle, "Staff", "staff", labNameById)}
+            columns={cycleColumns(countsByCycle, "Core contributors", "core contributors", labNameById)}
           />
         </section>
       )}

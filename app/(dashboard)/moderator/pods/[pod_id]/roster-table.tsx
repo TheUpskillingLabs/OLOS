@@ -196,8 +196,8 @@ export function RosterTable({
               className="text-teal-deep transition-colors hover:text-ink focus-visible:underline"
             >
               {showStaffTest
-                ? "Hide staff & test accounts"
-                : "Show staff & test accounts"}
+                ? "Hide core contributor & test accounts"
+                : "Show core contributor & test accounts"}
             </button>
           )}
         </div>

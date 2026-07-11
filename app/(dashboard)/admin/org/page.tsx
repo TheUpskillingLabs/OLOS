@@ -14,7 +14,7 @@ import WorkstreamsDirectory, {
  * /admin/cycles/[id] drill-down. Three sections top to bottom: the org
  * cycle list (current cards + a collapsed past list), the workstream
  * directory (durable, cross-cycle — create/edit/status live in
- * workstreams-directory.tsx), and a staff roster scoped to the current org
+ * workstreams-directory.tsx), and a core-contributor roster scoped to the current org
  * cycle — the active one if it exists, else the most recent draft/upcoming
  * (so the roster is usable while the quarter is being set up).
  */
@@ -43,7 +43,7 @@ type EmbeddedParticipant = {
   email: string;
 };
 
-type StaffRow = {
+type ContributorRow = {
   participant_id: number;
   name: string;
   email: string;
@@ -69,7 +69,7 @@ export default async function AdminOrgPage() {
   const current = cycles.filter((c) => CURRENT_STATUSES.has(c.status));
   const past = cycles.filter((c) => !CURRENT_STATUSES.has(c.status));
   // Active wins; otherwise fall back to the most recent draft/upcoming so
-  // the directory's run column + staff roster aren't empty during setup.
+  // the directory's run column + core-contributor roster aren't empty during setup.
   const rosterCycle =
     current.find((c) => c.status === "active") ?? current[0] ?? null;
   const currentCycleIds = current.map((c) => c.id);
@@ -95,11 +95,11 @@ export default async function AdminOrgPage() {
         .order("name"),
     ]);
 
-  // Staff + runs counts per current cycle, for the "Org cycles" cards.
-  const staffCountByCycle: Record<number, number> = {};
+  // Core-contributor + runs counts per current cycle, for the "Org cycles" cards.
+  const contributorCountByCycle: Record<number, number> = {};
   for (const e of enrollmentRows ?? []) {
     if (e.status !== "active") continue;
-    staffCountByCycle[e.cycle_id] = (staffCountByCycle[e.cycle_id] ?? 0) + 1;
+    contributorCountByCycle[e.cycle_id] = (contributorCountByCycle[e.cycle_id] ?? 0) + 1;
   }
   const runsCountByCycle: Record<number, number> = {};
   for (const r of (runPodRows ?? []) as RunPodRow[]) {
@@ -107,7 +107,7 @@ export default async function AdminOrgPage() {
   }
 
   // The roster cycle's runs feed both the workstream directory's
-  // "current run" cell and the staff roster below — everything else on
+  // "current run" cell and the core-contributor roster below — everything else on
   // this page is cross-cycle or per-card.
   const activeRuns = rosterCycle
     ? ((runPodRows ?? []) as RunPodRow[]).filter((r) => r.cycle_id === rosterCycle.id)
@@ -160,20 +160,20 @@ export default async function AdminOrgPage() {
     workstreamNameById[w.id] = w.name;
   }
 
-  const staffMap = new Map<number, StaffRow>();
+  const contributorMap = new Map<number, ContributorRow>();
   for (const m of membershipRows ?? []) {
     const p = one(
       m.participants as EmbeddedParticipant | EmbeddedParticipant[] | null
     );
     const workstreamId = workstreamIdByPod[m.pod_id];
     const workstreamName = workstreamId != null ? workstreamNameById[workstreamId] : undefined;
-    const existing = staffMap.get(m.participant_id);
+    const existing = contributorMap.get(m.participant_id);
     if (existing) {
       if (workstreamName && !existing.workstreams.includes(workstreamName)) {
         existing.workstreams.push(workstreamName);
       }
     } else {
-      staffMap.set(m.participant_id, {
+      contributorMap.set(m.participant_id, {
         participant_id: m.participant_id,
         name: participantName(p),
         email: p?.email ?? "",
@@ -183,7 +183,7 @@ export default async function AdminOrgPage() {
     }
   }
 
-  const staffRows = Array.from(staffMap.values()).sort((a, b) => {
+  const contributorRows = Array.from(contributorMap.values()).sort((a, b) => {
     if (a.is_co_lead !== b.is_co_lead) return a.is_co_lead ? -1 : 1;
     return a.name.localeCompare(b.name);
   });
@@ -213,7 +213,7 @@ export default async function AdminOrgPage() {
         <div>
           <h1 className="t-h1 text-ink">Organization</h1>
           <p className="mt-1 text-sm text-meta">
-            The Labs&rsquo; own quarterly cycle — workstreams, staff, and runs.
+            The Labs&rsquo; own quarterly cycle — workstreams, core contributors, and runs.
           </p>
         </div>
         <CreateCycleForm fixedMode="org" />
@@ -245,7 +245,7 @@ export default async function AdminOrgPage() {
                   {new Date(cycle.end_date).toLocaleDateString()}
                 </p>
                 <div className="mt-3 flex items-center gap-4 text-xs text-meta tabular-nums">
-                  <span>{staffCountByCycle[cycle.id] ?? 0} staff</span>
+                  <span>{contributorCountByCycle[cycle.id] ?? 0} core contributor{(contributorCountByCycle[cycle.id] ?? 0) === 1 ? "" : "s"}</span>
                   <span>{runsCountByCycle[cycle.id] ?? 0} runs</span>
                 </div>
                 <Link
@@ -298,7 +298,7 @@ export default async function AdminOrgPage() {
 
       <section className="mb-10">
         <h2 className="mb-4 t-h3 text-ink">
-          Staff
+          Core contributors
           {rosterCycle && (
             <span className="ml-2 text-sm font-normal text-meta">
               {rosterCycle.name}
@@ -307,13 +307,14 @@ export default async function AdminOrgPage() {
         </h2>
         {!rosterCycle ? (
           <p className="text-sm text-meta">No current organization cycle.</p>
-        ) : staffRows.length === 0 ? (
+        ) : contributorRows.length === 0 ? (
           <p className="text-sm text-meta">
-            No staff on runs yet — invite co-leads and members.
+            No core contributors on runs yet — invite them by email, or add
+            already-registered members from the cycle&rsquo;s Workstreams tab.
           </p>
         ) : (
-          <DataTable<StaffRow>
-            rows={staffRows}
+          <DataTable<ContributorRow>
+            rows={contributorRows}
             rowKey={(row) => row.participant_id}
             columns={[
               {
@@ -348,12 +349,20 @@ export default async function AdminOrgPage() {
         )}
       </section>
 
-      <div>
+      <div className="flex items-center gap-6">
+        {rosterCycle && (
+          <Link
+            href={`/admin/cycles/${rosterCycle.id}?tab=formation`}
+            className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
+          >
+            Add core contributors &rarr;
+          </Link>
+        )}
         <Link
           href="/admin/people?tab=invitations"
           className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
         >
-          Invite staff &rarr;
+          Invite core contributors &rarr;
         </Link>
       </div>
     </div>

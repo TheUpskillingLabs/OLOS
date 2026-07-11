@@ -24,12 +24,14 @@ export default function PermissionsEditor({
   canManageRoles,
   podAssignments,
   initialIsTest,
+  initialIsStaff = false,
 }: {
   participantId: number;
   initialPermissions: Permission[];
   canManageRoles: boolean;
   podAssignments: { pod_id: number; pod_name: string; cycle_name: string }[];
   initialIsTest: boolean;
+  initialIsStaff?: boolean;
 }) {
   const [permissions, setPermissions] = useState<Set<Permission>>(
     new Set(initialPermissions)
@@ -39,6 +41,8 @@ export default function PermissionsEditor({
   const [error, setError] = useState<string | null>(null);
   const [isTest, setIsTest] = useState(initialIsTest);
   const [testerBusy, setTesterBusy] = useState(false);
+  const [isStaff, setIsStaff] = useState(initialIsStaff);
+  const [staffBusy, setStaffBusy] = useState(false);
 
   async function toggleTester() {
     setTesterBusy(true);
@@ -55,6 +59,24 @@ export default function PermissionsEditor({
     } else {
       const data = await res.json().catch(() => null);
       setError(data?.error ?? "Failed to update tester status");
+    }
+  }
+
+  async function toggleStaff() {
+    setStaffBusy(true);
+    setError(null);
+    const res = await fetch("/api/admin/staff-flag", {
+      method: isStaff ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participant_id: participantId }),
+    });
+    setStaffBusy(false);
+    if (res.ok) {
+      const data = await res.json();
+      setIsStaff(!!data.core_contributor);
+    } else {
+      const data = await res.json().catch(() => null);
+      setError(data?.error ?? "Failed to update core-contributor status");
     }
   }
 
@@ -186,6 +208,30 @@ export default function PermissionsEditor({
             onChange={toggleTester}
             busy={testerBusy}
             label="Tester account"
+          />
+        </div>
+      </section>
+
+      {/* Core-contributor flag (participants.is_staff, migration 00041) —
+          a visibility flag, never a permission. */}
+      <section>
+        <h2 className="lbl mb-3">Core Contributor</h2>
+        <div className="flex items-center justify-between rounded-card border border-dashed border-ink/20 bg-paper px-4 py-3">
+          <div className="pr-4">
+            <span className="text-sm font-semibold text-ink">
+              Organization insider
+            </span>
+            <p className="mt-0.5 text-xs text-meta">
+              Marks this account as one of the Labs&rsquo; own. Hidden from the
+              community directory, follow suggestions, and public profiles;
+              excluded from pod health math. Grants no permissions.
+            </p>
+          </div>
+          <ToggleSwitch
+            checked={isStaff}
+            onChange={toggleStaff}
+            busy={staffBusy}
+            label="Core contributor"
           />
         </div>
       </section>

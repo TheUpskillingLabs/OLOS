@@ -127,7 +127,7 @@ export default function PeopleTable({
                   {p.is_staff && (
                     <span className={`${ORG_CHIP_CLASS} px-2.5`}>
                       <OrgDot />
-                      staff
+                      core contributor
                     </span>
                   )}
                   {roles.length === 0 && !p.is_test && !p.is_staff && (

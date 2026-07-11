@@ -110,7 +110,7 @@ export default function ParticipantSheet({
               {person.is_staff && (
                 <span className={`${ORG_CHIP_CLASS} px-2.5`}>
                   <OrgDot />
-                  staff
+                  core contributor
                 </span>
               )}
               {person.roles.length === 0 && !person.is_test && !person.is_staff && (
@@ -201,6 +201,7 @@ export default function ParticipantSheet({
               canManageRoles={canManageRoles}
               podAssignments={podAssignments}
               initialIsTest={person.is_test}
+              initialIsStaff={person.is_staff}
             />
           ) : null}
         </div>

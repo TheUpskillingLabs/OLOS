@@ -6,9 +6,11 @@ import { parseIntParam } from "@/lib/api/params";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { adminAddPodMembershipSchema } from "@/lib/validations/admin-pod-membership";
 import {
+  ensureActivePodMembership,
   reconcileEnrollmentActivation,
   reconcilePodMembers,
 } from "@/lib/enrollment/reconciler";
+import { grantRole } from "@/lib/auth/grants";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
@@ -76,7 +78,7 @@ export const POST = withAuth(
 
     const body = await parseBody(request, adminAddPodMembershipSchema);
     if (isErrorResponse(body)) return body;
-    const { participant_id } = body;
+    const { participant_id, pod_role } = body;
 
     const client = createServiceClient();
 
@@ -110,6 +112,23 @@ export const POST = withAuth(
     // cross-lab by design) and NULL-lab/HQ pods are exempt, matching the DB
     // fence. Re-tag the member's lab or the pod's lab to override.
     const podMode = ((pod.cycles as unknown) as { mode: string } | null)?.mode;
+
+    // pod_role pairs with org workstream runs only — same contract as
+    // POST /api/invitations (co-lead/member are org concepts; an org add
+    // without a role would be ambiguous about the moderator_assignments row).
+    if (pod_role && podMode !== "org") {
+      return NextResponse.json(
+        { error: "Co-lead/member roles apply only to organization workstreams." },
+        { status: 400 }
+      );
+    }
+    if (!pod_role && podMode === "org") {
+      return NextResponse.json(
+        { error: "Organization workstream adds need a pod role (co-lead or member)." },
+        { status: 400 }
+      );
+    }
+
     if (
       pod.lab_id !== null &&
       podMode === "open" &&
@@ -204,8 +223,47 @@ export const POST = withAuth(
         .update({ status: "active" })
         .eq("id", podId);
       await reconcilePodMembers(podId);
+    } else if (podMode === "org") {
+      // Org runs charter as status:'active', so the forming→active branch
+      // never fires — and reconcileEnrollmentActivation returns without
+      // mutating when no cycle_enrollments row exists, which is exactly the
+      // fresh-org-add case. ensureActivePodMembership (the primitive invite
+      // fulfillment uses) is idempotent against the membership row created
+      // above and upserts the active enrollment + seeds follows, keeping the
+      // org roster (pod_memberships) and the Core Contributors tab / counts
+      // (cycle_enrollments) in agreement.
+      await ensureActivePodMembership(participant_id, podId, pod.cycle_id);
     } else {
       await reconcileEnrollmentActivation(participant_id, pod.cycle_id);
+    }
+
+    if (podMode === "org" && pod_role === "co_lead") {
+      // Mirrors the org block of POST /api/pods/[pod_id]/moderators: record
+      // the role through grants.ts FIRST so participant_roles carries
+      // granted_by provenance (the moderator_assignments sync trigger then
+      // no-ops on the row this created).
+      const grant = await grantRole(client, {
+        participantId: participant_id,
+        role: "poderator",
+        scope: { podId, cycleId: pod.cycle_id },
+        actor: auth.user,
+        scopeAuthorized: true,
+        note: "org co-lead added by admin",
+      });
+      if (!grant.ok) {
+        // Membership stands as a plain member; the admin can retry the
+        // co-lead promotion via the Assign co-lead control.
+        return NextResponse.json({ error: grant.error }, { status: grant.status });
+      }
+      // Upsert (fulfillment's shape, lib/auth/invitations.ts) rather than a
+      // bare insert — a prior assignment row may exist from an earlier stint.
+      const { error: assignError } = await client
+        .from("moderator_assignments")
+        .upsert(
+          { participant_id, pod_id: podId, cycle_id: pod.cycle_id },
+          { onConflict: "participant_id,pod_id,cycle_id", ignoreDuplicates: true }
+        );
+      if (assignError) return dbError(assignError);
     }
 
     return NextResponse.json(
