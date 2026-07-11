@@ -89,6 +89,7 @@
 - Voting doesn't allow stacking multiple votes on one problem — it should — *Bug*
 - Can't undo/retract a vote once cast — users need to be able to — *Missing behavior*
 - Over-allocation error shows at the top — move it next to the submit button, or make it a toast — *Confusing interaction*
+- No visible indication of where you've already voted — *Missing behavior*
 
 ---
 
