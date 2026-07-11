@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isSelf, isApexOwner, checkParticipantGuards } from "./guards";
+import { isSelf, isApexOwner, checkOwnerGuards } from "./guards";
 
 /* Guardrails for owner lifecycle actions. isSelf is pure; isApexOwner and the
    evaluator read participant_roles through a chainable Supabase mock that resolves
@@ -43,12 +43,12 @@ describe("isApexOwner", () => {
   });
 });
 
-describe("checkParticipantGuards", () => {
+describe("checkOwnerGuards", () => {
   const guards = ["apexOwner", "self"] as const;
 
   it("passes for an ordinary target that is not self", async () => {
     const client = mockClient({ data: [] });
-    const res = await checkParticipantGuards(client, [...guards], {
+    const res = await checkOwnerGuards(client, [...guards], {
       actorParticipantId: 3,
       targetId: 5,
     });
@@ -57,7 +57,7 @@ describe("checkParticipantGuards", () => {
 
   it("blocks acting on the primary (apex) owner", async () => {
     const client = mockClient({ data: [{ participant_id: 5 }] });
-    const res = await checkParticipantGuards(client, [...guards], {
+    const res = await checkOwnerGuards(client, [...guards], {
       actorParticipantId: 3,
       targetId: 5,
     });
@@ -66,7 +66,7 @@ describe("checkParticipantGuards", () => {
 
   it("blocks acting on your own profile", async () => {
     const client = mockClient({ data: [] }); // not apex → falls through to self
-    const res = await checkParticipantGuards(client, [...guards], {
+    const res = await checkOwnerGuards(client, [...guards], {
       actorParticipantId: 5,
       targetId: 5,
     });
@@ -75,7 +75,7 @@ describe("checkParticipantGuards", () => {
 
   it("fails closed on an unrecognized guard", async () => {
     const client = mockClient({ data: [] });
-    const res = await checkParticipantGuards(
+    const res = await checkOwnerGuards(
       client,
       ["defaultMetro"] as unknown as (typeof guards)[number][],
       { actorParticipantId: 3, targetId: 5 }

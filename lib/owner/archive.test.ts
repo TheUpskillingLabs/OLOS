@@ -1,6 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { archiveParticipant } from "./archive";
+
+// archiveCycle delegates the close-out to closeOutCycle (already tested in
+// lib/cycle/closeout.test.ts); mock it so this file tests only the status flip + merge.
+vi.mock("@/lib/cycle/closeout", () => ({
+  closeOutCycle: vi.fn(async () => ({
+    podsDissolved: 2,
+    membershipsClosed: 3,
+    assignmentsRemoved: 1,
+    projectsGraduated: 4,
+    projectsNeedingSector: 0,
+  })),
+}));
+
+import { archiveParticipant, archivePod, archiveCycle } from "./archive";
 
 /* archiveParticipant is idempotent, service-client-driven deactivation. The mock
    resolves each table's update chain to a configured `{ data }`; the returned counts
@@ -55,5 +68,48 @@ describe("archiveParticipant", () => {
       membershipsClosed: 0,
       assignmentsRemoved: 0,
     });
+  });
+});
+
+describe("archivePod", () => {
+  it("dissolves the pod and closes memberships + assignments", async () => {
+    const client = mockClient({
+      pods: { data: [{ id: 5 }] },
+      pod_memberships: { data: [{ id: 1 }, { id: 2 }] },
+      moderator_assignments: { data: [{ id: 9 }] },
+    });
+    expect(await archivePod(client, 5)).toEqual({
+      archived: true,
+      membershipsClosed: 2,
+      assignmentsRemoved: 1,
+    });
+  });
+
+  it("is a no-op when already dissolved", async () => {
+    expect(await archivePod(mockClient({}), 5)).toEqual({
+      archived: false,
+      membershipsClosed: 0,
+      assignmentsRemoved: 0,
+    });
+  });
+});
+
+describe("archiveCycle", () => {
+  it("flips status → archived and merges the close-out result", async () => {
+    const client = mockClient({ cycles: { data: [{ id: 3 }] } });
+    expect(await archiveCycle(client, 3)).toEqual({
+      archived: true,
+      podsDissolved: 2,
+      membershipsClosed: 3,
+      assignmentsRemoved: 1,
+      projectsGraduated: 4,
+      projectsNeedingSector: 0,
+    });
+  });
+
+  it("reports archived=false when the cycle was already archived", async () => {
+    const result = await archiveCycle(mockClient({}), 3);
+    expect(result.archived).toBe(false);
+    expect(result.podsDissolved).toBe(2); // close-out still runs (idempotent)
   });
 });

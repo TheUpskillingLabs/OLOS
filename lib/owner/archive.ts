@@ -10,6 +10,7 @@
 // call actually changed.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { closeOutCycle, type CloseOutResult } from "@/lib/cycle/closeout";
 
 export interface ArchiveParticipantResult {
   archived: boolean; // did THIS call flip archived_at (vs. already archived)?
@@ -73,6 +74,77 @@ export async function archiveParticipant(
     archived: (archivedRows?.length ?? 0) > 0,
     rolesRevoked: revokedRoles?.length ?? 0,
     enrollmentsRevoked: revokedEnrollments?.length ?? 0,
+    membershipsClosed: closedMemberships?.length ?? 0,
+    assignmentsRemoved: removedAssignments?.length ?? 0,
+  };
+}
+
+export interface ArchiveCycleResult extends CloseOutResult {
+  archived: boolean; // did THIS call flip cycles.status → 'archived'?
+}
+
+/**
+ * Archive a cycle: flip its status to 'archived' and run the standard cycle
+ * close-out (pods → dissolved, memberships/assignments closed, projects graduate
+ * to their sector). Reversible governance flip — no rows are deleted. Delegates the
+ * close-out to `closeOutCycle` (lib/cycle/closeout.ts) so the owner path and the
+ * `/api/cycles/[cycle_id]/status` path stay identical. Idempotent.
+ */
+export async function archiveCycle(
+  client: SupabaseClient,
+  cycleId: number
+): Promise<ArchiveCycleResult> {
+  const { data: archivedRows } = await client
+    .from("cycles")
+    .update({ status: "archived" })
+    .eq("id", cycleId)
+    .neq("status", "archived")
+    .select("id");
+
+  const closeout = await closeOutCycle(client, cycleId);
+  return { archived: (archivedRows?.length ?? 0) > 0, ...closeout };
+}
+
+export interface ArchivePodResult {
+  archived: boolean; // did THIS call flip pods.status → 'dissolved'?
+  membershipsClosed: number;
+  assignmentsRemoved: number;
+}
+
+/**
+ * Archive a pod: dissolve it and close its open memberships / moderator
+ * assignments — the pod-scoped subset of `closeOutCycle`. Reversible; no rows are
+ * deleted. Idempotent (every write filters to rows not already in the target state).
+ */
+export async function archivePod(
+  client: SupabaseClient,
+  podId: number
+): Promise<ArchivePodResult> {
+  const now = new Date().toISOString();
+
+  const { data: dissolvedRows } = await client
+    .from("pods")
+    .update({ status: "dissolved" })
+    .eq("id", podId)
+    .neq("status", "dissolved")
+    .select("id");
+
+  const { data: closedMemberships } = await client
+    .from("pod_memberships")
+    .update({ inactive_at: now })
+    .eq("pod_id", podId)
+    .is("inactive_at", null)
+    .select("id");
+
+  const { data: removedAssignments } = await client
+    .from("moderator_assignments")
+    .update({ removed_at: now })
+    .eq("pod_id", podId)
+    .is("removed_at", null)
+    .select("id");
+
+  return {
+    archived: (dissolvedRows?.length ?? 0) > 0,
     membershipsClosed: closedMemberships?.length ?? 0,
     assignmentsRemoved: removedAssignments?.length ?? 0,
   };

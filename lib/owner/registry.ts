@@ -26,6 +26,46 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     delete: { kind: "rpc", fn: "delete_participant" },
     guards: ["apexOwner", "self"],
   },
+
+  // ── Phase 2: cycles / pods / projects (archive + reset; no hard delete — owner
+  // decision: big entities are never row-deleted, only deactivated/reset). ──
+  cycles: {
+    key: "cycles",
+    table: "cycles",
+    idColumn: "id",
+    label: "Cycle",
+    labelField: "name",
+    // Archive = status 'archived' + close-out (pods dissolved, projects graduate).
+    archive: { kind: "helper", fn: "archiveCycle" },
+    // Reset = wipe the cohort to a pristine draft + default config (00080).
+    reset: { kind: "rpc", fn: "reset_cycle" },
+    delete: null,
+    guards: [],
+  },
+
+  pods: {
+    key: "pods",
+    table: "pods",
+    idColumn: "id",
+    label: "Pod",
+    labelField: "name",
+    archive: { kind: "helper", fn: "archivePod" }, // status 'dissolved' + close memberships
+    reset: { kind: "rpc", fn: "reset_pod" }, // drop projects/solutions/members → 'forming'
+    delete: null,
+    guards: [],
+  },
+
+  projects: {
+    key: "projects",
+    table: "projects",
+    idColumn: "id",
+    label: "Project",
+    labelField: "name",
+    archive: { kind: "status", column: "status", archivedValue: "inactive" },
+    reset: { kind: "rpc", fn: "reset_project" }, // drop members/roles → 'forming'
+    delete: null,
+    guards: [],
+  },
 };
 
 /** Ordered list of entity keys currently wired for owner lifecycle actions. */

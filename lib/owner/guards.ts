@@ -40,12 +40,12 @@ export interface GuardContext {
 export type GuardResult = { ok: true } | { ok: false; status: number; error: string };
 
 /**
- * Evaluate a descriptor's guards for a participant-scoped action. Returns the
- * first failure (409) or { ok: true }. `activeCycle` / `defaultMetro` are
- * Phase 2/3 entity guards and are not reachable from the participants descriptor;
- * an unrecognized guard fails closed rather than being silently skipped.
+ * Evaluate a descriptor's guards. Returns the first failure (409) or { ok: true }.
+ * An empty guard list (cycles/pods/projects) is a no-op. `apexOwner`/`self` are the
+ * participant hard-blocks; `activeCycle`/`defaultMetro` are Phase 3 entity guards not
+ * yet wired — an unrecognized guard fails closed rather than being silently skipped.
  */
-export async function checkParticipantGuards(
+export async function checkOwnerGuards(
   client: SupabaseClient,
   guards: GuardKey[],
   ctx: GuardContext
