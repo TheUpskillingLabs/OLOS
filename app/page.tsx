@@ -16,7 +16,7 @@ import { getRecruitingCycle } from "@/lib/cycle/active";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
 export const metadata = {
-  title: "The Upskilling Labs",
+  title: "The Upskilling Labs — a learn-by-doing platform for career changers",
   description:
     "The Upskilling Labs runs OLOS — a free platform where people changing careers learn by doing. Join a twelve-week Build Cycle, form a pod, and ship a real project with people who notice.",
 };
@@ -137,16 +137,22 @@ export default async function LandingPage() {
           <div className="hero-photo" aria-hidden="true" />
           <div className="hero-tint" aria-hidden="true" />
           <HeroFade>
+            <div
+              className="lbl lbl-teal"
+              style={{ gridColumn: "1 / -1", marginBottom: 14 }}
+            >
+              A free platform for career changers
+            </div>
             <h1 className="t-display">
               Find your people.
               <br />
               Build your edge.
             </h1>
             <div className="hero-cta">
-              <p className="t-lede" style={{ marginBottom: 24, maxWidth: "52ch" }}>
-                The Labs isn’t a class you sit through. It’s where you practice
-                becoming the person you want to be — on real problems, with
-                people who notice.
+              <p className="t-lede" style={{ marginBottom: 24, maxWidth: "56ch" }}>
+                The Upskilling Labs is an online platform where people changing
+                careers learn by doing — join a twelve-week build cycle, form a
+                small team, and ship a real project with people who notice.
               </p>
               {signedIn ? (
                 <Link className="btn btn-teal btn-lg" href="/dashboard">
