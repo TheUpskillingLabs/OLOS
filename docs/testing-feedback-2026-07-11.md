@@ -88,6 +88,7 @@
 - Helper text is broken/inaccurate: says submitters get 3 votes and non-submitters get 1, but a submitter received only 1 vote — *Bug*
 - Voting doesn't allow stacking multiple votes on one problem — it should — *Bug*
 - Can't undo/retract a vote once cast — users need to be able to — *Missing behavior*
+- Over-allocation error shows at the top — move it next to the submit button, or make it a toast — *Confusing interaction*
 
 ---
 
