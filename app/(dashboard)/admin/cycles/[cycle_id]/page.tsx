@@ -2,8 +2,9 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/guards";
-import { can } from "@/lib/auth/roles";
+import { can, isOwner } from "@/lib/auth/roles";
 import { StatCard, StatusBadge } from "@/app/components/ui";
+import OwnerLifecycle from "@/app/components/owner-lifecycle";
 import CycleStatusForm from "./cycle-status-form";
 import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
 import CycleLogGateForm from "./cycle-log-gate-form";
@@ -323,6 +324,9 @@ export default async function AdminCycleDetailPage({
           mode={cycle.mode}
         />
       </section>
+      {isOwner(userRoles) && (
+        <OwnerLifecycle entity="cycles" id={cycle.id} name={cycle.name} />
+      )}
     </div>
   );
 
@@ -457,6 +461,7 @@ export default async function AdminCycleDetailPage({
           pods={podAdminRows}
           participants={isOrg ? orgParticipantOptions : participantOptions}
           mode={cycle.mode}
+          isOwner={isOwner(userRoles)}
         />
       </section>
     </div>

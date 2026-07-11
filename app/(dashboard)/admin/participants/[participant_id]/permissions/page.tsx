@@ -2,9 +2,11 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/guards";
+import { isOwner } from "@/lib/auth/roles";
 import type { Permission } from "@/lib/auth/permissions";
 import PermissionsEditor from "@/app/(dashboard)/admin/people/permissions-editor";
 import AdminNameEditForm from "@/app/(dashboard)/admin/people/admin-name-edit-form";
+import OwnerDangerZone from "@/app/(dashboard)/admin/people/owner-danger-zone";
 
 export default async function ParticipantPermissionsPage({
   params,
@@ -44,6 +46,28 @@ export default async function ParticipantPermissionsPage({
     : `${participant.first_name} ${participant.last_name}`;
 
   const canManageRoles = userRoles.permissions.includes("roles:write");
+
+  // Owner-only lifecycle actions (archive / reset / delete). Locked for the
+  // acting owner's own profile and for the rooted primary owner (00066).
+  const viewerIsOwner = isOwner(userRoles);
+  let lockReason: string | null = null;
+  if (viewerIsOwner) {
+    if (userRoles.participantId === participantId) {
+      lockReason = "This is your own profile — it can't be modified from this console.";
+    } else {
+      const { data: apex } = await serviceClient
+        .from("participant_roles")
+        .select("participant_id")
+        .eq("participant_id", participantId)
+        .eq("role", "owner")
+        .is("granted_by", null)
+        .is("revoked_at", null)
+        .limit(1);
+      if ((apex?.length ?? 0) > 0) {
+        lockReason = "This is the primary owner and can't be modified from this console.";
+      }
+    }
+  }
 
   return (
     <div>
@@ -98,6 +122,15 @@ export default async function ParticipantPermissionsPage({
         initialIsTest={!!participant.is_test}
         initialIsStaff={!!participant.is_staff}
       />
+
+      {viewerIsOwner && (
+        <OwnerDangerZone
+          participantId={participantId}
+          email={participant.email ?? ""}
+          displayName={displayName}
+          locked={lockReason}
+        />
+      )}
     </div>
   );
 }
