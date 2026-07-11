@@ -16,9 +16,9 @@ import { getRecruitingCycle } from "@/lib/cycle/active";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
 export const metadata = {
-  title: "The Upskilling Labs — a learn-by-doing platform for career changers",
+  title: "The Upskilling Labs — local communities of practice for lifelong upskilling",
   description:
-    "The Upskilling Labs runs OLOS — a free platform where people changing careers learn by doing. Join a twelve-week Build Cycle, form a pod, and ship a real project with people who notice.",
+    "The Upskilling Labs is a network of local communities of practice where people learn by doing and keep leveling up for life. OLOS is the platform that runs them — sign in to join your local lab, form a cohort, and build something real.",
 };
 
 // Auth-aware nav + live content tables — always rendered per request.
@@ -137,22 +137,17 @@ export default async function LandingPage() {
           <div className="hero-photo" aria-hidden="true" />
           <div className="hero-tint" aria-hidden="true" />
           <HeroFade>
-            <div
-              className="lbl lbl-teal"
-              style={{ gridColumn: "1 / -1", marginBottom: 14 }}
-            >
-              A free platform for career changers
-            </div>
             <h1 className="t-display">
               Find your people.
               <br />
               Build your edge.
             </h1>
             <div className="hero-cta">
-              <p className="t-lede" style={{ marginBottom: 24, maxWidth: "56ch" }}>
-                The Upskilling Labs is an online platform where people changing
-                careers learn by doing — join a twelve-week build cycle, form a
-                small team, and ship a real project with people who notice.
+              <p className="t-lede" style={{ marginBottom: 24, maxWidth: "54ch" }}>
+                Nobody gets good at the hard stuff alone. So we help you find
+                your crew — a handful of people near you who meet up for a few
+                months, build something real, and keep each other going. Sign in
+                with Google to jump in.
               </p>
               {signedIn ? (
                 <Link className="btn btn-teal btn-lg" href="/dashboard">
@@ -376,7 +371,7 @@ export default async function LandingPage() {
         <div className="container">
           <SectionHead
             eyebrow="What this is"
-            heading="A learning platform for people changing careers"
+            heading="Local communities of practice, powered by OLOS"
           />
           <div
             style={{
@@ -388,11 +383,13 @@ export default async function LandingPage() {
           >
             <div>
               <p className="t-lede" style={{ marginBottom: 16, maxWidth: "60ch" }}>
-                The Upskilling Labs runs OLOS (Open Labs OS) — a platform where
-                people navigating career transitions learn by doing. You join a
-                twelve-week Build Cycle, form a small pod, ship one real
-                project, drop into weekly workshops, and keep a Learning Log,
-                alongside people who notice your work.
+                The Upskilling Labs is a network of local communities of
+                practice — people navigating career change who learn by doing
+                and keep leveling up for life. OLOS (Open Labs OS) is the
+                platform that runs it: you sign in to join your local lab, form
+                a cohort in a twelve-week Build Cycle, ship a real project, drop
+                into workshops, and keep a Learning Log — alongside people who
+                notice your work.
               </p>
               <p className="t-body" style={{ maxWidth: "60ch" }}>
                 Membership is free. Browse cycles, workshops, the Learning
