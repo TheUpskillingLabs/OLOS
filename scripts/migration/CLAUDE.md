@@ -2,7 +2,7 @@
 
 Scope: this file applies to anything under [scripts/migration/](.) — the column-mapping CSV (W1-003), the Python migration script that consumes it (W1-004), and the prod cutover (W1-005).
 
-Roadmap anchors: [§1.3](../../docs/OLOS-roadmap.md), [§1.4](../../docs/OLOS-roadmap.md), [§1.5](../../docs/OLOS-roadmap.md). Together these are three of the four nodes on Wave 1's critical path; if any slips, May 7 slips.
+Roadmap anchors: [§1.3](../../docs/OLOS-roadmap.md), [§1.4](../../docs/OLOS-roadmap.md), [§1.5](../../docs/OLOS-roadmap.md). Together these were three of the four nodes on Wave 1's critical path — and all three shipped: the mapping CSV (W1-003), the script (W1-004), and the §1.5 prod cutover, which ran in May 2026. The cohort it loaded was later reset in favor of self-registration (see the roadmap §6 tracker, §1.5 row), so this folder is now a historical record plus the tooling for any future fixture re-load.
 
 ---
 
@@ -18,7 +18,7 @@ Roadmap anchors: [§1.3](../../docs/OLOS-roadmap.md), [§1.4](../../docs/OLOS-ro
 
 ## Stack reality vs. roadmap wording
 
-[OLOS-architecture-brief.md](../../docs/OLOS-architecture-brief.md) describes a Python / FastAPI backend. **The shipped application stack is Next.js + Supabase Postgres** (see [supabase/CLAUDE.md](../../supabase/CLAUDE.md) for the full story).
+[OLOS-architecture-brief.md](../../docs/archive/OLOS-architecture-brief.md) (now archived) describes a Python / FastAPI backend. **The shipped application stack is Next.js + Supabase Postgres** (see [supabase/CLAUDE.md](../../supabase/CLAUDE.md) for the full story).
 
 This folder is the lone exception. The legacy-data migration is a **one-shot Python tool**, not application code:
 
@@ -34,9 +34,9 @@ So: Python here, TypeScript everywhere else. Don't generalise this exception int
 
 | File | Purpose | Issue |
 |---|---|---|
-| `column_mapping.csv` | Reviewable artifact mapping every legacy spreadsheet column to its destination SQL column or junction-table option | W1-003 (#41) |
-| `migrate.py` *(future)* | Reads the .xlsx, applies `column_mapping.csv`, writes to Postgres | W1-004 |
-| `requirements.txt` *(future)* | `pandas`, `openpyxl`, `psycopg[binary]`, `python-dotenv` | W1-004 |
+| `column_mapping.csv` | Reviewable artifact mapping every legacy spreadsheet column to its destination SQL column or junction-table option (103 mapping rows) | W1-003 (#41) — shipped |
+| `migrate.py` | Reads the .xlsx, applies `column_mapping.csv`, writes to Postgres — six-pass dispatch, dry-run default, `--commit` to persist | W1-004 — shipped |
+| `requirements.txt` | `pandas`, `openpyxl`, `psycopg[binary]`, `python-dotenv` (lower bounds, not hard pins) | W1-004 — shipped |
 
 ---
 
@@ -44,10 +44,10 @@ So: Python here, TypeScript everywhere else. Don't generalise this exception int
 
 | File | Purpose |
 |---|---|
-| [`docs/Upskiller Community Manager.xlsx`](../../docs/Upskiller%20Community%20Manager.xlsx) | The 9-sheet workbook itself — authoritative source for all migration work |
-| [`docs/Upskiller Community Manager CSV.csv`](../../docs/Upskiller%20Community%20Manager%20CSV.csv) | Single-sheet CSV export of `Upskiller Registrations` only — convenient for grep / diff but not the migration input |
+| `docs/Upskiller Community Manager.xlsx` | The 9-sheet workbook itself — authoritative source for all migration work |
+| `docs/Upskiller Community Manager CSV.csv` | Single-sheet CSV export of `Upskiller Registrations` only — convenient for grep / diff but not the migration input |
 
-Both files contain real participant data including PII (names, emails, phone numbers, neighbourhood). Treat as sensitive: do not paste rows into logs or external tools, and the migration script must never log row contents.
+Both files are **gitignored** (`.gitignore` covers `docs/Upskiller Community Manager*`) and were never committed — they exist only on operator machines, so don't expect to find them in a fresh clone. They contain real participant data including PII (names, emails, phone numbers, neighbourhood). Treat as sensitive: do not paste rows into logs or external tools, and the migration script must never log row contents.
 
 ---
 
@@ -86,11 +86,13 @@ This precondition isn't currently a discrete roadmap node — it's an implicit p
 
 ---
 
-## Active issue: ISSUE-W1-003 (#41) — column mapping CSV
+## Shipped: ISSUE-W1-003 (#41) — column mapping CSV
 
-**Goal:** produce a reviewable artifact that documents how every column in the workbook maps to a column or junction-table option in OLOS, so the migration script can be reviewed without anyone reading the spreadsheet.
+**Resolved** — [column_mapping.csv](column_mapping.csv) shipped with 103 mapping rows across the six in-scope sheets, and the whole critical path it gated (§1.4 → §1.5 → §1.8) has since run. The rest of this section is the authoring-time record, kept because the CSV format and its load-bearing `notes` tokens remain the contract `migrate.py` executes — review any CSV change against it.
 
-**Unlocks:** §1.4 (the script consumes this CSV as its only mapping source — no hardcoded column lists). The whole critical path (§1.4 → §1.5 → §1.8) is gated on this.
+**Goal (as authored):** produce a reviewable artifact that documents how every column in the workbook maps to a column or junction-table option in OLOS, so the migration script can be reviewed without anyone reading the spreadsheet.
+
+**Unlocked:** §1.4 (the script consumes this CSV as its only mapping source — no hardcoded column lists).
 
 ### Per-sheet cycle scope
 
@@ -228,7 +230,7 @@ For each: `destination_table = N/A`, `destination_column = N/A`, `transform =` e
 - **D2 (vote-budget reconciliation)** — affects test data only, not prod. `Vote 1/2/3` rows ship as three rows with `vote_count = 1` regardless. D2 affects validation logic in §1.4, not the column mapping.
 - **D3 (mentors)** — all `Mentor Registrations` rows ship destination-blank with `notes = "pending D3"`.
 
-### Execution checklist (status)
+### Execution checklist (authoring-time status — the issue has since shipped and closed; roadmap §6 records §1.3 as resolved)
 
 - [x] Recover source materials — both `.xlsx` and `.csv` are in [docs/](../../docs/).
 - [x] Extract real header rows from all 9 sheets to ground the mapping in actual column names.
@@ -295,9 +297,9 @@ Manual spot check (per issue test plan):
 
 ---
 
-## Looking ahead: ISSUE-W1-004 — Python migration script
+## Shipped: ISSUE-W1-004 — `migrate.py`
 
-When that issue opens, the script will live alongside the CSV in this folder. Architectural notes worth recording now so the next session doesn't relitigate. Items marked **[required]** are non-negotiable safety properties, not preferences.
+**Resolved** — [migrate.py](migrate.py) shipped alongside the CSV (with [requirements.txt](requirements.txt)) and ran the §1.5 prod cutover in May 2026: six passes dispatched over `column_mapping.csv` via psycopg v3, dry-run by default with `--commit` to persist, prod connection-string guard and Health-row anonymization implemented as specified below. The notes that follow were the pre-implementation contract; they're kept as the review checklist for any future change to the script. Items marked **[required]** are non-negotiable safety properties, not preferences.
 
 - **Single source of mapping:** the script reads `column_mapping.csv` and dispatches by `transform`. No column names hardcoded in Python — adding a column is a CSV edit, not a code edit.
 - **Idempotent:** `INSERT … ON CONFLICT (email) DO UPDATE` for `participants`; `ON CONFLICT DO NOTHING` for join tables. Re-running against staging is the QA loop.

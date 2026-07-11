@@ -515,7 +515,7 @@ erDiagram
 | `votes` | Pod Layer | Budget-based votes on problem statements (lab-partitioned in HQ-open cycles) |
 | `pods` | Pod Layer | Shortlisted problems with external integrations; `metro_slug` = the owning Local Lab (NULL = HQ/legacy) |
 | `pod_memberships` | Pod Layer | Self-registration into pods (soft delete) |
-| `solution_proposals` | Project Layer | Solutions submitted within pods. Rich payload via `name` + `summary` columns + `proposal_data` JSONB. `UNIQUE(cycle_id, participant_id)` enforces one submission per participant per cycle (migration 00016, W2-001). |
+| `solution_proposals` | Project Layer | Solutions submitted within pods. Rich payload via `name` + `summary` columns + `proposal_data` JSONB. `UNIQUE(cycle_id, participant_id)` enforces one submission per participant per cycle (migration 00018, W2-001). |
 | `project_votes` | Project Layer | Budget-based votes on solution proposals |
 | `projects` | Project Layer | Shortlisted solutions with external integrations; `metro_slug` inherited from the pod |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |

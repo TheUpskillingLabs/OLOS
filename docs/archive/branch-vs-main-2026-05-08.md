@@ -26,13 +26,13 @@ These are the changes that didn't go through PR review — landed straight to ma
 ### Bug fixes (3)
 
 #### `3fe634c` — fix: skip expired pending invites in duplicate invite check
-**File:** [`app/api/invitations/route.ts`](../app/api/invitations/route.ts)
+**File:** [`app/api/invitations/route.ts`](../../app/api/invitations/route.ts)
 **Change:** added `.gt("expires_at", new Date().toISOString())` to the duplicate-invite check so an expired pending invite no longer blocks a new invite to the same email.
 
 **Verdict:** ✅ Aligned. Plain bug fix — the original check was too strict.
 
 #### `cfcf57a` — fix: derive app URL from request host for magic link
-**File:** [`app/api/invitations/[invitation_id]/send/route.ts`](../app/api/invitations/[invitation_id]/send/route.ts)
+**File:** [`app/api/invitations/[invitation_id]/send/route.ts`](../../app/api/invitations/[invitation_id]/send/route.ts)
 **Change:** dropped the brittle env-var fallback chain (`NEXT_PUBLIC_APP_URL` → derived from Supabase URL → hardcoded `app.theupskillinglabs.org`) and now derives `appUrl` from the incoming request's `host` header.
 
 **Verdict:** ✅ Aligned and an improvement. The previous fallback chain assumed Vercel-style domains; the new approach Just Works on any host (preview deploys, custom domains, localhost).
@@ -40,7 +40,7 @@ These are the changes that didn't go through PR review — landed straight to ma
 **Worth flagging:** the new derivation uses `_request.headers.get("host")` — relies on `_request` being passed correctly. Verify the underscore-prefix convention on the param hasn't muted any linter that would have caught a future regression.
 
 #### `a57ccaf` — fix: scope duplicate invite check to email + cycle + role
-**File:** [`app/api/invitations/route.ts`](../app/api/invitations/route.ts)
+**File:** [`app/api/invitations/route.ts`](../../app/api/invitations/route.ts)
 **Change:** the duplicate check now keys on `(email, cycle_id, role_preset)` rather than just `email`. So you can invite `someone@x.com` as a Moderator for cycle 5 *and* as an Observer for cycle 6 without the second invite being rejected as a duplicate.
 
 **Verdict:** ✅ Aligned and well-scoped. Builds on `3fe634c`.
@@ -50,7 +50,7 @@ These are the changes that didn't go through PR review — landed straight to ma
 ### UX / polish (3)
 
 #### `7ff5492` — fix: set from display name and update invite email subject
-**Files:** [`app/api/invitations/[invitation_id]/send/route.ts`](../app/api/invitations/[invitation_id]/send/route.ts), [`lib/email/index.ts`](../lib/email/index.ts)
+**Files:** [`app/api/invitations/[invitation_id]/send/route.ts`](../../app/api/invitations/[invitation_id]/send/route.ts), [`lib/email/index.ts`](../../lib/email/index.ts)
 **Change:**
 - Subject: *"You're invited to The Upskilling Labs"* → *"Invitation to Open Labs Operating System"*
 - From: bare email → `Upskilling Labs <invites@theupskillinglabs.org>` (proper RFC-5322 display name)
@@ -60,13 +60,13 @@ These are the changes that didn't go through PR review — landed straight to ma
 The display-name addition is correct.
 
 #### `b86f855` — feat: add Google login note to invitation email
-**File:** [`lib/email/invitation-template.ts`](../lib/email/invitation-template.ts)
+**File:** [`lib/email/invitation-template.ts`](../../lib/email/invitation-template.ts)
 **Change:** added a footer note in both HTML and plaintext: *"Note: you can only sign in using a Google-hosted email address (Gmail or Google Workspace)."*
 
 **Verdict:** ✅ Aligned and important. Pre-empts the "I clicked the link, signed in with my Outlook/Yahoo account, and got an error" support load. Sets expectations correctly for Google-OAuth-only sign-in (deviation from spec: spec says magic-link OTP; we say OAuth-only).
 
 #### `09adc4d` — feat: send email on create, remove copy link, revoke accepted invites
-**Files:** [`app/(dashboard)/admin/invitations/invitations-table.tsx`](../app/(dashboard)/admin/invitations/invitations-table.tsx), [`app/api/invitations/[invitation_id]/route.ts`](../app/api/invitations/[invitation_id]/route.ts)
+**Files:** [`app/(dashboard)/admin/invitations/invitations-table.tsx`](../../app/(dashboard)/admin/invitations/invitations-table.tsx), [`app/api/invitations/[invitation_id]/route.ts`](../../app/api/invitations/[invitation_id]/route.ts)
 **Changes:**
 - Creating an invitation **now auto-sends the email** in the same UI action — no separate "Send email" button after creation
 - "Copy link" button **removed**
@@ -76,7 +76,7 @@ The display-name addition is correct.
 
 The "remove copy link" half is more defensible — copy-link tempted admins to share via Slack DM, defeating the email-match anti-forwarding check in `fulfillInvitation()`. Removing it pushes everyone through the proper email path.
 
-The "revoke accepted invites" half is small but consequential. It means an admin can effectively retroactively un-grant permissions that were already accepted. Worth confirming that invalidating an accepted invite **also strips the granted permissions** (the route at [`app/api/invitations/[invitation_id]/route.ts`](../app/api/invitations/[invitation_id]/route.ts) only updates `invitations.status`, not `participant_permissions` — so this might *not* actually revoke access, just hide the audit row).
+The "revoke accepted invites" half is small but consequential. It means an admin can effectively retroactively un-grant permissions that were already accepted. Worth confirming that invalidating an accepted invite **also strips the granted permissions** (the route at [`app/api/invitations/[invitation_id]/route.ts`](../../app/api/invitations/[invitation_id]/route.ts) only updates `invitations.status`, not `participant_permissions` — so this might *not* actually revoke access, just hide the audit row).
 
 ---
 
@@ -120,4 +120,4 @@ Plus one possible bug:
 
 1. Decide on findings 1, 2, 3 above.
 2. Delete the local stale branch once you've reviewed: `git branch -D feature/magic-link-email`. Or keep it for record-keeping.
-3. Move on to the open ops checklist in [`lib/auth/CLAUDE.md`](../lib/auth/CLAUDE.md) §Open ops tasks — Google Cloud OAuth client + Supabase Studio config + Resend domain verification.
+3. Move on to the open ops checklist in [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md) §Open ops tasks — Google Cloud OAuth client + Supabase Studio config + Resend domain verification.

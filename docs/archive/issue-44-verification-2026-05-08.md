@@ -6,7 +6,7 @@
 **Branch:** `feature/magic-link-email`
 **Issue:** [ISSUE-W1-006: wire Supabase Auth + Google OAuth](https://github.com/TheUpskillingLabs/OLOS/issues/44)
 **Companion issue:** [ISSUE-W1-007: configure Supabase magic links via Resend SMTP](https://github.com/TheUpskillingLabs/OLOS/issues/45)
-**Companion doc:** [`lib/auth/CLAUDE.md`](../lib/auth/CLAUDE.md)
+**Companion doc:** [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md)
 
 ---
 

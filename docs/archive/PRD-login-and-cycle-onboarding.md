@@ -7,8 +7,8 @@
 | Status | Draft |
 | Author | Madhu (drafted with Claude) |
 | Last updated | 2026-05-19 |
-| Related spec | [`TUL_MVP_Spec.md`](../TUL_MVP_Spec.md) §Registration & Enrollment, §Pod Registration, §Dashboard |
-| Related code | [`app/(auth)/register/`](../app/(auth)/register/), [`app/(dashboard)/cycles/`](../app/(dashboard)/cycles/), [`lib/auth/CLAUDE.md`](../lib/auth/CLAUDE.md) |
+| Related spec | [`TUL_MVP_Spec.md`](TUL_MVP_Spec.md) §Registration & Enrollment, §Pod Registration, §Dashboard |
+| Related code | [`app/(auth)/register/`](../../app/(auth)/register/), [`app/(dashboard)/cycles/`](../../app/(dashboard)/cycles/), [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md) |
 | Related issues | TBD (file at implementation kickoff) |
 
 ## Overview
@@ -34,7 +34,7 @@ The features ship as one coordinated change because the new short form only make
 
 ## Non-goals
 
-- Changing the OAuth flow itself (Google sign-in stays as-is, per [`lib/auth/CLAUDE.md`](../lib/auth/CLAUDE.md)).
+- Changing the OAuth flow itself (Google sign-in stays as-is, per [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md)).
 - Changing the data the long form collects. We're moving fields between forms, not adding or removing them.
 - Building admin tooling for reviewing cycle-join requests (separate work — see Open Questions).
 - Changing the pod-cap from 2 to anything else.
@@ -62,7 +62,7 @@ A new user can complete sign-in and be inside the product in under 30 seconds, w
 5. User fills the short form. Submit creates a `participants` row.
 6. User lands on the personalized dashboard (Feature 4).
 
-The callback logic in [`app/api/auth/callback/route.ts`](../app/api/auth/callback/route.ts) does not change. Only the form rendered at `/register` changes.
+The callback logic in [`app/api/auth/callback/route.ts`](../../app/api/auth/callback/route.ts) does not change. Only the form rendered at `/register` changes.
 
 ### Visual reference
 
@@ -90,9 +90,9 @@ ALTER TABLE participants
 
 - `DEFAULT FALSE` is needed so existing rows backfill safely; the API path for the short form will always write `TRUE` (the checkbox is required to submit).
 - A follow-up data check after the migration: any existing participant rows with `text_updates = TRUE` should *not* be auto-promoted to `contact_consent = TRUE`, because the two questions have different scopes (SMS updates vs. broader newsletter/invites). Treat existing rows as not-yet-consented to the broader scope.
-- Update [`SCHEMA.md`](../SCHEMA.md) §Participants table to document the new column.
+- Update [`SCHEMA.md`](../../SCHEMA.md) §Participants table to document the new column.
 - On success, redirect to `/` (which routes to the personalized dashboard).
-- On failure, show the error inline (existing pattern in [`register-form.tsx`](../app/(auth)/register/register-form.tsx)).
+- On failure, show the error inline (existing pattern in [`register-form.tsx`](../../app/(auth)/register/register-form.tsx)).
 
 ### Duplicate-account detection
 
@@ -103,7 +103,7 @@ Before inserting a new `participants` row, `POST /api/registrations/short` runs 
 - Send the *"You're already an Upskiller"* email (see Appendix §Email B) to the submitted address. The email contains a direct link back to `/login`.
 - The form UI shows a non-alarming confirmation: *"Looks like you already have an account — we've sent you an email with a login link."*
 
-This case is rare in the normal OAuth flow (the callback at [`/api/auth/callback`](../app/api/auth/callback/route.ts) does its own email-based lookup and links `auth_user_id` before redirecting), but it can fire when:
+This case is rare in the normal OAuth flow (the callback at [`/api/auth/callback`](../../app/api/auth/callback/route.ts) does its own email-based lookup and links `auth_user_id` before redirecting), but it can fire when:
 
 - A `participants` row was created by the public marketing-site form with a different email casing.
 - Admin tooling inserted a row out-of-band between the user's callback and form submission.
@@ -145,7 +145,7 @@ When a participant decides they want to join the currently active Build Cycle, t
 1. Participant is on the personalized dashboard (Feature 4). The active cycle card shows a **Join this cycle** CTA (their `cycle_enrollments` row either doesn't exist or has `status='inactive'`).
 2. Participant clicks **Join this cycle**. They land on `/cycles/{cycle_id}/join` (new route).
 3. Participant fills the long form and submits.
-4. Submit creates or updates a `cycle_enrollments` row with `status='inactive'` (per the existing spec — see [`TUL_MVP_Spec.md`](../TUL_MVP_Spec.md) §Data Flow / Registration) and writes the long-form fields onto the `participants` row (or a related table if the team prefers — see Open Questions).
+4. Submit creates or updates a `cycle_enrollments` row with `status='inactive'` (per the existing spec — see [`TUL_MVP_Spec.md`](TUL_MVP_Spec.md) §Data Flow / Registration) and writes the long-form fields onto the `participants` row (or a related table if the team prefers — see Open Questions).
 5. The email in Feature 3 fires.
 6. Participant lands back on the personalized dashboard with a "thanks, we'll be in touch" state.
 
@@ -190,9 +190,9 @@ Triggered server-side as a side effect of `POST /api/registrations/short` (Featu
 ### Functional requirements
 
 - **Recipient: the participant only.** The participant's own email address (the one on the Supabase session, also stored on `participants.email`).
-- Email dispatch uses the existing Resend HTTP path documented in [`lib/auth/CLAUDE.md`](../lib/auth/CLAUDE.md) §Issue #45. Reuses `getResendClient()` from [`lib/email/`](../lib/email/).
+- Email dispatch uses the existing Resend HTTP path documented in [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md) §Issue #45. Reuses `getResendClient()` from [`lib/email/`](../../lib/email/).
 - Email content thanks the participant for registering and contains a single CTA inviting them to complete the long form (and then choose their pods on the dashboard).
-- A new template lives alongside [`invitation-template.ts`](../lib/email/invitation-template.ts), proposed name `registration-confirmation-template.ts`. Both HTML and plain-text variants, matching the existing invitation-template pattern.
+- A new template lives alongside [`invitation-template.ts`](../../lib/email/invitation-template.ts), proposed name `registration-confirmation-template.ts`. Both HTML and plain-text variants, matching the existing invitation-template pattern.
 - Sender identity matches the invitation email: `RESEND_FROM_EMAIL` env var, default `noreply@enroll.theupskillinglabs.org`.
 - The CTA link points at the current active cycle's join URL (e.g., `/cycles/{cycle_id}/join`). If there is no active cycle at send time, the email uses a fallback variant with no CTA that simply tells the user we will be in touch when the next cycle opens.
 - Failure to send does **not** roll back the `participants` write. The participant record is the source of truth; the email is a notification. Log failures with a structured log line.
@@ -256,12 +256,12 @@ If no active cycle exists, OR if the active cycle's pod-registration window has 
 
 Once the user has submitted the long form (Feature 2), the dashboard expands to the full chrome:
 
-- **Header**: active cycle name + dates + phase indicator (reuse existing [`cycle-phase-indicator.tsx`](../app/(dashboard)/cycles/cycle-phase-indicator.tsx)).
+- **Header**: active cycle name + dates + phase indicator (reuse existing [`cycle-phase-indicator.tsx`](../../app/(dashboard)/cycles/cycle-phase-indicator.tsx)).
 - **Status block**, depending on the user's standing:
   - *`cycle_enrollments.status='inactive'` and pod-registration window is not yet open*: "Interest submitted, pod registration opens \<date\>" state.
   - *`cycle_enrollments.status='inactive'` and pod-registration window is open*: Pod-join section (Feature 5). Joining a pod will flip the participant to `'active'`.
   - *`cycle_enrollments.status='active'`*: Pod-join section (Feature 5), with already-joined pods shown as such.
-- **Pulse check CTA** (always-on banner if the active cycle is in pulse-check territory; reuse the existing banner from [`cycles/page.tsx`](../app/(dashboard)/cycles/page.tsx)).
+- **Pulse check CTA** (always-on banner if the active cycle is in pulse-check territory; reuse the existing banner from [`cycles/page.tsx`](../../app/(dashboard)/cycles/page.tsx)).
 - **My pods** section listing the user's current active pod memberships (name + status + link to pod detail).
 - **Past cycles** section: collapsed by default, mirrors today's "Past cycles" grid.
 - Top nav shows "Dashboard", "Cycles", and "Pulse Check".
@@ -301,11 +301,11 @@ When a participant has submitted the long form and the pod-registration window i
 
 ### Functional requirements
 
-- The dashboard reuses the existing pod-registration code path: `POST /api/pods/{pod_id}/register` and `DELETE /api/pods/{pod_id}/register` ([`app/api/pods/[pod_id]/register/route.ts`](../app/api/pods/[pod_id]/register/route.ts)). The handler gets one small addition (see Activation behavior below); everything else is preserved.
+- The dashboard reuses the existing pod-registration code path: `POST /api/pods/{pod_id}/register` and `DELETE /api/pods/{pod_id}/register` ([`app/api/pods/[pod_id]/register/route.ts`](../../app/api/pods/[pod_id]/register/route.ts)). The handler gets one small addition (see Activation behavior below); everything else is preserved.
 - Pod cap is enforced server-side as today: the API returns 400 `"You are already registered in 2 pods for this cycle."` if the participant tries to join a third. The client also pre-disables the button — but the server check is the source of truth.
 - Window enforcement is also server-side. If the window is closed, the dashboard shows "Pod registration opens \<date\>" instead of action buttons.
 - The pod-join section is visually distinct on the dashboard, but the dedicated `/cycles/{cycle_id}/register-pods` page is retained as a deeper-detail view (per Decisions log).
-- Withdrawing a pod removes the membership row and any side-effect Google Group membership, matching today's [`DELETE /api/pods/{pod_id}/register`](../app/api/pods/[pod_id]/register/route.ts) behavior. Withdrawal does **not** flip status back to `'inactive'`.
+- Withdrawing a pod removes the membership row and any side-effect Google Group membership, matching today's [`DELETE /api/pods/{pod_id}/register`](../../app/api/pods/[pod_id]/register/route.ts) behavior. Withdrawal does **not** flip status back to `'inactive'`.
 
 ### Activation behavior
 
@@ -352,7 +352,7 @@ Locked in by the team:
 - **Long-form endpoint** → **New `POST /api/cycles/{cycle_id}/interest` route.** Existing `POST /api/registrations` is not extended with a `cycle_id` param.
 - **Contact-consent field mapping** → **Add a new `participants.contact_consent BOOLEAN NOT NULL DEFAULT FALSE` column.** Migration documented in Feature 1 §Schema changes. Do not reuse `text_updates`.
 - **Downstream consumers of nullable `participants` columns** → **Accept for now.** No audit of admin tooling / scripts / exports before this ships. Treat any downstream breakage as a follow-up to fix if it surfaces.
-- **Status flip mechanism** → **Joining an already-active pod activates the participant; joining a forming pod uses the existing `pod_min` behavior.** The existing handler at [`/api/pods/{pod_id}/register`](../app/api/pods/[pod_id]/register/route.ts) only activates participants when the pod itself transitions from `'forming'` to `'active'` (i.e., when registrants reach `cycle_config.pod_min`). This PRD adds one case: if the pod is already `'active'` at the time of the join, activate the joining participant immediately. All other behavior stays the same. No spec deviation — the spec's "active = ≥1 pod + pulse checks" still holds, and the `pod_min` gate still drives pod-level provisioning.
+- **Status flip mechanism** → **Joining an already-active pod activates the participant; joining a forming pod uses the existing `pod_min` behavior.** The existing handler at [`/api/pods/{pod_id}/register`](../../app/api/pods/[pod_id]/register/route.ts) only activates participants when the pod itself transitions from `'forming'` to `'active'` (i.e., when registrants reach `cycle_config.pod_min`). This PRD adds one case: if the pod is already `'active'` at the time of the join, activate the joining participant immediately. All other behavior stays the same. No spec deviation — the spec's "active = ≥1 pod + pulse checks" still holds, and the `pod_min` gate still drives pod-level provisioning.
 - **Dedicated pod-registration page** → **Keep `/cycles/{cycle_id}/register-pods` for v1.** Revisit removal once the dashboard pod-join section has bake time.
 
 ## Open questions
@@ -380,7 +380,7 @@ Each slice is independently testable and shippable behind a feature flag if need
 
 ## Appendix — Email templates (draft copy)
 
-Two new email templates ship with this PRD. Both live in [`lib/email/`](../lib/email/) alongside the existing [`invitation-template.ts`](../lib/email/invitation-template.ts) and follow its HTML and plain-text pattern. Both use the existing Resend HTTP path (`getResendClient().emails.send`) and the `RESEND_FROM_EMAIL` sender, default `noreply@enroll.theupskillinglabs.org`.
+Two new email templates ship with this PRD. Both live in [`lib/email/`](../../lib/email/) alongside the existing [`invitation-template.ts`](../../lib/email/invitation-template.ts) and follow its HTML and plain-text pattern. Both use the existing Resend HTTP path (`getResendClient().emails.send`) and the `RESEND_FROM_EMAIL` sender, default `noreply@enroll.theupskillinglabs.org`.
 
 The copy below is a draft. Final wording should go through whoever owns brand voice before launch. Tone target: friendly, simple, formal.
 

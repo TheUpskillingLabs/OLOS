@@ -7,11 +7,11 @@
 | Status | Draft |
 | Author | Madhu (drafted with Claude) |
 | Last updated | 2026-05-20 |
-| Related persona | [`personas.md` — Poderator](personas.md#poderator) |
-| Related spec | [`TUL_MVP_Spec.md`](../TUL_MVP_Spec.md) §Roles, §Pulse Checks, §Pod Registration |
+| Related persona | [`personas.md` — Poderator](../personas.md#poderator) |
+| Related spec | [`TUL_MVP_Spec.md`](TUL_MVP_Spec.md) §Roles, §Pulse Checks, §Pod Registration |
 | Related architecture | [`OLOS-architecture-brief.md`](OLOS-architecture-brief.md) §Roles, §Phase machine |
 | Related roadmap items | §1.13, §1.14, §2.7, §3.5, §3.6 |
-| Related code | [`lib/auth/CLAUDE.md`](../lib/auth/CLAUDE.md) (role resolution); `app/(dashboard)/pods/[id]/` (planned) |
+| Related code | [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md) (role resolution); `app/(dashboard)/pods/[id]/` (planned) |
 | Related issues | TBD (file at implementation kickoff) |
 
 ## 1. Background
@@ -46,7 +46,7 @@ A poderator today has no purpose-built place in OLOS to do their job. The inform
 
 ## 5. Glossary
 
-- **Poderator** — community member assigned to one or more pods for one cycle. Stored as one or more rows in `moderator_assignments` with `removed_at IS NULL`. See [`personas.md`](personas.md#poderator).
+- **Poderator** — community member assigned to one or more pods for one cycle. Stored as one or more rows in `moderator_assignments` with `removed_at IS NULL`. See [`personas.md`](../personas.md#poderator).
 - **Pod** — group within a cycle, seeded by a top-voted problem statement.
 - **Pulse check** — weekly check-in completed by active participants. The configured number of consecutive missed pulses (default: 2) is the canonical disengagement signal.
 - **Phase** — one of the seven cycle stages (problem submission, pod voting, pod registration, solution submission, project voting, project shortlist, project registration).
@@ -349,8 +349,8 @@ The cycle-inactivity auto-flip (member → `inactive` after two consecutive miss
 
 ## 12. References
 
-- [`personas.md` — Poderator](personas.md#poderator)
+- [`personas.md` — Poderator](../personas.md#poderator)
 - [`OLOS-architecture-brief.md`](OLOS-architecture-brief.md), §Roles and §Phase machine
-- [`OLOS-roadmap.md`](OLOS-roadmap.md), §1.13, §1.14, §2.7, §3.5, §3.6
-- [`TUL_MVP_Spec.md`](../TUL_MVP_Spec.md), §Roles, §Pulse Checks, §Pod Registration
-- [`lib/auth/CLAUDE.md`](../lib/auth/CLAUDE.md), session model and role resolution
+- [`OLOS-roadmap.md`](../OLOS-roadmap.md), §1.13, §1.14, §2.7, §3.5, §3.6
+- [`TUL_MVP_Spec.md`](TUL_MVP_Spec.md), §Roles, §Pulse Checks, §Pod Registration
+- [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md), session model and role resolution

@@ -2,7 +2,7 @@
 *The central long-term plan. This is the source of truth; issues reference back to it.*
 
 **Status:** Living document. Update as decisions resolve and waves complete.
-**Last updated:** April 30, 2026
+**Last updated:** July 11, 2026
 
 ---
 
@@ -65,7 +65,7 @@ gantt
 
 **Partially absorbed by [`00010_pulse_check_v2.sql`](../supabase/migrations/00010_pulse_check_v2.sql) (PR #53):** that migration shipped `ai_tools` (61 rows, expanded for autocomplete) and `pulse_benefits` (7 rows, reworded for Labs value-prop alignment — supersedes `TUL_MVP_Spec.md`). Original spec values for `pulse_benefits` are retained with `active = FALSE` so historical `pulse_checks` references resolve.
 
-**Remaining scope (W1-002 / PR #58):** ship the four spec-aligned lists `00010` didn't touch — `labs_goals`, `availability`, `work_style`, `group_strengths` (20 rows total) — via [`00012_seed_option_lists.sql`](../supabase/migrations/00012_seed_option_lists.sql). After this merges, all six lists are seeded to staging/prod via migrations rather than `seed.sql` (which is local-only).
+**Remaining scope (W1-002 / PR #58, since merged):** the four spec-aligned lists `00010` didn't touch — `labs_goals`, `availability`, `work_style`, `group_strengths` (20 rows total) — shipped via [`00012_seed_option_lists.sql`](../supabase/migrations/00012_seed_option_lists.sql). All six lists are now seeded to staging/prod via migrations rather than `seed.sql` (which is local-only).
 - Issue: `ISSUE-W1-002` (PR #58)
 
 ## §1.3 — Build legacy column mapping CSV
@@ -161,6 +161,8 @@ graph TD
 
 ## §2.1 — Schema amendments: configurable `pod_limit`
 *Move the hardcoded 2-pod cap to `cycle_config.pod_limit SMALLINT NOT NULL DEFAULT 2`. Refactor `POST /api/pods/{id}/register` validation to read from config.*
+
+**Shipped July 2026** via [`00036_cycle_config_pod_limit.sql`](../supabase/migrations/00036_cycle_config_pod_limit.sql), with the register-route and admin-membership-route reads moved to config — see §8.5.
 - Issue: TBD
 
 ## §2.2 — Schema amendments: problem statement context JSONB + `theme_track`
@@ -182,7 +184,7 @@ graph TD
 ## §2.6 — Solution proposal submission form
 *Authenticated form scoped to a pod. Posts to `POST /api/pods/{id}/solution-proposals`. Single-submitter UX (per board annotation: multi-submission is functionally allowed but not promoted).*
 
-**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** Existing pod-scoped submission API + page predate this consolidation; W2-006 ships the rich 7-field form (project name, summary, description, 4 optional context fields), a `(cycle_id, participant_id)` unique constraint via [migration 00016](../supabase/migrations/00016_solution_proposals_rich_fields.sql), and the T-1/T+1 tab-visibility buffer + T-2-day warning banner. Edit-until-close handled via UPSERT on the unique constraint.
+**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** Existing pod-scoped submission API + page predate this consolidation; W2-006 ships the rich 7-field form (project name, summary, description, 4 optional context fields), a `(cycle_id, participant_id)` unique constraint via [migration 00016](../supabase/migrations/00018_solution_proposals_rich_fields.sql), and the T-1/T+1 tab-visibility buffer + T-2-day warning banner. Edit-until-close handled via UPSERT on the unique constraint.
 - Issue: `ISSUE-W2-006` (#74)
 
 ## §2.7 — Pulse-check moderator view: response review
@@ -234,14 +236,14 @@ graph TD
 ## §3.7 — Cross-cutting: onboarding state-machine consolidation
 *Authored 2026-05-31 after a 7-agent architectural review of the May launch hot-fix cascade. Consolidates the participant onboarding lifecycle into a single idempotent state machine. Cuts across Wave 1 follow-ups, Wave 2 account-management work, and Wave 3 cron infrastructure — placed here because the work lands during Wave 3 but its scope is cross-wave.*
 
-**Background:** the May 2026 Energy-cohort cascade revealed that `cycle_enrollments.status inactive → active` is written from only one code path (`app/api/pods/[pod_id]/register/route.ts`), while pod and pod_membership writes happen from many — admin SQL, migration script, seed, invitation callback. Combined with a buggy revocation cron, this revoked ~75% of the cohort. The full diagnosis spans 23 broken edges across 6 subsystems — see [docs/architecture-review-onboarding-state-machine.md](./architecture-review-onboarding-state-machine.md).
+**Background:** the May 2026 Energy-cohort cascade revealed that `cycle_enrollments.status inactive → active` is written from only one code path (`app/api/pods/[pod_id]/register/route.ts`), while pod and pod_membership writes happen from many — admin SQL, migration script, seed, invitation callback. Combined with a buggy revocation cron, this revoked ~75% of the cohort. The full diagnosis spans 23 broken edges across 6 subsystems — see [docs/archive/architecture-review-onboarding-state-machine.md](./archive/architecture-review-onboarding-state-machine.md).
 
 **Solution:** one `reconcileEnrollmentActivation` helper called by every lifecycle code path, plus admin/moderator UI for the manual fixes currently requiring SQL, plus a redesigned revocation cron with cycle-scoped checks and a warning state before revocation.
 
 **Three phases:**
 - **Phase A** ([PR #111](https://github.com/TheUpskillingLabs/OLOS/pull/111), merged) — reconciler + auth-callback `ignoreDuplicates` fix + placeholder-name guard in `fulfillInvitation` + RLS `WITH CHECK` migration + `pod_memberships_select` tightening.
 - **Phase B** ([PR #116](https://github.com/TheUpskillingLabs/OLOS/pull/116), merged) — admin/moderator self-service UI: PATCH /api/participants/[id], `/profile/edit` dual mode (Mode A self-edit, Mode B forced completion), admin pod-membership add/remove, admin pod-status override, stuck-inactive filter.
-- **Phase C** (in flight, branch `110-phase-c-cron-v2`) — revocation cron v2: cycle-scoped queries, baseline = `MAX(activated_at, pod_registration_open_at)`, two-stage handler (warning + 3-day grace, then revoke), idempotency via unique partial index on `access_revocations`. Re-register cron in `vercel.json` after ≥48h staging soak.
+- **Phase C** (shipped — migration [`00030_revocation_warnings_and_idempotency.sql`](../supabase/migrations/00030_revocation_warnings_and_idempotency.sql) + rewritten [app/api/cron/revocation-check](../app/api/cron/revocation-check/route.ts)) — revocation cron v2: cycle-scoped queries, baseline = `MAX(activated_at, pod_registration_open_at)`, two-stage handler (warning + 3-day grace, then revoke), idempotency via unique partial index on `access_revocations`. **Still open:** the final step — re-registering the cron in `vercel.json` after the ≥48h staging soak — never ran; the cron remains unscheduled (see §8.7).
 
 ### Phase C design decisions captured (2026-06-03)
 
@@ -318,11 +320,11 @@ These block specific issues. Resolve before the affected work starts.
 | Anchor | Issue | Status | Owner | PR | Notes |
 |---|---|---|---|---|---|
 | §1.1 | [ISSUE-W1-001](https://github.com/TheUpskillingLabs/OLOS/issues/39) | resolved | adm-2k | commit `4237b85` | Critical path. Shipped via `00011_extend_participants_legacy_fields.sql` on `main`. W1-002 branched from this. |
-| §1.2 | [ISSUE-W1-002](https://github.com/TheUpskillingLabs/OLOS/issues/40) | in review | adm-2k | [#58](https://github.com/TheUpskillingLabs/OLOS/pull/58) | Partially absorbed by `00010_pulse_check_v2.sql`; PR ships the remaining 4 lists (20 rows) via `00012_seed_option_lists.sql`. |
-| §1.3 | [ISSUE-W1-003](https://github.com/TheUpskillingLabs/OLOS/issues/41) | in progress | adm-2k | — | Folder guidance at [scripts/migration/CLAUDE.md](../scripts/migration/CLAUDE.md); 103 mapping rows authored at [scripts/migration/column_mapping.csv](../scripts/migration/column_mapping.csv). PS / Health-Voting row counts diverge from issue (20/19 actual vs 25/25 spec) — to be reconciled in PR review. |
-| §1.4 | ISSUE-W1-004 | not started | — | — | Critical path; awaits D1. Test-data safety contract pre-recorded in [scripts/migration/CLAUDE.md](../scripts/migration/CLAUDE.md) *Test data strategy* — script must own anonymization of Health rows, prod connection-string guard, and frozen fixture snapshot before merge. |
-| §1.5 | [ISSUE-W1-005](https://github.com/TheUpskillingLabs/OLOS/issues/43) | ran, data quality bad | adm-2k | — | Critical path. Script ran against prod (run logs at [scripts/migration/run_*.log](../scripts/migration/)); 26 enrollments landed but with quality issues. **Plan**: clear non-owner Energy data via [reset-energy-participants.sql](../scripts/ops/reset-energy-participants.sql) (PR #83), then have participants self-register through the form. Data-migration approach is being replaced with self-registration; issue should be re-scoped or closed accordingly. |
-| §1.6 | [ISSUE-W1-006](https://github.com/TheUpskillingLabs/OLOS/issues/44) | in review | inferno-gh (MJ) | merged to main via PR [#60](https://github.com/TheUpskillingLabs/OLOS/pull/60) | Code complete on main. Spec's FastAPI JWT translated to `@supabase/ssr` session cookie + per-request role resolution. **Ratified 2026-05-08**: missing-participant case redirects to `/register` rather than 404 ([#63](https://github.com/TheUpskillingLabs/OLOS/issues/63), kept for UX + privacy reasons). See [lib/auth/CLAUDE.md](../lib/auth/CLAUDE.md). Blocked on ops: Google Cloud OAuth client + Supabase Studio Google provider + redirect allow-list. |
+| §1.2 | [ISSUE-W1-002](https://github.com/TheUpskillingLabs/OLOS/issues/40) | resolved | adm-2k | [#58](https://github.com/TheUpskillingLabs/OLOS/pull/58) | Partially absorbed by `00010_pulse_check_v2.sql`; remaining 4 lists (20 rows) shipped and applied via `00012_seed_option_lists.sql`. All six lists live in migrations, not `seed.sql`. |
+| §1.3 | [ISSUE-W1-003](https://github.com/TheUpskillingLabs/OLOS/issues/41) | resolved | adm-2k | — | Shipped: 103 mapping rows at [scripts/migration/column_mapping.csv](../scripts/migration/column_mapping.csv); folder guidance at [scripts/migration/CLAUDE.md](../scripts/migration/CLAUDE.md). PS / Health-Voting row-count deltas vs the issue (20/19 actual vs 25/25 spec) were flagged in the PR. |
+| §1.4 | ISSUE-W1-004 | resolved | — | — | Shipped at [scripts/migration/migrate.py](../scripts/migration/migrate.py) (+ [requirements.txt](../scripts/migration/requirements.txt)) — six-pass dispatch over the mapping CSV via psycopg v3, dry-run default with `--commit`, prod connection-string guard + Health anonymization per the test-data safety contract in [scripts/migration/CLAUDE.md](../scripts/migration/CLAUDE.md). Ran the §1.5 cutover. |
+| §1.5 | [ISSUE-W1-005](https://github.com/TheUpskillingLabs/OLOS/issues/43) | ran; superseded by self-registration | adm-2k | — | Critical path. The cutover ran against prod; 26 enrollments landed but with quality issues. Non-owner Energy data was cleared via [reset-energy-participants.sql](../scripts/ops/reset-energy-participants.sql) (PR #83) and intake moved to self-registration — since evolved into funnel registration + Open Cycle Agreement (`00031`–`00033`, see §8.3). Data migration as an intake path is retired. |
+| §1.6 | [ISSUE-W1-006](https://github.com/TheUpskillingLabs/OLOS/issues/44) | resolved | inferno-gh (MJ) | merged to main via PR [#60](https://github.com/TheUpskillingLabs/OLOS/pull/60) | Spec's FastAPI JWT translated to `@supabase/ssr` session cookie + per-request role resolution. **Ratified 2026-05-08**: missing-participant case redirects to `/register` rather than 404 ([#63](https://github.com/TheUpskillingLabs/OLOS/issues/63), kept for UX + privacy reasons). Ops wiring (Google Cloud OAuth client + Supabase Google provider + redirect allow-list) since completed — sign-in is the live entry path. See [lib/auth/CLAUDE.md](../lib/auth/CLAUDE.md). |
 | §1.7 | [ISSUE-W1-007](https://github.com/TheUpskillingLabs/OLOS/issues/45) | resolved | inferno-gh (MJ) | merged to main via PR [#60](https://github.com/TheUpskillingLabs/OLOS/pull/60) | **Resolved 2026-05-09.** **Ratified 2026-05-08** ([#64](https://github.com/TheUpskillingLabs/OLOS/issues/64)): invitation emails delivered via direct Resend HTTP API rather than Supabase SMTP relay — driven by free-tier rate limits (Supabase auth-email throttle would block bulk-invite §1.8). Custom-token flow, not Supabase magic-link OTP. Resend domain `enroll.theupskillinglabs.org` verified (SPF + DKIM + DMARC); first prod send 2026-05-08; acceptance flow verified end-to-end on prod 2026-05-10 (side-effect rows landed across `participant_permissions`, `cycle_enrollments`, `moderator_assignments`). In-code default sender aligned to subdomain via PR [#68](https://github.com/TheUpskillingLabs/OLOS/pull/68). Unblocks bulk-invite §1.8 (#46). See [lib/auth/CLAUDE.md](../lib/auth/CLAUDE.md). |
 | §1.8 | [ISSUE-W1-008](https://github.com/TheUpskillingLabs/OLOS/issues/46) | resolved | adm-2k | merged via PR [#70](https://github.com/TheUpskillingLabs/OLOS/pull/70) | Script at [scripts/ops/send-bulk-invites.ts](../scripts/ops/send-bulk-invites.ts). Dry-run + single-recipient sanity send verified on prod; full-cohort fan-out deferred per [scripts/ops/CLAUDE.md](../scripts/ops/CLAUDE.md) until §1.5 cohort lands. After the Energy reset (PR #83), re-run for the cleaned cohort. Dev/prod-split fix landed via commit `5e62e5a`. |
 | §1.9 | [ISSUE-W1-009](https://github.com/TheUpskillingLabs/OLOS/issues/47) | absorbed | — | shipped pre-#47 | Stack pivoted from FastAPI to Next.js (per §1.6). POST endpoint shipped at [app/api/pulse-checks/route.ts](../app/api/pulse-checks/route.ts) — JWT-derived `participant_id`, 409-Conflict on duplicate `(participant_id, scheduled_date, cycle_id)`, nominations side-write, `last_pulse_completed_at` denorm on `participants`. Issue closure pending AC walkthrough. |
@@ -344,3 +346,31 @@ These were inferred from the dashboard screenshot and earlier conversation but h
 4. **No staging environment exists.** §1.4 may need to provision one before the script can run against it.
 
 Confirm or correct each before starting Wave 1.
+
+---
+
+# §8 — Shipped beyond Wave 1 (June–July 2026)
+
+*Added 2026-07-11. The wave framing above ends at the June 1 voting milestone, but the system kept moving. This section records what shipped after it — tersely, with migration numbers — so the sections above can stand as historical record. Canonical current-state docs: [docs/ARCHITECTURE.md](./ARCHITECTURE.md) (system shape) and [docs/EVOLUTION.md](./EVOLUTION.md) (how it got here). The founding spec, April architecture brief, and other point-in-time docs now live under [docs/archive/](./archive/).*
+
+## §8.1 — Poderator dashboard (June 2026, migrations 00019–00026)
+Moderator-facing dashboard under `app/(dashboard)/moderator/` — solution-proposal update policy (`00019`), shared-pod participant visibility (`00020`), RLS `WITH CHECK` + soft-delete hardening (`00021`/`00022`), nudge dismissals (`00023`), moderator UI state (`00024`, `00027`), `ai_experience` (`00025`), `cycle_config` extensions incl. `at_risk_consecutive_misses` (`00026`). Conventions: [docs/poderator-dashboard/CLAUDE.md](./poderator-dashboard/CLAUDE.md).
+
+## §8.2 — Onboarding state machine: #110 Phases A–C (June 2026)
+§3.7 completed. Reconciler + placeholder-name remediation (Phases A/B — PRs [#111](https://github.com/TheUpskillingLabs/OLOS/pull/111), [#116](https://github.com/TheUpskillingLabs/OLOS/pull/116)), RLS fixes (`00021`/`00022`), revocation cron v2 (`00030` — cycle-scoped, warn-then-revoke, idempotent). See §8.7 for the one step that didn't run.
+
+## §8.3 — Reskin, funnel registration, Open Cycle Agreement (July 2026)
+Light "warm-paper" reskin replaced the dark theme (the old [DESIGN_SYSTEM.md](./archive/DESIGN_SYSTEM.md) is archived). Funnel registration — role intent → signup → agreement, with zip → metro assignment — landed via `00031_funnel_registration_fields.sql`; the Open Cycle Agreement (typed-name signature as an enrollment-activation precondition) via `00032_cycle_agreements.sql`.
+
+## §8.4 — Registration windows (00031–00034)
+Upcoming-cycle registration windows + cycle information pages (`00033_cycle_registration_and_info.sql`) — registration is no longer hardwired to the single `status='active'` cycle. `00034` is a drift repair restoring `problem_statements.proposal_data`.
+
+## §8.5 — Pod/project lifecycle hardening (00035–00037)
+Self-scoped UPDATE/DELETE policies on `votes` (`00035`) and `project_votes` (`00037`) so ballots can be re-allocated or withdrawn until the window closes; §2.1's configurable `pod_limit` shipped as `00036_cycle_config_pod_limit.sql`.
+
+## §8.6 — Labs model (July 2026, migrations 00038–00039)
+The largest post-wave change. `00038_labs_lead_and_cycle_metro.sql`: metro-scoped `labs_lead` role, `cycles.metro_slug`, `user_roles` CHECK widened to include `developer`/`labs_lead`. `00039_hq_lab_cycle_model.sql`: HQ / Local-Lab / HQ-internal cycle taxonomy (`cycles.is_hq_internal`), lab boundary on `pods.metro_slug` / `projects.metro_slug`, per-lab pod formation and lab-partitioned voting finalization — enforcement in [lib/auth/cycle-access.ts](../lib/auth/cycle-access.ts), finalize at [app/api/voting/finalize/[cycle_id]](../app/api/voting/finalize/%5Bcycle_id%5D).
+
+## §8.7 — Known open items
+- **Registration routing is metro-blind.** [lib/cycles/registration.ts](../lib/cycles/registration.ts) resolves which cycle a registrant joins with no lab/metro awareness — it doesn't distinguish HQ-open from lab-scoped cycles at signup.
+- **Revocation cron is unscheduled.** Cron v2 shipped (`00030` + [app/api/cron/revocation-check](../app/api/cron/revocation-check/route.ts)), but [vercel.json](../vercel.json) registers only `pulse-check-reminder` — the §3.7 Phase C re-registration step (after the ≥48h staging soak) never ran.

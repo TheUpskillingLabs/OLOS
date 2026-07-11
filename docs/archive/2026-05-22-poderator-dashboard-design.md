@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | Date | 2026-05-22 |
-| PRD | [`docs/PRD-moderator-dashboard.md`](../../PRD-moderator-dashboard.md) |
-| CLAUDE.md | [`docs/poderator-dashboard/CLAUDE.md`](../../poderator-dashboard/CLAUDE.md) |
+| PRD | [`docs/PRD-moderator-dashboard.md`](PRD-moderator-dashboard.md) |
+| CLAUDE.md | [`docs/poderator-dashboard/CLAUDE.md`](../poderator-dashboard/CLAUDE.md) |
 | Phase | Single phase — no internal LLM, no Phase 2 deferred work |
 
 ---

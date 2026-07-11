@@ -6,7 +6,7 @@ Scope: this file applies to anything under [supabase/](.) — migrations, seed d
 
 ## Stack reality vs. roadmap wording
 
-[OLOS-architecture-brief.md](../docs/OLOS-architecture-brief.md) and several issues describe a Python/FastAPI backend with Alembic migrations under `/api/db/migrations/`. **That stack does not exist in this repo.** The shipped stack is:
+[OLOS-architecture-brief.md](../docs/archive/OLOS-architecture-brief.md) (now archived) and several early issues describe a Python/FastAPI backend with Alembic migrations under `/api/db/migrations/`. **That stack does not exist in this repo.** The shipped stack is:
 
 - Next.js App Router (frontend + API routes under [app/api/](../app/api/))
 - Supabase Postgres, with raw-SQL migrations under [supabase/migrations/](migrations/)
@@ -32,7 +32,7 @@ The roadmap is the plan; [migrations/](migrations/) is the truth. They drift. Ru
 
 1. **Read what shipped.** `ls migrations/` and skim any migration whose name touches your subject. A prior migration may have already done part — or all — of your issue's scope. The cost of finding out at code-review time is much higher than the 60 seconds it takes here.
 2. **Shrink scope to what's actually missing.** If a prior migration absorbed part of your issue, don't redo that work. Update the roadmap entry (e.g. `§1.2`) to record what's already done and what's left, then write your migration to cover only the remainder. Document the divergence in the PR body so the next person reading the issue understands what changed.
-3. **If you change a value the spec defines, close the loop.** When your migration ships values that contradict `TUL_MVP_Spec.md`, EITHER update the affected spec section in the same PR, OR add a row to `OLOS-roadmap.md §5 Open Decisions` pointing at your migration as the new source of truth. Pick one — but never leave the spec quietly stale. (See §1.2's `00010_pulse_check_v2.sql` situation for what happens when this is skipped: a downstream issue gets written from stale spec assumptions and the conflict surfaces only at PR time.)
+3. **If you change a value the spec defines, close the loop.** The founding spec is now archived at [docs/archive/TUL_MVP_Spec.md](../docs/archive/TUL_MVP_Spec.md) — it's a historical record, don't edit it. When your migration ships values that contradict it (or any current doc), add a row to `OLOS-roadmap.md §5 Open Decisions` pointing at your migration as the new source of truth, and update the affected living doc (`SCHEMA.md`, `docs/ARCHITECTURE.md`) in the same PR. Never leave the record quietly stale. (See §1.2's `00010_pulse_check_v2.sql` situation for what happens when this is skipped: a downstream issue gets written from stale spec assumptions and the conflict surfaces only at PR time.)
 
 ---
 
@@ -46,7 +46,7 @@ The roadmap is the plan; [migrations/](migrations/) is the truth. They drift. Ru
 
 ## Migration consolidation policy
 
-The `migrations/` chain accretes. Small, single-purpose migrations are convenient at the moment but become noise over time (we already have 12 files; several are <100 bytes). Two countermeasures:
+The `migrations/` chain accretes. Small, single-purpose migrations are convenient at the moment but become noise over time (the chain now runs through `00039_hq_lab_cycle_model.sql` — 39 files; the smallest is 60 bytes). Two countermeasures:
 
 ### 1. Batch at write-time
 
@@ -81,9 +81,11 @@ Going forward: **never reuse a migration number.** Before writing a new file, `l
 
 ---
 
-## Active issue: ISSUE-W1-002 (#40) — seed `option_lists` (remaining 4 lists)
+## Shipped: ISSUE-W1-002 (#40) — seed `option_lists` (00012)
 
-Roadmap anchor: [§1.2](../docs/OLOS-roadmap.md). Unblocks §1.9 (pulse-check endpoint validates `tools_used` / `benefits` against these IDs) and §1.11 (registration form fetches options from `GET /api/options`). The schema for `option_lists` already exists at [migrations/00001_initial_schema.sql:108-116](migrations/00001_initial_schema.sql#L108-L116), including the `UNIQUE(list_name, value)` constraint we use for idempotency. The read endpoint is shipped at [app/api/options/route.ts](../app/api/options/route.ts) — verifying its output is the acceptance test, not new work.
+**Resolved.** [migrations/00012_seed_option_lists.sql](migrations/00012_seed_option_lists.sql) (PR #58) shipped and applied the four lists `00010` didn't cover — `labs_goals`, `availability`, `work_style`, `group_strengths`, 20 rows — completing the six-list set; the execution checklist below is fully executed. Everything from here down to *Recently landed* is the historical work record, kept because it documents the seeding conventions (idempotent `ON CONFLICT`, `display_order` in increments of 10, byte-for-byte participant-facing strings) that any future `option_lists` change should copy.
+
+Roadmap anchor: [§1.2](../docs/OLOS-roadmap.md). Unblocked §1.9 (pulse-check endpoint validates `tools_used` / `benefits` against these IDs) and §1.11 (registration form fetches options from `GET /api/options`). The schema for `option_lists` lives at [migrations/00001_initial_schema.sql:108-116](migrations/00001_initial_schema.sql#L108-L116), including the `UNIQUE(list_name, value)` constraint used for idempotency. The read endpoint is at [app/api/options/route.ts](../app/api/options/route.ts) — verifying its output was the acceptance test, not new work.
 
 ### Scope: 4 lists, not 6
 
@@ -101,7 +103,7 @@ The issue's AC mentions "33 rows" / "match spec exactly" / "38 + extras" — all
 
 The four list blocks were removed from seed.sql in this PR; the `ai_tools` and `pulse_benefits` blocks stay because 00010 still co-owns them and both already have `ON CONFLICT DO NOTHING`. The `participant_options` block further down in seed.sql references `option_id` values that are now produced by 00010 and 00012 together — the existing comment about "ai_tools 1-7, labs_goals 8-13…" is **stale post-00010** (after 00010, IDs 1–7 are pulse_benefits, IDs 8–63 are ai_tools). Fixing that comment is out of scope for W1-002 — it pre-exists this PR. Flag it in the PR body so it can be picked up separately.
 
-### Data — verbatim from `TUL_MVP_Spec.md` §option_lists Seed Data
+### Data — verbatim from [`TUL_MVP_Spec.md`](../docs/archive/TUL_MVP_Spec.md) §option_lists Seed Data (spec since archived)
 
 | `list_name` | `value`s, in order |
 |---|---|
@@ -148,10 +150,19 @@ Strings must match the spec **byte-for-byte** — they render to participants. W
 
 ---
 
+## Recently landed (July 2026)
+
+The top of the chain is the labs model — read both headers before touching cycle/pod/project scoping:
+
+- [00038_labs_lead_and_cycle_metro.sql](migrations/00038_labs_lead_and_cycle_metro.sql) — metro-scoped `labs_lead` role: `cycles.metro_slug`, plus the `user_roles.role` CHECK widened to include `developer` / `labs_lead`.
+- [00039_hq_lab_cycle_model.sql](migrations/00039_hq_lab_cycle_model.sql) — HQ / Local-Lab / HQ-internal cycle taxonomy: `cycles.is_hq_internal`, and the lab boundary moved down to `pods.metro_slug` / `projects.metro_slug` for per-lab pod formation and lab-partitioned voting. Enforcement lives in [lib/auth/cycle-access.ts](../lib/auth/cycle-access.ts). Note 00039's header corrects 00038's "one cycle = one lab" assumption.
+
+Before those, July also brought funnel registration + the Open Cycle Agreement (`00031`–`00032`), registration windows + cycle info (`00033`, with `00034` as a drift repair), and vote-lifecycle policies + configurable `pod_limit` (`00035`–`00037`). See [docs/OLOS-roadmap.md §8](../docs/OLOS-roadmap.md) for the full post-Wave-1 record.
+
 ## Upcoming migrations on the roadmap
 
 These will live in this folder when their issues open. Linked here so future sessions can plan ahead, not act ahead.
 
-- §2.1 — move `pod_limit` from hardcoded constant into `cycle_config`. Will require coordinated API change in [app/api/pods/](../app/api/pods/).
-- §2.2 — add `problem_statements.context JSONB` and `problem_statements.theme_track VARCHAR(100)` (with index).
-- §2.8 — `mentors` table, conditional on D3.
+- §2.1 — **shipped** as [migrations/00036_cycle_config_pod_limit.sql](migrations/00036_cycle_config_pod_limit.sql), with the register-route reads moved to `cycle_config.pod_limit`.
+- §2.2 — add `problem_statements.context JSONB` and `problem_statements.theme_track VARCHAR(100)` (with index). Still open.
+- §2.8 — `mentors` table, conditional on D3. Still open.
