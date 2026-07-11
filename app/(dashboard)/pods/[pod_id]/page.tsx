@@ -2,11 +2,10 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModeratorForPod, can } from "@/lib/auth/roles";
+import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
 import { podNoun } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
-import PulseCheckDashboard from "./pulse-check-dashboard";
 import CharterProjectForm from "./charter-project-form";
 import FollowButton from "@/app/components/follow-button";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
@@ -67,18 +66,10 @@ export default async function PodDetailPage({
 
   const ps = (pod.problem_statements as unknown) as Record<string, string> | null;
 
-  // Check if viewer is admin or moderator for this pod
+  // Viewer roles are only needed for the org charter affordance below.
   const userRoles = user
     ? await resolveUserRoles(serviceClient, user.id)
     : null;
-  // Cross-pod access requires `participants:read` (granted to owner/admin/observer),
-  // NOT `pulse_checks:read` — moderators have the latter globally per 00009 but
-  // must remain pod-scoped via isModeratorForPod for their assigned pod.
-  const canViewDashboard =
-    userRoles &&
-    (isAdmin(userRoles) ||
-      isModeratorForPod(userRoles, pod.id) ||
-      can(userRoles, "participants:read"));
 
   // Org run pods (docs/ORG_CYCLES.md §2/§5) let their co-leads charter new
   // projects directly on the pod, no solution-proposal ballot required.
@@ -88,65 +79,12 @@ export default async function PodDetailPage({
     !!userRoles &&
     (isAdmin(userRoles) || isModeratorForPod(userRoles, pod.id));
 
-  // Fetch pulse check data for dashboard (using service client to bypass RLS)
-  let pulseCheckData: {
-    participant_id: number;
-    name: string;
-    checks: {
-      scheduled_date: string;
-      completed_at: string | null;
-      survey_responses: Record<string, unknown> | null;
-      nomination_count: number;
-    }[];
-  }[] = [];
-
-  if (canViewDashboard && members && members.length > 0) {
-    const memberIds = members.map((m) => m.participant_id);
-
-    const { data: pulseChecks } = await serviceClient
-      .from("pulse_checks")
-      .select("id, participant_id, scheduled_date, completed_at, survey_responses")
-      .in("participant_id", memberIds)
-      .eq("cycle_id", pod.cycle_id)
-      .order("scheduled_date", { ascending: false });
-
-    const pulseCheckIds = (pulseChecks ?? []).map((pc) => pc.id);
-    const nominationCounts: Record<number, number> = {};
-    if (pulseCheckIds.length > 0) {
-      const { data: nominationRows } = await serviceClient
-        .from("nominations")
-        .select("pulse_check_id")
-        .in("pulse_check_id", pulseCheckIds);
-      for (const row of nominationRows ?? []) {
-        if (row.pulse_check_id != null) {
-          nominationCounts[row.pulse_check_id] =
-            (nominationCounts[row.pulse_check_id] ?? 0) + 1;
-        }
-      }
-    }
-
-    const checksByParticipant: Record<
-      number,
-      { scheduled_date: string; completed_at: string | null; survey_responses: Record<string, unknown> | null; nomination_count: number }[]
-    > = {};
-    for (const pc of pulseChecks ?? []) {
-      (checksByParticipant[pc.participant_id] ??= []).push({
-        scheduled_date: pc.scheduled_date,
-        completed_at: pc.completed_at,
-        survey_responses: pc.survey_responses as Record<string, unknown> | null,
-        nomination_count: nominationCounts[pc.id] ?? 0,
-      });
-    }
-
-    pulseCheckData = members.map((m) => {
-      const p = (m.participants as unknown) as Record<string, string> | null;
-      return {
-        participant_id: m.participant_id,
-        name: `${p?.preferred_name || p?.first_name || ""} ${p?.last_name || ""}`.trim(),
-        checks: checksByParticipant[m.participant_id] ?? [],
-      };
-    });
-  }
+  // Pulse-check review (completion, energy, responses) deliberately does NOT
+  // render here. This page is the pod's public face — it's linked from the
+  // Directory and visible to any signed-in member. The poderator surface for
+  // pulse data is /moderator/pods/[pod_id], which is pod-scoped via
+  // requireModeratorForPod. (July 2026 testing feedback: pulse aggregates
+  // were exposed to all viewers here.)
 
   const podVariant = POD_STATUS_VARIANT[pod.status as PodStatus] ?? "inactive";
   const podName = pod.name || `${podNoun(mode)} ${pod.id}`;
@@ -285,10 +223,6 @@ export default async function PodDetailPage({
           ctx={pageCtx}
         />
       </section>
-
-      {canViewDashboard && (
-        <PulseCheckDashboard members={pulseCheckData} />
-      )}
     </div>
   );
 }

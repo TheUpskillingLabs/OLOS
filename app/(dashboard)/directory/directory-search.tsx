@@ -108,10 +108,21 @@ export default function DirectorySearch({ data }: { data: DirectoryData }) {
   }, [state, router]);
 
   // URL → state, for changes we didn't write (back/forward, nav search).
+  //
+  // While one of our own router.replace calls is still in flight, searchParams
+  // can deliver a STALE snapshot from an older navigation (each replace is a
+  // server round-trip, and they overlap when the user clicks a tab right
+  // after a filter/search write). Adopting that stale snapshot snapped the
+  // tab back to "All" (July 2026 testing feedback: "clicking Pods fails and
+  // toggles back to All"). So: ignore deliveries until our latest write
+  // lands, then resume adopting genuinely external changes.
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     const qs = serialize(parseParams(params));
-    if (lastWritten.current === qs) return;
+    if (lastWritten.current !== null) {
+      if (lastWritten.current === qs) lastWritten.current = null; // landed
+      return;
+    }
     const next = parseParams(params);
     setState(next);
     setQInput(next.q);
