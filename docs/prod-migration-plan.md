@@ -329,3 +329,21 @@ zero-padded disk versions for `00016–00032`, then `db push` `00033–00077`), 
 auth unification strictly per `docs/AUTH_UNIFICATION_RUNBOOK.md` (snapshot → edit `00066`
 owner email → apply → verify). This carries the ledger-drift and live-authority-rewrite
 risks that the reset approach eliminates. Kept here for completeness; **not the chosen path.**
+
+---
+
+## ✅ EXECUTION RECORD — cutover completed 2026-07-11 (~05:33–06:45 UTC)
+
+Executed per this plan (A1 + identities-only), with live adjustments:
+
+1. **Archive**: in-DB `archive` schema (27 tables incl. `auth_users`, 644 rows, zero mismatches vs live) + external JSON backup delivered to owner. PITR ref 05:33 UTC.
+2. **Reset**: `DROP SCHEMA public CASCADE` — `auth`/`storage`/`archive` untouched.
+3. **Rebuild**: applied the generated `baseline.sql` (dev schema mirror; pre-validated 12/12 object-class parity on a branch). Result on prod: 55 tables / 112 FKs / 20 fns / RLS everywhere.
+4. **Identity restore**: 54 participants restored **server-side from `archive.participants`** (column-intersection; `metro_slug` deferred then backfilled after metros seeding). All 50 `auth_user_id` links intact.
+5. **Owner seed**: `hq@theupskillinglabs.org` rooted owner; `brendan@withlevy.com` co-owner (mirrored to `user_roles`).
+6. **Fixes**: `participant_erasures` RLS enabled + admin policy (00058 bug); `participants_insert` constrained to `auth_user_id = auth.uid()`; buckets ensured; restored rows tagged `created_via='import'`.
+7. **Content**: `option_lists` (33), `metros` (7; DC active), `spotlights` (2) copied from dev; **events self-populated by the `sync-luma-events` cron (76 rows)** — manual copy skipped.
+8. **Verification**: 13/13 go/no-go checks passed.
+9. **Code**: `dev`→`main` merged as `1a6ef3b` (conflicts resolved by taking dev's tree wholesale; verified byte-identical). Production deployment `dpl_EK266Y5aT4nBsivQ9Detmsu8ukrj` READY, serving `theupskillinglabs.org` (+ www, olos.*).
+
+**Open follow-ups**: owner smoke-test via Google sign-in; re-grant admin/poderator roles via `/admin/access`; observability (Appendix D) still to add; Node pin; decide `revocation-check` scheduling; `delete_participant()` FK gap (Appendix E); keep archive schema + external backup until stable, then review retention.
