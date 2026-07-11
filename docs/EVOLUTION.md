@@ -123,10 +123,10 @@ The most recent wave, in three moves:
 
 ## Known open items (as of 2026-07-11)
 
-- **Registration routing is metro-blind** — `getRegistrationCycle()` returns
+- **Registration routing is metro-blind** ([#212](https://github.com/TheUpskillingLabs/OLOS/issues/212)) — `getRegistrationCycle()` returns
   the soonest open cycle regardless of lab; the labs model hasn't reached the
   registration front door yet.
-- **The revocation cron is unscheduled** — rewritten and working, but nothing
+- **The revocation cron is unscheduled** ([#213](https://github.com/TheUpskillingLabs/OLOS/issues/213)) — rewritten and working, but nothing
   invokes `app/api/cron/revocation-check` on a schedule.
 - **Participant metros are sparsely populated** on dev (most participants have
   no lab assigned), which per-lab formation depends on. Backfill via the
@@ -145,15 +145,18 @@ The most recent wave, in three moves:
   branch or `main`). #179 tracks harvesting roster health + insights onto
   Learning Log; until then this repo and the tracker describe different
   heartbeats.
-- **The labs model shipped without tracker coverage** — migrations
-  `00038`/`00039` and the whole HQ/Local-Lab wave have no GitHub issue, and
-  the two code-level open items above (metro-blind registration, unscheduled
-  cron) are untracked as well. Open issues that predate the wave —
+- **Tracker reconciliation (2026-07-11)** — the HQ/Local-Lab wave originally
+  shipped without tracker coverage; it is now recorded in
+  [#214](https://github.com/TheUpskillingLabs/OLOS/issues/214) (closed,
+  shipped record), with the open items filed as
+  [#212](https://github.com/TheUpskillingLabs/OLOS/issues/212) and
+  [#213](https://github.com/TheUpskillingLabs/OLOS/issues/213). Open issues
+  that predate the wave —
   [#117](https://github.com/TheUpskillingLabs/OLOS/issues/117) (proposal
-  stewardship) and
+  stewardship; its authorship-leak observation is confirmed still live) and
   [#123](https://github.com/TheUpskillingLabs/OLOS/issues/123) (poderator
-  add-member) — should be re-scoped against the `labs_lead` role before
-  implementation.
+  add-member) — carry re-scoping comments and should be redesigned against
+  the `labs_lead` role before implementation.
 
 ## The archive
 

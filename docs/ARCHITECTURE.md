@@ -112,7 +112,7 @@ participant self-edits).
 | Path | Owns |
 |---|---|
 | `lib/auth/` | Role/permission resolution, route guards, invitations, **cycle-access (HQ/lab scoping)** |
-| `lib/cycles/` | Stage windows (`stages.ts`), status vocabulary (`status.ts`), registration-open resolution (`registration.ts` — currently metro-blind; see EVOLUTION.md open items) |
+| `lib/cycles/` | Stage windows (`stages.ts`), status vocabulary (`status.ts`), registration-open resolution (`registration.ts` — currently metro-blind, tracked in #212) |
 | `lib/enrollment/` | The reconciler |
 | `lib/metros.ts` | Metro registry + ZIP → metro assignment |
 | `lib/llm/names.ts` | AI naming for newly formed pods/projects |
