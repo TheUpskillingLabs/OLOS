@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { EmptyState, StatusBadge } from "@/app/components/ui";
-import { getPodsForUser, type PodCard } from "@/lib/moderator/pods-list";
+import {
+  getPodsForUser,
+  groupCardsByLab,
+  type PodCard,
+} from "@/lib/moderator/pods-list";
 import { getRollup } from "@/lib/moderator/rollup";
 import { getCrossPodInsights } from "@/lib/moderator/cross-pod-insights";
 import { CrossPodInsightsSection } from "./cross-pod-insights-section";
@@ -218,15 +222,15 @@ export default async function ModeratorPage({
             <>
               <section>
                 <h2 className="t-h3 mb-3 text-ink">Pods</h2>
-                <PodCardGrid cards={participantCards} />
+                <SectionedByLab cards={participantCards} />
               </section>
               <section>
                 <h2 className="t-h3 mb-3 text-ink">Workstreams</h2>
-                <PodCardGrid cards={orgCards} />
+                <SectionedByLab cards={orgCards} />
               </section>
             </>
           ) : (
-            <PodCardGrid cards={cards} />
+            <SectionedByLab cards={cards} />
           )}
           {rollup && (
             <RollupBlock
@@ -276,6 +280,28 @@ const BAND_TEXT: Record<Band, string> = {
   warning: "text-red",
   critical: "text-red",
 };
+
+/**
+ * Lab sectioning (PRD-lab-lead-ux Decision 8): mode sections stay primary;
+ * lab subsections appear only when >1 lab identity is present among the
+ * cards. Single-lab viewers get the plain grid — zero new chrome.
+ */
+function SectionedByLab({ cards }: { cards: PodCard[] }) {
+  const groups = groupCardsByLab(cards);
+  if (groups.length === 1) {
+    return <PodCardGrid cards={groups[0].cards} />;
+  }
+  return (
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <div key={group.key}>
+          <div className="lbl mb-3">{group.label}</div>
+          <PodCardGrid cards={group.cards} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function PodCardGrid({ cards }: { cards: PodCard[] }) {
   return (

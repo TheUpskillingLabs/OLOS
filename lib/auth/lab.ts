@@ -68,6 +68,29 @@ export async function labForWorkstream(
   return data?.lab_id ?? null;
 }
 
+/**
+ * Guard for cycle creation (POST /api/cycles). Admins create anything.
+ * A lab lead may create ONLY their own lab's internal cycle: lab_id present,
+ * mode 'org', and the lead must lead that lab (Decision 3, PRD-lab-lead-ux §9 —
+ * labs are self-service).
+ */
+export function requireLabOrgCycleCreate(
+  user: UserRoles,
+  { mode, lab_id }: { mode: string; lab_id?: number }
+): NextResponse | null {
+  if (isAdmin(user)) return null;
+  if (!lab_id || mode !== "org") {
+    return NextResponse.json(
+      {
+        error:
+          "HQ cycles are created by HQ admins. Lab leads create their own lab's internal cycle — include your lab_id with mode 'org'.",
+      },
+      { status: 403 }
+    );
+  }
+  return requireLabAccess(user, lab_id);
+}
+
 /** Resolve-and-check convenience for pod-addressed routes. */
 export async function requireLabAccessForPod(
   user: UserRoles,

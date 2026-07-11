@@ -34,7 +34,12 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-import { requireLabAccess, labForPod, requireLabAccessForCycle } from "./lab";
+import {
+  requireLabAccess,
+  labForPod,
+  requireLabAccessForCycle,
+  requireLabOrgCycleCreate,
+} from "./lab";
 
 function user(overrides: Partial<UserRoles> = {}): UserRoles {
   return {
@@ -74,6 +79,43 @@ describe("requireLabAccess", () => {
 
   it("plain members are denied", () => {
     expect(requireLabAccess(user(), 7)?.status).toBe(403);
+  });
+});
+
+describe("requireLabOrgCycleCreate", () => {
+  it("admin passes even with no lab_id", () => {
+    expect(requireLabOrgCycleCreate(admin(), { mode: "open" })).toBeNull();
+  });
+
+  it("a lead of lab 7 creating their own org cycle passes", () => {
+    expect(
+      requireLabOrgCycleCreate(leadOf(7), { mode: "org", lab_id: 7 })
+    ).toBeNull();
+  });
+
+  it("a lead of lab 7 creating lab 8's org cycle is denied", () => {
+    expect(
+      requireLabOrgCycleCreate(leadOf(7), { mode: "org", lab_id: 8 })?.status
+    ).toBe(403);
+  });
+
+  it("a lead missing lab_id is denied with the self-service copy", async () => {
+    const res = requireLabOrgCycleCreate(leadOf(7), { mode: "org" });
+    expect(res?.status).toBe(403);
+    const body = await res?.json();
+    expect(body.error).toMatch(/include your lab_id/);
+  });
+
+  it("a lead attempting mode 'open' is denied", () => {
+    expect(
+      requireLabOrgCycleCreate(leadOf(7), { mode: "open", lab_id: 7 })?.status
+    ).toBe(403);
+  });
+
+  it("a plain member is denied", () => {
+    expect(
+      requireLabOrgCycleCreate(user(), { mode: "org", lab_id: 7 })?.status
+    ).toBe(403);
   });
 });
 
