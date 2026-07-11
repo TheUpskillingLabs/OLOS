@@ -16,6 +16,35 @@
 
 ---
 
+## 0. Rehearsal results (2026-07-11) — the migration chain does NOT replay cleanly ⚠️
+
+Ran the Phase 3 rehearsal on a throwaway Supabase branch (isolated DB, ~1.3¢/hr, deleted
+after). **Headline: rebuilding prod by replaying the migration history fails**, which
+changes the rebuild method below.
+
+- Supabase's branch runner replayed dev's recorded migrations and **failed at
+  `00054_participant_roles`** — it applied `00001–00053`, then errored.
+- **Root cause:** `00054` reads `participants.role_intents`, but that column was **absent**
+  after `00001–00053` in the replayed history — even though the worktree `00031` file adds
+  it (`ADD COLUMN IF NOT EXISTS role_intents`). **The migration _files_ have drifted from
+  the migration _history_ that actually built dev.** Verified the fix on the branch: adding
+  `role_intents` makes `00054` apply cleanly (table created, RLS enabled).
+- `00054` is one of a **cluster of migrations ported from another repo**
+  ("generated from docs/DB_CHANGES_ONBOARDING.md / handoff-to-olos", ~`00054–00058`), so
+  expect more ordering/assumption landmines in the tail — do not assume the rest replays.
+- Confirmed clean: `auth` + `storage` schemas persist across a `DROP SCHEMA public`, and both
+  storage-bucket inserts (`00029`, `00046`) are `ON CONFLICT`-guarded, so preserving
+  `storage` is safe.
+
+**Consequence — rebuild from a schema _baseline_, not the 77-migration chain.** Capture a
+single schema snapshot from the known-good **dev** database (`supabase db dump`) and apply
+_that_ to the reset prod DB. It matches dev exactly, has zero ordering fragility, and is the
+"baseline snapshot" the repo's own [`supabase/CLAUDE.md`](../supabase/CLAUDE.md) already
+prescribes at wave boundaries. The historical chain stays in the repo for git-blame; new
+post-launch migrations continue from the baseline. Phases 2 & 4 below are revised for this.
+
+---
+
 ## 1. Why reset-and-rebuild is the right call
 
 The original plan (now **Appendix G**) migrated the live prod DB *in place*. That was
@@ -127,29 +156,35 @@ Each phase has a **gate** — don't advance until its checks pass.
 
 **Gate:** a *verified-restorable* archive exists. Do not proceed without this.
 
-### Phase 3 — Rehearse the rebuild on a clone
+### Phase 3 — Capture & validate the schema baseline, then rehearse
+> Partially done 2026-07-11 (§0): a branch rehearsal proved the **77-migration replay fails
+> at `00054`** (files drifted from history). This phase now centers on producing a clean
+> baseline and rehearsing *that*.
+
 | Step | Action | Validation |
 |---|---|---|
-| 3.1 | Create a Supabase branch off prod (or use the Phase 2 scratch restore) | clone exists |
-| 3.2 | Run the **entire Phase 4 sequence** against the clone: reset `public` → `db push` full chain → restore identities+roles → seed owners | chain applies clean; `00066` logs the *fresh-DB skip*; app smoke-test passes against the clone |
-| 3.3 | Fix any grant/extension/RLS surprise on `dev`; re-rehearse until zero manual patches | one clean dry-run |
-| 3.4 | Delete the clone (it holds a copy of real PII) | branch removed |
+| 3.1 | On a **known-good dev** checkout, cut the schema baseline: `supabase db dump --schema public > baseline.sql` (plus a `--data-only` dump of lookup tables like `option_lists` the app needs non-empty) | `baseline.sql` created; grep confirms `participant_roles`, RLS, functions present |
+| 3.2 | Create a throwaway Supabase branch; run the grants prelude (`DROP SCHEMA public CASCADE; CREATE …; GRANT …`); apply `baseline.sql`; then run the identity-restore + owner-seed (Phase 4.4–4.5) with synthetic rows | baseline applies with **zero** errors; a synthetic owner resolves via `is_owner()`; app smoke-test passes |
+| 3.3 | Run `get_advisors(security)` + `(performance)` on the branch | no ERRORs; log WARNs for Appendix C |
+| 3.4 | Fix any surprise on `dev`, re-cut the baseline, re-rehearse until zero manual patches | one clean dry-run |
+| 3.5 | Delete the branch | branch removed |
 
-**Gate:** one fully clean end-to-end rehearsal.
+**Gate:** `baseline.sql` applies cleanly end-to-end with zero manual patches, and a synthetic
+owner + member both resolve. That validated file is the artifact Phase 4 uses.
 
 ### Phase 4 — Reset & rebuild prod (cutover)
 | Step | Action (A1 · reset in place) | Validation | Rollback |
 |---|---|---|---|
 | 4.1 | Take a Supabase snapshot / note PITR timestamp (belt-and-suspenders atop the Phase 2 archive) | snapshot recorded | — |
 | 4.2 | `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` then restore baseline grants (`GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role; GRANT ALL ON SCHEMA public TO postgres;`). **Leave `auth` + `storage` untouched.** | `\dn` shows public empty; auth.users intact | PITR restore |
-| 4.3 | `supabase db push --linked` the full chain `00001–00077` | `migration list` shows all applied, zero-padded; no drift | PITR restore |
+| 4.3 | Apply the **validated `baseline.sql`** from Phase 3 to the fresh `public` schema — **not** the 77-migration replay (proven to fail at `00054`, §0). Then stamp the migration ledger to match the baseline so post-launch migrations continue cleanly | all dev tables/functions/policies present; `participant_roles` exists; tables empty | PITR restore |
 | 4.4 | Restore **identities only**: `INSERT INTO participants (<columns present in new schema>) SELECT … FROM archive` preserving `id`, `auth_user_id`, `email`; reset the id sequence. **No** role/enrollment/pod data | prod participant count == restored set; a known member can sign in (lands role-less, e.g. on `/register`-completion or home) | re-run from archive |
 | 4.5 | **Bootstrap owner(s) only:** insert the decided primary owner into `participant_roles (role='owner', granted_by=NULL)` (+ mirror `user_roles`); optionally seed a second co-owner. **All other roles (admin, poderator, …) are granted later via `/admin/access`** | owner can sign in and `/admin/access` loads; no other roles present | delete the seeded owner row |
 | 4.6 | Set/confirm all prod env vars in Vercel **Production** scope (Appendix A) | `vercel env ls production` complete | — |
 | 4.7 | Merge `dev → main` (`--no-ff`) → Vercel deploys Production | Vercel Production deploy READY | Vercel instant rollback |
 | 4.8 | Confirm cron surface (Appendix B) + `CRON_SECRET`; curl each cron | 200 with secret, 401 without | fix `vercel.json`/env |
 
-> **A2 · fresh project** replaces 4.2–4.3 with "create project → `db push` full chain," adds
+> **A2 · fresh project** replaces 4.2–4.3 with "create project → apply `baseline.sql`," adds
 > "configure Auth Site URL + redirect allow-list + Google OAuth redirect URI + Resend," and
 > in 4.4 restore participants with `auth_user_id = NULL` (users re-link on first sign-in), and
 > in 4.6 update Vercel to the **new** project URL/anon/service keys.
@@ -179,7 +214,7 @@ operator + verifier. The Phase 2 archive and a green Phase 3 rehearsal are prere
 T-0   Maintenance notice; confirm archive is verified-restorable.
 T+0   Snapshot/PITR checkpoint on prod.                         [4.1]
 T+5   DROP SCHEMA public CASCADE; CREATE; restore grants.       [4.2]
-T+10  supabase db push (00001–00077); migration list clean.    [4.3]
+T+10  Apply validated baseline.sql to fresh public schema.      [4.3]
       ── GATE: 00066 logged 'fresh DB skip'; no errors. ──
 T+20  Restore participants (id + auth_user_id + email) — no roles. [4.4]
 T+30  Bootstrap the primary owner in participant_roles only.       [4.5]
@@ -199,6 +234,8 @@ PITR/snapshot restore (fast; prod is small) and, if already merged, Vercel rollb
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
+| Migration chain doesn't replay cleanly (proven: breaks at `00054`, §0) | **Confirmed** | High | Rebuild from a validated `baseline.sql`, not the chain (Phase 3/4.3) |
+| More drifted/ported migrations (`00054–00058` cluster) hide further breaks | Med | Med | Baseline sidesteps replay entirely; Phase 3 rehearsal re-validates end-to-end |
 | Archive not actually restorable | Low | High | Phase 2.3 test-restore is a gate |
 | `DROP SCHEMA public` breaks baseline grants/extensions | Med | Med | Rehearse on a clone (Phase 3); restore grants explicitly; or use A2 (fresh project) to sidestep |
 | Restored `participants` don't line up with `auth.users` → members locked out | Med | High | A1 preserves `auth`; verify a real member sign-in at the go/no-go gate |
