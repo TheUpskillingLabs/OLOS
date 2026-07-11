@@ -19,3 +19,15 @@ export function formatDate(iso: string): string {
     day: "numeric",
   });
 }
+
+/** Short "Mar 4" form for cycle-window open/close dates. Server-rendered
+    surfaces only (no timezone pin — renders in the server's zone, matching
+    how the cycle pages have always shown these); the single definition the
+    phase indicator and the cycle pages share instead of three inlined
+    copies. */
+export function formatMonthDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}

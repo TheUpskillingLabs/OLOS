@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
+import { getRecruitingCycle } from "@/lib/cycle/active";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { one } from "@/lib/supabase/embed";
 import AppNav from "@/app/components/chrome/app-nav";
@@ -87,18 +88,29 @@ export default async function DashboardLayout({
     redirect("/dashboard");
   }
 
-  let hasEnrollment = false;
-  if (participantId) {
-    const { data: enrollment } = await serviceClient
-      .from("cycle_enrollments")
-      .select("id")
-      .eq("participant_id", participantId)
-      .limit(1)
-      .maybeSingle();
-    hasEnrollment = !!enrollment;
-  }
-
   const userRoles = await resolveUserRoles(serviceClient, user.id);
+
+  // The cycle tab. Enrolled members (current or past cohort) get "My Cycle"
+  // → the /cycles hub. A participant who has never enrolled gets "Join the
+  // Cycle" → the recruiting cohort's registration ceremony — the tab used to
+  // hide from exactly the members registration was for. No tab when there's
+  // nothing to join (or no participant row at all — e.g. a bare admin).
+  // Enrollment presence comes from resolveUserRoles' cycleEnrollments (it
+  // already fetches the participant's rows) — no second round trip.
+  let cycleNav: { label: string; href: string } | null = null;
+  if (participantId) {
+    if (userRoles.cycleEnrollments.length > 0) {
+      cycleNav = { label: "My Cycle", href: "/cycles" };
+    } else {
+      const recruiting = await getRecruitingCycle(serviceClient);
+      if (recruiting) {
+        cycleNav = {
+          label: "Join the Cycle",
+          href: `/cycles/${recruiting.id}/join`,
+        };
+      }
+    }
+  }
   const adminUser = isAdmin(userRoles);
   const moderatorUser = isModerator(userRoles);
   const showPods = can(userRoles, "pods:read") || moderatorUser;
@@ -167,7 +179,7 @@ export default async function DashboardLayout({
         isAdmin={adminUser}
         isModerator={moderatorUser}
         showPods={showPods}
-        hasEnrollment={hasEnrollment}
+        cycleNav={cycleNav}
         logDue={logGate.active}
         isTest={!!participant?.is_test}
         moderatorPersonaLabel={coLeadOnly ? "Co-lead" : "Poderator"}

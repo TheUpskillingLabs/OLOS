@@ -164,7 +164,9 @@ export async function getParticipantMemberships(
           kind: "cycle",
           id: activeCycle.id,
           name: activeCycle.name,
-          href: `/cycles/${activeCycle.id}`,
+          // The running cycle's canonical page is the My Cycle hub — its
+          // /cycles/[id] detail route redirects there anyway.
+          href: "/cycles",
           sublabel: cycleDateRange(activeCycle.start_date, activeCycle.end_date),
         },
       ]

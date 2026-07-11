@@ -893,7 +893,7 @@ function ConfirmationView({
       </p>
       <div className="mt-6 flex flex-col items-start gap-3">
         <Link
-          href="/cycles"
+          href="/dashboard"
           className="btn btn-teal w-full max-w-xs sm:w-auto"
         >
           {copy.confirmation.primaryCta}

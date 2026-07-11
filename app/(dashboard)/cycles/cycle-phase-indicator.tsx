@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { getCycleWeek } from "@/lib/cycle/week";
+import { openWindows, nextWindow } from "@/lib/cycle/windows";
+import { CYCLE_PHASES, phaseForWeek } from "@/lib/cycle/phases";
+import { formatMonthDay } from "@/lib/format/date";
 
 type CycleConfig = {
   phase_2_start: string | null;
@@ -50,65 +53,10 @@ const WEEKS: {
   { num: 12, label: "Showcase\n+ Summit", milestone: true, phase: 3 },
 ];
 
-const PHASES = [
-  { num: 1, title: "Problem Discovery & Definition", weeks: "0–3" },
-  { num: 2, title: "Exploration & Experimentation", weeks: "4–7" },
-  { num: 3, title: "Prototype Building & Iterating", weeks: "8–12" },
-];
-
 /* ── Helpers ───────────────────────────────────────────────────────── */
-
-const OPERATIONAL_WINDOWS = [
-  { label: "Problem Statements", field: "problem_statement", route: "propose" },
-  { label: "Voting", field: "voting", route: "vote" },
-  { label: "Pod Registration", field: "pod_registration", route: "register-pods" },
-  { label: "Solution Proposals", field: "solution_proposal", route: "solutions" },
-  { label: "Solution Voting", field: "solution_voting", route: "solution-vote" },
-  { label: "Project Registration", field: "project_registration", route: "register-projects" },
-] as const;
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function daysUntil(from: Date, to: Date): number {
   return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
-}
-
-function getActiveWindows(
-  config: CycleConfig,
-  now: Date
-): { label: string; closesAt: string; route: string }[] {
-  const active: { label: string; closesAt: string; route: string }[] = [];
-  for (const w of OPERATIONAL_WINDOWS) {
-    const openKey = `${w.field}_open` as keyof CycleConfig;
-    const closeKey = `${w.field}_close` as keyof CycleConfig;
-    const openVal = config[openKey];
-    const closeVal = config[closeKey];
-    if (openVal && closeVal) {
-      if (now >= new Date(openVal) && now <= new Date(closeVal)) {
-        active.push({ label: w.label, closesAt: closeVal, route: w.route });
-      }
-    }
-  }
-  return active;
-}
-
-function getUpcomingWindow(
-  config: CycleConfig,
-  now: Date
-): { label: string; opensAt: string } | null {
-  for (const w of OPERATIONAL_WINDOWS) {
-    const openKey = `${w.field}_open` as keyof CycleConfig;
-    const openVal = config[openKey];
-    if (openVal && new Date(openVal) > now) {
-      return { label: w.label, opensAt: openVal };
-    }
-  }
-  return null;
 }
 
 /* ── Component ─────────────────────────────────────────────────────── */
@@ -116,9 +64,14 @@ function getUpcomingWindow(
 export default function CyclePhaseIndicator({
   cycle,
   config,
+  showWindows = true,
 }: {
   cycle: Cycle;
   config: CycleConfig;
+  /** The open/up-next window chips under the rail. The My Cycle hub passes
+      false — it renders richer per-member window cards right below, and
+      chips + cards would say the same thing twice. */
+  showWindows?: boolean;
 }) {
   if (!config.phase_2_start || !config.phase_3_start) {
     return null;
@@ -133,13 +86,13 @@ export default function CyclePhaseIndicator({
   const cycleActive = now >= startDate && now <= endDate;
   const cycleComplete = now > endDate;
 
-  const activeWindows = getActiveWindows(config, now);
+  // Skipped entirely when the caller renders its own window cards.
+  const activeWindows = showWindows ? openWindows(config, now) : [];
   const upcomingWindow =
-    activeWindows.length === 0 ? getUpcomingWindow(config, now) : null;
+    showWindows && activeWindows.length === 0 ? nextWindow(config, now) : null;
 
   // Which phase are we in?
-  const currentPhaseNum =
-    currentWeek < 0 ? 0 : currentWeek <= 3 ? 1 : currentWeek <= 7 ? 2 : 3;
+  const currentPhaseNum = phaseForWeek(currentWeek);
 
   return (
     <div className="mb-10">
@@ -160,7 +113,7 @@ export default function CyclePhaseIndicator({
             ) : (
               <>
                 Cycle starts{" "}
-                {formatDate(cycle.start_date)}
+                {formatMonthDay(cycle.start_date)}
               </>
             )}
           </h2>
@@ -187,7 +140,7 @@ export default function CyclePhaseIndicator({
       <div className="overflow-x-auto rounded-card border border-ink/10 bg-white px-4 pb-4 pt-5 shadow-card sm:px-6">
         {/* Month / phase headers */}
         <div className="mb-6 flex min-w-[700px]">
-          {PHASES.map((p) => (
+          {CYCLE_PHASES.map((p) => (
             <div
               key={p.num}
               className={`${p.num === 3 ? "flex-[5]" : "flex-[4]"} ${
@@ -349,23 +302,23 @@ export default function CyclePhaseIndicator({
       </div>
 
       {/* ── Active / upcoming window chips ────────────────────────── */}
-      {(activeWindows.length > 0 || upcomingWindow) && (
+      {showWindows && (activeWindows.length > 0 || upcomingWindow) && (
         <div className="mt-4 flex flex-wrap gap-2">
           {activeWindows.map((w) => (
             <Link
-              key={w.label}
+              key={w.key}
               href={`/cycles/${cycle.id}/${w.route}`}
               className="inline-flex items-center gap-1.5 rounded-card bg-teal/10 px-3 py-1 text-xs font-medium text-teal-deep transition-colors hover:bg-teal/20"
             >
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-teal" />
-              {w.label} &middot; closes {formatDate(w.closesAt)}
+              {w.noun} &middot; closes {formatMonthDay(w.closesAt)}
               <span className="ml-0.5">&rarr;</span>
             </Link>
           ))}
           {upcomingWindow && (
             <span className="inline-flex items-center gap-1.5 rounded-card bg-ink/[0.04] px-3 py-1 text-xs text-meta">
-              Up next: {upcomingWindow.label} &middot; opens{" "}
-              {formatDate(upcomingWindow.opensAt)}
+              Up next: {upcomingWindow.noun} &middot; opens{" "}
+              {formatMonthDay(upcomingWindow.opensAt)}
             </span>
           )}
         </div>

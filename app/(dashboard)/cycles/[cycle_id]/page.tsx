@@ -1,8 +1,17 @@
 import Link from "next/link";
-import { BookOpen, ArrowRight, ChevronLeft } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
-import { StatCard, StatusBadge } from "@/app/components/ui";
+import { notFound, redirect } from "next/navigation";
+import { StatusBadge } from "@/app/components/ui";
+import { openWindows } from "@/lib/cycle/windows";
+import { isOperatingCycle } from "@/lib/cycle/active";
+import { formatMonthDay } from "@/lib/format/date";
+
+/* The cycle detail page — the archive/share view for cycles that are NOT the
+   member's running Build Cycle (past cohorts, org cycles, drafts). The
+   running participant cycle lives on the "My Cycle" hub at /cycles, so this
+   route redirects there for it: one canonical page per cycle, and every old
+   deep link (/pods, /projects, /c/[id] shares) lands on the personal hub. */
 
 type CycleStatus = "active" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -23,19 +32,6 @@ const POD_STATUS_VARIANT: Record<
   inactive: "inactive",
 };
 
-const WINDOW_ROUTES: {
-  label: string;
-  field: string;
-  route: string;
-}[] = [
-  { label: "Submit Problem Statements", field: "problem_statement", route: "propose" },
-  { label: "Vote on Problem Statements", field: "voting", route: "vote" },
-  { label: "Register for Pods", field: "pod_registration", route: "register-pods" },
-  { label: "Submit Solution Proposals", field: "solution_proposal", route: "solutions" },
-  { label: "Vote on Solutions", field: "solution_voting", route: "solution-vote" },
-  { label: "Register for Projects", field: "project_registration", route: "register-projects" },
-];
-
 export default async function CycleDetailPage({
   params,
 }: {
@@ -46,11 +42,16 @@ export default async function CycleDetailPage({
 
   const { data: cycle } = await supabase
     .from("cycles")
-    .select("id, name, slug, start_date, end_date, status")
+    .select("id, name, slug, start_date, end_date, status, mode, lab_id")
     .eq("id", parseInt(cycle_id))
     .single();
 
   if (!cycle) notFound();
+
+  // The running participant cohort is the My Cycle hub's job.
+  if (isOperatingCycle(cycle)) {
+    redirect("/cycles");
+  }
 
   const { data: pods } = await supabase
     .from("pods")
@@ -58,15 +59,8 @@ export default async function CycleDetailPage({
     .eq("cycle_id", cycle.id)
     .order("created_at");
 
-  const { data: enrollments } = await supabase
-    .from("cycle_enrollments")
-    .select("status")
-    .eq("cycle_id", cycle.id);
-
-  const activeCount =
-    enrollments?.filter((e) => e.status === "active").length || 0;
-
-  // Fetch active windows
+  // Open action windows — meaningful for org/upcoming cycles; past cycles
+  // have none by definition of their dates.
   const serviceClient = createServiceClient();
   const { data: config } = await serviceClient
     .from("cycle_config")
@@ -76,18 +70,7 @@ export default async function CycleDetailPage({
     .eq("cycle_id", cycle.id)
     .single();
 
-  const now = new Date();
-  const activeWindows: { label: string; route: string; closesAt: string }[] = [];
-  if (config) {
-    for (const w of WINDOW_ROUTES) {
-      const configRecord = config as Record<string, string | null>;
-      const openVal = configRecord[`${w.field}_open`];
-      const closeVal = configRecord[`${w.field}_close`];
-      if (openVal && closeVal && now >= new Date(openVal) && now <= new Date(closeVal)) {
-        activeWindows.push({ label: w.label, route: w.route, closesAt: closeVal });
-      }
-    }
-  }
+  const activeWindows = config ? openWindows(config, new Date()) : [];
 
   const cycleStatusVariant =
     CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
@@ -100,7 +83,7 @@ export default async function CycleDetailPage({
           className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
-          All cycles
+          My Cycle
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
           {cycle.name}
@@ -129,16 +112,12 @@ export default async function CycleDetailPage({
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
                 </span>
                 <span className="font-semibold tracking-tight text-ink">
-                  {w.label}
+                  {w.action}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-slate">
                 <span className="tabular-nums">
-                  closes{" "}
-                  {new Date(w.closesAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  closes {formatMonthDay(w.closesAt)}
                 </span>
                 <ArrowRight
                   className="h-4 w-4 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
@@ -149,45 +128,6 @@ export default async function CycleDetailPage({
           ))}
         </div>
       )}
-
-      {/* Learning Log — the weekly practice, framed calmly (it replaced the pulse check) */}
-      {cycle.status === "active" && (
-        <div className="mb-8">
-          <Link
-            href="/dashboard#learning-log"
-            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-          >
-            <div className="flex items-center gap-3">
-              <BookOpen
-                className="h-5 w-5 flex-shrink-0 text-teal-deep"
-                aria-hidden
-              />
-              <div>
-                <span className="font-semibold tracking-tight text-ink">
-                  Your weekly Learning Log
-                </span>
-                <p className="mt-0.5 text-sm text-meta">
-                  A few lines each week on what you&apos;re figuring out. That&apos;s
-                  the check-in that keeps you in the cycle.
-                </p>
-              </div>
-            </div>
-            <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </Link>
-        </div>
-      )}
-
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total enrolled" value={enrollments?.length || 0} />
-        <StatCard
-          label="Active"
-          value={<span className="text-teal-deep">{activeCount}</span>}
-        />
-        <StatCard label="Pods" value={pods?.length || 0} />
-      </div>
 
       {pods && pods.length > 0 && (
         <div>

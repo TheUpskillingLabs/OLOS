@@ -58,7 +58,10 @@ export interface AppNavProps {
   isAdmin: boolean;
   isModerator: boolean;
   showPods: boolean;
-  hasEnrollment: boolean;
+  /** The cycle tab, resolved by the layout: "My Cycle" → /cycles for
+      enrolled members, "Join the Cycle" → the recruiting cohort's /join for
+      participants who've never enrolled, null when there's nothing to show. */
+  cycleNav: { label: string; href: string } | null;
   /** The weekly Learning Log gate is armed and unmet — Home carries the
       red pip (the ritual lives on the dashboard, not in the nav). */
   logDue: boolean;
@@ -82,7 +85,7 @@ export default function AppNav({
   isAdmin,
   isModerator,
   showPods,
-  hasEnrollment,
+  cycleNav,
   logDue,
   isTest,
   moderatorPersonaLabel = "Poderator",
@@ -150,13 +153,13 @@ export default function AppNav({
               )}
               Home{logDue ? " · Log due" : ""}
             </Link>
-            {hasEnrollment && (
+            {cycleNav && (
               <Link
                 className={`nav-link${isActive(pathname, "/cycles") ? " active" : ""}`}
                 id="nav-cycle"
-                href="/cycles"
+                href={cycleNav.href}
               >
-                My Cycle
+                {cycleNav.label}
               </Link>
             )}
             <Link
@@ -188,11 +191,11 @@ export default function AppNav({
                   {logDue && <span className="am-pip" aria-hidden />}
                 </span>
               </Link>
-              {hasEnrollment && (
+              {cycleNav && (
                 <Link
                   className={`am-tab${isActive(pathname, "/cycles") ? " active" : ""}`}
-                  href="/cycles"
-                  aria-label="My Cycle"
+                  href={cycleNav.href}
+                  aria-label={cycleNav.label}
                 >
                   <span className="am-icon">{CYCLE_ICON}</span>
                 </Link>

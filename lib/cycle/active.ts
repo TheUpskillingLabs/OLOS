@@ -36,6 +36,18 @@ export interface CycleRow {
   lab_id: number | null;
 }
 
+/** Row-level form of getOperatingCycle's filter, for callers that already
+    hold a fetched cycles list: is this row the single running HQ participant
+    cohort? Keep in lockstep with getOperatingCycle's query below — the
+    /cycles hub and the /cycles/[id] redirect both key on it. */
+export function isOperatingCycle(c: {
+  status: string;
+  mode: string;
+  lab_id: number | null;
+}): boolean {
+  return c.status === "active" && c.mode === "open" && c.lab_id === null;
+}
+
 export async function getOperatingCycle(
   supabase: SupabaseClient,
   labId: number | null = null

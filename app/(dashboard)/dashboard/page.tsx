@@ -39,6 +39,7 @@ import LeadershipLogCard, {
   type LeadershipCardScope,
 } from "./leadership-log-card";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
+import { openWindows, type CycleWindowConfig } from "@/lib/cycle/windows";
 import { getFieldSurveyForCycle, type FieldSurvey } from "@/lib/content/surveys";
 
 type CycleStatus = "active" | "closed" | "draft";
@@ -702,7 +703,7 @@ export default async function DashboardPage() {
         memberships={memberships}
         mode={activeCycle?.mode ?? null}
       />
-      <QuickLinks cycleId={activeCycle?.id} />
+      <QuickLinks />
       {otherCycles.length > 0 && (
         <details className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
           <summary className="lbl cursor-pointer hover:text-charcoal">
@@ -882,39 +883,21 @@ export default async function DashboardPage() {
   // (checklistItems is built above the early returns so it renders in every state.)
 
   // "Up next" — the cycle actions whose window is open right now, as
-  // dismissible cards (the rail shows timing; this gives the button).
-  const cfg = (activeCycleConfig ?? {}) as Record<string, string | null>;
-  const nowMs = new Date().getTime();
-  const windowClose = (k: string): Date | null => {
-    const o = cfg[`${k}_open`];
-    const c = cfg[`${k}_close`];
-    if (!o || !c) return null;
-    return nowMs >= new Date(o).getTime() && nowMs <= new Date(c).getTime()
-      ? new Date(c)
-      : null;
-  };
-  const WINDOW_TODOS = [
-    { k: "problem_statement", title: "Submit a problem statement", cta: "Propose", sub: "propose" },
-    { k: "voting", title: "Vote on problem statements", cta: "Vote", sub: "vote" },
-    { k: "pod_registration", title: "Register for a pod", cta: "Choose pod", sub: "register-pods" },
-    { k: "solution_proposal", title: "Submit your solution proposal", cta: "Propose", sub: "solutions" },
-    { k: "solution_voting", title: "Cast your solution ballot", cta: "Vote", sub: "solution-vote" },
-    { k: "project_registration", title: "Register for a project", cta: "Register", sub: "register-projects" },
-  ];
+  // dismissible cards (the rail shows timing; this gives the button). The
+  // window table + open/close math come from lib/cycle/windows — the same
+  // source the phase rail and the My Cycle hub read, so the surfaces can
+  // never disagree on wording or timing.
   const upNextTodos: TodoCard[] = activeCycle
-    ? WINDOW_TODOS.flatMap((w) => {
-        const close = windowClose(w.k);
-        if (!close) return [];
-        return [
-          {
-            id: w.k,
-            title: w.title,
-            detail: `Open now — closes ${close.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
-            href: `/cycles/${activeCycle.id}/${w.sub}`,
-            cta: w.cta,
-          },
-        ];
-      })
+    ? openWindows(
+        (activeCycleConfig ?? {}) as CycleWindowConfig,
+        new Date()
+      ).map((w) => ({
+        id: w.key,
+        title: w.action,
+        detail: `Open now — closes ${new Date(w.closesAt).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
+        href: `/cycles/${activeCycle.id}/${w.route}`,
+        cta: w.cta,
+      }))
     : [];
 
   // Hero copy + at-a-glance stats — the identity band adapts to the state.
