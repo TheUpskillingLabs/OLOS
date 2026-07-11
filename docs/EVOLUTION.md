@@ -137,6 +137,23 @@ The most recent wave, in three moves:
   Needs an owner/counsel pass, not an engineering edit.
 - Proto-translation C-stages and their owner decisions remain tracked in
   [`PROTO_TRANSLATION_PLAN.md`](PROTO_TRANSLATION_PLAN.md).
+- **Pulse → Learning Log divergence** — this codebase still runs the
+  pulse-check gate and cron, but
+  [#179](https://github.com/TheUpskillingLabs/OLOS/issues/179) records Pulse
+  as retired in favor of a Learning Log ritual built *outside* this repo
+  (its tables exist in the dev DB with no repo migration and no code on this
+  branch or `main`). #179 tracks harvesting roster health + insights onto
+  Learning Log; until then this repo and the tracker describe different
+  heartbeats.
+- **The labs model shipped without tracker coverage** — migrations
+  `00038`/`00039` and the whole HQ/Local-Lab wave have no GitHub issue, and
+  the two code-level open items above (metro-blind registration, unscheduled
+  cron) are untracked as well. Open issues that predate the wave —
+  [#117](https://github.com/TheUpskillingLabs/OLOS/issues/117) (proposal
+  stewardship) and
+  [#123](https://github.com/TheUpskillingLabs/OLOS/issues/123) (poderator
+  add-member) — should be re-scoped against the `labs_lead` role before
+  implementation.
 
 ## The archive
 

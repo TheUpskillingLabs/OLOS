@@ -25,6 +25,16 @@ problem statements → votes → **pods** → solution proposals → votes →
 `cycle_config` holding every threshold and stage window (stages fall on
 different days).
 
+> **Pulse-check caveat:** pulse checks are what *this codebase* enforces (the
+> dashboard gate and the `pulse-check-reminder` cron). Per
+> [issue #179](https://github.com/TheUpskillingLabs/OLOS/issues/179), the
+> product direction retires Pulse in favor of a **Learning Log** ritual —
+> built outside this repo's migration chain (`learning_logs` /
+> `leadership_logs` tables and `cycle_config` log columns exist in the dev DB
+> but in no repo migration, and no `learning_log` code exists on this branch
+> or `main`). Treat Pulse as live-here / retiring-globally until #179's
+> harvest lands in this repo.
+
 What the spec didn't have is the **org model** layered on top (migrations
 `00038`/`00039`):
 
