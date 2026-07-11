@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { withAuth, withAdminAuth } from "@/lib/auth/middleware";
+import { withAuth } from "@/lib/auth/middleware";
 import { isAdmin, can } from "@/lib/auth/roles";
+import { requireLabOrgCycleCreate } from "@/lib/auth/lab";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -32,12 +33,27 @@ export const GET = withAuth(
   }
 );
 
-export const POST = withAdminAuth(
+export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
     const body = await parseBody(request, createCycleSchema);
     if (isErrorResponse(body)) return body;
     const { name, slug, start_date, end_date, mode: bodyMode, sector_id: bodySectorId, lab_id } = body;
     const mode = bodyMode ?? "open";
+
+    // Decision 3 (PRD-lab-lead-ux §9): labs are self-service — a lab lead
+    // may create their own lab's internal org cycle. Everyone else (HQ
+    // cycles, other labs' cycles) stays admin-only.
+    if (!isAdmin(auth.user)) {
+      const guard = requireLabOrgCycleCreate(auth.user, { mode, lab_id });
+      if (guard) return guard;
+    }
+
+    // Writes below use the service client rather than auth.supabase:
+    // cycles_insert/cycle_config_insert RLS is is_admin_or_owner() (00002:44,49),
+    // so a lead's session client would fail RLS outright. The app-level guard
+    // above is the actual protection line here — the standard /lab posture
+    // (see lib/auth/lab.ts header).
+    const serviceClient = createServiceClient();
 
     // Sub-cohort model (docs/LOCAL_LABS.md, 00067): the participant track is
     // one HQ cycle — labs participate as sub-cohorts inside it, so a
@@ -57,7 +73,7 @@ export const POST = withAdminAuth(
     // waitlist metros are allowed — HQ may deliberately pre-stage a
     // launching lab's first internal cycle.
     if (lab_id) {
-      const { data: metro } = await auth.supabase
+      const { data: metro } = await serviceClient
         .from("metros")
         .select("id")
         .eq("id", lab_id)
@@ -78,7 +94,6 @@ export const POST = withAdminAuth(
     // if the caller happens to provide one.
     let sector_id = bodySectorId;
     if (mode === "org" && !sector_id && !lab_id) {
-      const serviceClient = createServiceClient();
       const hqSectorId = await resolveHqSectorId(serviceClient);
       if (!hqSectorId) {
         return NextResponse.json(
@@ -97,13 +112,26 @@ export const POST = withAdminAuth(
     if (sector_id) cycleInsert.sector_id = sector_id;
     if (lab_id) cycleInsert.lab_id = lab_id;
 
-    const { data: cycle, error: cycleError } = await auth.supabase
+    const { data: cycle, error: cycleError } = await serviceClient
       .from("cycles")
       .insert(cycleInsert)
       .select()
       .single();
 
     if (cycleError) {
+      // Map the 00067 one-active/upcoming-org-cycle-per-lab unique index
+      // violation to a clear message rather than a raw constraint error —
+      // mirrors the same mapping on the status-transition route, which is
+      // where this index actually fires (creation defaults to 'draft').
+      if (cycleError.code === "23505") {
+        return NextResponse.json(
+          {
+            error:
+              "Your lab already has an active or upcoming internal cycle — one per lab at a time.",
+          },
+          { status: 409 }
+        );
+      }
       return dbError(cycleError);
     }
 
