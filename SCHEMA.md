@@ -1,6 +1,14 @@
 # OLOS Database Schema
 
-Single PostgreSQL database. 19 tables (see the migration timeline for post-18 additions) organized around a **Cycle → Pod → Project** hierarchy.
+Single PostgreSQL database. **26 tables owned by this repo's migration chain**
+(`supabase/migrations/`, through `00039`), organized around a
+**Cycle → Pod → Project** hierarchy.
+
+> **Scope note:** the live dev database carries additional tables and
+> `participants` columns provisioned *outside* this repo's chain (e.g.
+> `metros`, `lab_leads`, `events`, `spotlights`, profile/social columns).
+> This document covers only what the repo's migrations own; treat anything
+> else you meet in the DB as externally managed.
 
 ---
 
@@ -31,6 +39,15 @@ flowchart TD
     style X3 fill:#6b2737,color:#fff
     style X4 fill:#6b2737,color:#fff
 ```
+
+> **Per-lab formation (migrations `00038`/`00039`):** in an **HQ-open** cycle
+> (`cycles.metro_slug IS NULL`, not `is_hq_internal`) this whole pipeline runs
+> **once per Local Lab**: participants see and vote on only their own lab's
+> problem statements, and finalization forms pods per lab, stamping
+> `pods.metro_slug` (projects inherit it from their pod). A cycle with
+> `metro_slug` set is a single lab's own cycle; `is_hq_internal = true` marks
+> an HQ org-structure cycle (standing teams as "pods") hidden from labs leads.
+> Enforcement lives in `lib/auth/cycle-access.ts`.
 
 ---
 
@@ -81,11 +98,25 @@ erDiagram
         timestamp project_registration_close
         timestamp registration_open
         timestamp registration_close
+        timestamp phase_2_start
+        timestamp phase_3_start
+        smallint pulse_band_warning_min
+        smallint pulse_band_critical_min
+        smallint at_risk_consecutive_misses
+        smallint pulse_agg_default_weeks
+        text ai_summary_prompt
+        timestamptz log_due_at
+        boolean log_gate_paused
+        smallint milestone_mid_week
+        smallint milestone_final_week
+        timestamptz leadership_log_due_at
+        boolean leadership_log_gate_paused
         timestamp updated_at
     }
 
     participants {
         int id PK
+        uuid auth_user_id "links to auth.users"
         varchar google_id UK
         varchar email UK
         varchar first_name
@@ -118,10 +149,13 @@ erDiagram
         varchar source
         varchar referred_by
         varchar zip
-        varchar metro_slug
+        varchar metro_slug "the participant's Local Lab; scopes labs_lead"
         text_array role_intents "NOT NULL DEFAULT {}"
         varchar agreement_version
         timestamptz agreement_accepted_at
+        varchar ai_experience_level
+        text availability_snippet
+        varchar profile_image_url
         varchar slack_username
         varchar github_username
         varchar drive_email
@@ -151,7 +185,15 @@ erDiagram
 
 ## ERD — Enrollment, Roles & Audit
 
-Participants join cycles via `cycle_enrollments`. Elevated permissions are stored in `user_roles`. `access_revocations` is the audit trail for removals. `pulse_checks` tracks weekly engagement.
+Participants join cycles via `cycle_enrollments`. **Authorization's source of
+truth is `participant_permissions`** — granular grants (`pods:write`,
+`cycles:write`, …) that `can()` checks on every request; role presets
+(`owner`, `admin`, `developer`, `labs_lead`, `observer`) expand into these
+rows at invite time. `user_roles` is the **audit/identity row** for elevated
+roles, not the permission store. `access_revocations` is the audit trail for
+removals. `pulse_checks` tracks weekly engagement; `nominations` captures the
+people participants nominate from inside a pulse check (third-party PII:
+name, email, LinkedIn).
 
 ```mermaid
 erDiagram
@@ -184,10 +226,19 @@ erDiagram
         jsonb answers
     }
 
+    participant_permissions {
+        int id PK
+        int participant_id FK
+        varchar permission "e.g. pods:write, cycles:write"
+        int granted_by FK
+        timestamp granted_at
+        timestamp revoked_at
+    }
+
     user_roles {
         int id PK
         int participant_id FK
-        varchar role
+        varchar role "owner|admin|observer|developer|labs_lead"
         int granted_by FK
         timestamp granted_at
         timestamp revoked_at
@@ -213,7 +264,23 @@ erDiagram
         timestamp created_at
     }
 
+    nominations {
+        int id PK
+        int participant_id FK
+        int pulse_check_id FK
+        int cycle_id FK
+        varchar nominee_name
+        varchar nominee_email
+        varchar nominee_linkedin
+        varchar nomination_type "upskiller|mentor|advisor"
+        text reason
+        timestamp created_at
+    }
+
     participants ||--o{ cycle_enrollments : "joins"
+    participants ||--o{ participant_permissions : "granted"
+    participants ||--o{ nominations : "nominates via"
+    pulse_checks ||--o{ nominations : "collects"
     cycles ||--o{ cycle_enrollments : "contains"
     participants ||--o{ cycle_agreements : "signs"
     cycles ||--o{ cycle_agreements : "binds"
@@ -437,16 +504,23 @@ erDiagram
 | `option_lists` | Core | Seed data for multiselect fields |
 | `participant_options` | Core | Junction: participant ↔ multiselect choices |
 | `cycle_enrollments` | Enrollment | Participant ↔ cycle membership + status |
-| `user_roles` | Roles | Elevated roles (owner, admin, observer) |
+| `cycle_agreements` | Enrollment | Open Cycle Agreement signatures (typed name + answers) |
+| `participant_permissions` | Roles | **Authorization source of truth** — granular grants checked by `can()` |
+| `user_roles` | Roles | Audit/identity rows for elevated roles (owner, admin, observer, developer, labs_lead) — not the permission store |
 | `moderator_assignments` | Roles | Pod-scoped moderator grants per cycle |
 | `access_revocations` | Audit | Log of revocations with scope & reason |
 | `pulse_checks` | Engagement | Weekly check-in responses (flexible JSONB) |
+| `nominations` | Engagement | Third-party nominees captured from pulse checks (name, email, LinkedIn, type, reason) |
 | `problem_statements` | Pod Layer | Submitted problems, one per participant per cycle |
-| `votes` | Pod Layer | Budget-based votes on problem statements |
-| `pods` | Pod Layer | Shortlisted problems with external integrations |
+| `votes` | Pod Layer | Budget-based votes on problem statements (lab-partitioned in HQ-open cycles) |
+| `pods` | Pod Layer | Shortlisted problems with external integrations; `metro_slug` = the owning Local Lab (NULL = HQ/legacy) |
 | `pod_memberships` | Pod Layer | Self-registration into pods (soft delete) |
 | `solution_proposals` | Project Layer | Solutions submitted within pods. Rich payload via `name` + `summary` columns + `proposal_data` JSONB. `UNIQUE(cycle_id, participant_id)` enforces one submission per participant per cycle (migration 00016, W2-001). |
 | `project_votes` | Project Layer | Budget-based votes on solution proposals |
-| `projects` | Project Layer | Shortlisted solutions with external integrations |
+| `projects` | Project Layer | Shortlisted solutions with external integrations; `metro_slug` inherited from the pod |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
+| `moderator_ui_state` | Moderator | Per-moderator dashboard UI state (poderator dashboard) |
+| `nudge_dismissals` | Moderator | Dismissed at-risk nudges on the poderator dashboard |
+| `feedback` | Feedback | In-app feedback widget submissions |
+| `feedback_attachments` | Feedback | Image attachments on feedback submissions |

@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** Pre-implementation PRD. The onboarding it proposes shipped via the onboarding-proto port (funnel registration, Open Cycle Agreement) and the #110 phases (enrollment reconciler, placeholder-name remediation). Current truth: [docs/ARCHITECTURE.md](../ARCHITECTURE.md) + [lib/auth/CLAUDE.md](../../lib/auth/CLAUDE.md). See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # PRD — Login, Profile, and Cycle Onboarding
 
 | | |

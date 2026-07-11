@@ -168,10 +168,10 @@ SUPABASE_DB_PASSWORD=<prod db password> supabase db push --linked
 
 ### Checking which migrations have been applied
 
-Supabase tracks applied migrations in the `supabase_migrations` table. To see what's live on prod, run this in Supabase Studio → SQL Editor:
+Supabase tracks applied migrations in the `supabase_migrations.schema_migrations` table (`supabase_migrations` is a schema, not a table). To see what's live on prod, run this in Supabase Studio → SQL Editor:
 
 ```sql
-SELECT name, executed_at FROM supabase_migrations ORDER BY executed_at;
+SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version;
 ```
 
-Compare against the files in `supabase/migrations/` — any file not in that list hasn't been applied yet.
+`version` is the numeric prefix of the migration filename. Compare against the files in `supabase/migrations/` — any file not in that list hasn't been applied yet.

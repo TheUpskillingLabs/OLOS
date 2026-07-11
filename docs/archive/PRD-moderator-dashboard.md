@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** Poderator dashboard PRD. The DB layer (migrations 00019–00026) shipped as designed; deltas from this PRD: the follow-up affordance is **email** (`mailto:`) not a Slack DM, access is gated on `can(pods:read) || isModerator`, §7.5 Phase Guidance and §7.6 Pod Resources were cut, insights are computed in RSCs (no insights API routes), and the vote-progress page was later re-scoped for the HQ/Local-Lab metro model. Current truth: [docs/poderator-dashboard/CLAUDE.md](../poderator-dashboard/CLAUDE.md). See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # PRD — Poderator Dashboard
 
 | | |

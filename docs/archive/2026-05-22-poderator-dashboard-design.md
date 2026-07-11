@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** Implementation design spec for the poderator dashboard; shipped with the deltas listed in the banner on PRD-moderator-dashboard.md. Current truth: [docs/poderator-dashboard/CLAUDE.md](../poderator-dashboard/CLAUDE.md). See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # Poderator Dashboard — Implementation Design
 
 | | |

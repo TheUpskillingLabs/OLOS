@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** Dated verification record for Issue #44 (2026-05-08). See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # Issue #44 — Verification Report
 
 **Date:** 2026-05-08

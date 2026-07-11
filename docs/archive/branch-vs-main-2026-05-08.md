@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** Dated snapshot (2026-05-08); accurate for its date. See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # `feature/magic-link-email` vs `main` — Diff Summary
 
 **Date:** 2026-05-08

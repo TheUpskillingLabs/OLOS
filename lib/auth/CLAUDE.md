@@ -7,12 +7,14 @@ folder pairs with [`app/api/auth/callback/route.ts`](../../app/api/auth/callback
 `[auth.*]` blocks in [`supabase/config.toml`](../../supabase/config.toml).
 
 This document covers the work in **Issue #44** (Supabase Auth + Google OAuth)
-and **Issue #45** (magic-link delivery). Read it before changing anything in
-the sign-in path or the invitations email flow.
+and **Issue #45** (magic-link delivery), plus the **July 2026 labs-lead /
+HQ-Local-Lab scoping layer** (§"Labs Lead & HQ/Local-Lab scoping" below). Read
+it before changing anything in the sign-in path, the invitations email flow,
+or the cycle/pod/project authorization guards.
 
 ---
 
-## Status snapshot — May 2026
+## Status snapshot — May 2026 (auth core) · July 2026 (labs scoping)
 
 **Issue #44 (Google OAuth + role resolution):** functionally complete in code;
 blocked on ops setup for end-to-end production verification.
@@ -50,13 +52,15 @@ folder's invitation API — see "Forward prep" below.
 
 ---
 
-## TL;DR — How this differs from `TUL_MVP_Spec.md`
+## TL;DR — How this differs from the founding spec
 
-The MVP spec describes a **Python/FastAPI backend** that exchanges a Supabase
-session token for a hand-rolled `pyjwt` JWT (`POST /auth/google`). **This
-codebase is Next.js full-stack — there is no FastAPI service, and there is no
-hand-rolled JWT.** The spec language survives in the issue text; the
-implementation does not. Translate before writing code.
+The MVP spec (now archived at
+[`docs/archive/TUL_MVP_Spec.md`](../../docs/archive/TUL_MVP_Spec.md)) describes
+a **Python/FastAPI backend** that exchanges a Supabase session token for a
+hand-rolled `pyjwt` JWT (`POST /auth/google`). **This codebase is Next.js
+full-stack — there is no FastAPI service, and there is no hand-rolled JWT.**
+The spec language survives in the issue text; the implementation does not.
+Translate before writing code.
 
 | Spec concept | This repo |
 |---|---|
@@ -65,7 +69,7 @@ implementation does not. Translate before writing code.
 | `pyjwt` signing + verification | Supabase verifies the session cookie; route handlers consume `UserRoles` via [`withAuth`](./middleware.ts) |
 | `JWT_SIGNING_SECRET` env var | Not used. `NEXT_PUBLIC_SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` |
 | OpenAPI spec for `POST /auth/google` | No OpenAPI doc in this repo. The Next.js callback is documented in code; route contracts live alongside the handlers |
-| FastAPI middleware authorizing endpoints | [`withAuth` / `withAdminAuth` / `withOwnerAuth`](./middleware.ts) wrappers + the edge proxy in [`proxy.ts`](../../proxy.ts) |
+| FastAPI middleware authorizing endpoints | [`withAuth` / `withAdminAuth` / `withOwnerAuth` / `withPermissionAuth(permission)`](./middleware.ts) wrappers + the edge proxy in [`proxy.ts`](../../proxy.ts); lab scoping enforced in-handler via [`cycle-access.ts`](./cycle-access.ts) |
 
 **The data the spec wants in the JWT is all present** — it's just produced on
 demand from Postgres rather than encoded into a stateless token. This is
@@ -139,7 +143,12 @@ Files:
   produces the `UserRoles` shape every guarded route consumes. **This is the
   spec's "JWT claims" surface.**
 - [`lib/auth/middleware.ts`](./middleware.ts) — wraps route handlers; resolves
-  roles, returns 401 for unauthenticated, 403 for `withAdminAuth` / `withOwnerAuth`.
+  roles, returns 401 for unauthenticated, 403 for `withAdminAuth` /
+  `withOwnerAuth` / `withPermissionAuth(permission)` (the granular gate the
+  lifecycle routes use — see the labs-lead section below).
+- [`lib/auth/cycle-access.ts`](./cycle-access.ts) — the HQ/Local-Lab scoping
+  layer: cycle visibility/config guards and pod/project lab-boundary guards
+  (see "Labs Lead & HQ/Local-Lab scoping" below).
 - [`proxy.ts`](../../proxy.ts) — Next.js 16 edge middleware; redirects
   unauthenticated users to `/login` for non-public, non-API paths. API routes
   enforce auth themselves via the wrappers.
@@ -150,10 +159,12 @@ Files:
 {
   userId: string;            // Supabase auth.users.id
   participantId: number | null;
-  roles: Role[];             // owner, admin, observer, developer, moderator, participant
+  roles: Role[];             // owner, admin, observer, developer, labs_lead, moderator, participant
   permissions: Permission[]; // granular grants from participant_permissions
   moderatorPodIds: number[];
   cycleEnrollments: { cycleId: number; status: "active" | "inactive" | "revoked" }[];
+  metroSlug: string | null;  // participants.metro_slug — the user's Local Lab;
+                             // scopes a labs_lead via cycle-access.ts
 }
 ```
 
@@ -166,6 +177,61 @@ Maps 1:1 onto the spec's required JWT claim set:
 | `is_admin` / `is_owner` / `is_observer` | derived via `isAdmin(roles)` / `isOwner(roles)` / `roles.includes("observer")` in [`roles.ts`](./roles.ts) |
 | active `moderator_assignments` | `moderatorPodIds` |
 | active `cycle_enrollments` | `cycleEnrollments` |
+| *(post-spec)* the user's Local Lab | `metroSlug` — from `participants.metro_slug`; consumed only by [`cycle-access.ts`](./cycle-access.ts) |
+
+---
+
+## Labs Lead & HQ/Local-Lab scoping (July 2026)
+
+The org model: **HQ** centrally coordinates open cycles; each **Local Lab**
+(metro — `dc`/`baltimore`/`philadelphia`, registry in
+[`lib/metros.ts`](../metros.ts)) runs its own pods and projects within them,
+and can run its own single-lab cycles. Migrations `00038`/`00039`; full domain
+picture in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+
+**The `labs_lead` preset** ([`permissions.ts`](./permissions.ts)):
+`pods:read`, `pods:write`, `participants:read`, `pulse_checks:read` —
+deliberately **no** `cycles:write` and no `roles:write`. The rule of thumb:
+
+> **HQ = `cycles:write` (global). Labs lead = `pods:write` + a metro (scoped).**
+
+**Three cycle kinds**, from `cycles.metro_slug` + `cycles.is_hq_internal`:
+HQ-open (metro `NULL`, not internal — every lab participates), local-lab
+(metro set — that lab's own cycle), HQ-internal (`is_hq_internal` — HQ org
+structure, hidden from labs leads).
+
+**[`cycle-access.ts`](./cycle-access.ts) is the single enforcement point:**
+
+| Helper | Question it answers |
+|---|---|
+| `canManageLifecycle(roles)` | any lifecycle access at all? (`pods:write`) |
+| `isFullCycleAdmin(roles)` | HQ? (`cycles:write`) — bypasses every metro check |
+| `canSeeCycle(roles, cycle)` | may this user see the cycle? (HQ-open + own lab; never other labs' or HQ-internal) |
+| `canConfigureCycle(roles, cycle)` | may they configure it? (own-lab cycles only, for non-HQ) |
+| `canManageEntity(roles, pod\|project)` | may they manage this pod/project? (entity `metro_slug` must match their lab) |
+| `requirePodManagement` / `requireProjectManagement` / `requireCycleConfig` | async route guards returning 404/403 `NextResponse` or `null` |
+| `scopeCyclesForUser(roles, cycles)` | filter a cycle list to the visible set |
+
+**Route pattern:** lifecycle routes gate on
+`withPermissionAuth("pods:write", …)`, then call the matching `require*` guard
+after resolving the target — **the lab boundary is enforced server-side in
+every handler; page-level hiding is cosmetic.** Writes that a labs lead is
+authorized for in application code run on the service client (RLS on those
+tables is `is_admin_or_owner()`-gated).
+
+**Per-lab formation:** in an HQ-open cycle, participants see/vote only within
+their own lab's problem-statement pool, and
+`/api/voting/finalize/[cycle_id]` forms pods per lab (stamping
+`pods.metro_slug`; projects inherit at finalize). A labs lead finalizes only
+their own lab; HQ finalizes all.
+
+**Data prerequisite:** scoping binds only when `participants.metro_slug` is
+set (funnel ZIP capture or the Region control on the admin participant
+permissions page). A labs lead with no metro can manage nothing scoped.
+
+Verified end-to-end by `scripts/seed-cycle.mjs` (data-level) and
+`scripts/verify-labs-lead-access.mjs` (authenticated HTTP: 401 unauth,
+403 cross-lab, 200 same-lab, create-forced-to-own-lab, per-lab finalize).
 
 ---
 
@@ -187,17 +253,24 @@ hitches a ride on Google OAuth.
    `invite_token={uuid}` to a `SameSite=Lax` cookie (1 hour TTL) and shows
    the "You've been invited" CTA.
 4. Invitee clicks "Sign in with Google". OAuth completes.
-5. Callback runs `fulfillInvitation()` in
-   [`/api/auth/callback`](../../app/api/auth/callback/route.ts):
+5. `fulfillInvitation()` — now extracted to
+   [`lib/auth/invitations.ts`](./invitations.ts) and called from **two**
+   places: the OAuth callback (returning member) and
+   [`/api/registrations/funnel`](../../app/api/registrations/funnel/route.ts)
+   (new member registering through the funnel):
    - Read the cookie, clear it.
    - Match `invitations.token` AND `invitations.email == user.email` AND
      `status='pending'` AND not expired. Email match prevents
      forward-the-link attacks.
    - Upsert `participant_permissions` rows.
-   - Upsert `user_roles` row for `owner` / `admin` / `developer` / `observer`
-     presets (audit trail; `moderator` is *not* added here — moderator is
-     derived from `moderator_assignments` rows).
-   - Upsert `cycle_enrollments` (status=active) when `cycle_id` set.
+   - Upsert `user_roles` row for `owner` / `admin` / `developer` / `observer` /
+     `labs_lead` presets (audit trail; `moderator` is *not* added here —
+     moderator is derived from `moderator_assignments` rows).
+   - **Placeholder guard:** cycle enrollment and moderator assignment are
+     deferred for participants still carrying an "Unknown" placeholder name.
+   - Upsert `cycle_enrollments` when `cycle_id` set, then run
+     `reconcileEnrollmentActivation` (the enrollment reconciler is the single
+     activation path).
    - Upsert `moderator_assignments` when `pod_id` set (queries the pod for
      `cycle_id`).
    - Mark invitation `accepted` + `accepted_at`.
@@ -299,8 +372,10 @@ with a fake invite cookie + token row).
 The spec says "no participants row → return 404, complete registration
 first." The implementation instead redirects to a built-in `/register` page
 (see [`app/(auth)/register/page.tsx`](../../app/(auth)/register/page.tsx))
-which posts to [`/api/registrations`](../../app/api/registrations/route.ts).
-This is **a deliberate deviation**:
+whose funnel UI posts to
+[`/api/registrations/funnel`](../../app/api/registrations/funnel/route.ts)
+(the legacy `/api/registrations` and `/api/registrations/short` endpoints also
+exist). This is **a deliberate deviation**:
 
 - The spec's 404 path assumes registration happens in a separate channel
   (e.g. a Google Form). Wave 1 ships an in-app registration page anyway,
@@ -312,8 +387,8 @@ This is **a deliberate deviation**:
   doesn't.
 
 If the team ever needs the 404 contract back (e.g. a closed cohort with no
-self-registration), the change is one branch in
-[`app/api/auth/callback/route.ts:139`](../../app/api/auth/callback/route.ts):
+self-registration), the change is the "No participant record" branch (~line 65)
+in [`app/api/auth/callback/route.ts`](../../app/api/auth/callback/route.ts):
 return `NextResponse.json({error: "..."}, {status: 404})` instead of redirect.
 
 ---
@@ -428,7 +503,7 @@ insurance — no Supabase-Auth-side email flows fire today.
 
 ## Pointers
 
-- Spec text (still references FastAPI): [`TUL_MVP_Spec.md`](../../TUL_MVP_Spec.md)
+- Spec text (archived; still references FastAPI): [`TUL_MVP_Spec.md`](../../docs/archive/TUL_MVP_Spec.md)
   §Authentication and §POST /auth/google
 - Schema (invitations / user_roles / participant_permissions): [`SCHEMA.md`](../../SCHEMA.md)
 - Permissions matrix: [`lib/auth/permissions.ts`](./permissions.ts) —

@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** The #110 architecture review (June 2026). Its "broken edges" are closed: `lib/enrollment/reconciler.ts` is the single activation path, `fulfillInvitation()` was extracted and fixed, placeholder-name remediation shipped (PATCH route, guards, admin form), RLS 00021/00022 applied, the revocation cron was rewritten (00030, two-stage with `warned_at`), and the callback email lookup is case-insensitive. One item remains open: the cron is still not scheduled. See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # OLOS Onboarding State Machine — Architecture Review
 
 ## Executive Summary

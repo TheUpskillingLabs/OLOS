@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OLOS — Open Labs Operating System
 
-## Getting Started
+The platform behind **The Upskilling Labs**: quarterly build cycles where
+participants submit problem statements, vote, form **pods**, propose
+solutions, vote again, and form **projects** — coordinated centrally by HQ and
+run on the ground by **Local Labs** (DC, Baltimore, Philadelphia), each owning
+its own pods and projects within shared cycles.
 
-First, run the development server:
+**Stack:** Next.js App Router monolith · Supabase (Postgres + Auth via Google
+OAuth) · Resend for email · raw-SQL migrations.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.local.example .env.local   # Supabase keys, OWNER_EMAILS, RESEND_API_KEY
+npm run dev                        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> ⚠️ This repo pins a Next.js version with breaking changes — read the guides
+> in `node_modules/next/dist/docs/` before writing code (see `AGENTS.md`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Verification against the dev database (both scripts are namespaced and
+self-cleaning, and refuse to run against prod):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+node scripts/seed-cycle.mjs               # data-level lifecycle + access assertions
+node scripts/verify-labs-lead-access.mjs  # authenticated HTTP e2e (needs `npm run dev` up)
+```
 
-## Learn More
+## Documentation map
 
-To learn more about Next.js, take a look at the following resources:
+| Doc | What it is |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Current stack, domain model (HQ / Local Labs), authorization |
+| [`SCHEMA.md`](SCHEMA.md) | Database reference (tables, ERDs, lifecycle) |
+| [`docs/EVOLUTION.md`](docs/EVOLUTION.md) | How the app got here, era by era + archive index |
+| [`docs/OLOS-roadmap.md`](docs/OLOS-roadmap.md) | Wave status tracker and open items |
+| [`lib/auth/CLAUDE.md`](lib/auth/CLAUDE.md) | Auth, roles, permissions, invitations — read before touching auth |
+| [`supabase/CLAUDE.md`](supabase/CLAUDE.md) | Migration conventions — read before writing a migration |
+| [`docs/poderator-dashboard/CLAUDE.md`](docs/poderator-dashboard/CLAUDE.md) | Moderator dashboard build doc |
+| [`docs/personas.md`](docs/personas.md) | Who uses this (Upskiller, Organizer/HQ, Labs Lead, Poderator) |
+| [`docs/environments.md`](docs/environments.md) | Dev vs prod Supabase projects, safety rails |
+| [`docs/archive/`](docs/archive/) | Superseded specs & planning docs, each with a banner — history, not guidance |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The founding spec lives at
+[`docs/archive/TUL_MVP_Spec.md`](docs/archive/TUL_MVP_Spec.md); consult it for
+original intent, never for current behavior.

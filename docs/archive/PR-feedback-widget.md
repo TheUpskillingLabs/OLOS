@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** PR record for the in-app feedback widget (June 2026); accurately describes the shipped code. See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # feat(feedback): in-app feedback widget with image attachments
 
 **Branch:** `feat/feedback-widget` → base `feat/poderator-dashboard`

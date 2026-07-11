@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** Issue draft consolidating the #110 review; the remediations it proposes have shipped (see the banner on architecture-review-onboarding-state-machine.md). See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 ## Milestone
 v1.0 (May 2026 launch cycle)
 

@@ -1,8 +1,8 @@
 # OLOS Personas
 
-*Working definitions of the three people OLOS is built for. Draft, 2026-05-20.*
+*Working definitions of the four people OLOS is built for. Draft, 2026-05-20; Labs Lead added 2026-07-11.*
 
-The three personas below define who OLOS is for. They're meant to be used as a quick gut-check when making product, copy, and program decisions: would this make sense to an upskiller? Would it actually save an organizer time? Would it give a moderator the signal they need?
+The four personas below define who OLOS is for. They're meant to be used as a quick gut-check when making product, copy, and program decisions: would this make sense to an upskiller? Would it actually save an organizer time? Would it let a labs lead run their own city without pinging HQ? Would it give a moderator the signal they need?
 
 ---
 
@@ -46,9 +46,10 @@ Finishing the cycle and showcasing what they've built, alongside the group of pe
 
 ### Who they are
 
-TUL staff running the cycle. A small team measured in handfuls, not departments.
+TUL HQ staff running the cycle. A small team measured in handfuls, not departments.
 
 - **Hats worn:** program design, community management, ops, data, comms (often all in the same week, sometimes the same day).
+- **Scope:** the whole program. In permission terms, the organizer is the global admin — they hold `cycles:write` and can configure any cycle in any lab. Metro-scoped delegation is the Labs Lead's job (below).
 - **Current reality:** a large slice of every week goes to cross-sheet reconciliation in the legacy Upskiller community-manager spreadsheet: chasing pulse checks, deduping pod registrations, hand-tallying votes, reconciling typos between strings like "Pod 9" and "9. Medical Record Consolidation."
 
 ### What they want
@@ -68,6 +69,43 @@ TUL staff running the cycle. A small team measured in handfuls, not departments.
 ### What success looks like
 
 Running the next cycle with today's headcount while doing meaningfully less coordination work and engaging with more upskillers, particularly the quiet ones who are about to ghost.
+
+---
+
+## Labs Lead
+
+### Who they are
+
+The person running a Local Lab — a metro-level chapter of the program. Washington, DC is the active lab today; Baltimore and Philadelphia are next in line as waitlisted metros (`lib/metros.ts`). Part organizer, part community builder, but scoped to one city rather than the whole program.
+
+- **Relationship to HQ:** not HQ staff. They run their lab inside the container HQ coordinates — shared cycles, shared tooling, shared program design.
+- **Hats worn:** a metro-sized slice of the organizer's week: recruiting, pod formation, moderator wrangling, local partnerships, showing up in person.
+
+### What they want
+
+- To run their lab's day-to-day without waiting on HQ: form and finalize pods, manage projects, watch pulse health — for their own city.
+- To participate in the shared HQ cycle calendar without being able to break it (or being blamed when someone else does).
+- To spin up their own lab's cycle when their city is ready, and own its schedule and configuration end to end.
+- Visibility into their own lab's people — and a clean line around everyone else's.
+
+### What frustrates them
+
+- Another lab's pods showing up in their lists — or worse, being editable.
+- Needing an HQ admin to click a button that only affects their own city.
+- HQ-internal org cycles leaking into their view.
+- Being treated as either a full admin (too much) or a moderator (too little) when their actual scope is "everything, for one metro."
+
+### What success looks like
+
+Their lab's cohort makes it through the shared cycle with healthy pods, and the lab graduates to running cycles on its own calendar.
+
+### Where they sit in the system
+
+Between the organizer and the moderator: broader than one pod, narrower than the program. In permission terms they hold the `labs_lead` preset — `pods:read`, `pods:write`, `participants:read`, `pulse_checks:read` — deliberately **not** `cycles:write`, which is exactly what separates them from an organizer (HQ staff with global `cycles:write`). Their metro (`participants.metro_slug`) scopes everything, enforced by `lib/auth/cycle-access.ts`:
+
+- They **see** HQ-open cycles plus their own lab's cycles — never another lab's cycles, never HQ-internal org cycles.
+- Inside a shared HQ cycle they **manage** only the pods and projects tagged with their own metro.
+- They **create and configure** their own lab's cycles end to end.
 
 ---
 

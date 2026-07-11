@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** OLOS design system v1.0 (May 2026) — the dark theme, retired 2026-07-03 when the light "warm-paper" system landed. The live design system is the token layer in `app/globals.css` plus `app/components/ui/*`. See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # OLOS Design System
 
 > **⚠ Superseded (July 2026):** the design source of truth is now the

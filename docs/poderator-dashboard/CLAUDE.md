@@ -6,6 +6,45 @@ DB tables below.
 
 ---
 
+## Reality deltas (July 2026)
+
+The dashboard shipped. The build-plan sections below are preserved as
+written; where they disagree with the code, the code won. Deltas:
+
+- **The vote-progress page did NOT survive as-is.** It was re-scoped for the
+  HQ/Local-Lab metro model.
+  `app/(dashboard)/moderator/cycles/[cycle_id]/vote-progress/page.tsx` now
+  imports `canSeeCycle` / `canManageLifecycle` / `isFullCycleAdmin` from
+  `@/lib/auth/cycle-access` and admits cycle managers as well as moderators.
+  Scope: full admins (`cycles:write`) see every pod in the cycle; a labs-lead
+  manager (`pods:write` + a metro) sees only pods whose `pods.metro_slug`
+  matches their own `participants.metro_slug`; moderators see only their
+  assigned pods.
+- **The insights API routes were never built.** There is no
+  `GET /api/moderator/insights` and no
+  `GET /api/moderator/pods/[pod_id]/insights`. Pod-level and cross-pod
+  insights are computed directly in the RSC pages (see
+  `lib/moderator/cross-pod-insights.ts` and the per-pod page's
+  `insights-section.tsx`). The API-routes table below over-promises.
+- **"Open Slack DM" shipped as email.** The outreach affordance in
+  `app/(dashboard)/moderator/pods/[pod_id]/pulse-review-panel.tsx` is a
+  `mailto:` "Email member" link, not a Slack deep link. Still a deep link out
+  of OLOS; OLOS still sends nothing.
+- **PhaseGuidance (§7.5) and PodResources (§7.6) were cut** from the per-pod
+  page. Neither component exists.
+- **The `/moderator` guard is permission-based, not role-based.**
+  `app/(dashboard)/moderator/page.tsx` gates on
+  `can(userRoles, "pods:read") || isModerator(userRoles)` — not
+  `isModerator || isAdmin`. Anyone holding `pods:read` gets in, which now
+  includes metro-scoped `labs_lead` holders (their preset grants `pods:read`
+  — see `lib/auth/permissions.ts`).
+- **The PRD, mockups, design spec, and architecture brief moved to
+  `docs/archive/`.** Links below have been repointed. If you go looking for
+  `DESIGN_SYSTEM.md`, note that `../archive/DESIGN_SYSTEM.md` is the retired
+  dark theme — the live design system is `app/globals.css`.
+
+---
+
 ## Naming convention — UI vs. internal
 
 | Layer | Term | Example |
@@ -20,16 +59,19 @@ table names, column names, or API paths. The split is intentional and final.
 
 ## Relevant docs
 
-- PRD: [`docs/PRD-moderator-dashboard.md`](../PRD-moderator-dashboard.md) —
-  functional requirements, decisions log, data model implications. **This is
-  the source of truth for what to build.**
-- Mockups: [`docs/PRD-moderator-dashboard-mockups.html`](../PRD-moderator-dashboard-mockups.html) —
+- PRD: [`docs/archive/PRD-moderator-dashboard.md`](../archive/PRD-moderator-dashboard.md) —
+  functional requirements, decisions log, data model implications. **This was
+  the source of truth for what to build** (now archived — the dashboard
+  shipped; see Reality deltas above for where the code diverged).
+- Mockups: [`docs/archive/PRD-moderator-dashboard-mockups.html`](../archive/PRD-moderator-dashboard-mockups.html) —
   open in a browser. Three screens: All pods view, Per-pod view, Pulse review
   panel.
+- Design spec: [`docs/archive/2026-05-22-poderator-dashboard-design.md`](../archive/2026-05-22-poderator-dashboard-design.md)
 - Auth: [`lib/auth/CLAUDE.md`](../../lib/auth/CLAUDE.md) — role resolution,
   `UserRoles` shape, `withAuth` wrappers. Read before touching any guarded
   route.
-- Architecture: [`docs/OLOS-architecture-brief.md`](../OLOS-architecture-brief.md)
+- Architecture: [`docs/archive/OLOS-architecture-brief.md`](../archive/OLOS-architecture-brief.md)
+  (archived — historical intent, not a blueprint)
 
 ---
 
@@ -38,7 +80,7 @@ table names, column names, or API paths. The split is intentional and final.
 | File | What it does | Relationship to Poderator dashboard |
 |---|---|---|
 | `app/(dashboard)/moderator/page.tsx` | Basic pod listing — shows assigned pods grouped by cycle, links to `/pods/[id]` | **The All pods view stub.** Replace with the full Poderator All pods view (§6, §7.2, §7.7, §7.9.3 of PRD). Keep the auth guard pattern. |
-| `app/(dashboard)/moderator/cycles/[cycle_id]/vote-progress/page.tsx` | Vote progress for a cycle | Survives as-is. The per-pod phase guidance (§7.5) will surface similar data inline. |
+| `app/(dashboard)/moderator/cycles/[cycle_id]/vote-progress/page.tsx` | Vote progress for a cycle | ~~Survives as-is~~ — re-scoped for the HQ/Local-Lab metro model (see Reality deltas above). |
 | `app/(dashboard)/pods/[pod_id]/pulse-check-dashboard.tsx` | Pulse-check data for a pod | Read this before building the member roster (§7.3) and pod-level aggregations (§7.9.2). May be extractable. |
 | `app/api/pods/[pod_id]/members/route.ts` | Pod member list | Reuse for the member roster. Check the response shape before building the roster component. |
 | `app/api/pods/[pod_id]/moderators/route.ts` | Moderator assignment read/write | Already exists. Don't duplicate. |
@@ -75,6 +117,9 @@ correctly (PRD §7.7).
 | `POST /api/moderator/nudges/dismiss` | Dismiss a nudge instance. Body: `{ pod_id, nudge_key }`. Writes to `nudge_dismissals`. |
 | `GET /api/moderator/ui-state` | Last-selected switcher view + roster filter/sort state |
 | `PUT /api/moderator/ui-state` | Persist switcher selection, roster filter, tooltip suppression keys |
+
+> July 2026: the two insights routes were never built — insights are computed
+> directly in the RSC pages. See Reality deltas at the top.
 
 All routes use the `withAuth` wrapper from `lib/auth/middleware.ts`. Check
 `isModerator(userRoles)` or `isAdmin(userRoles)` and return 403 otherwise.
@@ -212,7 +257,7 @@ pushed to the poderator's own AI tool via §7.10.3.
 ## PRD decisions to carry forward
 
 These were explicitly decided and should not be re-litigated without a new
-decision entry in `docs/PRD-moderator-dashboard.md §10`:
+decision entry in `docs/archive/PRD-moderator-dashboard.md §10`:
 
 | Topic | Decision |
 |---|---|

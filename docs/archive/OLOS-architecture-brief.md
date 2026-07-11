@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** April 2026 brief describing the *intended* Python/FastAPI + Next.js split. The shipped system is a single Next.js App Router monolith; the stack table and auth description no longer apply. Current truth: [docs/ARCHITECTURE.md](../ARCHITECTURE.md). See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # OLOS — Architecture Brief
 *The 5-minute orientation for every new contributor*
 

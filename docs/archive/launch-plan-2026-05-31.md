@@ -1,3 +1,5 @@
+> **📁 ARCHIVED — historical record.** Dated launch plan (2026-05-31); accurate for its date. See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+
 # Launch Plan — Energy Cycle 3
 
 **Date authored**: 2026-05-31
