@@ -57,7 +57,7 @@ Two parallel arcs:
 
 **Poderator dashboard.** A full moderator surface — all-pods overview, per-pod
 pulse review, at-risk nudges, aggregate trends — shipped on migrations
-`00019`–`00026` ([PRD](archive/PRD-moderator-dashboard.md) and
+`00023`–`00027` ([PRD](archive/PRD-moderator-dashboard.md) and
 [design spec](archive/2026-05-22-poderator-dashboard-design.md) archived;
 the living build doc is [`docs/poderator-dashboard/CLAUDE.md`](poderator-dashboard/CLAUDE.md)).
 Notable deltas from the PRD: follow-up is email (not Slack DM), insights are
@@ -80,8 +80,9 @@ The onboarding-proto port replaced the dark theme with the light
 **"warm-paper" design system** (now the token layer in `app/globals.css`) and
 brought self-serve onboarding: the **funnel registration** (capturing ZIP →
 metro via `lib/metros.ts`, role intents, agreement acceptance) and the **Open
-Cycle Agreement** ceremony. Days later, **registration windows** shipped
-(`00031`–`00034`): cycles gained a 6-state status vocabulary
+Cycle Agreement** ceremony (`00031`/`00032`). Days later, **registration
+windows** shipped (`00033`; `00034` in the same PR repaired an unrelated
+column drift): cycles gained a 6-state status vocabulary
 (`draft → upcoming → active → closing → closed`, plus `archived`),
 `lib/cycles/registration.ts` became the "which cycle is open for registration"
 authority, and cycle info pages went live. The

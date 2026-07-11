@@ -1,4 +1,4 @@
-> **📁 ARCHIVED — historical record.** Gap analysis written for PR #190 (2026-07-06); its P0/P1 stories shipped in that same PR. Every "Current gap." section below describes the *pre-implementation* code: `lib/cycles/registration.ts` (`getRegistrationCycle()`), the 6-state cycle status vocabulary, the registration window (migrations 00033/00034), and the dashboard/cycles-page fixes all exist now. See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
+> **📁 ARCHIVED — historical record.** Gap analysis written for PR #190 (2026-07-06); its P0/P1 stories shipped in that same PR. Every "Current gap." section below describes the *pre-implementation* code: `lib/cycles/registration.ts` (`getRegistrationCycle()`), the 6-state cycle status vocabulary, the registration window (migration 00033; 00034 in the same PR is an unrelated drift repair), and the dashboard/cycles-page fixes all exist now. See [docs/EVOLUTION.md](../EVOLUTION.md) for the full story of how the app got here.
 
 # User Stories — New-User Registration & Joining an Upcoming Cycle
 

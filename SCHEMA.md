@@ -100,17 +100,11 @@ erDiagram
         timestamp registration_close
         timestamp phase_2_start
         timestamp phase_3_start
-        smallint pulse_band_warning_min
-        smallint pulse_band_critical_min
-        smallint at_risk_consecutive_misses
-        smallint pulse_agg_default_weeks
+        int pulse_band_warning_min
+        int pulse_band_critical_min
+        int at_risk_consecutive_misses
+        int pulse_agg_default_weeks
         text ai_summary_prompt
-        timestamptz log_due_at
-        boolean log_gate_paused
-        smallint milestone_mid_week
-        smallint milestone_final_week
-        timestamptz leadership_log_due_at
-        boolean leadership_log_gate_paused
         timestamp updated_at
     }
 
@@ -153,9 +147,9 @@ erDiagram
         text_array role_intents "NOT NULL DEFAULT {}"
         varchar agreement_version
         timestamptz agreement_accepted_at
-        varchar ai_experience_level
+        enum ai_experience_level "new|consumer|builder|shipper; NOT NULL DEFAULT new"
         text availability_snippet
-        varchar profile_image_url
+        text profile_image_url
         varchar slack_username
         varchar github_username
         varchar drive_email
@@ -214,6 +208,8 @@ erDiagram
         timestamp enrolled_at
         varchar status
         timestamp inactive_date
+        timestamptz warned_at "two-stage revocation (00030)"
+        varchar warning_reason "00030"
     }
 
     cycle_agreements {
@@ -314,6 +310,7 @@ erDiagram
         int cycle_id FK
         int participant_id FK
         text statement_text
+        jsonb proposal_data "guided-form payload (00007; restored 00034)"
         timestamp created_at
     }
 
@@ -336,6 +333,7 @@ erDiagram
         varchar slack_channel_id
         varchar github_repo_url
         varchar drive_folder_id
+        varchar google_group_email
         timestamp created_at
         timestamp updated_at
     }
@@ -344,6 +342,7 @@ erDiagram
         int id PK
         int participant_id FK
         int pod_id FK
+        smallint preference_rank "00028"
         timestamp joined_at
         timestamp inactive_at
     }
@@ -428,6 +427,7 @@ erDiagram
         varchar slack_channel_id
         varchar github_repo_url
         varchar drive_folder_id
+        varchar google_group_email
         timestamp created_at
         timestamp updated_at
     }

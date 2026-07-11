@@ -177,7 +177,7 @@ Maps 1:1 onto the spec's required JWT claim set:
 | `is_admin` / `is_owner` / `is_observer` | derived via `isAdmin(roles)` / `isOwner(roles)` / `roles.includes("observer")` in [`roles.ts`](./roles.ts) |
 | active `moderator_assignments` | `moderatorPodIds` |
 | active `cycle_enrollments` | `cycleEnrollments` |
-| *(post-spec)* the user's Local Lab | `metroSlug` — from `participants.metro_slug`; consumed only by [`cycle-access.ts`](./cycle-access.ts) |
+| *(post-spec)* the user's Local Lab | `metroSlug` — from `participants.metro_slug`; consumed by [`cycle-access.ts`](./cycle-access.ts) and directly by the per-lab route handlers (votes, problem-statement list, voting finalize, cycle create) and the lab-scoped admin pages |
 
 ---
 
@@ -262,12 +262,15 @@ hitches a ride on Google OAuth.
    - Match `invitations.token` AND `invitations.email == user.email` AND
      `status='pending'` AND not expired. Email match prevents
      forward-the-link attacks.
+   - **Placeholder guard:** for participants still carrying an "Unknown"
+     placeholder name, the *entire* fulfillment below (permission grants,
+     role row, enrollment, moderator assignment, accepted-marking) is
+     deferred until the name is completed — the guard returns before any
+     write.
    - Upsert `participant_permissions` rows.
    - Upsert `user_roles` row for `owner` / `admin` / `developer` / `observer` /
      `labs_lead` presets (audit trail; `moderator` is *not* added here —
      moderator is derived from `moderator_assignments` rows).
-   - **Placeholder guard:** cycle enrollment and moderator assignment are
-     deferred for participants still carrying an "Unknown" placeholder name.
    - Upsert `cycle_enrollments` when `cycle_id` set, then run
      `reconcileEnrollmentActivation` (the enrollment reconciler is the single
      activation path).
