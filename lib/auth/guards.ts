@@ -2,7 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { resolveUserRoles, isAdmin, type UserRoles } from "@/lib/auth/roles";
+import { resolveUserRoles, isAdmin, isOwner, type UserRoles } from "@/lib/auth/roles";
 
 /**
  * The single admin gate for every `/admin` page — the page-side twin of
@@ -34,6 +34,28 @@ export const requireAdmin = cache(async (): Promise<AdminContext> => {
   const serviceClient = createServiceClient();
   const userRoles = await resolveUserRoles(serviceClient, user.id);
   if (!isAdmin(userRoles)) redirect("/cycles");
+
+  return { user, userRoles, serviceClient };
+});
+
+/**
+ * The page-side gate for owner-only surfaces (the "Danger Zone" / owner lifecycle
+ * console). The page-side twin of `withOwnerAuth` in `lib/auth/middleware.ts`.
+ *
+ * Same fail-closed contract as `requireAdmin`, but owner-only. Non-owner admins
+ * are bounced to `/admin` (their home) rather than `/cycles`, since they DO belong
+ * in the admin area — just not on an owner-gated page.
+ */
+export const requireOwner = cache(async (): Promise<AdminContext> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const serviceClient = createServiceClient();
+  const userRoles = await resolveUserRoles(serviceClient, user.id);
+  if (!isOwner(userRoles)) redirect("/admin");
 
   return { user, userRoles, serviceClient };
 });
