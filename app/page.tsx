@@ -167,62 +167,9 @@ export default async function LandingPage() {
         </div>
       </div>
 
-      {/* ── What this is ── A plain-language description of the platform and
-          why we ask you to sign in with Google. Placed first so anyone — and
-          Google's OAuth reviewers — can see the app's purpose and its data
-          use without logging in. */}
-      <section className="section s-white sec-after-hero" id="sec-about">
-        <div className="container">
-          <SectionHead
-            eyebrow="What this is"
-            heading="A learning platform for people changing careers"
-          />
-          <div
-            style={{
-              display: "grid",
-              gap: 32,
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              alignItems: "start",
-            }}
-          >
-            <div>
-              <p className="t-lede" style={{ marginBottom: 16, maxWidth: "60ch" }}>
-                The Upskilling Labs runs OLOS (Open Labs OS) — a platform where
-                people navigating career transitions learn by doing. You join a
-                twelve-week Build Cycle, form a small pod, ship one real
-                project, drop into weekly workshops, and keep a Learning Log,
-                alongside people who notice your work.
-              </p>
-              <p className="t-body" style={{ maxWidth: "60ch" }}>
-                Membership is free. Browse cycles, workshops, the Learning
-                Library, and local labs below — no account needed. You only sign
-                in when you&rsquo;re ready to join.
-              </p>
-            </div>
-            <div className="lcard" style={{ padding: 28 }}>
-              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                Signing in
-              </div>
-              <h3 className="t-h3" style={{ marginBottom: 10 }}>
-                Why we ask for your Google account
-              </h3>
-              <p className="t-body" style={{ marginBottom: 14 }}>
-                You create your member account by signing in with Google. We use
-                only your name, email address, and profile picture — to set up
-                your profile and keep you signed in. We never request access to
-                your Gmail, Drive, or Calendar.
-              </p>
-              <Link className="see" href="/privacy">
-                How we handle your data →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── Upskiller Spotlights (onboarding-proto #sec-stories) ── */}
       {spotlights.length > 0 && (
-        <section className="section s-white" id="sec-stories">
+        <section className="section s-white sec-after-hero" id="sec-stories">
           <div className="story-bleed">
             <div className="story-row">
               {spotlights.slice(0, 6).map((s) => (
@@ -294,7 +241,10 @@ export default async function LandingPage() {
       )}
 
       {/* ── Cycles ── */}
-      <section className="section s-white" id="sec-cycles">
+      <section
+        className={`section s-white${spotlights.length > 0 ? "" : " sec-after-hero"}`}
+        id="sec-cycles"
+      >
         <div className="container">
           <SectionHead
             eyebrow="Build Cycles · 4 a year"
@@ -409,6 +359,59 @@ export default async function LandingPage() {
             seeLabel="All cities →"
           />
           <MetroSearch metros={metros} initial={landingLabs} signedIn={signedIn} />
+        </div>
+      </section>
+
+      {/* ── What this is ── A plain-language description of the platform and
+          why we ask you to sign in with Google. Kept as the last section above
+          the footer so anyone — and Google's OAuth reviewers — can see the
+          app's purpose and its data use without logging in. */}
+      <section className="section s-white" id="sec-about">
+        <div className="container">
+          <SectionHead
+            eyebrow="What this is"
+            heading="A learning platform for people changing careers"
+          />
+          <div
+            style={{
+              display: "grid",
+              gap: 32,
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              alignItems: "start",
+            }}
+          >
+            <div>
+              <p className="t-lede" style={{ marginBottom: 16, maxWidth: "60ch" }}>
+                The Upskilling Labs runs OLOS (Open Labs OS) — a platform where
+                people navigating career transitions learn by doing. You join a
+                twelve-week Build Cycle, form a small pod, ship one real
+                project, drop into weekly workshops, and keep a Learning Log,
+                alongside people who notice your work.
+              </p>
+              <p className="t-body" style={{ maxWidth: "60ch" }}>
+                Membership is free. Browse cycles, workshops, the Learning
+                Library, and local labs above — no account needed. You only sign
+                in when you&rsquo;re ready to join.
+              </p>
+            </div>
+            <div className="lcard" style={{ padding: 28 }}>
+              <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
+                Signing in
+              </div>
+              <h3 className="t-h3" style={{ marginBottom: 10 }}>
+                Why we ask for your Google account
+              </h3>
+              <p className="t-body" style={{ marginBottom: 14 }}>
+                You create your member account by signing in with Google. We use
+                only your name, email address, and profile picture — to set up
+                your profile and keep you signed in. We never request access to
+                your Gmail, Drive, or Calendar.
+              </p>
+              <Link className="see" href="/privacy">
+                How we handle your data →
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
