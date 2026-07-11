@@ -14,6 +14,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAdmin, type UserRoles } from "@/lib/auth/roles";
+import { one } from "@/lib/supabase/embed";
 import { resolveCurrentPhase, type CycleConfigPhaseColumns } from "./phase";
 import {
   bandFor,
@@ -30,6 +31,8 @@ export type PodCard = {
   cycle_id: number;
   cycle_name: string | null;
   cycle_mode: string | null;
+  lab_id: number | null;
+  lab_name: string | null;
   phase_num: number | null;
   phase_display_name: string | null;
   phase_open_at: string | null;
@@ -82,7 +85,7 @@ export async function getPodsForUser(
   // Pods + cycle metadata.
   const { data: podRows } = await supabase
     .from("pods")
-    .select("id, name, status, cycle_id, cycles (id, name, mode)")
+    .select("id, name, status, cycle_id, lab_id, cycles (id, name, mode), metros (name)")
     .in("id", podIds);
 
   if (!podRows || podRows.length === 0) return [];
@@ -158,6 +161,7 @@ export async function getPodsForUser(
     const cycle = pod.cycles as unknown as { name: string; mode: string | null } | null;
     const cycleName = cycle?.name ?? null;
     const cycleMode = cycle?.mode ?? null;
+    const lab = one(pod.metros as { name: string | null } | { name: string | null }[] | null);
 
     return {
       id: pod.id as number,
@@ -166,6 +170,8 @@ export async function getPodsForUser(
       cycle_id: pod.cycle_id as number,
       cycle_name: cycleName,
       cycle_mode: cycleMode,
+      lab_id: (pod.lab_id as number | null) ?? null,
+      lab_name: lab?.name ?? null,
       phase_num: phase?.num ?? null,
       phase_display_name: phase?.displayName ?? null,
       phase_open_at: phase?.openAt ?? null,
@@ -227,4 +233,42 @@ function computeWeeklyRates(
   const missingThisWeek = Math.max(0, activeCount - latest.completed);
 
   return { missingThisWeek, weeklyRates };
+}
+
+// ─── Lab sectioning (PRD-lab-lead-ux Decision 8) ─────────────────────
+
+export type LabGroup = { key: string; label: string | null; cards: PodCard[] };
+
+/**
+ * Group cards by lab identity for the All pods view.
+ *
+ * - Grouping key: `lab_id` (null → "hq"). Input order is preserved within
+ *   each group; group order = first appearance in `cards`.
+ * - When ALL cards share a single lab identity (including all-null), the
+ *   single group is returned with `label: null` so the renderer shows no
+ *   lab chrome — single-lab viewers see zero new UI.
+ * - With multiple groups: lab groups are labeled `lab_name ?? "Lab {id}"`;
+ *   the null-lab group is labeled "HQ".
+ */
+export function groupCardsByLab(cards: PodCard[]): LabGroup[] {
+  const groups: LabGroup[] = [];
+  const byKey = new Map<string, LabGroup>();
+
+  for (const card of cards) {
+    const key = card.lab_id === null ? "hq" : String(card.lab_id);
+    let group = byKey.get(key);
+    if (!group) {
+      const label =
+        card.lab_id === null ? "HQ" : card.lab_name ?? `Lab ${card.lab_id}`;
+      group = { key, label, cards: [] };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.cards.push(card);
+  }
+
+  // Single lab identity (whichever it is) → no lab chrome.
+  if (groups.length === 1) groups[0].label = null;
+
+  return groups;
 }
