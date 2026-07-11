@@ -17,7 +17,13 @@ import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
  * its existing inline control; the rest lives in a per-pod management drawer.
  */
 
-export type PodMember = { participant_id: number; name: string };
+export type PodMember = {
+  participant_id: number;
+  name: string;
+  /** Org-run members whose home lab differs from the run's lab (Decision 2:
+   * org runs stay cross-lab). Open-cycle members never set this. */
+  out_of_lab?: boolean;
+};
 export type PodModerator = {
   participant_id: number;
   name: string;
@@ -313,7 +319,14 @@ function PodManagePanel({
               key={m.participant_id}
               className="flex items-center justify-between gap-3 text-sm"
             >
-              <span className="text-charcoal">{m.name}</span>
+              <span className="text-charcoal">
+                {m.name}
+                {m.out_of_lab && (
+                  <span className="ml-2 rounded-full bg-ink/[0.06] px-2 py-0.5 text-[10px] font-medium text-meta">
+                    Out of lab
+                  </span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => removeMember(m.participant_id)}
