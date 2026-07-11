@@ -1,5 +1,4 @@
 import { requireLabLead } from "@/lib/auth/guards";
-import { isAdmin } from "@/lib/auth/roles";
 import Link from "next/link";
 import { StatusBadge, DataTable } from "@/app/components/ui";
 import { cycleStatusVariant, podNoun } from "@/lib/cycle/labels";
@@ -14,14 +13,18 @@ import WorkstreamsDirectory, {
 import AnnouncementsAdmin, {
   type AdminAnnouncement,
 } from "@/app/(dashboard)/admin/announcements/announcements-admin";
+import CreateCycleForm from "@/app/(dashboard)/admin/cycles/create-cycle-form";
 import LabInviteForm from "./lab-invite-form";
 
 /**
  * The lab-lead workspace body (docs/LOCAL_LABS.md): everything a lead runs
  * inside their lab — pods per current cycle (reusing the admin PodsTable,
  * whose management drawer hits the lab-relaxed pod routes), the lab's
- * internal workstreams, the member roster, and invitations. Cycle
- * lifecycle is deliberately read-only here: HQ owns it.
+ * internal workstreams, the member roster, and invitations. Labs are
+ * self-service (PRD-lab-lead-ux Decision 3): a lead reads the shared HQ
+ * community cycle and can charter their own internal (org) cycle here —
+ * only that internal-cycle lifecycle is lead-owned; the community cycle's
+ * calendar still belongs to HQ.
  */
 
 type CycleRow = {
@@ -38,6 +41,7 @@ type EmbeddedPerson = {
   last_name: string;
   preferred_name: string | null;
   email?: string;
+  metro_id?: number | null;
 };
 
 function personName(p: EmbeddedPerson | null): string {
@@ -53,8 +57,7 @@ export default async function LabWorkspacePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { lab, userRoles, serviceClient } = await requireLabLead(slug);
-  const admin = isAdmin(userRoles);
+  const { lab, serviceClient } = await requireLabLead(slug);
 
   // The lab's cycle world (docs/LOCAL_LABS.md, sub-cohort model): the shared
   // HQ participant cycle (mode='open', lab_id NULL — every lab participates
@@ -110,7 +113,9 @@ export default async function LabWorkspacePage({
       podIds.length
         ? serviceClient
             .from("pod_memberships")
-            .select("pod_id, participant_id, participants (first_name, last_name, preferred_name)")
+            .select(
+              "pod_id, participant_id, participants (first_name, last_name, preferred_name, metro_id)"
+            )
             .in("pod_id", podIds)
             .is("inactive_at", null)
         : Promise.resolve({ data: [] as { pod_id: number; participant_id: number; participants: unknown }[] }),
@@ -124,7 +129,9 @@ export default async function LabWorkspacePage({
       currentCycleIds.length
         ? serviceClient
             .from("cycle_enrollments")
-            .select("cycle_id, participant_id, status, participants (first_name, last_name, preferred_name)")
+            .select(
+              "cycle_id, participant_id, status, participants (first_name, last_name, preferred_name, metro_id)"
+            )
             .in("cycle_id", currentCycleIds)
         : Promise.resolve({ data: [] as { cycle_id: number; participant_id: number; status: string; participants: unknown }[] }),
     ]);
@@ -139,12 +146,26 @@ export default async function LabWorkspacePage({
     projectCountByPod[proj.pod_id] = (projectCountByPod[proj.pod_id] ?? 0) + 1;
   }
 
-  const membersByPod: Record<number, { participant_id: number; name: string }[]> = {};
+  // pod_id -> cycle mode, so membership rows can tell org-run members whose
+  // home lab differs from this lab (out_of_lab badge, Decision 2 — org runs
+  // stay cross-lab). Open-cycle pods never set out_of_lab.
+  const cycleModeByPod: Record<number, string> = {};
+  for (const p of podRows ?? []) {
+    const cycle = currentCycles.find((c) => c.id === p.cycle_id);
+    if (cycle) cycleModeByPod[p.id] = cycle.mode;
+  }
+
+  const membersByPod: Record<
+    number,
+    { participant_id: number; name: string; out_of_lab?: boolean }[]
+  > = {};
   for (const m of membershipRows ?? []) {
     const p = one(m.participants as EmbeddedPerson | EmbeddedPerson[] | null);
+    const isOrg = cycleModeByPod[m.pod_id] === "org";
     (membersByPod[m.pod_id] ??= []).push({
       participant_id: m.participant_id,
       name: personName(p),
+      ...(isOrg ? { out_of_lab: p?.metro_id !== lab.id } : {}),
     });
   }
   const moderatorsByPod: Record<
@@ -159,12 +180,19 @@ export default async function LabWorkspacePage({
       assigned_at: ma.assigned_at,
     });
   }
-  const enrolledByCycle: Record<number, { participant_id: number; name: string }[]> = {};
+  // metro_id rides along so the PodsTable call site can pre-filter open-cycle
+  // participant options to this lab (item 2 below) — it's stripped before
+  // reaching PodsTable's own ParticipantOption shape.
+  const enrolledByCycle: Record<
+    number,
+    { participant_id: number; name: string; metro_id: number | null }[]
+  > = {};
   for (const e of enrollmentRows ?? []) {
     const p = one(e.participants as EmbeddedPerson | EmbeddedPerson[] | null);
     (enrolledByCycle[e.cycle_id] ??= []).push({
       participant_id: e.participant_id,
       name: personName(p),
+      metro_id: p?.metro_id ?? null,
     });
   }
 
@@ -242,71 +270,119 @@ export default async function LabWorkspacePage({
     };
   });
 
+  // ── Cycles-section derived data (PRD-lab-lead-ux Phase 0, Decisions 2/3/7) ─
+  const communityCycles = currentCycles.filter((c) => c.mode === "open");
+  const currentOrgCycle = currentCycles.find((c) => c.mode === "org") ?? null;
+  const orgRunCount = currentOrgCycle
+    ? (podRows ?? []).filter((p) => p.cycle_id === currentOrgCycle.id).length
+    : 0;
+  const pastCycles = cycles.filter((c) => !CURRENT_STATUSES.has(c.status));
+
   return (
     <div className="space-y-10">
-      {/* Cycles — read-only lifecycle: HQ coordinates the calendar. */}
+      {/* Cycles — labs self-service their own internal track (Decision 3);
+          the shared community cycle's calendar stays HQ's. No admin-only
+          chrome here (Decision 7 — strict route-persona fidelity). */}
       <section>
-        <h2 className="mb-1 t-h3 text-ink">Cycles</h2>
-        <p className="mb-4 text-sm text-meta">
-          Centrally coordinated by HQ — reach out to HQ to open or close a
-          cycle.
-        </p>
-        <DataTable<CycleRow>
-          rows={cycles}
-          rowKey={(row) => row.id}
-          empty="No cycles for this lab yet — HQ creates them."
-          columns={[
-            {
-              key: "cycle",
-              header: "Cycle",
-              className: "font-medium text-ink",
-              cell: (row) => row.name,
-            },
-            {
-              key: "track",
-              header: "Track",
-              className: "text-meta",
-              cell: (row) =>
-                row.mode === "org" ? "Internal (team)" : "Participant (HQ shared)",
-            },
-            {
-              key: "status",
-              header: "Status",
-              cell: (row) => (
-                <StatusBadge variant={cycleStatusVariant(row.status)}>
-                  {row.status}
-                </StatusBadge>
-              ),
-            },
-            {
-              key: "dates",
-              header: "Dates",
-              className: "text-meta tabular-nums",
-              cell: (row) => (
-                <>
-                  {formatDate(row.start_date)} &ndash; {formatDate(row.end_date)}
-                </>
-              ),
-            },
-            ...(admin
-              ? [
-                  {
-                    key: "actions",
-                    header: "",
-                    align: "right" as const,
-                    cell: (row: CycleRow) => (
-                      <Link
-                        href={`/admin/cycles/${row.id}`}
-                        className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-ink"
-                      >
-                        Manage &rarr;
-                      </Link>
-                    ),
-                  },
-                ]
-              : []),
-          ]}
-        />
+        <h2 className="mb-4 t-h3 text-ink">Cycles</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
+            <h3 className="t-h4 text-ink">Community cycle (shared with all labs)</h3>
+            {communityCycles.length > 0 ? (
+              <div className="mt-3 space-y-4">
+                {communityCycles.map((cycle) => {
+                  const cyclePodCount = (podRows ?? []).filter(
+                    (p) => p.cycle_id === cycle.id
+                  ).length;
+                  return (
+                    <div key={cycle.id}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-ink">{cycle.name}</span>
+                        <StatusBadge variant={cycleStatusVariant(cycle.status)}>
+                          {cycle.status}
+                        </StatusBadge>
+                      </div>
+                      <p className="mt-1 text-sm text-meta tabular-nums">
+                        {formatDate(cycle.start_date)} &ndash; {formatDate(cycle.end_date)}
+                      </p>
+                      <p className="mt-1 text-sm text-meta">
+                        {cyclePodCount} {lab.name} pods
+                      </p>
+                    </div>
+                  );
+                })}
+                <p className="text-sm text-meta">
+                  HQ runs this cycle for every lab; you manage {lab.name}
+                  &rsquo;s pods inside it.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-meta">
+                No community cycle is open right now.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
+            <h3 className="t-h4 text-ink">{lab.name} internal cycle</h3>
+            {currentOrgCycle ? (
+              <div className="mt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-ink">{currentOrgCycle.name}</span>
+                  <StatusBadge variant={cycleStatusVariant(currentOrgCycle.status)}>
+                    {currentOrgCycle.status}
+                  </StatusBadge>
+                </div>
+                <p className="mt-1 text-sm text-meta tabular-nums">
+                  {formatDate(currentOrgCycle.start_date)} &ndash;{" "}
+                  {formatDate(currentOrgCycle.end_date)}
+                </p>
+                <p className="mt-1 text-sm text-meta">
+                  {orgRunCount} {orgRunCount === 1 ? "run" : "runs"} chartered
+                </p>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-3">
+                <p className="text-sm text-meta">
+                  No internal cycle yet — this is where your core contributor
+                  team runs quarterly workstreams. Create your first cycle.
+                </p>
+                <CreateCycleForm
+                  fixedMode="org"
+                  labId={lab.id}
+                  redirectTo={`/lab/${lab.slug}`}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {pastCycles.length > 0 && (
+          <details className="mt-4 rounded-card border border-ink/10 bg-white p-5 shadow-card">
+            <summary className="lbl cursor-pointer hover:text-charcoal">
+              Past cycles
+            </summary>
+            <div className="mt-4 divide-y divide-ink/10">
+              {pastCycles.map((cycle) => (
+                <div
+                  key={cycle.id}
+                  className="flex flex-wrap items-center gap-3 py-2 text-sm first:pt-0"
+                >
+                  <span className="font-medium text-ink">{cycle.name}</span>
+                  <span className="text-meta">
+                    {cycle.mode === "org" ? "Internal" : "Community"}
+                  </span>
+                  <StatusBadge variant={cycleStatusVariant(cycle.status)}>
+                    {cycle.status}
+                  </StatusBadge>
+                  <span className="text-meta tabular-nums">
+                    {formatDate(cycle.start_date)} &ndash; {formatDate(cycle.end_date)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
       </section>
 
       {/* Pods per current cycle — the lead's main management surface. */}
@@ -321,6 +397,15 @@ export default async function LabWorkspacePage({
             moderators: moderatorsByPod[p.id] ?? [],
             projectCount: projectCountByPod[p.id] ?? 0,
           }));
+        // Open-cycle lab pods never offer cross-lab members as add options —
+        // the 00068 DB fence stops being the first line of defense once the
+        // picker itself is lab-scoped here too. Org runs stay cross-lab
+        // (Decision 2), so their participant list is unfiltered.
+        const cycleParticipants = (
+          cycle.mode === "open"
+            ? (enrolledByCycle[cycle.id] ?? []).filter((m) => m.metro_id === lab.id)
+            : (enrolledByCycle[cycle.id] ?? [])
+        ).map(({ participant_id, name }) => ({ participant_id, name }));
         return (
           <section key={cycle.id}>
             <h2 className="mb-4 t-h3 text-ink">
@@ -329,7 +414,7 @@ export default async function LabWorkspacePage({
             <PodsTable
               cycleId={cycle.id}
               pods={cyclePods}
-              participants={enrolledByCycle[cycle.id] ?? []}
+              participants={cycleParticipants}
               mode={cycle.mode}
             />
           </section>
@@ -342,6 +427,8 @@ export default async function LabWorkspacePage({
         <p className="mb-4 text-sm text-meta">
           Your lab team&rsquo;s durable internal workstreams. Runs charter
           into the lab&rsquo;s internal cycle each quarter.
+          {!currentOrgCycle &&
+            " — create your internal cycle above to charter your first run."}
         </p>
         <WorkstreamsDirectory workstreams={workstreamDirectoryRows} labId={lab.id} />
       </section>
@@ -376,7 +463,8 @@ export default async function LabWorkspacePage({
           and permissions are HQ-only.
         </p>
         <LabInviteForm
-          cycles={currentCycles.map((c) => ({ id: c.id, name: c.name, mode: c.mode }))}
+          labName={lab.name}
+          labSlug={lab.slug}
           pods={invitePods}
           invitations={(inviteRows ?? []).map((inv) => ({
             id: inv.id,

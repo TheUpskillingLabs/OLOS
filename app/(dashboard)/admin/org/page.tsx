@@ -59,10 +59,13 @@ function participantName(p: EmbeddedParticipant | null): string {
 export default async function AdminOrgPage() {
   const { serviceClient } = await requireAdmin();
 
+  // HQ stream only — labs' internal org cycles live under /lab/[slug] and
+  // /admin/labs/[slug] (PRD-lab-lead-ux §3.5).
   const { data: cycleRows } = await serviceClient
     .from("cycles")
     .select("id, name, start_date, end_date, status")
     .eq("mode", "org")
+    .is("lab_id", null)
     .order("start_date", { ascending: false });
 
   const cycles: OrgCycleRow[] = cycleRows ?? [];
@@ -89,9 +92,11 @@ export default async function AdminOrgPage() {
             .in("cycle_id", currentCycleIds)
             .not("workstream_id", "is", null)
         : Promise.resolve({ data: [] as RunPodRow[] }),
+      // Lab-homed workstreams belong to the lab surfaces, not this HQ directory.
       serviceClient
         .from("workstreams")
         .select("id, name, description, status")
+        .is("lab_id", null)
         .order("name"),
     ]);
 
