@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { isEnrolledParticipant, isActiveParticipant } from "@/lib/auth/roles";
 import { isCurrentlyRevoked } from "@/lib/enrollment/revocation";
@@ -100,7 +101,7 @@ export const POST = withAuth(
     // Check total allocated votes
     const { data: existingVotes } = await auth.supabase
       .from("votes")
-      .select("vote_count")
+      .select("id, problem_statement_id, vote_count")
       .eq("cycle_id", cycle_id)
       .eq("voter_id", voter_id);
 
@@ -118,14 +119,38 @@ export const POST = withAuth(
       );
     }
 
-    const { data, error } = await auth.supabase
-      .from("votes")
-      .insert({ cycle_id, voter_id, problem_statement_id, vote_count })
-      .select("id, created_at")
-      .single();
+    // Stacking: voters may add votes to a problem they already voted on.
+    // UNIQUE(voter_id, problem_statement_id, cycle_id) means one row per
+    // (voter, problem) — an existing row is incremented rather than
+    // duplicated. votes has no UPDATE RLS policy (INSERT-only for members),
+    // so the increment goes through the service client; every guard above
+    // (window, enrollment, revocation, lab, budget) has already passed.
+    const existingRow = (existingVotes || []).find(
+      (v) => v.problem_statement_id === problem_statement_id
+    );
 
-    if (error) {
-      return dbError(error);
+    let data: { id: number; created_at: string };
+    if (existingRow) {
+      const { data: updated, error } = await createServiceClient()
+        .from("votes")
+        .update({ vote_count: existingRow.vote_count + vote_count })
+        .eq("id", existingRow.id)
+        .select("id, created_at")
+        .single();
+      if (error) {
+        return dbError(error);
+      }
+      data = updated;
+    } else {
+      const { data: inserted, error } = await auth.supabase
+        .from("votes")
+        .insert({ cycle_id, voter_id, problem_statement_id, vote_count })
+        .select("id, created_at")
+        .single();
+      if (error) {
+        return dbError(error);
+      }
+      data = inserted;
     }
 
     return NextResponse.json(

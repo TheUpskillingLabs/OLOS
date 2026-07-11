@@ -103,6 +103,14 @@ export default function ProposeForm({
     }
   }
 
+  // Step changes reset the scroll position — the nav buttons sit at the
+  // bottom of a long step, so without this the next (often shorter) step
+  // renders with the viewport still parked at the footer.
+  function goToStep(next: Step) {
+    setStep(next);
+    window.scrollTo({ top: 0 });
+  }
+
   async function handleSubmit() {
     setError("");
     setSubmitting(true);
@@ -667,7 +675,7 @@ export default function ProposeForm({
         <div>
           {step > 1 && (
             <button
-              onClick={() => setStep((step - 1) as Step)}
+              onClick={() => goToStep((step - 1) as Step)}
               className="btn btn-ghost btn-sm"
             >
               Back
@@ -677,7 +685,7 @@ export default function ProposeForm({
         <div className="flex items-center gap-3">
           {step < 6 ? (
             <button
-              onClick={() => setStep((step + 1) as Step)}
+              onClick={() => goToStep((step + 1) as Step)}
               disabled={!canAdvance()}
               className="btn btn-teal btn-sm"
             >

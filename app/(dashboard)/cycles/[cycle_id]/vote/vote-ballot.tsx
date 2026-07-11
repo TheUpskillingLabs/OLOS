@@ -29,10 +29,12 @@ interface Tally {
 
 export default function VoteBallot({
   cycleId,
+  isSubmitter,
   submitterBudget,
   nonSubmitterBudget,
 }: {
   cycleId: number;
+  isSubmitter: boolean;
   submitterBudget: number;
   nonSubmitterBudget: number;
 }) {
@@ -40,7 +42,12 @@ export default function VoteBallot({
   const [tallies, setTallies] = useState<Tally[]>([]);
   const [pendingVotes, setPendingVotes] = useState<Record<number, number>>({});
   const [totalUsed, setTotalUsed] = useState(0);
-  const [budget, setBudget] = useState(nonSubmitterBudget);
+  // The server decides which budget applies (page.tsx resolves isSubmitter);
+  // defaulting to nonSubmitterBudget here was the bug that showed submitters
+  // 1 vote instead of their configured allowance.
+  const [budget, setBudget] = useState(
+    isSubmitter ? submitterBudget : nonSubmitterBudget
+  );
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [successId, setSuccessId] = useState<number | null>(null);
@@ -54,6 +61,16 @@ export default function VoteBallot({
     ]).then(([stmts, voteData]) => {
       if (Array.isArray(stmts)) setStatements(stmts);
       if (voteData?.tallies) setTallies(voteData.tallies);
+      // Votes cast in earlier sessions count against the budget — without
+      // this, "votes remaining" reads as the full budget after a reload.
+      if (Array.isArray(voteData?.my_votes)) {
+        setTotalUsed(
+          voteData.my_votes.reduce(
+            (sum: number, v: { vote_count: number }) => sum + v.vote_count,
+            0
+          )
+        );
+      }
       setLoading(false);
     });
   }, [cycleId]);
@@ -158,8 +175,14 @@ export default function VoteBallot({
           <p className="text-xs text-meta tabular-nums">votes remaining</p>
         </div>
         <div className="text-right text-xs text-meta tabular-nums">
-          <p>Submitters get {submitterBudget} votes</p>
-          <p>Non-submitters get {nonSubmitterBudget} votes</p>
+          <p className="font-semibold text-charcoal">
+            You have {budget} vote{budget !== 1 ? "s" : ""} this cycle
+            {isSubmitter ? " (you submitted a proposal)" : ""}
+          </p>
+          <p>
+            Submitters get {submitterBudget} · non-submitters get{" "}
+            {nonSubmitterBudget}. Stack votes on one problem or spread them out.
+          </p>
         </div>
       </div>
 
