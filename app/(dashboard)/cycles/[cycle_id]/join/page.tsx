@@ -82,10 +82,11 @@ export default async function JoinCyclePage({
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
-  // Pod-registration window drives the confirmation's primary CTA.
+  // Pod-registration window drives the confirmation's primary CTA;
+  // theme_description feeds the ceremony's theme info screen (00084).
   const { data: config } = await serviceClient
     .from("cycle_config")
-    .select("pod_registration_open, pod_registration_close")
+    .select("pod_registration_open, pod_registration_close, theme_description")
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
@@ -97,7 +98,10 @@ export default async function JoinCyclePage({
     now <= new Date(config.pod_registration_close);
 
   const fullName = `${participant.first_name} ${participant.last_name}`.trim();
-  const info = cycleInfoContent(cycle);
+  const info = cycleInfoContent({
+    ...cycle,
+    theme_description: config?.theme_description,
+  });
 
   return (
     <CycleCeremony
@@ -105,6 +109,7 @@ export default async function JoinCyclePage({
       cycleName={cycle.name}
       cycleDescription={info.description}
       whatYouBuild={info.whatYouBuild}
+      themeDescription={info.themeDescription}
       fullName={fullName}
       fromSignup={from === "signup"}
       alreadySigned={!!agreement}

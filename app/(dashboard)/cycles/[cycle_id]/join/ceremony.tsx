@@ -34,7 +34,8 @@ function cycleSteps(
   cycleName: string,
   fullName: string,
   cycleDescription: string,
-  whatYouBuild: string
+  whatYouBuild: string,
+  themeDescription: string
 ): FlowStep[] {
   // The presence commitment lists each core event with its date — testers
   // couldn't parse the old inline comma string (July 2026 feedback: "list
@@ -45,7 +46,6 @@ function cycleSteps(
       id: "what_is_a_build_cycle",
       type: "info",
       q: "What a Build Cycle is",
-      help: "Thirty seconds of context before the questions.",
       render: (
         <div style={{ display: "grid", gap: 14 }}>
           <p className="t-body">{cycleDescription}</p>
@@ -54,28 +54,13 @@ function cycleSteps(
       ),
     },
     {
-      id: "what_civics_elections_means",
+      id: "what_this_cycle_means",
       type: "info",
-      q: "What Civics & Elections means",
-      help: "This cycle’s theme, in plain language.",
+      q: `What ${cycleName} means`,
       render: (
         <div style={{ display: "grid", gap: 14 }}>
-          <p className="t-body">
-            Every Build Cycle takes on one theme. This one is Civics &
-            Elections: how your community makes decisions together — local
-            elections, public meetings, ballot measures, the information people
-            need to take part.
-          </p>
-          <p className="t-body">
-            Your pod will pick a real problem in that space — something like
-            helping neighbors find their polling place, making a city budget
-            readable, or tracking what happens after a public comment — and
-            build a working, open-source answer to it.
-          </p>
-          <p className="t-body">
-            You don’t need a politics background. You need curiosity about
-            where you live and the willingness to build something useful for
-            the people around you.
+          <p className="t-body" style={{ whiteSpace: "pre-line" }}>
+            {themeDescription}
           </p>
         </div>
       ),
@@ -141,6 +126,7 @@ export default function CycleCeremony({
   fullName,
   cycleDescription,
   whatYouBuild,
+  themeDescription,
   fromSignup,
   alreadySigned,
   signedAt,
@@ -151,6 +137,7 @@ export default function CycleCeremony({
   fullName: string;
   cycleDescription: string;
   whatYouBuild: string;
+  themeDescription: string;
   fromSignup: boolean;
   alreadySigned: boolean;
   signedAt: string | null;
@@ -166,8 +153,15 @@ export default function CycleCeremony({
   );
   const [signedNow, setSignedNow] = useState<string | null>(signedAt);
   const steps = useMemo(
-    () => cycleSteps(cycleName, fullName, cycleDescription, whatYouBuild),
-    [cycleName, fullName, cycleDescription, whatYouBuild]
+    () =>
+      cycleSteps(
+        cycleName,
+        fullName,
+        cycleDescription,
+        whatYouBuild,
+        themeDescription
+      ),
+    [cycleName, fullName, cycleDescription, whatYouBuild, themeDescription]
   );
 
   const eyebrow = fromSignup
