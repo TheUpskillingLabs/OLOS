@@ -8,7 +8,7 @@ import { fmtDate, fmtDay } from "@/lib/content/format";
    stack of ROWS: the dark header (eyebrow + headline own the
    head row, standfirst + register CTA beneath), then body sections whose eyebrow
    + heading share the head row and whose content — the promise, the current
-   cycle's anchor events, the partner problems — flows in the
+   cycle's anchor events, the three phases — flows in the
    rows beneath. Copy is byte-for-byte from the generator (tools/generate.js
    cyclesPage(), the design source of truth). The past-projects block waits for
    the Work layer. */
@@ -25,9 +25,8 @@ export const metadata = {
 };
 
 // The current cycle's public shape, inlined from the prototype's
-// cycles/data.js (CYCLE_PUBLIC + SITUATIONS). These constants move to the
-// `cycles` and `problem_situations` tables when the public cycle API lands
-// (docs/OLOS_BACKEND_CHANGES.md §2/§8).
+// cycles/data.js (CYCLE_PUBLIC). This constant moves to the `cycles` table
+// when the public cycle API lands (docs/OLOS_BACKEND_CHANGES.md §2/§8).
 const CYCLE = {
   name: "Summer 2026",
   theme: "Civic & Elections",
@@ -36,10 +35,22 @@ const CYCLE = {
   weeks: 12,
 };
 
-const SITUATIONS = [
-  { title: "Benefits navigation dead-ends", owner: "DC Public Library" },
-  { title: "First-time voter information gap", owner: "League of Women Voters DC" },
-  { title: "Volunteer knowledge walks out the door", owner: "Civic Tech DC" },
+const PHASES = [
+  {
+    title: "Problem Sprint",
+    when: "Weeks 1–5",
+    body: "The cycle starts by looking, not building. Everyone collects things they’ve actually seen, we map them together in the Triangulator, and pods form around the problems that keep showing up. By week 5, your pod picks one to own.",
+  },
+  {
+    title: "Frame Sprint",
+    when: "Weeks 6–9",
+    body: "Your pod digs into its problem — interviews, field visits, homework nobody assigned. At the Hackathon, all that digging becomes proposals: new ways of seeing the problem, and what to build about it. Then everyone votes.",
+  },
+  {
+    title: "Building",
+    when: "Weeks 10–12",
+    body: "Winning proposals become teams of 3–5. You build something real, test it with real people, and bring everything — the wins and the misses — back to the commons at the Showcase Summit.",
+  },
 ];
 
 const PROMISES: [string, string][] = [
@@ -138,22 +149,20 @@ export default async function BuildCyclesPage() {
             )}
           </EdSection>
 
-          {/* What this cycle is working on — partner problems, a single-hierarchy list */}
-          <EdSection
-            eyebrow="What this cycle is working on"
-            heading="Real problems, brought by real partners."
-          >
+          {/* How it works — three phases, one arc: a genuine sequence, so numbered */}
+          <EdSection eyebrow="How it works" heading="Three phases, one arc.">
             <div className="ed-cols">
-              <div>
-                {SITUATIONS.map((si) => (
-                  <div className="kv" key={si.title}>
-                    <span className="t-body">
-                      {si.title}
-                      <span className="t-small" style={{ color: "var(--meta)" }}>
-                        {" "}
-                        · Brought by {si.owner}
-                      </span>
-                    </span>
+              <div className="ed-steps">
+                {PHASES.map((ph, i) => (
+                  <div key={ph.title}>
+                    <div className="ed-step-n">
+                      {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div className="ed-step-rule" />
+                    <div className="lbl" style={{ marginBottom: 8 }}>
+                      {ph.title} · {ph.when}
+                    </div>
+                    <p className="t-body ed-text">{ph.body}</p>
                   </div>
                 ))}
               </div>
