@@ -118,7 +118,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
           href="/login?intent=join"
           style={{ textDecoration: "underline" }}
         >
-          join The Labs
+          Join the Labs
         </a>{" "}
         to create one.
       </p>
@@ -293,7 +293,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
         >
           {/* margin:auto centers vertically but, unlike justify-content,
               still lets the top scroll into view if the card overflows. */}
-          <div style={{ margin: "auto 0" }}>
+          <div style={{ margin: "auto 0", padding: "16px 0 24px" }}>
             {failedAlert}
             <h2 className="t-h1" style={{ marginBottom: 12 }}>
               Sign in
