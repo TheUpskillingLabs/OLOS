@@ -494,7 +494,9 @@ export default async function DashboardPage() {
       : []),
     {
       key: "profile",
-      label: "Complete your profile",
+      // Label names the exact fields that flip profileDone (bio || headline),
+      // so editing other profile fields not counting isn't a surprise.
+      label: "Add your bio and headline",
       done: profileDone,
       href: "/profile/edit",
       cta: "Edit",
