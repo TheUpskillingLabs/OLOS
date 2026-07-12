@@ -8,6 +8,7 @@ import { one } from "@/lib/supabase/embed";
 import AppNav from "@/app/components/chrome/app-nav";
 import OrbDefs from "@/app/components/chrome/orb-defs";
 import FeedbackWidget from "@/app/components/feedback/feedback-widget";
+import DashboardFooter from "@/app/components/chrome/dashboard-footer";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 
 export default async function DashboardLayout({
@@ -185,6 +186,7 @@ export default async function DashboardLayout({
         </div>
       )}
       <main className="app-main container w-full flex-1 py-8">{children}</main>
+      <DashboardFooter />
       <FeedbackWidget />
     </div>
   );

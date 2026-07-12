@@ -54,3 +54,16 @@ export const voteSchema = z.object({
     .int()
     .min(1, "vote_count must be >= 1"),
 });
+
+// Set-absolute vote allocation: "set my votes on this statement to N".
+// Unlike voteSchema (additive POST), 0 is allowed and means "remove my votes".
+export const voteSetSchema = z.object({
+  cycle_id: z.number().int({ message: "cycle_id must be a number" }),
+  problem_statement_id: z.number().int({
+    message: "problem_statement_id must be a number",
+  }),
+  vote_count: z
+    .number()
+    .int()
+    .min(0, "vote_count must be >= 0"),
+});

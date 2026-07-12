@@ -102,7 +102,7 @@ export type FlowStep =
       q: string;
       help?: string;
       intro: string;
-      terms: { title: string; body: string }[];
+      terms: { title: string; body: string; list?: string[] }[];
       versionLine: string;
       ph: string;
     };
@@ -766,6 +766,16 @@ function SignatureInput({
                 {t.title}
               </div>
               <p className="t-small">{t.body}</p>
+              {t.list && (
+                <ul
+                  className="t-small"
+                  style={{ margin: "6px 0 0", paddingLeft: 18 }}
+                >
+                  {t.list.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         ))}

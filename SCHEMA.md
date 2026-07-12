@@ -801,13 +801,14 @@ erDiagram
 |---|---|---|
 | `cycles` | Core | Root entity; a single build cohort |
 | `cycle_config` | Core | All tunable thresholds & window timestamps |
-| `participants` | Core | System-wide identity & profile |
+| `participants` | Core | System-wide identity & profile. `archived_at` (00079) = owner-archived (deactivated) profile; NULL = active |
 | `option_lists` | Core | Seed data for multiselect fields |
 | `participant_options` | Core | Junction: participant ↔ multiselect choices |
 | `cycle_enrollments` | Enrollment | Participant ↔ cycle membership + status |
 | `user_roles` | Roles | Elevated roles (owner, admin, observer) |
 | `moderator_assignments` | Roles | Pod-scoped moderator grants per cycle |
 | `access_revocations` | Audit | Log of revocations with scope & reason |
+| `owner_actions` | Audit | Owner lifecycle log (00078): every archive/reset/delete an owner runs on an entity — actor, entity type/id/label, action, reason, detail. Owner-only readable; written by the destructive RPCs in-transaction and by the archive API path |
 | `pulse_checks` | Engagement | Weekly check-in responses (flexible JSONB) |
 | `problem_statements` | Pod Layer | Submitted problems, one per participant per cycle |
 | `votes` | Pod Layer | Budget-based votes on problem statements |
@@ -820,7 +821,7 @@ erDiagram
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
 | `events` | Public Content | Public events/workshops (Luma-shaped cache; the source until live sync) |
 | `resources` | Public Content | Learning Library items (guides, recordings, templates, courses, playbooks) |
-| `metros` | Public Content | Local labs / cities — `active` or `waitlist` |
+| `metros` | Public Content | Local labs / cities — `active` or `waitlist`. `archived_at` (00081) = owner-archived (deactivated) lab; NULL = active. The default lab (`is_default`) is never archivable |
 | `metro_waitlist_signups` | Public Content | Participant ↔ metro waitlist joins (unique pair) |
 | `event_rsvps` | Public Content | Email-only public RSVPs (never account-gated) |
 | `announcements` | Public Content | Admin-authored org news for the dashboard rail; `lab_id` NULL = global, else lab-scoped (00070) |

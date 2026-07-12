@@ -26,5 +26,32 @@ export default async function RegisterPage() {
     redirect("/dashboard");
   }
 
-  return <RegistrationFunnel email={user.email ?? ""} authUserId={user.id} />;
+  // Google's OAuth profile rides along on user_metadata — seed the name
+  // fields from it so a new member isn't retyping what we already know
+  // (July 2026 feedback). Fall back to splitting the display name when the
+  // structured fields are absent.
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const displayName =
+    typeof meta.full_name === "string"
+      ? meta.full_name
+      : typeof meta.name === "string"
+        ? meta.name
+        : "";
+  const firstName =
+    typeof meta.given_name === "string"
+      ? meta.given_name
+      : (displayName.split(" ")[0] ?? "");
+  const lastName =
+    typeof meta.family_name === "string"
+      ? meta.family_name
+      : displayName.split(" ").slice(1).join(" ");
+
+  return (
+    <RegistrationFunnel
+      email={user.email ?? ""}
+      authUserId={user.id}
+      initialFirstName={firstName}
+      initialLastName={lastName}
+    />
+  );
 }

@@ -467,6 +467,20 @@ export default async function DashboardPage() {
   }
 
   const checklistItems: ChecklistItem[] = [
+    // Cycle registration leads the list — it's the reason most members are
+    // here, and testers looked for it above the housekeeping rows (July 2026
+    // feedback: "civics/elections registration comes first").
+    ...(registerCycle
+      ? [
+          {
+            key: "register",
+            label: `Register for ${registerCycle.name}`,
+            done: registerDone,
+            href: `/cycles/${registerCycle.id}/join`,
+            cta: "Register",
+          },
+        ]
+      : []),
     ...(fieldSurvey
       ? [
           {
@@ -480,7 +494,9 @@ export default async function DashboardPage() {
       : []),
     {
       key: "profile",
-      label: "Complete your profile",
+      // Label names the exact fields that flip profileDone (bio || headline),
+      // so editing other profile fields not counting isn't a surprise.
+      label: "Add your bio and headline",
       done: profileDone,
       href: "/profile/edit",
       cta: "Edit",
@@ -492,20 +508,11 @@ export default async function DashboardPage() {
       href: "/directory",
       cta: "Find",
     },
-    ...(registerCycle
-      ? [
-          {
-            key: "register",
-            label: `Register for ${registerCycle.name}`,
-            done: registerDone,
-            href: `/cycles/${registerCycle.id}/join`,
-            cta: "Register",
-          },
-        ]
-      : []),
     // Pod + Learning Log steps belong to the running cohort — an upcoming
-    // cohort has no pods yet — so these stay tied to the active cycle.
-    ...(activeCycle
+    // cohort has no pods yet — so these stay tied to the active cycle. The
+    // pod row also waits for its registration window: showing "Choose a pod"
+    // before any pod is open was a reported bug.
+    ...(activeCycle && podWindowOpen
       ? [
           {
             key: "pod",
@@ -514,6 +521,10 @@ export default async function DashboardPage() {
             href: `/cycles/${activeCycle.id}/register-pods`,
             cta: "Choose",
           },
+        ]
+      : []),
+    ...(activeCycle
+      ? [
           {
             key: "log",
             label: "Save your first Learning Log",
@@ -702,7 +713,7 @@ export default async function DashboardPage() {
         memberships={memberships}
         mode={activeCycle?.mode ?? null}
       />
-      <QuickLinks cycleId={activeCycle?.id} />
+      <QuickLinks cycleId={activeCycle?.id} metroId={participant.metro_id} />
       {otherCycles.length > 0 && (
         <details className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
           <summary className="lbl cursor-pointer hover:text-charcoal">
