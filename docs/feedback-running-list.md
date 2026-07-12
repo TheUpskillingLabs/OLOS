@@ -17,6 +17,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 9 | 2026-07-12 | Pages / admins | Adding page admins shouldn't happen from a page's "view" page — removed from the pod page for now; decide where page-admin management belongs. | 🆕 |
 | 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | 🆕 |
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🆕 |
+| 12 | 2026-07-12 | Profile / nav | Profile back link still lands in the Directory, not the page I came from. #229 fixed the owner `/profile` route (→ dashboard) but viewing your own profile via `/u/[handle]` still shows "Back to the Directory"; back should be referrer-aware. | 🆕 |
 
 ## Details
 
@@ -106,6 +107,15 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Needs judgement:** When someone is in a city without a Local Lab and joins the waitlist, decide what else we should capture beyond the basics — e.g. specific city/metro, how many others they know who'd join, willingness to help start/lead a lab, sector interest, contact/notify preferences. The answers shape whether/when we stand up a new lab.
 
 **To figure out:** the intended data model + form for the no-lab / waitlist path (relates to the Local Labs model, `docs/LOCAL_LABS.md`, and the active-lab gate that currently holds lab-less members out of cycle registration). Define the fields, then wire the waitlist capture.
+
+### 12 — Profile back link isn't referrer-aware (2026-07-12)
+**Observed:** Viewing/editing my profile, the "back" still takes me to the Directory, not the dashboard (or page) I came from. #229 only fixed the owner `/profile` route.
+
+**Root cause:** `member-profile-view.tsx` has two fixed back bars — owner (`/profile`) → `/dashboard`, visitor (`/u/[handle]`) → `/directory`. Reaching your *own* profile via `/u/[handle]` (e.g. clicking your name in the Directory) renders the visitor bar, so it says "← Back to the Directory." The Edit page also returns to a fixed default (`app/(dashboard)/profile/edit/page.tsx` back helper → `/dashboard`).
+
+**Expected:** Back should return to wherever the user actually came from, regardless of which route rendered the profile — not a hardcoded `/directory` or `/dashboard`.
+
+**To investigate:** make the back target referrer/`?next=`-aware across the profile view (both routes) and edit; and detect "this is my own profile" on `/u/[handle]` so the owner affordances (and a sensible back) apply there too.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
