@@ -14,6 +14,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 6 | 2026-07-12 | Profile | Should be able to auto-fill state from zipcode (state lookup from zip) instead of entering it manually. | 🆕 |
 | 7 | 2026-07-12 | Profile | Availability isn't populating in the profile after completing cycle registration — the availability captured during registration should carry through to the profile. | 🆕 |
 | 8 | 2026-07-12 | Dashboard | The "You're pre-registered" card is a dead end — it should link through to the cycle page. | 🆕 |
+| 9 | 2026-07-12 | Pages / admins | Adding page admins shouldn't happen from a page's "view" page — removed from the pod page for now; decide where page-admin management belongs. | 🆕 |
 
 ## Details
 
@@ -85,7 +86,12 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 
 **To investigate:** `preRegisteredCard` in `app/(dashboard)/dashboard/page.tsx` (~line 610) renders a plain `<div>` with no link — wrap it in a `<Link href={\`/cycles/${cycle.id}\`}>` (or add a "View cycle" CTA), matching the clickable `joinCycleCard` right above it.
 
----
+### 9 — Page-admin management doesn't belong on the "view" page (2026-07-12)
+**Observed:** The pod view page (`/pods/[id]`) exposed the "Page admins" manager (add/remove admins) inline. Adding page admins from the public-ish view surface is the wrong place for it.
+
+**Done for now:** Hidden on the pod page (#225) via a new `showAdminsManager={false}` prop on the shared `PageUpdatesSection` (`app/(dashboard)/page-updates-section.tsx`); the update composer stays. The manager still renders on other page types (lab/sector/workstream/project) until we decide holistically.
+
+**To figure out later:** Where page-admin management *should* live — a dedicated page-settings/manage surface rather than the view page — and apply it consistently across all page types (`PageAdminsManager` / `app/api/pages/[type]/[id]/admins`). Then remove the temporary prop.
 
 ## July 11 triage (session snapshot)
 
