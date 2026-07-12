@@ -8,7 +8,7 @@ import { fmtDate, fmtDay } from "@/lib/content/format";
    stack of ROWS: the dark header (eyebrow + headline own the
    head row, standfirst + register CTA beneath), then body sections whose eyebrow
    + heading share the head row and whose content — the promise, the current
-   cycle's anchor events, the three phases, the partner problems — flows in the
+   cycle's anchor events, the partner problems — flows in the
    rows beneath. Copy is byte-for-byte from the generator (tools/generate.js
    cyclesPage(), the design source of truth). The past-projects block waits for
    the Work layer. */
@@ -35,24 +35,6 @@ const CYCLE = {
   kickoff: "2026-07-14T18:00",
   weeks: 12,
 };
-
-const PHASES = [
-  {
-    title: "Problem Sprint",
-    when: "Weeks 1–5",
-    body: "The cycle starts by looking, not building. Everyone collects things they’ve actually seen, we map them together in the Triangulator, and pods form around the problems that keep showing up. By week 5, your pod picks one to own.",
-  },
-  {
-    title: "Frame Sprint",
-    when: "Weeks 6–9",
-    body: "Your pod digs into its problem — interviews, field visits, homework nobody assigned. At the Hackathon, all that digging becomes proposals: new ways of seeing the problem, and what to build about it. Then everyone votes.",
-  },
-  {
-    title: "Building",
-    when: "Weeks 10–12",
-    body: "Winning proposals become teams of 3–5. You build something real, test it with real people, and bring everything — the wins and the misses — back to the commons at the Showcase Summit.",
-  },
-];
 
 const SITUATIONS = [
   { title: "Benefits navigation dead-ends", owner: "DC Public Library" },
@@ -154,26 +136,6 @@ export default async function BuildCyclesPage() {
               </div>
             </div>
             )}
-          </EdSection>
-
-          {/* How it works — three phases, one arc: a genuine sequence, so numbered */}
-          <EdSection eyebrow="How it works" heading="Three phases, one arc.">
-            <div className="ed-cols">
-              <div className="ed-steps">
-                {PHASES.map((ph, i) => (
-                  <div key={ph.title}>
-                    <div className="ed-step-n">
-                      {String(i + 1).padStart(2, "0")}
-                    </div>
-                    <div className="ed-step-rule" />
-                    <div className="lbl" style={{ marginBottom: 8 }}>
-                      {ph.title} · {ph.when}
-                    </div>
-                    <p className="t-body ed-text">{ph.body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </EdSection>
 
           {/* What this cycle is working on — partner problems, a single-hierarchy list */}
