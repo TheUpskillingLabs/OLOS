@@ -123,6 +123,8 @@ The riskiest untested moment happens **before** anyone joins anything.
 | S3.5 | P7 variant | Abandon funnel mid-way, return next day | Resumes/restarts cleanly; no half-created rows blocking re-entry |
 | S3.6 | P1/P2 | Kickoff-day dates audit (Jul 14) | Every surface that renders dates — ceremony, dashboard Key-dates card, cycle page, `.ics` download, phase indicator — shows the **owner-confirmed calendar** (Sprint Jul 25, Pods Aug 11, Hackathon Aug 13, Projects Sep 8). Prerequisites: the `anchor-events.ts` correction (#233) is deployed, AND prod's `cycle_config` windows + `phase_2_start`/`phase_3_start` + the Luma-synced events all match the same calendar — audit all three, they are separate sources |
 | S3.7 | P9 | Observer signs in | Sees read-only surfaces; **no pulse aggregates on the public pod page** (#225) |
+| S3.8 | P7 variant | Self-serve cycle registration **during the dead zone** (Jul 29–Aug 10, once D-10 ships) | Join surface closed with a message naming the **Aug 11 reopen**; agreement API refuses; invite path still works (S2.6) |
+| S3.9 | P7 variant | Self-serve cycle registration **during active-join** (Aug 11–25) and **after** it (Aug 26+) | In-window: enrolls, active per D-2, can join a pod immediately. After: closed; surface points at the next `upcoming` cycle if any |
 
 ## S4 — Joining a pod (G2; run the whole suite before Jul 25)
 

@@ -215,6 +215,11 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
 | Project proposal | Hackathon (Thu) | Tuesday after Hackathon | Aug 13 → Aug 18 |
 | Project voting | Tuesday after Hackathon | Thursday after Hackathon | Aug 18 → Aug 20 |
 | Project registration | Thursday after Hackathon | 2nd Tuesday after Hackathon | Aug 20 → Aug 25 |
+| Cycle registration (D-10, [`pod-registration.md`](./pod-registration.md)) | cycle opens (`upcoming`) | Pod forming close; **reopens** with Pod active-join | open → Jul 28 EOD · closed Jul 29–Aug 10 · Aug 11 → Aug 25 |
+
+> Cycle registration is **derived** from the two pod phases (open ⇔ before
+> forming close, or active-join open) — a resolver rule, not a spine phase
+> row. The dead-zone closed state must name the reopen date.
 
 > **Timing decision (2026-07-12, owner): the calendar overhaul targets
 > Cycle 3, staged inside the cycle.** Day 1 (Jul 14) runs on the manual window
