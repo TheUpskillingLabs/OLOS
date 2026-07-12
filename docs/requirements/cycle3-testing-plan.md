@@ -49,22 +49,26 @@ condition is always "both browsers agree with the Eastern wall-clock intent."
 
 Every value below is editable in **Admin → cycle → config form** (all twelve
 windows, `phase_2/3_start`, thresholds, `pod_limit`, milestone weeks — no
-deploy needed). All times ET wall-clock, entered per the S5.1-verified
-convention. Scaffold arithmetic verified: every weekday/offset checks out, and
-Jul 14 → Oct 13 is exactly 91 days = 13 × 7, so `getCycleWeek`'s thirteen
+deploy needed). Scaffold arithmetic verified: every weekday/offset checks out,
+and Jul 14 → Oct 13 is exactly 91 days = 13 × 7, so `getCycleWeek`'s thirteen
 equal buckets land on exact calendar weeks.
 
-| Field | Value | Note |
-|---|---|---|
-| `cycles.start_date` / `end_date` | Jul 14 / Oct 13 | drives week rail + milestones |
-| `problem_statement_open/close` | Jul 25 9:00 AM → 12:00 PM | Sprint morning |
-| `voting_open/close` | Jul 25 12:00 PM → 1:00 PM | finalize runs at close (S4.1) |
-| `pod_registration_open/close` | Jul 25 1:00 PM → Jul 28 11:59 PM | **forming window — see O-1** |
-| `solution_proposal_open/close` | Aug 13 9:00 AM → Aug 18 11:59 PM | opens at Hackathon start (confirm hour) |
-| `solution_voting_open/close` | Aug 19 12:00 AM → Aug 20 11:59 PM | contiguous chain |
-| `project_registration_open/close` | Aug 21 12:00 AM → Aug 25 11:59 PM | |
-| `phase_2_start` | Aug 11 | Meet the Pods marker (phase indicator) |
-| `phase_3_start` | Sep 8 | Meet the Projects marker |
+**What to type (S5.1, resolved from code):** the window columns are naive and
+the prod server is UTC, so **enter the UTC column below** (= Eastern + 4h; all
+of Cycle 3 is inside EDT). Typing the Eastern column instead opens every gate
+4 hours early.
+
+| Field | Intended (ET) | **Type (UTC)** | Note |
+|---|---|---|---|
+| `cycles.start_date` / `end_date` | Jul 14 / Oct 13 | Jul 14 / Oct 13 (date only) | drives week rail + milestones |
+| `problem_statement_open/close` | Jul 25 9:00 AM → 12:00 PM | **Jul 25 13:00 → 16:00** | Sprint morning |
+| `voting_open/close` | Jul 25 12:00 PM → 1:00 PM | **Jul 25 16:00 → 17:00** | finalize runs at close (S4.1) |
+| `pod_registration_open/close` | Jul 25 1:00 PM → Jul 28 11:59 PM | **Jul 25 17:00 → Jul 29 03:59** | **forming window — see O-1** |
+| `solution_proposal_open/close` | Aug 13 9:00 AM → Aug 18 11:59 PM | **Aug 13 13:00 → Aug 19 03:59** | opens at Hackathon start (confirm hour) |
+| `solution_voting_open/close` | Aug 19 12:00 AM → Aug 20 11:59 PM | **Aug 19 04:00 → Aug 21 03:59** | contiguous chain |
+| `project_registration_open/close` | Aug 21 12:00 AM → Aug 25 11:59 PM | **Aug 21 04:00 → Aug 26 03:59** | |
+| `phase_2_start` | Aug 11 | Aug 11 16:00 | Meet the Pods marker (phase indicator) |
+| `phase_3_start` | Sep 8 | Sep 8 16:00 | Meet the Projects marker |
 | `pod_limit` | **1 or 2 — product call** | June D-4 said 2; shipped default 1 |
 | `pod_min`, votes, thresholds | product values | confirm before Jul 25 |
 | `milestone_mid_week` / `final_week` | 6 / 12 (defaults) | week 6 = Aug 25–31 (right after project reg closes); week 12 = Oct 6–13 |
@@ -148,7 +152,7 @@ chain on staging with realistic timing before the real Saturday.
 
 | ID | Scenario | Expected |
 |---|---|---|
-| S5.1 | **Window-entry convention (do this FIRST, before entering real windows):** admin enters "problem statements open Jul 25 9:00 AM ET" intent on staging; check the stored value, the rendered value, and when the gate actually flips (set a window 10 min ahead and watch it open) | The flip happens at 9:00 AM **Eastern**. Under the pre-overhaul naive columns, entered values are compared as UTC on the server (PR #224's ops note) — this test tells the admin exactly what to type so reality matches intent; write the convention down and use it for all Cycle-3 windows |
+| S5.1 | **Window-entry convention — RESOLVED FROM CODE (2026-07-12), no experiment needed.** Full write→store→read trace: the config form does **no** timezone conversion (`fromLocal` just appends `:00` to the `datetime-local` wall-clock); validation is a pass-through `z.string()`; the column is `TIMESTAMP` *without* time zone, so Postgres stores the wall-clock verbatim; the gate reads it via `new Date(zonelessString)`, parsed in the **server's** timezone. Vercel prod runs Node in **UTC** (confirmed: no `TZ` env var set). ⇒ a stored `13:00` opens the gate at 13:00 UTC = 9:00 AM EDT. | **Convention: enter UTC = Eastern + 4h** (all of Cycle 3 is inside EDT, Jul 14–Oct 13). e.g. problem-statement open "9:00 AM ET" → **type 13:00**. Optional 30-sec sanity check after entering the real windows: set one throwaway window ~10 min ahead in UTC and confirm it flips at the intended Eastern minute. This convention is naive-columns-only; Stage 1's tz-aware resolver (`cycle_phases` in `America/New_York`) removes it. |
 | S5.2 | (Stage 1) All ~critical pages show identical boundaries with an ET label; PT browser shows the same wall-clock + label | No page disagrees; no unlabeled times |
 | S5.3 | (Stage 1) Admin shifts a phase boundary | Every surface (dashboard, join page, checklist row, moderator views) reflects it within a reload; legacy-column mirror (dual-write bridge) matches `cycle_phases` |
 | S5.4 | (Stage 1) `getCycleWeek`/learning-log milestone timing after schema change | A cycle with unchanged dates produces identical week numbers and milestone windows |

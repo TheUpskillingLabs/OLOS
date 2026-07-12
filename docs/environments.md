@@ -168,10 +168,20 @@ SUPABASE_DB_PASSWORD=<prod db password> supabase db push --linked
 
 ### Checking which migrations have been applied
 
-Supabase tracks applied migrations in the `supabase_migrations` table. To see what's live on prod, run this in Supabase Studio → SQL Editor:
+Supabase tracks applied migrations in the `supabase_migrations.schema_migrations` table (a table named `schema_migrations` inside the `supabase_migrations` schema — **not** a bare `supabase_migrations` table; querying that name errors with `relation "supabase_migrations" does not exist`). To see what's live on prod, run this in Supabase Studio → SQL Editor:
 
 ```sql
-SELECT name, executed_at FROM supabase_migrations ORDER BY executed_at;
+SELECT version, name FROM supabase_migrations.schema_migrations ORDER BY version;
 ```
 
-Compare against the files in `supabase/migrations/` — any file not in that list hasn't been applied yet.
+Its columns are `version` (a timestamp string like `20260703222414` for CLI/Studio-applied rows — **not** the repo's `000NN` prefix), `name` (the file's descriptive part, no number), and `statements` (the SQL text). Compare `name` against the files in `supabase/migrations/` — any file not listed hasn't been applied yet.
+
+When applying a migration by hand via the SQL Editor (the prod path above), the ledger is **not** updated automatically — insert a bookkeeping row afterward so a future `supabase db push --linked` won't re-run it:
+
+```sql
+INSERT INTO supabase_migrations.schema_migrations (version, name, statements) VALUES
+  ('<YYYYMMDDHHMMSS>', '<descriptive_name>',
+   ARRAY['-- applied via SQL editor; source: supabase/migrations/000NN_<name>.sql']);
+```
+
+If the CLI is linked to prod instead, use `supabase migration repair --status applied 000NN` rather than a hand-inserted row.
