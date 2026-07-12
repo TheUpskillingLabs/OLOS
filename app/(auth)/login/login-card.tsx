@@ -287,17 +287,24 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
     <div className="view light onboard s-paper">
       <div className="sheet">
         <div className="topbar" />
-        <div className="vscroll pad">
-          {failedAlert}
-          <h2 className="t-h1" style={{ marginBottom: 12 }}>
-            Sign in
-          </h2>
-          <p className="t-lede" style={{ marginBottom: 28 }}>
-            Use your Google account to sign in to The Upskilling Labs.
-          </p>
-          {noAccountAlert}
-          {googleButton}
-          <div style={{ marginTop: 20 }}>{finePrint}</div>
+        <div
+          className="vscroll pad"
+          style={{ display: "flex", flexDirection: "column" }}
+        >
+          {/* margin:auto centers vertically but, unlike justify-content,
+              still lets the top scroll into view if the card overflows. */}
+          <div style={{ margin: "auto 0" }}>
+            {failedAlert}
+            <h2 className="t-h1" style={{ marginBottom: 12 }}>
+              Sign in
+            </h2>
+            <p className="t-lede" style={{ marginBottom: 28 }}>
+              Use your Google account to sign in to The Upskilling Labs.
+            </p>
+            {noAccountAlert}
+            {googleButton}
+            <div style={{ marginTop: 20 }}>{finePrint}</div>
+          </div>
         </div>
       </div>
     </div>
