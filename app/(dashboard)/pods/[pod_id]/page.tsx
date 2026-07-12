@@ -221,6 +221,9 @@ export default async function PodDetailPage({
           id={pod.id}
           name={podName}
           ctx={pageCtx}
+          // Adding page admins shouldn't happen from the pod view page; hidden
+          // for now until we decide where admin management belongs.
+          showAdminsManager={false}
         />
       </section>
     </div>
