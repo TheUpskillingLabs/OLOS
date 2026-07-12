@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth/guards";
+import { metroLabel } from "@/lib/metros-label";
 import AnnouncementsAdmin, {
   type AdminAnnouncement,
   type LabOption,
@@ -28,7 +29,7 @@ export default async function AdminAnnouncementsPage() {
   const rows = (announcements as AdminAnnouncement[]) ?? [];
   const labOptions: LabOption[] = (labs ?? []).map((l) => ({
     id: l.id,
-    label: [l.name, l.st].filter(Boolean).join(", "),
+    label: metroLabel(l.name, l.st),
   }));
 
   return (

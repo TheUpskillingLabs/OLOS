@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import MemberProfileView from "./member-profile-view";
 import UpdatesFeed from "../directory/updates-feed";
+import { metroLabel } from "@/lib/metros-label";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -52,7 +53,7 @@ export default async function ProfilePage() {
       .select("name, st")
       .eq("slug", participant.metro_slug)
       .maybeSingle();
-    metroName = metro ? [metro.name, metro.st].filter(Boolean).join(", ") : null;
+    metroName = metro ? metroLabel(metro.name, metro.st) : null;
   }
 
   const displayName =

@@ -6,6 +6,7 @@ import {
 } from "@/app/components/content/teasers";
 import { getEvents, getMetro, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
+import { metroLabel } from "@/lib/metros-label";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import JoinButton from "./join-button";
 import JoinActiveButton from "./join-active-button";
@@ -18,7 +19,7 @@ import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
    pitch with the live join CTA. */
 
 function labTitle(m: { name: string; st: string | null; slug: string }): string {
-  return m.name + (m.st && m.slug !== "dc" ? `, ${m.st}` : "");
+  return metroLabel(m.name, m.st);
 }
 
 /** Whether the signed-in visitor is already on this metro's waitlist

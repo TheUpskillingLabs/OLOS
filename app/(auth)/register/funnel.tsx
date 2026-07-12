@@ -16,6 +16,7 @@ import {
   type FlowStep,
   type FlowAnswers,
 } from "@/app/components/flow/flow-screen";
+import { metroLabel } from "@/lib/metros-label";
 
 /* ════════════════════════════════════════════════════════════════════════
    The onboarding funnel — ported from onboarding-proto:
@@ -417,7 +418,7 @@ interface SuggestResponse {
 }
 
 function labLabel(l: LabLite): string {
-  return l.name + (l.st ? `, ${l.st}` : "");
+  return metroLabel(l.name, l.st);
 }
 
 function LabOptCard({
