@@ -15,6 +15,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 7 | 2026-07-12 | Profile | Availability isn't populating in the profile after completing cycle registration — the availability captured during registration should carry through to the profile. | 🆕 |
 | 8 | 2026-07-12 | Dashboard | The "You're pre-registered" card is a dead end — it should link through to the cycle page. | 🆕 |
 | 9 | 2026-07-12 | Pages / admins | Adding page admins shouldn't happen from a page's "view" page — removed from the pod page for now; decide where page-admin management belongs. | 🆕 |
+| 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | 🆕 |
 
 ## Details
 
@@ -92,6 +93,13 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Done for now:** Hidden on the pod page (#225) via a new `showAdminsManager={false}` prop on the shared `PageUpdatesSection` (`app/(dashboard)/page-updates-section.tsx`); the update composer stays. The manager still renders on other page types (lab/sector/workstream/project) until we decide holistically.
 
 **To figure out later:** Where page-admin management *should* live — a dedicated page-settings/manage surface rather than the view page — and apply it consistently across all page types (`PageAdminsManager` / `app/api/pages/[type]/[id]/admins`). Then remove the temporary prop.
+
+### 10 — Login shows the intro screen on return sign-in (2026-07-12)
+**Observed:** The intro/welcome screen (meant for account creation) also appears when an existing member signs back in. A returning user shouldn't have to pass the onboarding intro to log in.
+
+**Expected:** Show the intro only on account creation / first-time sign-up; on return login, go straight to the login step (and on to the dashboard).
+
+**To investigate:** the sign-in flow under `app/(auth)/` and `lib/auth/` — where the intro/welcome step is rendered and whether it can branch on new-account vs. existing-account (e.g. distinguish sign-up from sign-in, or skip the intro when the auth user already has a participant record). See `lib/auth/CLAUDE.md` for the sign-in/role-resolution flow.
 
 ## July 11 triage (session snapshot)
 
