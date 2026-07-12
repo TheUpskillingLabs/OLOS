@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, StatusBadge, Sheet } from "@/app/components/ui";
 import AssignModeratorButton from "./assign-moderator-button";
+import OwnerLifecycle from "@/app/components/owner-lifecycle";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 
 /**
@@ -52,11 +53,13 @@ export default function PodsTable({
   pods,
   participants,
   mode,
+  isOwner = false,
 }: {
   cycleId: number;
   pods: PodAdminRow[];
   participants: ParticipantOption[];
   mode?: string | null;
+  isOwner?: boolean;
 }) {
   const [managePodId, setManagePodId] = React.useState<number | null>(null);
   const managePod = pods.find((p) => p.id === managePodId) ?? null;
@@ -148,6 +151,7 @@ export default function PodsTable({
             pod={managePod}
             participants={participants}
             mode={mode}
+            isOwner={isOwner}
           />
         )}
       </Sheet>
@@ -159,10 +163,12 @@ function PodManagePanel({
   pod,
   participants,
   mode,
+  isOwner = false,
 }: {
   pod: PodAdminRow;
   participants: ParticipantOption[];
   mode?: string | null;
+  isOwner?: boolean;
 }) {
   const router = useRouter();
   const isOrg = mode === "org";
@@ -398,6 +404,14 @@ function PodManagePanel({
           </div>
         )}
       </section>
+
+      {isOwner && (
+        <OwnerLifecycle
+          entity="pods"
+          id={pod.id}
+          name={pod.name ?? `${podNoun(mode)} ${pod.id}`}
+        />
+      )}
     </div>
   );
 }

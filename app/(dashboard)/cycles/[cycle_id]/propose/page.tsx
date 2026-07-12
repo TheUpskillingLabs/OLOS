@@ -23,11 +23,14 @@ export default async function ProposePage({
 
   // Check if window is open
   const serviceClient = createServiceClient();
+  // maybeSingle: a cycle with no cycle_config row is a real production state
+  // (config is seeded by hand) — .single() would error and read as a generic
+  // "closed" message with no hint at the actual problem.
   const { data: config } = await serviceClient
     .from("cycle_config")
     .select("problem_statement_open, problem_statement_close")
     .eq("cycle_id", cycleId)
-    .single();
+    .maybeSingle();
 
   const now = new Date();
   const isOpen =
@@ -84,7 +87,9 @@ export default async function ProposePage({
       ) : (
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
-            Problem statement submission is not currently open.
+            {config
+              ? "Problem statement submission is not currently open."
+              : "This cycle isn't fully configured yet — the submission window hasn't been scheduled. If you expected it to be open, let an organizer know."}
           </p>
           {config?.problem_statement_open &&
             now < new Date(config.problem_statement_open) && (

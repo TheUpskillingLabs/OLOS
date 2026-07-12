@@ -13,6 +13,7 @@ import {
   ClipboardList,
   MessageSquare,
   Database,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 
@@ -104,9 +105,28 @@ const DATA_ITEM: NavItem = {
   match: (p) => p.startsWith("/admin/explore") || p.startsWith("/admin/data"),
 };
 
-export default function AdminNav({ showData }: { showData: boolean }) {
+// Owner-only lifecycle console (archive/reset/delete any entity). Flag-gated and
+// owner-gated — the layout only sets showOwner when both hold.
+const OWNER_ITEM: NavItem = {
+  href: "/admin/owner",
+  label: "Owner",
+  Icon: ShieldAlert,
+  match: (p) => p.startsWith("/admin/owner"),
+};
+
+export default function AdminNav({
+  showData,
+  showOwner = false,
+}: {
+  showData: boolean;
+  showOwner?: boolean;
+}) {
   const pathname = usePathname() || "";
-  const items = showData ? [...BASE_ITEMS, DATA_ITEM] : BASE_ITEMS;
+  const items = [
+    ...BASE_ITEMS,
+    ...(showData ? [DATA_ITEM] : []),
+    ...(showOwner ? [OWNER_ITEM] : []),
+  ];
 
   return (
     <nav

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import { resolveUserRoles, isAdmin, isModeratorForPod, isOwner } from "@/lib/auth/roles";
 import { isProjectDri } from "@/lib/auth/projects";
 import { StatusBadge } from "@/app/components/ui";
+import OwnerLifecycle from "@/app/components/owner-lifecycle";
 import { podNoun } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
@@ -329,6 +330,10 @@ export default async function ProjectDetailPage({
 
       {mode !== "org" && canViewDashboard && (
         <PulseCheckDashboard members={pulseCheckData} />
+      )}
+
+      {userRoles && isOwner(userRoles) && (
+        <OwnerLifecycle entity="projects" id={project.id} name={projectName} />
       )}
     </div>
   );
