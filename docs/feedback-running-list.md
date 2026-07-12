@@ -18,6 +18,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | 🆕 |
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🆕 |
 | 12 | 2026-07-12 | Profile / nav | Profile back link still lands in the Directory, not the page I came from. #229 fixed the owner `/profile` route (→ dashboard) but viewing your own profile via `/u/[handle]` still shows "Back to the Directory"; back should be referrer-aware. | 🆕 |
+| 13 | 2026-07-12 | Dashboard | New user's setup / to-do list showed **collapsed** on first login (prod) — a brand-new member should see it expanded. | 🆕 |
 
 ## Details
 
@@ -116,6 +117,13 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Expected:** Back should return to wherever the user actually came from, regardless of which route rendered the profile — not a hardcoded `/directory` or `/dashboard`.
 
 **To investigate:** make the back target referrer/`?next=`-aware across the profile view (both routes) and edit; and detect "this is my own profile" on `/u/[handle]` so the owner affordances (and a sensible back) apply there too.
+
+### 13 — Setup/to-do list collapsed for a brand-new user (2026-07-12, prod)
+**Observed:** On first login as a new user in production, the setup / to-do checklist rendered **collapsed**. A first-time member (nothing completed yet) should land with it **expanded**.
+
+**Likely cause:** the collapse preference persists in `localStorage` (`olos.setupChecklistCollapsed.v1`, added in #228) which is **per-browser, not per-user**. A new account signed into a browser that previously collapsed — or completed — the checklist inherits the stored "collapsed" flag; the "completing setup cements the collapse" effect writes `"1"`, which then applies to the next user in that browser. `setup-checklist.tsx`: `collapsed = stored ?? allDone`.
+
+**Fix direction:** make collapse state per-user (key the storage entry by participant id, or persist server-side), and/or always start expanded for a brand-new member with no completed items regardless of a stale flag.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
