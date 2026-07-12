@@ -106,14 +106,14 @@ The four list blocks were removed from seed.sql in this PR; the `ai_tools` and `
 | `list_name` | `value`s, in order |
 |---|---|
 | `labs_goals` (6) | Build a portfolio project · Learn AI tools in practice · Connect with collaborators · Explore a new career direction · Contribute to community impact · Sharpen technical skills |
-| `availability` (4) | < 2 hrs/week · 2–5 hrs/week · 5–10 hrs/week · 10+ hrs/week |
+| `availability` (3) | 2–4 hrs / week · 5–8 hrs / week · 8+ hrs / week — re-seeded in `00082` to match the cycle-registration ceremony's hour buckets, so registration writes straight into this list (was `< 2` / `2–5` / `5–10` / `10+` hrs/week) |
 | `work_style` (4) | Independent with check-ins · Collaborative throughout · Structured with clear milestones · Flexible and self-directed |
 | `group_strengths` (6) | Project management · Technical development · Design / UX · Research · Communication / writing · Community engagement |
 
 Strings must match the spec **byte-for-byte** — they render to participants. Watch for:
-- En-dash (`–`, U+2013) in `2–5 hrs/week` and `5–10 hrs/week` — not a hyphen.
-- Spaces around `/` in `Design / UX` and `Communication / writing`.
-- Lowercase in `< 2 hrs/week` and `10+ hrs/week`.
+- En-dash (`–`, U+2013) in `2–4 hrs / week` and `5–8 hrs / week` — not a hyphen.
+- Spaces around `/` in the availability buckets (`2–4 hrs / week`), `Design / UX`, and `Communication / writing`.
+- Lowercase in `8+ hrs / week`.
 
 ### Migration conventions for this file
 
