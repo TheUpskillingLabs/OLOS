@@ -13,6 +13,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 5 | 2026-07-12 | Voting UX | No ability to remove/undo votes once cast on a problem statement. | ✅ |
 | 6 | 2026-07-12 | Profile | Should be able to auto-fill state from zipcode (state lookup from zip) instead of entering it manually. | 🆕 |
 | 7 | 2026-07-12 | Profile | Availability isn't populating in the profile after completing cycle registration — the availability captured during registration should carry through to the profile. | 🆕 |
+| 8 | 2026-07-12 | Dashboard | The "You're pre-registered" card is a dead end — it should link through to the cycle page. | 🆕 |
 
 ## Details
 
@@ -76,3 +77,10 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Expected:** Availability entered during cycle registration should persist to and display on the profile.
 
 **To investigate:** where the cycle-registration/join flow (`/cycles/[id]/join` + `api/cycles/[id]/agreement`) stores availability vs. where the profile reads it — likely a mismatch between the registration-captured field and the profile's source column (or it's saved on an enrollment/agreement row but never surfaced on the participant profile).
+
+### 8 — "Pre-registered" card should link to the cycle page (2026-07-12)
+**Observed:** When the dashboard shows the "You're pre-registered" state for an upcoming cohort, the card is static — there's no way to click through to the cycle's page to see details.
+
+**Expected:** The pre-registered card should be (or contain) a link to `/cycles/[cycle_id]` so a member can open the cohort page from it.
+
+**To investigate:** `preRegisteredCard` in `app/(dashboard)/dashboard/page.tsx` (~line 610) renders a plain `<div>` with no link — wrap it in a `<Link href={\`/cycles/${cycle.id}\`}>` (or add a "View cycle" CTA), matching the clickable `joinCycleCard` right above it.
