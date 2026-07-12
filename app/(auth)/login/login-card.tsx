@@ -59,11 +59,19 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
   }, [inviteToken]);
 
   const continueWithGoogle = async () => {
+    // Tell the auth callback which door this attempt came through — logging
+    // in with an unknown Google account should say "no account" rather than
+    // silently opening registration. Cookie, not query param: the redirect
+    // allowlist matches exact URLs (supabase/config.toml).
+    document.cookie = `auth_intent=${joining ? "join" : "login"}; path=/; max-age=600; SameSite=Lax`;
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/api/auth/callback`,
+        // Always show Google's account chooser so members pick which email
+        // to sign in with instead of being auto-signed into the last one.
+        queryParams: { prompt: "select_account" },
       },
     });
   };
@@ -75,6 +83,39 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
         <polyline points="22 4 12 14.01 9 11.01" />
       </svg>
       You&rsquo;ve been invited to join
+    </div>
+  );
+
+  const noAccount = searchParams.get("error") === "no_account";
+  const attemptedEmail = searchParams.get("email");
+
+  const noAccountAlert = noAccount && (
+    <div
+      className="t-small"
+      style={{
+        border: "1px solid var(--rule)",
+        borderRadius: "var(--r)",
+        padding: "12px 14px",
+        marginBottom: 14,
+      }}
+      role="alert"
+    >
+      There&rsquo;s no Labs account
+      {attemptedEmail ? (
+        <>
+          {" "}
+          for <strong>{attemptedEmail}</strong>
+        </>
+      ) : null}
+      . Try a different Google account, or{" "}
+      <a
+        className="see"
+        href="/login?intent=join"
+        style={{ textDecoration: "underline" }}
+      >
+        join The Labs
+      </a>{" "}
+      to create one.
     </div>
   );
 
@@ -136,10 +177,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
       <p className="t-small">
         We only access your name, email, and profile picture.
         {joining && (
-          <>
-            {" "}
-            Already a member? Same door — Google signs you in either way.
-          </>
+          <> Already a member? Same door — Google signs you in either way.</>
         )}
       </p>
       <p className="t-small" style={{ marginTop: 8 }}>
@@ -177,6 +215,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
         <>
           {invitedTag}
           {failedAlert}
+          {noAccountAlert}
           <h2 className="t-h2" style={{ marginBottom: 8 }}>
             Sign in with Google
           </h2>
@@ -193,6 +232,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
     return (
       <>
         {failedAlert}
+        {noAccountAlert}
         <h2 className="t-h2" style={{ marginBottom: 8 }}>
           Sign in
         </h2>
@@ -217,6 +257,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
             </div>
             {invitedTag}
             {failedAlert}
+            {noAccountAlert}
             <h2 className="t-h1" style={{ marginBottom: 16 }}>
               Sign in with Google
             </h2>
@@ -242,6 +283,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
         <div className="topbar" />
         <div className="vscroll pad">
           {failedAlert}
+          {noAccountAlert}
           <h2 className="t-h1" style={{ marginBottom: 12 }}>
             Sign in
           </h2>
