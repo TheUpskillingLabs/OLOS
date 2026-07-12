@@ -85,9 +85,15 @@ const ROLE_INTENTS: [string, string][] = [
   ["volunteer", "Volunteer"],
   ["events", "Community"],
 ];
-const OPTION_SECTIONS: { list: string; label: string; scroll?: boolean }[] = [
+const OPTION_SECTIONS: {
+  list: string;
+  label: string;
+  scroll?: boolean;
+  /** Single-select: picking a chip replaces the current choice. */
+  single?: boolean;
+}[] = [
   { list: "labs_goals", label: "Your goals" },
-  { list: "availability", label: "Availability" },
+  { list: "availability", label: "Availability", single: true },
   { list: "work_style", label: "How you like to work" },
   { list: "group_strengths", label: "Your strengths" },
   { list: "ai_tools", label: "AI tools you use", scroll: true },
@@ -202,6 +208,12 @@ export default function ProfileEditForm({
   const toggleOption = (list: string, id: number) =>
     setOptions((p) => {
       const cur = p[list] ?? [];
+      const single = OPTION_SECTIONS.find((s) => s.list === list)?.single;
+      if (single) {
+        // Single-select list: picking a chip replaces the choice; picking the
+        // active chip clears it.
+        return { ...p, [list]: cur.includes(id) ? [] : [id] };
+      }
       return {
         ...p,
         [list]: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
