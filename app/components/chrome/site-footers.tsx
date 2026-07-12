@@ -95,8 +95,6 @@ export function OsFooter() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="p-levy" src="/assets/levy-strategic-design-white.png" alt="Levy Strategic Design" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="p-dcpl" src="/assets/dcpl-knockout-logo.png" alt="DC Public Library" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="p-superbloom" src="/assets/superbloom-white.png" alt="Superbloom Design" />
         </div>
         <p className="foot-fineprint">
