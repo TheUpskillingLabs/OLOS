@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -120,12 +121,7 @@ export default function ProposalForm({
               {submissionOpen && closeAt && (
                 <p className="mt-2 text-xs text-meta tabular-nums">
                   You can edit until{" "}
-                  {new Date(closeAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                  {fmtLabDateTime(closeAt)}
                 </p>
               )}
             </div>

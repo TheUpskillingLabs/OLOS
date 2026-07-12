@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -30,9 +31,10 @@ export default async function SolutionVotePage({
     .eq("cycle_id", cycleId)
     .single();
 
+  // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
   const now = new Date();
-  const openAt = config?.solution_voting_open ? new Date(config.solution_voting_open) : null;
-  const closeAt = config?.solution_voting_close ? new Date(config.solution_voting_close) : null;
+  const openAt = parseWindow(config?.solution_voting_open);
+  const closeAt = parseWindow(config?.solution_voting_close);
   const isOpen = openAt !== null && closeAt !== null && now >= openAt && now <= closeAt;
 
   const {
@@ -100,12 +102,7 @@ export default async function SolutionVotePage({
           {openAt && now < openAt && (
             <p className="mt-2 text-sm text-meta tabular-nums">
               Opens{" "}
-              {openAt.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
+              {fmtLabDateTime(config?.solution_voting_open)}
             </p>
           )}
         </div>

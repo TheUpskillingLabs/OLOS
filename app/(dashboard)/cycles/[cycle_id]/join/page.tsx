@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { windowOpen } from "@/lib/cycles/lab-time";
 import CycleCeremony from "./ceremony";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
@@ -88,12 +89,11 @@ export default async function JoinCyclePage({
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
-  const now = new Date();
-  const podRegistrationOpen =
-    !!config?.pod_registration_open &&
-    !!config?.pod_registration_close &&
-    now >= new Date(config.pod_registration_open) &&
-    now <= new Date(config.pod_registration_close);
+  // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
+  const podRegistrationOpen = windowOpen(
+    config?.pod_registration_open,
+    config?.pod_registration_close
+  );
 
   const fullName = `${participant.first_name} ${participant.last_name}`.trim();
 

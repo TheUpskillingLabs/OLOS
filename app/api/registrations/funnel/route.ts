@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { windowOpen } from "@/lib/cycles/lab-time";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
@@ -215,12 +216,11 @@ export async function POST(request: NextRequest) {
       .eq("cycle_id", recruitingCycle.id)
       .maybeSingle();
 
-    const now = new Date();
-    const isOpen =
-      !!config?.pod_registration_open &&
-      !!config?.pod_registration_close &&
-      now >= new Date(config.pod_registration_open) &&
-      now <= new Date(config.pod_registration_close);
+    // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
+    const isOpen = windowOpen(
+      config?.pod_registration_open,
+      config?.pod_registration_close
+    );
 
     if (isOpen) {
       emailCycleName = recruitingCycle.name;

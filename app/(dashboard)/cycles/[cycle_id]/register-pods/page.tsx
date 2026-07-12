@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ArrowRight } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -21,12 +22,14 @@ export default async function RegisterPodsPage({
 
   if (!cycle) notFound();
 
+  // Naive window columns are UTC instants; entry + display are lab-local
+  // (lib/cycles/lab-time.ts).
   const now = new Date();
-  const isOpen =
-    config?.pod_registration_open &&
-    config?.pod_registration_close &&
-    now >= new Date(config.pod_registration_open) &&
-    now <= new Date(config.pod_registration_close);
+  const isOpen = windowOpen(
+    config?.pod_registration_open,
+    config?.pod_registration_close,
+    now
+  );
 
   const podLimit = config?.pod_limit ?? 1;
   const single = podLimit === 1;
@@ -93,13 +96,9 @@ export default async function RegisterPodsPage({
             Pod registration is not currently open.
           </p>
           {config?.pod_registration_open &&
-            now < new Date(config.pod_registration_open) && (
+            now < (parseWindow(config.pod_registration_open) as Date) && (
               <p className="mt-2 text-sm text-meta tabular-nums">
-                Opens{" "}
-                {new Date(config.pod_registration_open).toLocaleDateString(
-                  "en-US",
-                  { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
-                )}
+                Opens {fmtLabDateTime(config.pod_registration_open)}
               </p>
             )}
           <div className="mt-4">
