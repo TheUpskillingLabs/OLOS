@@ -91,31 +91,37 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
 
   const noAccountAlert = noAccount && (
     <div
-      className="t-small"
       style={{
-        border: "1px solid var(--rule)",
+        background: "var(--paper)",
+        border: "1px solid var(--paper-edge)",
+        borderLeft: "3px solid var(--teal)",
         borderRadius: "var(--r)",
-        padding: "12px 14px",
-        marginBottom: 14,
+        padding: "14px 16px",
+        marginBottom: 24,
       }}
       role="alert"
     >
-      There&rsquo;s no Labs account
-      {attemptedEmail ? (
-        <>
-          {" "}
-          for <strong>{attemptedEmail}</strong>
-        </>
-      ) : null}
-      . Try a different Google account, or{" "}
-      <a
-        className="see"
-        href="/login?intent=join"
-        style={{ textDecoration: "underline" }}
-      >
-        join The Labs
-      </a>{" "}
-      to create one.
+      <p className="t-body" style={{ fontWeight: 600, marginBottom: 4 }}>
+        We couldn&rsquo;t find a Labs account
+        {attemptedEmail ? (
+          <>
+            {" "}
+            for <strong>{attemptedEmail}</strong>
+          </>
+        ) : null}
+        .
+      </p>
+      <p className="t-small">
+        Try again with a different Google account, or{" "}
+        <a
+          className="see"
+          href="/login?intent=join"
+          style={{ textDecoration: "underline" }}
+        >
+          join The Labs
+        </a>{" "}
+        to create one.
+      </p>
     </div>
   );
 
@@ -232,13 +238,13 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
     return (
       <>
         {failedAlert}
-        {noAccountAlert}
         <h2 className="t-h2" style={{ marginBottom: 8 }}>
           Sign in
         </h2>
         <p className="t-body" style={{ marginBottom: 20 }}>
           Use your Google account to sign in to The Upskilling Labs.
         </p>
+        {noAccountAlert}
         <div style={{ marginBottom: 10 }}>{googleButton}</div>
         {finePrint}
       </>
@@ -283,13 +289,13 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
         <div className="topbar" />
         <div className="vscroll pad">
           {failedAlert}
-          {noAccountAlert}
           <h2 className="t-h1" style={{ marginBottom: 12 }}>
             Sign in
           </h2>
           <p className="t-lede" style={{ marginBottom: 28 }}>
             Use your Google account to sign in to The Upskilling Labs.
           </p>
+          {noAccountAlert}
           {googleButton}
           <div style={{ marginTop: 20 }}>{finePrint}</div>
         </div>
