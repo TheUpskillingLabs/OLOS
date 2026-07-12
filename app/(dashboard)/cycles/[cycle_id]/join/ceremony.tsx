@@ -31,12 +31,10 @@ import { OPEN_CYCLE_AGREEMENT_VERSION } from "@/lib/validations/cycle-agreement"
 const HOURS = ["2–4 hrs / week", "5–8 hrs / week", "8+ hrs / week"];
 
 function cycleSteps(cycleName: string, fullName: string): FlowStep[] {
-  // Compact dated recap of the presence commitment — the sign step restates
-  // the dates + open-source policy here so nothing is a surprise, without a
-  // wall of reading (owner decision).
-  const coreDated = coreEvents()
-    .map((e) => `${e.name} (${fmtEvt(e).split(" · ")[0]})`)
-    .join(", ");
+  // The presence commitment lists each core event with its date — testers
+  // couldn't parse the old inline comma string (July 2026 feedback: "list
+  // dates out more clearly").
+  const coreDates = coreEvents().map((e) => `${e.name} — ${fmtEvt(e)}`);
   return [
     {
       id: "theme_interest",
@@ -74,8 +72,9 @@ function cycleSteps(cycleName: string, fullName: string): FlowStep[] {
       intro: `Between you and The Upskilling Labs, for ${cycleName}. It’s short on purpose — read all of it.`,
       terms: [
         {
-          title: "I’ll be there.",
-          body: `In person, at the five core events — ${coreDated}. My pod plans around me being there.`,
+          title: "I’ll make my best effort to be there.",
+          body: "In person, at the five core events. My pod plans around me being there — if I’m going to miss one, I’ll say so ahead of time.",
+          list: coreDates,
         },
         {
           title: "I’ll check in every week.",

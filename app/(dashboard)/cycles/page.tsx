@@ -23,6 +23,8 @@ export default async function CyclesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const serviceClient = createServiceClient();
+
   const [{ data: allCycles }, { data: me }] = await Promise.all([
     supabase
       .from("cycles")
@@ -31,11 +33,24 @@ export default async function CyclesPage() {
     user
       ? supabase
           .from("participants")
-          .select("metro_id")
+          .select("id, metro_id")
           .eq("auth_user_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  // Cycles the viewer already registered for (signed the agreement) — the
+  // "Open for registration" card must not show a bare "Register" CTA for a
+  // cycle they're already in (July 2026 feedback). Same lookup the join
+  // ceremony uses to open on the confirmation.
+  const registeredCycleIds = new Set<number>();
+  if (me?.id) {
+    const { data: agreements } = await serviceClient
+      .from("cycle_agreements")
+      .select("cycle_id")
+      .eq("participant_id", me.id);
+    for (const a of agreements ?? []) registeredCycleIds.add(a.cycle_id);
+  }
 
   // Local Labs are sub-cohorts of the single HQ participant cycle
   // (docs/LOCAL_LABS.md, 00067): every member sees the HQ open cycle —
@@ -56,7 +71,6 @@ export default async function CyclesPage() {
     ) ?? null;
   let activeCycleConfig = null;
   if (activeCycle) {
-    const serviceClient = createServiceClient();
     const { data } = await serviceClient
       .from("cycle_config")
       .select(
@@ -221,7 +235,9 @@ export default async function CyclesPage() {
                   Starts {new Date(cycle.start_date).toLocaleDateString()}
                 </p>
                 <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
-                  Register
+                  {registeredCycleIds.has(cycle.id)
+                    ? "You’re registered — view details"
+                    : "Register"}
                   <ArrowRight
                     className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
                     aria-hidden

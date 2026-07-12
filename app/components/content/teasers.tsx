@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import Orb from "@/app/components/chrome/orb";
 import { fmtDate, cityOf, CONTENT_TYPE_LABEL } from "@/lib/content/format";
+import { metroLabel } from "@/lib/metros-label";
 import type { EventRow, ResourceRow, MetroRow } from "@/lib/content/queries";
 
 /* Teaser cards — every card is the metadata for its real page (owner
@@ -119,8 +120,7 @@ export function LabTeaser({ metro: m }: { metro: MetroRow }) {
           )}
         </div>
         <div className="t-h4" style={{ marginBottom: 4 }}>
-          {m.name}
-          {m.st && m.slug !== "dc" ? `, ${m.st}` : ""}
+          {metroLabel(m.name, m.st)}
         </div>
         <p className="t-small">{sub}</p>
       </div>

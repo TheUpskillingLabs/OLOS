@@ -29,11 +29,13 @@ export async function checkWindow(
   // (nothing stops that today) would otherwise open a formation-only
   // action for a workstream. Org cycles have no formation windows by
   // design (docs/ORG_CYCLES.md); reject before the timestamp logic runs.
+  // maybeSingle: a missing cycle_config row must surface as the explicit
+  // "configuration not found" message below, not a PostgREST .single() error.
   const { data: config } = await supabase
     .from("cycle_config")
     .select(`${field}_open, ${field}_close, cycles(mode)`)
     .eq("cycle_id", cycleId)
-    .single();
+    .maybeSingle();
 
   if (!config) {
     return { open: false, message: "Cycle configuration not found." };

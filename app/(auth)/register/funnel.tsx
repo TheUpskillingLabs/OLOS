@@ -16,6 +16,7 @@ import {
   type FlowStep,
   type FlowAnswers,
 } from "@/app/components/flow/flow-screen";
+import { metroLabel } from "@/lib/metros-label";
 
 /* ════════════════════════════════════════════════════════════════════════
    The onboarding funnel — ported from onboarding-proto:
@@ -93,7 +94,6 @@ function signupSteps(email: string): FlowStep[] {
       id: "about",
       type: "fields",
       q: "Tell us who you are",
-      help: "Your zip just finds the lab nearest you — nothing else.",
       fields: [
         { id: "first", label: "First name", ph: "Alex", required: true, half: true },
         { id: "last", label: "Last name", ph: "Rivera", required: true, half: true },
@@ -180,9 +180,14 @@ const ROLE_OPTIONS: {
 export default function RegistrationFunnel({
   email,
   authUserId,
+  initialFirstName = "",
+  initialLastName = "",
 }: {
   email: string;
   authUserId: string;
+  /** Prefill from the Google OAuth profile — editable like any answer. */
+  initialFirstName?: string;
+  initialLastName?: string;
 }) {
   const router = useRouter();
   const [stage, setStage] = useState<"roles" | "flow" | "lab" | "already">(
@@ -289,7 +294,12 @@ export default function RegistrationFunnel({
       finalLabel="Continue"
       finalClass="btn-red"
       submittingLabel="One moment…"
-      initialAnswers={flowAnswers ?? undefined}
+      initialAnswers={
+        flowAnswers ??
+        (initialFirstName || initialLastName
+          ? { first: initialFirstName, last: initialLastName }
+          : undefined)
+      }
       initialStepIndex={flowAnswers ? steps.length - 1 : 0}
       onComplete={async (answers) => {
         setFlowAnswers(answers);
@@ -408,7 +418,7 @@ interface SuggestResponse {
 }
 
 function labLabel(l: LabLite): string {
-  return l.name + (l.st ? `, ${l.st}` : "");
+  return metroLabel(l.name, l.st);
 }
 
 function LabOptCard({

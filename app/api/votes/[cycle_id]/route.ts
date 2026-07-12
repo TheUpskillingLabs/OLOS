@@ -36,6 +36,17 @@ export const GET = withAuth(
 
     const result: Record<string, unknown> = { tallies };
 
+    // The caller's own allocations — lets the ballot compute a correct
+    // remaining budget on load (votes rows were already fetched above).
+    if (auth.user.participantId) {
+      result.my_votes = (votes || [])
+        .filter((v) => v.voter_id === auth.user.participantId)
+        .map((v) => ({
+          problem_statement_id: v.problem_statement_id,
+          vote_count: v.vote_count,
+        }));
+    }
+
     // Voter-level detail — admin only
     if (isAdmin(auth.user)) {
       result.votes = votes;

@@ -1,16 +1,25 @@
-import Link from "next/link";
+"use client";
+
+import { useEffect, useState } from "react";
 import Orb from "@/app/components/chrome/orb";
 
 /* The dashboard hero — the signed-in identity band (prototype panel-dashboard
    ".app-cover"): a warm dark orb cover carrying the member's avatar, a greeting,
    a one-line status, and (when engaged) an at-a-glance stat strip. LinkedIn's
-   identity header married to Airbnb's rounded, orb-lit cover. A plain server
-   component; OrbDefs is mounted once by the dashboard layout. */
+   identity header married to Airbnb's rounded, orb-lit cover.
+
+   Dismissible (July 2026 feedback: "make the big blue hero dismissible") —
+   the choice persists in localStorage like the other member-local dashboard
+   preferences, so it's a client component now; OrbDefs stays mounted once by
+   the dashboard layout. The "view your full profile" CTA was struck from the
+   header in the same feedback pass (the avatar menu covers it). */
 
 export interface HeroStat {
   value: string | number;
   label: string;
 }
+
+const KEY = "olos.heroDismissed.v1";
 
 export default function DashboardHero({
   initials,
@@ -27,8 +36,36 @@ export default function DashboardHero({
   lede: string;
   stats?: HeroStat[];
 }) {
+  const [state, setState] = useState<"pending" | "shown" | "dismissed">(
+    "pending"
+  );
+
+  useEffect(() => {
+    // Deferred past the effect body (repo pattern — see up-next.tsx) so the
+    // localStorage read isn't a synchronous setState-in-effect.
+    queueMicrotask(() => {
+      try {
+        setState(localStorage.getItem(KEY) === "1" ? "dismissed" : "shown");
+      } catch {
+        setState("shown");
+      }
+    });
+  }, []);
+
+  const dismiss = () => {
+    setState("dismissed");
+    try {
+      localStorage.setItem(KEY, "1");
+    } catch {
+      /* best effort */
+    }
+  };
+
+  // Render nothing until the store is read, so a dismissed hero never flashes.
+  if (state !== "shown") return null;
+
   return (
-    <section className="app-cover s-cover grain on-dark mb-8 rounded-card shadow-card">
+    <section className="app-cover s-cover grain on-dark relative mb-8 rounded-card shadow-card">
       <Orb />
       {/* Scrim — the orb never sits raw under text (design rule). */}
       <div
@@ -39,6 +76,14 @@ export default function DashboardHero({
             "linear-gradient(100deg, rgba(0,20,27,0) 42%, rgba(0,20,27,0.5) 100%)",
         }}
       />
+      <button
+        type="button"
+        aria-label="Hide the welcome banner"
+        onClick={dismiss}
+        className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none text-white/70 transition-colors duration-150 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+      >
+        ×
+      </button>
       <div className="app-cover-inner px-6 sm:px-10">
         <div className="flex flex-wrap items-center gap-5 sm:gap-7">
           {avatarUrl ? (
@@ -62,13 +107,6 @@ export default function DashboardHero({
             <div className="lbl lbl-teal mb-2">{eyebrow}</div>
             <h1 className="t-h1">{greeting}</h1>
             <p className="t-lede mt-2">{lede}</p>
-            <Link
-              href="/profile"
-              className="mt-3 inline-block text-sm font-semibold hover:underline"
-              style={{ color: "var(--od1)" }}
-            >
-              View your full profile &rarr;
-            </Link>
           </div>
           {stats && stats.length > 0 && (
             <div className="flex gap-7 sm:gap-9">

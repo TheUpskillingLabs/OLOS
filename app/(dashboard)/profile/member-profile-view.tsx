@@ -78,22 +78,30 @@ export default function MemberProfileView({
 
   return (
     <div className="max-w-3xl">
-      {/* Visitor context bar — who you're looking at + the way back. */}
+      {/* Visitor context bar — the way back. The follow action + count moved
+          inside the card header (July 2026 feedback). */}
       {!isOwner && (
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex items-center gap-3">
           <Link
             href="/directory"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-ink"
           >
             <span aria-hidden>←</span> Back to the Directory
           </Link>
-          {followSlot}
         </div>
       )}
 
-      {/* Owner action bar — the way into the editor (this is your own profile). */}
+      {/* Owner action bar — back home on the left (July 2026 feedback: the
+          profile's "back" landed people in the directory), the editor on the
+          right. */}
       {isOwner && (
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-deep transition-colors duration-150 hover:text-ink"
+          >
+            <span aria-hidden>←</span> Back to dashboard
+          </Link>
           <Link href="/profile/edit" className="btn btn-teal px-4 py-2 text-sm">
             Edit profile
           </Link>
@@ -102,7 +110,7 @@ export default function MemberProfileView({
 
       <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card sm:p-8">
         {/* Header with avatar */}
-        <div className="flex items-center gap-6 border-b border-ink/10 pb-6">
+        <div className="flex flex-wrap items-center gap-6 border-b border-ink/10 pb-6">
           {member.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -153,6 +161,11 @@ export default function MemberProfileView({
               </div>
             )}
           </div>
+          {/* Follow action + follower count — inside the card, beside the
+              identity block (moved from the context bar, July 2026 feedback). */}
+          {!isOwner && followSlot && (
+            <div className="ml-auto flex-shrink-0">{followSlot}</div>
+          )}
         </div>
 
         {/* Profile sections */}
