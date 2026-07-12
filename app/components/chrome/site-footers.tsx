@@ -18,11 +18,7 @@ export function PgFoot() {
         </span>
         <span>
           <Link href="/about">About</Link> ·{" "}
-          <Link href="/build-cycles">Build Cycles</Link> ·{" "}
           <Link href="/events">Events</Link> ·{" "}
-          <Link href="/library">Library</Link> ·{" "}
-          <Link href="/stories">Stories</Link> ·{" "}
-          <Link href="/local-labs">Cities</Link> ·{" "}
           <Link href="/get-involved">Get Involved</Link> ·{" "}
           <Link href="/team">The Team</Link> ·{" "}
           <Link href="/donate">Donate</Link> ·{" "}
@@ -62,11 +58,7 @@ export function OsFooter() {
           </div>
           <div className="foot-col">
             <div className="lbl">Explore</div>
-            <Link className="foot-link" href="/build-cycles">Build Cycles</Link>
             <Link className="foot-link" href="/events">Workshops</Link>
-            <Link className="foot-link" href="/library">Learning Library</Link>
-            <Link className="foot-link" href="/stories">Upskiller Spotlights</Link>
-            <Link className="foot-link" href="/local-labs">Local labs</Link>
           </div>
           <div className="foot-col">
             <div className="lbl">Community</div>
