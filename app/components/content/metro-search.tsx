@@ -123,7 +123,7 @@ export default function MetroSearch({
               Start the list
             </button>
           ) : (
-            <Link className="btn btn-red" href="/login">
+            <Link className="btn btn-red" href="/login?intent=join">
               Start the list
             </Link>
           )}

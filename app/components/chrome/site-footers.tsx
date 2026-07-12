@@ -74,7 +74,7 @@ export function OsFooter() {
             <Link className="foot-link" href="/team">The Team</Link>
             <Link className="foot-link" href="/get-involved">Get Involved</Link>
             <Link className="foot-link" href="/contact">Contact</Link>
-            <Link className="foot-link" href="/login">Become a member</Link>
+            <Link className="foot-link" href="/login?intent=join">Become a member</Link>
           </div>
           <div className="foot-col">
             <div className="lbl">Open source</div>
@@ -87,7 +87,7 @@ export function OsFooter() {
             >
               Built in the open
             </a>
-            <Link className="foot-link" href="/login">Join The Labs</Link>
+            <Link className="foot-link" href="/login?intent=join">Join The Labs</Link>
           </div>
         </div>
         <div className="foot-partners">

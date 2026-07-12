@@ -4,14 +4,13 @@ import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// The Google-auth explainer — ported from onboarding-proto's view-google-auth.
-// One door for everyone: new members continue into the registration funnel
-// (/register), returning members land on their dashboard — the auth callback
-// decides. Copy is owner-approved; change it in the prototype first.
-//
-// Two hosts, one source: the full /login page (hard loads — invite emails,
-// auth-failure redirects, refresh) and the intercepted popup
-// (app/@authmodal/(.)login) that opens over whatever page launched it.
+// Two doors, one component (owner ask, July 2026):
+// - Join CTAs link to /login?intent=join and get the Google-auth explainer —
+//   copy ported from onboarding-proto's view-google-auth (owner-approved;
+//   change it in the prototype first). Invite links count as joining.
+// - Plain "Log in" links get a regular sign-in card on hard loads; soft
+//   navigations skip even that and go straight to Google
+//   (app/@authmodal/(.)login).
 
 function GoogleLogo() {
   return (
@@ -50,6 +49,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("invite");
   const invited = !!inviteToken;
+  const joining = searchParams.get("intent") === "join" || invited;
   const authFailed = searchParams.get("error") === "auth_failed";
 
   useEffect(() => {
@@ -134,8 +134,13 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
   const finePrint = (
     <>
       <p className="t-small">
-        We only access your name, email, and profile picture. Already a member?
-        Same door — Google signs you in either way.
+        We only access your name, email, and profile picture.
+        {joining && (
+          <>
+            {" "}
+            Already a member? Same door — Google signs you in either way.
+          </>
+        )}
       </p>
       <p className="t-small" style={{ marginTop: 8 }}>
         By continuing, you agree to our{" "}
@@ -163,6 +168,8 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
     </>
   );
 
+  // The join explainer, hosted in the intercepted popup
+  // (app/@authmodal/(.)login only renders this for intent=join / invites).
   if (inModal) {
     return (
       <>
@@ -182,28 +189,51 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
     );
   }
 
+  // Hard-loaded join door (invite emails land here): the full explainer.
+  if (joining) {
+    return (
+      <div className="view light onboard s-paper">
+        <div className="sheet">
+          <div className="topbar" />
+          <div className="vscroll pad">
+            <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
+              Create account
+            </div>
+            {invitedTag}
+            {failedAlert}
+            <h2 className="t-h1" style={{ marginBottom: 16 }}>
+              Sign in with Google
+            </h2>
+            <p className="t-lede" style={{ marginBottom: 32 }}>
+              One account you already have. Free, familiar, nothing new to
+              remember.
+            </p>
+            {benefits}
+          </div>
+          <div className="actionbar light-bar">
+            {googleButton}
+            {finePrint}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Hard-loaded log-in door: a regular sign-in screen, no marketing copy.
   return (
     <div className="view light onboard s-paper">
       <div className="sheet">
         <div className="topbar" />
         <div className="vscroll pad">
-          <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
-            Create account
-          </div>
-          {invitedTag}
           {failedAlert}
-          <h2 className="t-h1" style={{ marginBottom: 16 }}>
-            Sign in with Google
+          <h2 className="t-h1" style={{ marginBottom: 12 }}>
+            Sign in
           </h2>
-          <p className="t-lede" style={{ marginBottom: 32 }}>
-            One account you already have. Free, familiar, nothing new to
-            remember.
+          <p className="t-lede" style={{ marginBottom: 28 }}>
+            Use your Google account to sign in to The Upskilling Labs.
           </p>
-          {benefits}
-        </div>
-        <div className="actionbar light-bar">
           {googleButton}
-          {finePrint}
+          <div style={{ marginTop: 20 }}>{finePrint}</div>
         </div>
       </div>
     </div>

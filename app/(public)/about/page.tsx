@@ -248,7 +248,7 @@ export default function AboutPage() {
                   <Link className="btn btn-red btn-lg" href="/build-cycles">
                     Explore how The Labs works
                   </Link>
-                  <Link className="see" href="/login">
+                  <Link className="see" href="/login?intent=join">
                     Ready now? Join The Labs →
                   </Link>
                 </div>
