@@ -135,6 +135,28 @@ Concretely: the reconciler's activation policy changes from "in an active pod
   to stay active; pod-less enrollees are handled by the revocation cron's
   "in no pods" arm.
 
+### Cycle registration window — D-10 (owner, 2026-07-12)
+
+Self-serve **cycle** registration (the `/cycles/[id]/join` ceremony + the
+agreement route) stops being status-only and tracks the pod windows — open
+exactly when a new member can still land somewhere:
+
+- **Open** from the moment the cycle opens for registration (`upcoming`)
+  **through `pod_forming` close** (Cycle 3: through **Tue Jul 28 EOD**).
+- **Closed during the dead zone** between forming close and active-join
+  open (Cycle 3: **Jul 29 – Aug 10**) — the closed state names the reopen
+  date ("Registration reopens Aug 11 at Meet the Pods").
+- **Open again for the whole `pod_active_join` window** (Cycle 3:
+  **Aug 11 – Aug 25**).
+- **Closed after `pod_active_join` closes** for the running cycle; the join
+  surface points at the next `upcoming` cycle when one exists.
+
+Derived, not a new phase: registration-open ⇔ *(now ≤ `pod_forming.ends_at`)
+∨ (`pod_active_join` open)*, resolved from `cycle_phases` like any window.
+Invites are exempt (the invite path is admin-intent; S2.6 already covers a
+mid-cycle accept). This closes the D-2 orphan seam: no one can newly enroll
+"active" at a moment when no pod path will ever open for them.
+
 ### Revocation cron (delta from today)
 
 The cron's structure survives as-is (two-stage warn→grace→revoke,
@@ -188,6 +210,11 @@ stays active** even if a departure drops it below `pod_min` (D-5).
   re-registered in `vercel.json`.
 - **FR-7** `register-pods/` UI shows the correct window state per pod status
   and a clear message when neither window is open.
+- **FR-8** Cycle registration (join ceremony + agreement route + the
+  dashboard/cycles-page Register CTAs) is gated per D-10: open through
+  `pod_forming` close, closed in the dead zone (message names the reopen
+  date), open during `pod_active_join`, closed after — with the invite path
+  exempt.
 
 ## Acceptance criteria
 
@@ -219,6 +246,12 @@ stays active** even if a departure drops it below `pod_min` (D-5).
   activation policy lives in the reconciler. Remaining deltas are FR-3/FR-6.
 - **2026-07-12** — Dissolution reuses `00063`'s `dissolved` status with a new
   forming-close trigger point (close-out dissolution unchanged).
+- **2026-07-12 (owner)** — **D-10**: cycle registration is open from cycle
+  open through `pod_forming` close, closed across the dead zone, reopens for
+  `pod_active_join`, and closes with it. Derived from the pod phases — no new
+  phase row. (Previously undefined: registration was status-gated and never
+  closed, which would have fed late enrollees straight into the revocation
+  cron.)
 
 ## Open decisions
 

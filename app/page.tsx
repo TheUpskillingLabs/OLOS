@@ -5,6 +5,7 @@ import OrbDefs from "@/app/components/chrome/orb-defs";
 import Orb from "@/app/components/chrome/orb";
 import { OsFooter } from "@/app/components/chrome/site-footers";
 import MetroSearch from "@/app/components/content/metro-search";
+import HomeSpotlights from "@/app/components/content/home-spotlights";
 import {
   EventTeaser,
   ResourceTeaser,
@@ -169,77 +170,7 @@ export default async function LandingPage() {
       </div>
 
       {/* ── Upskiller Spotlights (onboarding-proto #sec-stories) ── */}
-      {spotlights.length > 0 && (
-        <section className="section s-white sec-after-hero" id="sec-stories">
-          <div className="story-bleed">
-            <div className="story-row">
-              {spotlights.slice(0, 6).map((s) => (
-                <Link
-                  key={s.id}
-                  className="card tappable story-card"
-                  href={`/stories/${s.slug}`}
-                >
-                  <div
-                    className={s.image_url ? "story-media" : `story-media ${s.grad || "m-teal"}`}
-                    aria-hidden="true"
-                  >
-                    {s.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={/^https?:\/\//.test(s.image_url) ? s.image_url : `/${s.image_url.replace(/^\//, "")}`}
-                        alt=""
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                          objectPosition: "center 20%",
-                        }}
-                      />
-                    ) : (
-                      <Orb />
-                    )}
-                  </div>
-                  <div className="card-body">
-                    <p className="t-body story-quote">&ldquo;{s.quote}&rdquo;</p>
-                    <div className="t-h4" style={{ marginTop: "auto" }}>
-                      {s.name}
-                    </div>
-                    {s.role && (
-                      <div className="lbl" style={{ marginTop: 4 }}>
-                        {s.role}
-                      </div>
-                    )}
-                    <span className="see" style={{ display: "inline-block", marginTop: 12 }}>
-                      Read more →
-                    </span>
-                  </div>
-                </Link>
-              ))}
-              <Link className="card tappable story-cta" href="/stories">
-                <div
-                  className="card-body"
-                  style={{ display: "flex", flexDirection: "column", height: "100%" }}
-                >
-                  <div className="lbl lbl-teal" style={{ marginBottom: 10 }}>
-                    Your turn
-                  </div>
-                  <div className="t-h3" style={{ marginBottom: 10 }}>
-                    Share your story or read more
-                  </div>
-                  <p className="t-body" style={{ marginBottom: 18 }}>
-                    Spotlights are public — read more from the community, or add your own.
-                  </p>
-                  <span className="see" style={{ marginTop: "auto" }}>
-                    Upskilling Stories →
-                  </span>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
+      {spotlights.length > 0 && <HomeSpotlights spotlights={spotlights} />}
 
       {/* ── Cycles ── */}
       <section
@@ -250,8 +181,6 @@ export default async function LandingPage() {
           <SectionHead
             eyebrow="Build Cycles · 4 a year"
             heading="Join a cohort, ship something real"
-            seeHref="/build-cycles"
-            seeLabel="How cycles work →"
           />
           {recruitingCycle ? (
             <div className="cycle-banner s-cover grain on-dark">
@@ -333,8 +262,6 @@ export default async function LandingPage() {
           <SectionHead
             eyebrow="Learning Library · on-demand"
             heading="Learn at your own pace"
-            seeHref={landingResources.length > 0 ? "/library" : undefined}
-            seeLabel={landingResources.length > 0 ? "Full library →" : undefined}
           />
           {landingResources.length ? (
             <div className="cards dense">
@@ -356,8 +283,6 @@ export default async function LandingPage() {
           <SectionHead
             eyebrow="Local labs"
             heading="Find your city"
-            seeHref="/local-labs"
-            seeLabel="All cities →"
           />
           <MetroSearch metros={metros} initial={landingLabs} signedIn={signedIn} />
         </div>

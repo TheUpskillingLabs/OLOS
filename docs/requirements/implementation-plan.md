@@ -100,6 +100,13 @@ Per [`cycle-timeline.md`](./cycle-timeline.md), minus the deferred items above.
    register-pods, propose, vote (the Sprint surface).
 4. `advance-phase`: keep gated as-is; do not use on the live cycle (testing
    tool only). Full override/recompute UX is Cycle-4 polish.
+5. **Cycle-registration gate (D-10, owner 2026-07-12)** — the join ceremony,
+   agreement route, and Register CTAs read the derived registration window
+   (open through `pod_forming` close; closed across the dead zone with the
+   reopen date named; open during `pod_active_join`; closed after). Ships
+   with Stage 1 because the first enforcement moment is **Jul 29** (dead-zone
+   open) — days after Stage 1's Jul 23 target. Invite path exempt. Tests
+   S3.8–S3.9.
 
 Gate: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md) G2 (S4, S5.2–5.4,
 S6) green on staging against a prod clone before deploy; deploy in the quiet
