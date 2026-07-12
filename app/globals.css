@@ -948,7 +948,6 @@ button:focus-visible {
   .foot-partners .lbl { color: var(--od3); margin-right: 4px; }
   .foot-partners img { width: auto; opacity: 0.8; }
   .foot-partners .p-levy { height: 36px; }
-  .foot-partners .p-dcpl { height: 44px; }
   .foot-partners .p-superbloom { height: 27px; }
   @media (max-width: 399px) { .foot-partners { gap: 16px 20px; } }
   .foot-fineprint { color: var(--od3); font-size: 13px; line-height: 20px; max-width: 80ch; margin-top: 28px; }
