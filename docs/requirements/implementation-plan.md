@@ -12,129 +12,154 @@ that premise (see [`pr231-evaluation.md`](./pr231-evaluation.md)):
 - **Auth storage**: shipped — `participant_roles` unification
   (`00054`–`00066`). What remains is **finishing** it
   ([`permissions-redesign.md`](./permissions-redesign.md)).
-- **Timeline**: not built; prod now runs **four** uncoordinated time models
+- **Timeline**: not built; prod runs **four** uncoordinated time models
   ([`cycle-timeline.md`](./cycle-timeline.md)).
 - **Pod registration**: core change (two windows, decoupled enrollment) not
   built; the enrollment seam (`lib/enrollment/reconciler.ts`) and a
   phase-gated (but **unscheduled**) revocation cron shipped
   ([`pod-registration.md`](./pod-registration.md)).
 
-**Timing constraint:** Cycle 3 starts **Jul 14, 2026** and runs on the manual
-window columns. Schema-touching timeline work targets **Cycle 4** (or a
-deliberately-decided mid-cycle retrofit); nothing below may disrupt a live
-formation window.
+**Timing decision (2026-07-12, owner): the calendar overhaul targets Cycle 3,
+staged inside the live cycle.** Cycle 3's real calendar (all Eastern, per
+`lib/cycles/anchor-events.ts`): Kickoff **Jul 14** · Problem Sprint **Jul 28**
+· Meet the Pods **Aug 18** · Hackathon **Sep 8** · Meet the Projects **Sep 15**
+· Summit **Oct 13**. The stage boundaries below are those dates. Testing gates
+per stage: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md).
+
+### Simplifications that make Cycle-3 targeting feasible
+
+1. **Dual-write bridge instead of a 22-file big-bang.** `cycle_phases` becomes
+   the source of truth and the schedule service **mirrors computed boundaries
+   back into the legacy `cycle_config.*_open/close` columns**. Every
+   not-yet-migrated page keeps working unchanged; pages move to the resolver
+   in batches; the mirror (and the columns) drop only when the last page has
+   moved. Removes the launch-window cliff entirely.
+2. **Seed, don't derive.** Cycle 3's phases/events are inserted as explicit
+   rows from the decided dates. The template-derivation engine
+   (offsets/weekday-snap; FR-2/FR-3's recompute machinery beyond simple
+   boundary edits) is Cycle-4 work.
+3. **No DST machinery now.** Cycle 3 runs Jul 14–Oct 13, entirely inside EDT —
+   pin cron hours to fixed UTC equivalents; hourly-gating waits for Cycle 4.
+4. **No mass timestamptz conversion now.** New tables (`cycle_phases`,
+   `cycle_events`) are born TIMESTAMPTZ; the ~49 legacy naive columns stay
+   untouched until Cycle 4 (the irreversible per-column conversion is off the
+   critical path). The legacy mirror columns keep their current storage
+   convention, verified by test S5.1.
+5. **`anchor-events.ts` retires late.** It feeds the live agreement ceremony
+   (PR #226); `cycle_events` is seeded *from* it and the ceremony swaps data
+   source only when convenient — until then both must agree (single edit
+   point: the constant).
 
 ### Standing decisions (carried forward)
 
 - **DB strategy: hybrid.** Build/test against a reset **dev** DB; apply to
   **prod as forward-only migrations with backfill** (no prod reset).
 - **Rollout: phased PRs** in dependency order, not one big-bang.
-- **Migration numbering:** next free number is **00082** (`00078`–`00081` are
-  on `dev`); claim numbers per `CONTRIBUTING.md`.
-- **Tests:** dev already carries unit tests (`lib/owner/*.test.ts`) — extend
-  that harness for the three risk seams (window resolver incl. DST, tz
-  conversion round-trip, reconciler policy), don't invent a new one.
+- **Migration numbering:** `00078`–`00081` are taken on `dev`, **and open
+  PR #229 carries a colliding `00078_handle_desuffix`** (its base predates the
+  owner-lifecycle merge) — renumber it at merge time; `npm run
+  check:migrations` on a rebased branch catches it. Claim the next free
+  number per `CONTRIBUTING.md` at branch time.
+- **Tests:** dev already carries unit tests (`lib/owner/*.test.ts`, 255+
+  passing per the fix-train PRs) — extend that harness for the risk seams
+  (window resolver, storage-convention round-trip, reconciler policy).
 
-## Phase 0 — Independent cleanups (small; safe during Cycle 3)
+## Stage 0 — before Kickoff (by Jul 13) — ops only, no schema
 
-- **Re-schedule the revocation cron** (`app/api/cron/revocation-check`) in
-  `vercel.json` — it has been unscheduled since PR #108; its current gate
-  (after `pod_registration_close`) is safe under today's single-window model.
-  Verify the two-stage warn→grace behavior against Cycle 3 config first.
-- Seed `cycle_events`-precursor data? **No** — do nothing speculative; the
-  timeline phase owns schema. Phase 0 is ops-only.
-- (Dropped from the June plan: the `testing-controls.tsx` `>`-vs-`>=` "bound
-  bug" — the current code is internally consistent; and the duplicate-`00015`
-  fix — renumbered to `00028` on 2026-06-02.)
+- **Merge the July-11 fix train (#224–#230, rebased, in order)** and promote
+  `dev → main`; these fixes (vote budgets/stacking, checklist gating, ceremony
+  dates, funnel prefill, pulse-leak fix) are launch-day behavior.
+- Run the **S5.1 window-entry convention test** and enter Cycle 3's decided
+  windows using it; complete the S1 handover rehearsal (close Cycle 2 →
+  activate Cycle 3) on staging, then execute for real.
+- **Leave the revocation cron unscheduled for now** (revised from the June
+  "re-schedule it" item): scheduling its "in no pods" arm before the
+  active-join window exists opens the orphan dead-zone ~Jul 29–Aug 18. It
+  gets scheduled in Stage 2 together with the gate move.
+- Confirm `cycle_config` values: `pod_min`, **`pod_limit` (1 vs 2 — product
+  call)**, `submitter_votes`/`non_submitter_votes`, milestone weeks.
 
-## Phase 1 — Cycle timeline (foundation; targets Cycle 4)
+## Stage 1 — calendar schema + resolver (land by ~Jul 24, before the Sprint)
 
-Per [`cycle-timeline.md`](./cycle-timeline.md). Everything else anchors here.
+Per [`cycle-timeline.md`](./cycle-timeline.md), minus the deferred items above.
 
-1. Schema (`00082+`): `cycles.start_at` (+ derived `end_at`),
-   `metros.timezone`, `cycle_phases`, `cycle_events`; migrate window columns →
-   phase rows (split `pod_registration` → `pod_forming` + `pod_active_join`);
-   migrate `phase_2/3_start` → event rows; per-column timestamptz conversion
-   (audit=UTC; scheduling=verified) — **dry-run on a prod clone first**.
-2. Schedule service (compute/recompute `starts_at`/`ends_at`; spine contiguous
-   by construction; overlays independent).
-3. Single tz-aware window resolver (extend `lib/auth/windows.ts`; new
-   `WindowField` keys; keep the org-mode reject) + **consolidate all ~22
-   inline-checking files onto it** (server-side resolution passed to pages).
-4. `advance-phase` → duration-override + recompute (keep `testing:use` gate).
-5. Re-anchor the week grid (`lib/cycle/week.ts` reads `start_at`; tz-aware
-   week boundaries); wire Luma sync → `cycle_events`; retire
-   `anchor-events.ts`; update `cycle-phase-indicator.tsx`; drop replaced
-   columns.
-6. FR-14 display tz + FR-15 cron-hour gating.
+1. Migration (next free number): `cycle_phases`, `cycle_events`,
+   `cycles.start_at` (backfill from `start_date` under the verified
+   convention), `metros.timezone`. Seed Cycle 3 rows (phases from the decided
+   windows; events from `anchor-events.ts`).
+2. Schedule service v1: boundary edits recompute downstream spine +
+   **mirror to legacy columns** (simplification 1).
+3. Resolver: `checkWindow` reads `cycle_phases` (tz-aware), gains the new
+   keys, keeps the org-reject and the #224 config-missing message. Migrate the
+   **critical-path pages** first: dashboard checklist row, join,
+   register-pods, propose, vote (the Sprint surface).
+4. `advance-phase`: keep gated as-is; do not use on the live cycle (testing
+   tool only). Full override/recompute UX is Cycle-4 polish.
 
-Verify: changing `start_at` shifts all boundaries + week grid; DST-crossing
-23:59 close closes at local 23:59; spine can't save overlapping; a cycle with
-`start_at == start_date` produces identical milestone timing; no
-`_open`/`_close` comparison outside the resolver.
+Gate: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md) G2 (S4, S5.2–5.4,
+S6) green on staging against a prod clone before deploy; deploy in the quiet
+week (Jul 20–24), days before the Sprint.
 
-## Phase 2 — Pod registration (behavioral change; needs Phase 1)
+**Fallback:** if Stage 1 isn't green by Jul 24, the Sprint runs on manual
+columns exactly as today (the mirror means nothing user-facing depends on the
+new tables yet) — slip Stage 1 to the Jul 29–Aug 14 quiet stretch and keep
+Stage 2's date.
 
-Per [`pod-registration.md`](./pod-registration.md).
+## Stage 2 — two pod windows + lifecycle (land by ~Aug 14, before Meet the Pods)
 
-1. Register route checks the window matching pod status (`forming` →
-   `pod_forming`; `active` → `pod_active_join`); metro fence + `pod_limit`
-   unchanged.
-2. Reconciler policy change (enrollment decoupled from pod membership;
-   enrollment paths activate at enrollment time). Decide D-9 (retroactive
-   activation at cutover) before shipping.
-3. Forming-close boundary event: activate ≥ `pod_min`, **dissolve** the rest
-   (reuse `00063` status), free + notify orphans (notification is net-new).
-4. Move the revocation gate to `pod_active_join.ends_at`; confirm
-   revoked→rejoin reactivation works during active-join.
+Per [`pod-registration.md`](./pod-registration.md); needs Stage 1.
 
-Verify: join forming pod only in forming window (and vice versa); join/leave
-never touches enrollment status; sub-`pod_min` pod dissolves at forming close
-with members freed + notified; nobody warned/revoked before active-join close;
-project-layer interaction (last-day joiner can register a project) accepted.
+1. `pod_forming` / `pod_active_join` phase rows govern the register route
+   (window matching pod status); metro fence + `pod_limit` unchanged.
+2. Reconciler policy change (enrollment decoupled; enrollment paths activate
+   at enrollment time). Decide D-9 (retroactive activation for existing
+   `inactive` self-registrants) — recommended **yes** at cutover so the two
+   enrollment paths converge.
+3. Forming-close boundary event: activate ≥ `pod_min`, dissolve the rest
+   (reuse `00063` status), free + notify orphans. *(Note: with the Sprint on
+   Jul 28 and Stage 2 landing after it, Cycle 3's forming close is handled by
+   the current per-registration flip — the boundary event applies from
+   active-join close onward and for Cycle 4.)*
+4. Revocation cron: move the "in no pods" gate to `pod_active_join.ends_at`
+   **and schedule it** in `vercel.json` (fixed UTC hour ≈ 7 AM EDT).
+5. Migrate the remaining window pages (solutions, solution-vote,
+   register-projects, moderator views) to the resolver; drop the legacy
+   mirror + columns once the sweep is clean.
 
-## Phase 3 — Auth completion (largest call-site surface; lands last)
+Gate: G3 (S7 + active-join suite) green before Aug 17.
 
-Per [`permissions-redesign.md`](./permissions-redesign.md).
+## Stage 3 — auth completion (post-launch-crunch; no calendar dependency)
 
-1. Invitations → (role, scope): schema change, role-selector UI,
-   `fulfillInvitation` writes via `grantRole` + reconciler; translate or drain
-   in-flight pending invites (decide P-1).
-2. Drain `participant_permissions`: run the pre-drain audit; make
-   `capabilitiesForRoles` the sole `permissions[]` source; remove writers +
-   `00065` forward-sync triggers.
-3. Unify RLS: migrate the `has_permission()`/`is_admin_or_owner()` policy
-   family (~15 migrations) onto `is_admin()`/`is_owner()`/
-   `current_participant_id()`; drop legacy helpers, then
-   `participant_permissions` + `user_roles` (update `delete_participant`).
+Per [`permissions-redesign.md`](./permissions-redesign.md). Unchanged in
+content; start once Stages 0–2 are stable (September window is fine — nothing
+in Cycle 3 blocks on it):
 
-Verify: capability snapshot per participant identical before/after the drain;
-invitation acceptance produces only `participant_roles` + membership rows;
-grants attenuation tests pass; no reference to the legacy names remains.
+1. Invitations → (role, scope); translate/drain pending invites (P-1).
+2. Drain `participant_permissions` (pre-drain audit first).
+3. Unify RLS; drop legacy helpers + `user_roles`/`participant_permissions`.
 
 ## End-to-end verification
 
-1. Reset dev DB; seed a Cycle-4-shaped cycle from the template (Cycle 3 dates
-   as fixture) + owner/admin/lab_lead/participant fixtures.
-2. Run the seam tests (resolver/DST, tz round-trip, reconciler policy, grants).
-3. Walk the cycle: problem statement → voting → pod forming → forming-close
-   dissolution → active-join → project stage; assert enrollment status and
-   cron behavior at each boundary (especially: nobody revoked before
-   active-join close).
-4. Sub-cohort isolation: a lab pod only admits matching-metro participants;
-   lab_lead scope checks 403 on foreign labs.
-5. Dry-run every prod migration (esp. the tz conversion) against a prod clone
-   before applying.
+1. Staging = prod clone. Walk the full Cycle-3 calendar with the testing
+   plan's personas (P1–P11) at each gate.
+2. Seam tests: resolver bounds + storage-convention round-trip; reconciler
+   policy (Stage 2); grants attenuation (Stage 3).
+3. Dry-run every prod migration against the clone before applying; the Stage-1
+   migration is additive (new tables + nullable column) — rollback is a
+   drop, not a restore.
 
 ## Residual risks
 
-- **Per-column tz conversion** is the one irreversible data step — verify real
-  values per column; dry-run on a clone.
-- **Window consolidation** touches ~22 files during/near a live cycle — hence
-  the Cycle-4 targeting; land behind the resolver with unchanged semantics
-  first (naive→tz-aware flip is the schema migration moment, not the refactor
-  moment).
-- **Reconciler policy change** alters who counts as active mid-cycle if D-9 is
-  decided as retroactive — model the Cycle-3/4 boundary explicitly.
-- **Legacy-RLS unification** can silently widen/narrow row visibility —
-  policy-by-policy diff review + before/after query fixtures.
+- **Live-cycle deploys.** Stages 1–2 land inside a running cycle by design
+  (owner call). Mitigations: additive schema + dual-write mirror (old pages
+  never break), deploys in quiet stretches between anchor events, per-stage
+  fallback to manual columns.
+- **Sprint-night compression.** Jul 28's submit → vote → finalize → forming
+  chain runs inside ~3 hours with an admin in the loop — rehearse end-to-end
+  (S4.1) regardless of which stage has shipped.
+- **Metro fence vs. metro-less members** (S4.4): decide HQ-pods vs.
+  metro-backfill before Jul 28 — likeliest mass-failure of Sprint night.
+- **Reconciler policy change mid-cycle** (Stage 2): D-9 decision changes who
+  counts as active on real data; snapshot enrollment statuses before/after.
+- **Legacy-RLS unification** (Stage 3): policy-by-policy diff + before/after
+  fixtures, as before.

@@ -56,7 +56,11 @@ indicator). A fourth model — hardcoded anchor events
 (`lib/cycles/anchor-events.ts`, interim pending the Luma cache `00035`) — must
 also fold into `cycle_events`. The rewrite keeps the June prescription and
 adds the fold-in plan for all four models, plus the timing note that Cycle 3
-(Jul 14) runs on manual columns and the derived timeline targets Cycle 4.
+(Jul 14) opens on manual columns; per the owner's 2026-07-12 decision the
+overhaul targets **Cycle 3, staged inside the cycle** (schema + resolver
+before the Jul 28 Sprint; pod windows before Aug 18 Meet the Pods). The
+June draft's Cycle-3 dates were themselves stale — the real calendar lives
+in `lib/cycles/anchor-events.ts` (all-Tuesday cadence, evening events).
 
 ### Pod registration partially overtaken (→ `pod-registration.md` re-baselined, core kept)
 
@@ -91,7 +95,7 @@ unbuilt and is still the core ask.
 |---|---|
 | `local-labs.md` | Superseded record (shipped inverted); timezone remnant moved to timeline doc |
 | `permissions-redesign.md` | Re-scoped to "finish the unification": invitations → (role, scope); drain `participant_permissions`; unify RLS |
-| `cycle-timeline.md` | Kept (highest value); re-baselined on the four coexisting time models; targets Cycle 4 |
+| `cycle-timeline.md` | Kept (highest value); re-baselined on the four coexisting time models; targets Cycle 3, staged (owner decision 2026-07-12) |
 | `pod-registration.md` | Core kept (two windows, decoupling); rewritten around the reconciler + rewritten/unscheduled cron |
 | `per-lab-configuration.md` | Still deferred; retargeted labs→metros |
 | `implementation-plan.md` | Rewritten: Phase 0 cleanups → timeline → pod-registration → auth completion |
