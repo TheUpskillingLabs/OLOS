@@ -45,6 +45,50 @@ condition is always "both browsers agree with the Eastern wall-clock intent."
 | P10 | **Org contributor** | Member of an org-mode workstream pod (regression only) |
 | P11 | **Revoked returner** | Cycle-3 enrollee later revoked (S7) |
 
+## Cycle 3 admin config entry sheet (the June scaffold → the real form)
+
+Every value below is editable in **Admin → cycle → config form** (all twelve
+windows, `phase_2/3_start`, thresholds, `pod_limit`, milestone weeks — no
+deploy needed). All times ET wall-clock, entered per the S5.1-verified
+convention. Scaffold arithmetic verified: every weekday/offset checks out, and
+Jul 14 → Oct 13 is exactly 91 days = 13 × 7, so `getCycleWeek`'s thirteen
+equal buckets land on exact calendar weeks.
+
+| Field | Value | Note |
+|---|---|---|
+| `cycles.start_date` / `end_date` | Jul 14 / Oct 13 | drives week rail + milestones |
+| `problem_statement_open/close` | Jul 25 9:00 AM → 12:00 PM | Sprint morning |
+| `voting_open/close` | Jul 25 12:00 PM → 1:00 PM | finalize runs at close (S4.1) |
+| `pod_registration_open/close` | Jul 25 1:00 PM → Jul 28 11:59 PM | **forming window — see O-1** |
+| `solution_proposal_open/close` | Aug 13 9:00 AM → Aug 18 11:59 PM | opens at Hackathon start (confirm hour) |
+| `solution_voting_open/close` | Aug 19 12:00 AM → Aug 20 11:59 PM | contiguous chain |
+| `project_registration_open/close` | Aug 21 12:00 AM → Aug 25 11:59 PM | |
+| `phase_2_start` | Aug 11 | Meet the Pods marker (phase indicator) |
+| `phase_3_start` | Sep 8 | Meet the Projects marker |
+| `pod_limit` | **1 or 2 — product call** | June D-4 said 2; shipped default 1 |
+| `pod_min`, votes, thresholds | product values | confirm before Jul 25 |
+| `milestone_mid_week` / `final_week` | 6 / 12 (defaults) | week 6 = Aug 25–31 (right after project reg closes); week 12 = Oct 6–13 |
+
+**O-1 — the one place the scaffold doesn't fit the current form:** the June
+schedule has **two** pod windows (forming Jul 25–28; active-join Aug 11–25)
+but the form has **one** `pod_registration` pair until Stage 2 ships.
+Decision:
+- **Recommended:** enter the forming window now (as above). When Aug 11
+  arrives, Stage 2's `pod_active_join` phase takes over — and if Stage 2
+  slips, the no-code fallback is a 30-second admin edit: set
+  `pod_registration` to Aug 11 12:00 AM → Aug 25 11:59 PM (current code
+  already allows joining `active` pods in-window). This also moves the
+  revocation cron's gate (= `pod_registration_close`) to Aug 25, which
+  matches the intended rule.
+- **Rejected:** one long window Jul 25 → Aug 25 — it would let people join
+  during Jul 29–Aug 10, which the scaffold says is closed.
+
+**Known gap until Stage 2 — sub-`pod_min` pods at forming close (Jul 29):**
+no dissolution code exists yet, so pods under threshold just stay `forming`.
+Their members count against `pod_limit` and can't join an active pod without
+leaving first. Ops sweep on Jul 29: review forming pods < `pod_min` and free/
+reassign members via the admin membership tools (S4 covers the member paths).
+
 ## S1 — Cycle 2 → Cycle 3 handover (G0; rehearse on staging first)
 
 The riskiest untested moment happens **before** anyone joins anything.
