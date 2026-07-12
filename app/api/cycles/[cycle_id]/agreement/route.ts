@@ -83,7 +83,7 @@ export const POST = withAuth(
     if (isErrorResponse(body)) return body;
 
     // Mirror the weekly-commitment pick (answers.hours) onto the member's
-    // profile availability — one shared field with the profile (00078). Runs
+    // profile availability — one shared field with the profile (00082). Runs
     // on every submit, including a re-sign, so the profile reflects the latest
     // registration. availability is single-valued here: replace any prior pick.
     const hours = (body.answers as { hours?: string } | undefined)?.hours;
