@@ -30,12 +30,56 @@ import { OPEN_CYCLE_AGREEMENT_VERSION } from "@/lib/validations/cycle-agreement"
 
 const HOURS = ["2–4 hrs / week", "5–8 hrs / week", "8+ hrs / week"];
 
-function cycleSteps(cycleName: string, fullName: string): FlowStep[] {
+function cycleSteps(
+  cycleName: string,
+  fullName: string,
+  cycleDescription: string,
+  whatYouBuild: string
+): FlowStep[] {
   // The presence commitment lists each core event with its date — testers
   // couldn't parse the old inline comma string (July 2026 feedback: "list
   // dates out more clearly").
   const coreDates = coreEvents().map((e) => `${e.name} — ${fmtEvt(e)}`);
   return [
+    {
+      id: "what_is_a_build_cycle",
+      type: "info",
+      q: "What a Build Cycle is",
+      help: "Thirty seconds of context before the questions.",
+      render: (
+        <div style={{ display: "grid", gap: 14 }}>
+          <p className="t-body">{cycleDescription}</p>
+          <p className="t-body">{whatYouBuild}</p>
+        </div>
+      ),
+    },
+    {
+      id: "what_civics_elections_means",
+      type: "info",
+      q: "What Civics & Elections means",
+      help: "This cycle’s theme, in plain language.",
+      render: (
+        <div style={{ display: "grid", gap: 14 }}>
+          <p className="t-body">
+            Every Build Cycle takes on one theme. This one is Civics &
+            Elections: how your community makes decisions together — local
+            elections, public meetings, ballot measures, the information people
+            need to take part.
+          </p>
+          <p className="t-body">
+            Your pod will pick a real problem in that space — something like
+            helping neighbors find their polling place, making a city budget
+            readable, or tracking what happens after a public comment — and
+            build a working, open-source answer to it.
+          </p>
+          <p className="t-body">
+            You don’t need a politics background. You need curiosity about
+            where you live and the willingness to build something useful for
+            the people around you.
+          </p>
+        </div>
+      ),
+    },
     {
       id: "theme_interest",
       type: "textarea",
@@ -95,6 +139,8 @@ export default function CycleCeremony({
   cycleId,
   cycleName,
   fullName,
+  cycleDescription,
+  whatYouBuild,
   fromSignup,
   alreadySigned,
   signedAt,
@@ -103,22 +149,25 @@ export default function CycleCeremony({
   cycleId: number;
   cycleName: string;
   fullName: string;
+  cycleDescription: string;
+  whatYouBuild: string;
   fromSignup: boolean;
   alreadySigned: boolean;
   signedAt: string | null;
   podRegistrationOpen: boolean;
 }) {
   const router = useRouter();
-  // The cycle's purpose + dates + open-source policy now live on the public
-  // /build-cycles page; registration goes straight to the questions + sign
-  // (owner decision — read the pitch there, just agree + register here).
+  // The full pitch (dates, open-source policy) lives on the public
+  // /build-cycles page; the ceremony opens with two short info beats — what a
+  // Build Cycle is, what this cycle's theme means — before the questions +
+  // sign, so a deep-linked registrant isn't answering cold.
   const [stage, setStage] = useState<"flow" | "signed">(
     alreadySigned ? "signed" : "flow"
   );
   const [signedNow, setSignedNow] = useState<string | null>(signedAt);
   const steps = useMemo(
-    () => cycleSteps(cycleName, fullName),
-    [cycleName, fullName]
+    () => cycleSteps(cycleName, fullName, cycleDescription, whatYouBuild),
+    [cycleName, fullName, cycleDescription, whatYouBuild]
   );
 
   const eyebrow = fromSignup

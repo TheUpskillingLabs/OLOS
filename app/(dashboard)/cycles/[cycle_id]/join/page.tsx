@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import CycleCeremony from "./ceremony";
+import { cycleInfoContent } from "@/lib/cycles/info";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
 // FLOWS('cycle') → the Open Cycle Agreement signature → view-cycle-signed).
@@ -48,7 +49,7 @@ export default async function JoinCyclePage({
 
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, status, mode, lab_id")
+    .select("id, name, status, mode, lab_id, description, what_you_build")
     .eq("id", cycleId)
     .single();
 
@@ -96,11 +97,14 @@ export default async function JoinCyclePage({
     now <= new Date(config.pod_registration_close);
 
   const fullName = `${participant.first_name} ${participant.last_name}`.trim();
+  const info = cycleInfoContent(cycle);
 
   return (
     <CycleCeremony
       cycleId={cycleId}
       cycleName={cycle.name}
+      cycleDescription={info.description}
+      whatYouBuild={info.whatYouBuild}
       fullName={fullName}
       fromSignup={from === "signup"}
       alreadySigned={!!agreement}
