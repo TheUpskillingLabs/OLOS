@@ -200,11 +200,14 @@ export default function EventsAgenda({
       {/* One slim toolbar — segmented view toggle, compact search, filter
           chips, kind dropdown, reset — so the cards start near the fold. */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* No live counts in the segment labels — a changing digit resized
+            the pill as filters narrowed the list (July 2026 feedback); the
+            "N of M" readout at the row's end already carries the number. */}
         <div className="seg" role="group" aria-label="Upcoming or past events">
           {(
             [
-              { key: "upcoming", label: "Upcoming", n: filteredUpcoming.length },
-              { key: "past", label: "Past", n: filteredPast.length },
+              { key: "upcoming", label: "Upcoming" },
+              { key: "past", label: "Past" },
             ] as const
           ).map((v) => (
             <button
@@ -214,7 +217,7 @@ export default function EventsAgenda({
               aria-pressed={view === v.key}
               onClick={() => set({ view: v.key })}
             >
-              {v.label} <span className="tabular-nums">{v.n}</span>
+              {v.label}
             </button>
           ))}
         </div>
@@ -224,7 +227,7 @@ export default function EventsAgenda({
           value={qInput}
           onChange={(e) => setQInput(e.target.value)}
           aria-label="Search events"
-          className="h-[38px] w-full rounded-card border border-ink/10 bg-white px-3 text-sm text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150 md:w-60"
+          className="h-[38px] w-full rounded-card border border-ink/10 bg-white px-3 text-sm text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150 md:w-80"
         />
         {LOC_FILTERS.map((f) => {
           const active = loc === f.key;

@@ -30,9 +30,9 @@ export default function Gallery({
       >
         {slides.map((g, i) =>
           g === "IMG" ? (
-            <MediaFrame key={i} img={img} />
+            <MediaFrame key={i} img={img} square />
           ) : (
-            <MediaFrame key={i} grad={g} />
+            <MediaFrame key={i} grad={g} square />
           )
         )}
       </div>
