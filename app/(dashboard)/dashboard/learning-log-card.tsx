@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 /* The Learning Log — the weekly ritual, on the dashboard where the practice
    lives (owner decision: the ritual is Home, not a nav destination). Three
@@ -119,6 +120,7 @@ export default function LearningLogCard({
       render just the form. */
   embedded?: boolean;
 }) {
+  const router = useRouter();
   const pf = milestone?.prefill ?? null;
   const [clarity, setClarity] = useState(pf?.clarity ?? 3);
   const [alignment, setAlignment] = useState(pf?.alignment ?? 3);
@@ -288,8 +290,14 @@ export default function LearningLogCard({
       setNextFocus("");
       setShare(false);
       loadRecent();
+      // Refresh the server components so anything derived from log state
+      // updates in place — notably the setup checklist's "Save your first
+      // Learning Log" row, which is computed server-side (logCount > 0) and
+      // otherwise stayed unchecked until a manual refresh.
+      router.refresh();
       if (data.gate_cleared) {
-        // The gate reads server state — refresh so the chrome unlocks now.
+        // The gate reads server state — full reload so the locked chrome
+        // unlocks now (stronger than router.refresh for the layout gate).
         setTimeout(() => window.location.reload(), 1200);
       }
     } catch {

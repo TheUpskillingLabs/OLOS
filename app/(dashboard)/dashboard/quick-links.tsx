@@ -5,12 +5,22 @@ import Link from "next/link";
    A calm list of teal links divided by hairlines — LinkedIn's right rail in
    the light system. */
 
-export default function QuickLinks({ cycleId }: { cycleId?: number }) {
+export default function QuickLinks({
+  cycleId,
+  metroId,
+}: {
+  cycleId?: number;
+  metroId?: number | null;
+}) {
   const links: { label: string; href: string; external?: boolean }[] = [
     { label: "Your cycle", href: cycleId ? `/cycles/${cycleId}` : "/cycles" },
     { label: "Browse events", href: "/events" },
     { label: "Browse the library", href: "/library" },
-    { label: "Find your local lab", href: "/local-labs" },
+    // The lab finder only matters to members who haven't picked one —
+    // showing it to registered lab members read as a bug in testing.
+    ...(metroId == null
+      ? [{ label: "Find your local lab", href: "/local-labs" }]
+      : []),
     {
       label: "Support The Labs",
       href: "https://www.every.org/theupskillinglabs",
