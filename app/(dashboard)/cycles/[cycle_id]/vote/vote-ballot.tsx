@@ -40,14 +40,19 @@ export default function VoteBallot({
 }) {
   const [statements, setStatements] = useState<ProblemStatement[]>([]);
   const [tallies, setTallies] = useState<Tally[]>([]);
-  const [pendingVotes, setPendingVotes] = useState<Record<number, number>>({});
+  // The viewer's own allocation per statement (committed). Drives the
+  // "Your votes: N" display and seeds the stepper when editing.
+  const [myVotes, setMyVotes] = useState<Record<number, number>>({});
+  // Which card's stepper is open, and the uncommitted stepper value per card.
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Record<number, number>>({});
   const [totalUsed, setTotalUsed] = useState(0);
   // The server decides which budget applies (page.tsx resolves isSubmitter);
   // defaulting to nonSubmitterBudget here was the bug that showed submitters
   // 1 vote instead of their configured allowance.
-  const [budget, setBudget] = useState(
-    isSubmitter ? submitterBudget : nonSubmitterBudget
-  );
+  // Budget is fixed for the cycle (server resolves submitter vs non-submitter);
+  // only totalUsed changes as votes are cast.
+  const budget = isSubmitter ? submitterBudget : nonSubmitterBudget;
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [successId, setSuccessId] = useState<number | null>(null);
@@ -61,15 +66,21 @@ export default function VoteBallot({
     ]).then(([stmts, voteData]) => {
       if (Array.isArray(stmts)) setStatements(stmts);
       if (voteData?.tallies) setTallies(voteData.tallies);
-      // Votes cast in earlier sessions count against the budget — without
-      // this, "votes remaining" reads as the full budget after a reload.
+      // Votes cast in earlier sessions count against the budget and are shown
+      // per card — without this, "votes remaining" reads as the full budget
+      // after a reload and there's no visibility into prior allocation.
       if (Array.isArray(voteData?.my_votes)) {
-        setTotalUsed(
-          voteData.my_votes.reduce(
-            (sum: number, v: { vote_count: number }) => sum + v.vote_count,
-            0
-          )
-        );
+        const mine: Record<number, number> = {};
+        let used = 0;
+        for (const v of voteData.my_votes as {
+          problem_statement_id: number;
+          vote_count: number;
+        }[]) {
+          mine[v.problem_statement_id] = v.vote_count;
+          used += v.vote_count;
+        }
+        setMyVotes(mine);
+        setTotalUsed(used);
       }
       setLoading(false);
     });
@@ -81,9 +92,15 @@ export default function VoteBallot({
     );
   }
 
-  async function castVote(problemStatementId: number) {
-    const voteCount = pendingVotes[problemStatementId];
-    if (!voteCount || voteCount < 1) return;
+  // Set-absolute: submits the desired total for a statement (0 removes it).
+  // The stepper/edit UI collects the target count; the server clamps it to the
+  // budget and this reconciles local state from the returned votes_remaining.
+  async function setVotes(problemStatementId: number, count: number) {
+    const prev = myVotes[problemStatementId] ?? 0;
+    if (count === prev) {
+      setEditingId(null);
+      return;
+    }
 
     setError("");
     setSuccessId(null);
@@ -91,44 +108,69 @@ export default function VoteBallot({
 
     try {
       const res = await fetch("/api/votes", {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cycle_id: cycleId,
           problem_statement_id: problemStatementId,
-          vote_count: voteCount,
+          vote_count: count,
         }),
       });
 
       if (!res.ok) {
         const body = await res.json();
-        setError(body.error || "Failed to cast vote");
+        setError(body.error || "Failed to update votes");
         return;
       }
 
       const result = await res.json();
       setSuccessId(problemStatementId);
-      setTotalUsed((prev) => prev + voteCount);
+
+      setMyVotes((m) => {
+        const next = { ...m };
+        if (count === 0) delete next[problemStatementId];
+        else next[problemStatementId] = count;
+        return next;
+      });
+
+      // Budget is constant for the cycle; trust the server's votes_remaining as
+      // the source of truth for how many votes are now used.
       if (result.votes_remaining !== undefined) {
-        setBudget(result.votes_remaining + totalUsed + voteCount);
+        setTotalUsed(budget - result.votes_remaining);
+      } else {
+        setTotalUsed((t) => t - prev + count);
       }
-      setTallies((prev) => {
-        const existing = prev.find(
+
+      // Adjust the community tally by the delta (removal lowers it).
+      const delta = count - prev;
+      setTallies((prevT) => {
+        const existing = prevT.find(
           (t) => t.problem_statement_id === problemStatementId
         );
         if (existing) {
-          return prev.map((t) =>
-            t.problem_statement_id === problemStatementId
-              ? { ...t, total_votes: t.total_votes + voteCount }
-              : t
-          );
+          return prevT
+            .map((t) =>
+              t.problem_statement_id === problemStatementId
+                ? { ...t, total_votes: Math.max(0, t.total_votes + delta) }
+                : t
+            )
+            .filter((t) => t.total_votes > 0);
         }
-        return [
-          ...prev,
-          { problem_statement_id: problemStatementId, total_votes: voteCount },
-        ];
+        if (delta > 0) {
+          return [
+            ...prevT,
+            { problem_statement_id: problemStatementId, total_votes: delta },
+          ];
+        }
+        return prevT;
       });
-      setPendingVotes((prev) => ({ ...prev, [problemStatementId]: 0 }));
+
+      setEditingId(null);
+      setDraft((d) => {
+        const next = { ...d };
+        delete next[problemStatementId];
+        return next;
+      });
     } catch {
       setError("Network error. Try again.");
     } finally {
@@ -175,10 +217,16 @@ export default function VoteBallot({
           <p className="text-xs text-meta tabular-nums">votes remaining</p>
         </div>
         <div className="text-right text-xs text-meta tabular-nums">
-          <p className="font-semibold text-charcoal">
-            You have {budget} vote{budget !== 1 ? "s" : ""} this cycle
-            {isSubmitter ? " (you submitted a proposal)" : ""}
-          </p>
+          {remaining <= 0 ? (
+            <p className="font-semibold text-charcoal">
+              You&rsquo;ve used all of your votes for this cycle.
+            </p>
+          ) : (
+            <p className="font-semibold text-charcoal">
+              You have {budget} vote{budget !== 1 ? "s" : ""} this cycle
+              {isSubmitter ? " (you submitted a proposal)" : ""}
+            </p>
+          )}
           <p>
             Submitters get {submitterBudget} · non-submitters get{" "}
             {nonSubmitterBudget}. Stack votes on one problem or spread them out.
@@ -201,6 +249,15 @@ export default function VoteBallot({
           const pd = stmt.proposal_data;
           const isExpanded = expandedId === stmt.id;
           const hasDetails = pd?.problem || pd?.voter_context;
+
+          const mine = myVotes[stmt.id] ?? 0;
+          // Zero-state cards show the stepper directly so votes can be added;
+          // cards you've voted on rest at "Your votes: N" until you hit Edit.
+          const isEditing = editingId === stmt.id || mine === 0;
+          // Freeing this card's current allocation is available headroom, so
+          // the stepper can range up to mine + remaining.
+          const maxSettable = mine + remaining;
+          const draftValue = draft[stmt.id] ?? mine;
 
           return (
             <div
@@ -299,40 +356,93 @@ export default function VoteBallot({
                   <span className="text-xs font-medium text-meta tabular-nums">
                     {getTallyFor(stmt.id)} vote
                     {getTallyFor(stmt.id) !== 1 ? "s" : ""}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      max={remaining}
-                      value={pendingVotes[stmt.id] || ""}
-                      onChange={(e) =>
-                        setPendingVotes((prev) => ({
-                          ...prev,
-                          [stmt.id]: parseInt(e.target.value, 10) || 0,
-                        }))
-                      }
-                      placeholder="0"
-                      aria-label="Vote count"
-                      className="w-16 rounded-card border border-ink/10 bg-white px-2 py-1 text-center text-base tabular-nums text-ink placeholder:text-meta-soft transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-                    />
-                    <button
-                      onClick={() => castVote(stmt.id)}
-                      disabled={
-                        submitting !== null ||
-                        !pendingVotes[stmt.id] ||
-                        pendingVotes[stmt.id] < 1
-                      }
-                      className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-                    >
-                      {submitting === stmt.id ? "..." : "Vote"}
-                    </button>
-                    {successId === stmt.id && (
-                      <span className="text-xs font-medium text-teal-deep">
-                        Voted
+                    {mine > 0 && (
+                      <span className="ml-2 font-semibold text-teal-deep">
+                        · you: {mine}
                       </span>
                     )}
-                  </div>
+                  </span>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label="Remove one vote"
+                          onClick={() =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              [stmt.id]: Math.max(0, draftValue - 1),
+                            }))
+                          }
+                          disabled={submitting !== null || draftValue <= 0}
+                          className="flex h-8 w-8 items-center justify-center rounded-card border border-ink/10 bg-white text-lg leading-none text-ink transition-colors duration-150 hover:border-ink/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                        >
+                          −
+                        </button>
+                        <span className="w-8 text-center text-base font-semibold tabular-nums text-ink">
+                          {draftValue}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Add one vote"
+                          onClick={() =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              [stmt.id]: Math.min(maxSettable, draftValue + 1),
+                            }))
+                          }
+                          disabled={submitting !== null || draftValue >= maxSettable}
+                          className="flex h-8 w-8 items-center justify-center rounded-card border border-ink/10 bg-white text-lg leading-none text-ink transition-colors duration-150 hover:border-ink/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setVotes(stmt.id, draftValue)}
+                        disabled={submitting !== null || draftValue === mine}
+                        className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                      >
+                        {submitting === stmt.id ? "..." : mine > 0 ? "Save" : "Vote"}
+                      </button>
+                      {mine > 0 && (
+                        <button
+                          onClick={() => {
+                            setEditingId(null);
+                            setDraft((prev) => {
+                              const next = { ...prev };
+                              delete next[stmt.id];
+                              return next;
+                            });
+                          }}
+                          disabled={submitting !== null}
+                          className="text-xs font-medium text-meta transition-colors duration-150 hover:text-charcoal disabled:opacity-40"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold tabular-nums text-charcoal">
+                        Your votes: {mine}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setEditingId(stmt.id);
+                          setDraft((prev) => ({ ...prev, [stmt.id]: mine }));
+                        }}
+                        disabled={submitting !== null}
+                        className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                      >
+                        Edit
+                      </button>
+                      {successId === stmt.id && (
+                        <span className="text-xs font-medium text-teal-deep">
+                          Saved
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
