@@ -168,21 +168,37 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
     </>
   );
 
-  // The join explainer, hosted in the intercepted popup
-  // (app/@authmodal/(.)login only renders this for intent=join / invites).
+  // Hosted in the intercepted popup (app/@authmodal/(.)login). Joining gets
+  // the full explainer; logging in gets a compact card — heading, Google
+  // button, fine print — so the door is obvious without the pitch.
   if (inModal) {
+    if (joining) {
+      return (
+        <>
+          {invitedTag}
+          {failedAlert}
+          <h2 className="t-h2" style={{ marginBottom: 8 }}>
+            Sign in with Google
+          </h2>
+          <p className="t-body" style={{ marginBottom: 12 }}>
+            One account you already have. Free, familiar, nothing new to
+            remember.
+          </p>
+          <div style={{ marginBottom: 20 }}>{benefits}</div>
+          <div style={{ marginBottom: 10 }}>{googleButton}</div>
+          {finePrint}
+        </>
+      );
+    }
     return (
       <>
-        {invitedTag}
         {failedAlert}
         <h2 className="t-h2" style={{ marginBottom: 8 }}>
-          Sign in with Google
+          Sign in
         </h2>
-        <p className="t-body" style={{ marginBottom: 12 }}>
-          One account you already have. Free, familiar, nothing new to
-          remember.
+        <p className="t-body" style={{ marginBottom: 20 }}>
+          Use your Google account to sign in to The Upskilling Labs.
         </p>
-        <div style={{ marginBottom: 20 }}>{benefits}</div>
         <div style={{ marginBottom: 10 }}>{googleButton}</div>
         {finePrint}
       </>
