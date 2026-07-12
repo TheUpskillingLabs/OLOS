@@ -1,199 +1,170 @@
-# OLOS Redesign — Sequenced Implementation Plan (post-stress-test)
+# OLOS Redesign — Sequenced Implementation Plan (2026-07 re-baseline)
 
 ## Context
 
-Five requirements docs (`docs/requirements/`) designed four interlocking changes —
-**local-labs**, **permissions-redesign**, **pod-registration**, **cycle-timeline**
-(plus a deferred **per-lab-configuration**). Nothing is implemented. This plan turns
-the set into a sequenced build **after stress-testing the docs against the actual code**
-(three code audits run this session). The stress test found several places where the
-docs are internally contradictory, undercount scope, or rely on mechanisms that don't
-behave as assumed; those fixes are baked into the phases below.
+The June 2026 plan sequenced four redesigns (`labs → timeline → pod-registration
+→ auth`) on the premise that none were built. Six weeks of shipping changed
+that premise (see [`pr231-evaluation.md`](./pr231-evaluation.md)):
 
-### Locked decisions (this session)
-- **DB strategy: hybrid.** Build/test against a reset **dev** DB; apply to **prod as
-  forward-only migrations *with* backfill** (no prod reset). Backfill code is real.
-  → The "ship against a reset DB" wording in all docs must be corrected to this.
-- **Rollout: phased PRs**, in dependency order (below), not one big-bang PR.
-- **RLS: coarse.** DB policies enforce "are you an admin at all / is this row yours";
-  **scope (lab/cycle) is enforced in the app seam** (`isAdminOf`), per AC-1. No per-cycle/
-  per-lab RLS predicate rewrite.
-- **Observer → super admin** on backfill (author's call). Residual risk accepted; the D-4
-  audit is the safeguard (see Phase 4). *Only fires if prod actually has observer rows.*
-- **Test scaffolding: yes** — seed the three highest-risk seams (auth scope, window
-  resolver, tz conversion). No test infra exists today.
+- **Labs**: shipped **differently** — metros + HQ-cycle sub-cohorts
+  (`00060`/`00062`/`00067`/`00068`). The labs phase is **dropped**;
+  [`local-labs.md`](./local-labs.md) is a superseded record.
+- **Auth storage**: shipped — `participant_roles` unification
+  (`00054`–`00066`). What remains is **finishing** it
+  ([`permissions-redesign.md`](./permissions-redesign.md)).
+- **Timeline**: not built; prod runs **four** uncoordinated time models
+  ([`cycle-timeline.md`](./cycle-timeline.md)).
+- **Pod registration**: core change (two windows, decoupled enrollment) not
+  built; the enrollment seam (`lib/enrollment/reconciler.ts`) and a
+  phase-gated (but **unscheduled**) revocation cron shipped
+  ([`pod-registration.md`](./pod-registration.md)).
 
-### Corrected dependency order (the docs' stated order was wrong)
-`labs` → `timeline` → `pod-registration` → `auth`.
-Rationale: pod-registration's two windows **are** `cycle_phases` rows, and the rewritten
-revocation cron needs the `pod_forming`/`pod_active_join` boundaries — both depend on
-**timeline**, which the docs had sequenced *after* pod-registration.
+**Timing decision (2026-07-12, owner): the calendar overhaul targets Cycle 3,
+staged inside the live cycle.** Cycle 3's calendar (all Eastern, confirmed by
+the owner — `cycle-timeline.md` is the source; `anchor-events.ts` shipped with
+stale prototype dates and was corrected in this PR): Kickoff **Tue Jul 14** ·
+Problem Sprint **Sat Jul 25** (windows 9am–1pm; forming closes **Jul 28** EOD)
+· Meet the Pods **Tue Aug 11** (active-join opens) · Hackathon **Thu Aug 13**
+· Meet the Projects **Tue Sep 8** · Summit **Tue Oct 13**. The stage
+boundaries below are those dates. Testing gates per stage:
+[`cycle3-testing-plan.md`](./cycle3-testing-plan.md).
 
----
+### Simplifications that make Cycle-3 targeting feasible
 
-## Phase 0 — Doc corrections + test scaffold (do first)
+1. **Dual-write bridge instead of a 22-file big-bang.** `cycle_phases` becomes
+   the source of truth and the schedule service **mirrors computed boundaries
+   back into the legacy `cycle_config.*_open/close` columns**. Every
+   not-yet-migrated page keeps working unchanged; pages move to the resolver
+   in batches; the mirror (and the columns) drop only when the last page has
+   moved. Removes the launch-window cliff entirely.
+2. **Seed, don't derive.** Cycle 3's phases/events are inserted as explicit
+   rows from the decided dates. The template-derivation engine
+   (offsets/weekday-snap; FR-2/FR-3's recompute machinery beyond simple
+   boundary edits) is Cycle-4 work.
+3. **No DST machinery now.** Cycle 3 runs Jul 14–Oct 13, entirely inside EDT —
+   pin cron hours to fixed UTC equivalents; hourly-gating waits for Cycle 4.
+4. **No mass timestamptz conversion now.** New tables (`cycle_phases`,
+   `cycle_events`) are born TIMESTAMPTZ; the ~49 legacy naive columns stay
+   untouched until Cycle 4 (the irreversible per-column conversion is off the
+   critical path). The legacy mirror columns keep their current storage
+   convention, verified by test S5.1.
+5. **`anchor-events.ts` retires late.** It feeds the live agreement ceremony
+   (PR #226); `cycle_events` is seeded *from* it and the ceremony swaps data
+   source only when convenient — until then both must agree (single edit
+   point: the constant). Its stale prototype dates were corrected to the real
+   calendar in this PR — **that fix must reach `main` before Jul 14** (the
+   ceremony renders it on day 1).
 
-**Doc corrections** (the contradictions found; fix before building from them):
-- Replace "ship against a reset DB" with the hybrid statement in all four active docs.
-- cycle-timeline D-3: change "interpret **all** naive timestamps as Eastern" to a
-  **per-column rule** — `CURRENT_TIMESTAMP`-origin audit columns are **UTC**; only
-  admin-entered scheduling columns are candidates for Eastern, and that must be verified
-  against real values. (A blanket Eastern reinterpretation shifts ~38 audit columns by
-  +4-5h.)
-- cycle-timeline FR-11: window-check list is **12 files, not 9**, and the UI pages don't
-  call `checkWindow` at all — add `dashboard/page.tsx`,
-  `moderator/cycles/[cycle_id]/vote-progress/page.tsx`,
-  `admin/cycles/[cycle_id]/testing-controls.tsx` (latter uses `>` vs `>=` — fix the bound).
-- pod-registration D-2/D-6: document the cron rewrite + activation-trigger + the
-  orphan-window fix (see Phase 3) — "ties to the existing cron" understates it.
-- Fix duplicate migration number `00015` going forward (new migrations start at `00020`).
+### Standing decisions (carried forward)
 
-**Test scaffold** (lightweight; e.g. Vitest + a seeded local Supabase):
-- Auth seam: `isAdminOf({cycleId,labId})` / `isSuperAdmin` scope cases (own vs foreign).
-- Window resolver: one tz-aware resolver — DST boundary, inclusive/exclusive bounds, null.
-- tz conversion: assert a known Eastern scheduling instant and a known UTC audit instant
-  both round-trip correctly after the column-type change.
+- **DB strategy: hybrid.** Build/test against a reset **dev** DB; apply to
+  **prod as forward-only migrations with backfill** (no prod reset).
+- **Rollout: phased PRs** in dependency order, not one big-bang.
+- **Migration numbering:** `00078`–`00081` are taken on `dev`, **and open
+  PR #229 carries a colliding `00078_handle_desuffix`** (its base predates the
+  owner-lifecycle merge) — renumber it at merge time; `npm run
+  check:migrations` on a rebased branch catches it. Claim the next free
+  number per `CONTRIBUTING.md` at branch time.
+- **Tests:** dev already carries unit tests (`lib/owner/*.test.ts`, 255+
+  passing per the fix-train PRs) — extend that harness for the risk seams
+  (window resolver, storage-convention round-trip, reconciler policy).
 
----
+## Stage 0 — before Kickoff (by Jul 13) — ops only, no schema
 
-## Phase 1 — Local Labs (foundation)
+- **Merge the July-11 fix train (#224–#230, rebased, in order)** and promote
+  `dev → main`; these fixes (vote budgets/stacking, checklist gating, ceremony
+  dates, funnel prefill, pulse-leak fix) are launch-day behavior.
+- Run the **S5.1 window-entry convention test** and enter Cycle 3's decided
+  windows using it; complete the S1 handover rehearsal (close Cycle 2 →
+  activate Cycle 3) on staging, then execute for real.
+- **Leave the revocation cron unscheduled for now** (revised from the June
+  "re-schedule it" item): scheduling its "in no pods" arm before the
+  active-join window exists opens the orphan dead-zone ~Jul 29–Aug 11. It
+  gets scheduled in Stage 2 together with the gate move.
+- Confirm `cycle_config` values: `pod_min`, **`pod_limit` (1 vs 2 — product
+  call)**, `submitter_votes`/`non_submitter_votes`, milestone weeks.
 
-Per `local-labs.md`. New migration (`00020_labs`):
-- `labs(id, name, slug UK, status, timezone DEFAULT 'America/New_York', created_at)`;
-  insert **DC** (id 1).
-- `cycles.lab_id` + `participants.lab_id`: add nullable → backfill all rows to DC →
-  set `NOT NULL` (default DC). **(prod: backfill; dev: seed.)**
-- App-level lab-scoping helper (single shared predicate) mirroring the authz seam —
-  not RLS. Add `labId` to the resolved user shape (`participants.lab_id`).
+## Stage 1 — calendar schema + resolver (land by ~Jul 23, before the Jul 25 Sprint)
 
-Critical files: `supabase/migrations/`, `lib/auth/roles.ts` (surface `labId`), the new
-shared lab-scope query helper.
-Verify: insert throwaway "Lab 2" + cycle/participant; confirm lab-scoped queries separate it.
+Per [`cycle-timeline.md`](./cycle-timeline.md), minus the deferred items above.
 
----
+1. Migration (next free number): `cycle_phases`, `cycle_events`,
+   `cycles.start_at` (backfill from `start_date` under the verified
+   convention), `metros.timezone`. Seed Cycle 3 rows (phases from the decided
+   windows; events from `anchor-events.ts`).
+2. Schedule service v1: boundary edits recompute downstream spine +
+   **mirror to legacy columns** (simplification 1).
+3. Resolver: `checkWindow` reads `cycle_phases` (tz-aware), gains the new
+   keys, keeps the org-reject and the #224 config-missing message. Migrate the
+   **critical-path pages** first: dashboard checklist row, join,
+   register-pods, propose, vote (the Sprint surface).
+4. `advance-phase`: keep gated as-is; do not use on the live cycle (testing
+   tool only). Full override/recompute UX is Cycle-4 polish.
 
-## Phase 2 — Cycle Timeline (cycle_phases + tz)
+Gate: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md) G2 (S4, S5.2–5.4,
+S6) green on staging against a prod clone before deploy; deploy in the quiet
+stretch (Jul 16–23), days before the Sprint.
 
-Per `cycle-timeline.md`. `cycle_phases` does **not** exist today (00006 only added two dead
-columns `phase_2_start/phase_3_start` — leave or drop them). Clean create.
+**Fallback:** if Stage 1 isn't green by Jul 23, the Sprint runs on manual
+columns exactly as today (the mirror means nothing user-facing depends on the
+new tables yet) — slip Stage 1 to the Jul 29–Aug 9 stretch (after forming
+closes, before active-join opens) and keep Stage 2's date.
 
-- New table `cycle_phases(cycle_id, phase_key, kind['spine'|'overlay'], position, anchor,
-  duration, starts_at, ends_at, UNIQUE(cycle_id,phase_key))`; `cycle_events(...)` for pinned
-  venue-bound dates. Add `cycles.start_at TIMESTAMPTZ`; `end_at` derived.
-- **Schedule service**: computes `starts_at/ends_at` from anchor + durations (spine
-  contiguous by construction; overlays anchor independently); recompute on change.
-- **Single window resolver**: extend `lib/auth/windows.ts#checkWindow` to read
-  `cycle_phases` (tz-aware), add keys `pod_forming`/`pod_active_join`/`project_proposal`,
-  update `WINDOW_MESSAGES`. **Route all 12 UI pages + 6 API routes through it** — delete the
-  inline `now >= open && now <= close` re-derivations and per-file `DAY_MS` offsets.
-- **`advance-phase`** → duration-override + recompute; remove the 24h hardcode
-  (`advance-phase/route.ts:98`).
-- **tz conversion (per-column, verified)**: convert scheduling columns interpreting
-  admin-entered values; convert audit columns as UTC. Do **not** blanket-reinterpret.
-- **Display**: render in cycle tz **with label** (FR-14); crons fire **7am cycle-local**
-  (FR-15) — gate the existing UTC `vercel.json` crons to cycle-local, mind DST.
-- Migrate the 12 `cycle_config.*_open/close` values → phase rows (derive each duration),
-  **splitting `pod_registration` → `pod_forming` + `pod_active_join`**; then drop the columns.
-  Keep the thresholds in `cycle_config` (`pod_min`, `max_pods`, …).
+## Stage 2 — two pod windows + lifecycle (land by ~Aug 8, before Meet the Pods on Aug 11)
 
-Critical files: `lib/auth/windows.ts`, `advance-phase/route.ts`, the 12 window UI files,
-`lib/validations/cycles.ts`, `vercel.json`, new schedule service.
-Verify: changing `start_at` shifts all boundaries; 23:59 close in Eastern closes at local
-23:59 across a DST date; spine can't be saved overlapping; overlays may overlap.
+Per [`pod-registration.md`](./pod-registration.md); needs Stage 1.
 
----
+1. `pod_forming` / `pod_active_join` phase rows govern the register route
+   (window matching pod status); metro fence + `pod_limit` unchanged.
+2. Reconciler policy change (enrollment decoupled; enrollment paths activate
+   at enrollment time). Decide D-9 (retroactive activation for existing
+   `inactive` self-registrants) — recommended **yes** at cutover so the two
+   enrollment paths converge.
+3. Forming-close boundary event: activate ≥ `pod_min`, dissolve the rest
+   (reuse `00063` status), free + notify orphans. *(Note: Cycle 3's forming
+   window closes Jul 28 EOD, before Stage 2 lands — that close is handled by
+   the current per-registration flip; the boundary event applies from
+   active-join close (Aug 25) onward and for Cycle 4.)*
+4. Revocation cron: move the "in no pods" gate to `pod_active_join.ends_at`
+   **and schedule it** in `vercel.json` (fixed UTC hour ≈ 7 AM EDT).
+5. Migrate the remaining window pages (solutions, solution-vote,
+   register-projects, moderator views) to the resolver; drop the legacy
+   mirror + columns once the sweep is clean.
 
-## Phase 3 — Pod Registration (the highest-risk behavioral change)
+Gate: G3 (S7 + active-join suite) green before Aug 10.
 
-Per `pod-registration.md`, but with the cron/activation fixes the doc omits.
+## Stage 3 — auth completion (post-launch-crunch; no calendar dependency)
 
-- `register/route.ts`: check the window **matching pod status** (`forming`→`pod_forming`,
-  `active`→`pod_active_join`, `inactive`→refuse). **Remove the `cycle_enrollments`
-  activation side effect** (`register/route.ts:99-124`). Keep the hardcoded 2-pod cap
-  (already enforced at `:55-67`) — optionally move to `cycle_config`.
-- **forming→active becomes a phase-boundary event** at `pod_forming` close: pods ≥ `pod_min`
-  → active; the rest → `inactive` (dissolution — **net-new code**, none exists today).
-- **NEW: replacement activation trigger** (the doc's gap). Since pod-join no longer flips
-  enrollment, define cycle-active explicitly: **enroll into an open cycle ⇒
-  `cycle_enrollments.status='active'`** (set it at `interest`/`registrations`/`short` time
-  instead of `inactive`). Pre-pod active = enrolled; post-pod active = in a pod.
-- **NEW: rewrite the revocation cron** (`cron/revocation-check/route.ts`) to be
-  **phase-gated**. Today it runs unconditionally and only spares pre-pod users because they
-  happen to be `inactive` — decoupling removes that accident. Apply the "in no pods → revoke"
-  rule **only after `pod_active_join.ends_at`** (read from `cycle_phases`), *not* at
-  `pod_forming` close. This single change also **closes the orphan dead-zone**: orphans freed
-  at forming-close (D-6) have until active-join close to land somewhere before any revocation;
-  no "freed but revoked next morning" contradiction. The pulse-check rule stays as-is.
-- **Orphan handling**: on dissolution, free members (no silent limbo) + notify (D-6) —
-  notification is net-new (no mechanism exists).
-- Decide revoked-rejoin: a participant revoked earlier should be reactivatable if they join
-  during active-join (don't leave them stranded).
+Per [`permissions-redesign.md`](./permissions-redesign.md). Unchanged in
+content; start once Stages 0–2 are stable (September window is fine — nothing
+in Cycle 3 blocks on it):
 
-Critical files: `app/api/pods/[pod_id]/register/route.ts`,
-`app/api/cron/revocation-check/route.ts` (+ `revocations/check/[cycle_id]`),
-`app/api/cycles/[cycle_id]/interest/route.ts`, `app/api/registrations/route.ts`,
-`app/api/registrations/short/route.ts`, `app/api/voting/finalize/[cycle_id]/route.ts`
-(seeds forming pods), `register-pods/page.tsx`.
-Note the **project-layer asymmetry**: `projects/[id]/register` never touched enrollment and
-requires active pod membership; with active-join overlapping project registration (both close
-Aug 25), a last-day pod-joiner can immediately register a project — confirm that's acceptable.
-Verify: join forming in forming window only; active in active window only; join/leave never
-changes enrollment status directly; sub-`pod_min` pod dissolves and members are freed +
-notified; pod-less enrollee not revoked until after active-join close.
-
----
-
-## Phase 4 — Auth / Permissions (largest surface; lands last)
-
-Per `permissions-redesign.md`. Reality from the audit: **dual-track today**
-(`user_roles` *and* `participant_permissions`, plus synthetic moderator/participant), **61
-RLS policies**, ~**66 call sites across ~27 files**, and `is_admin_or_owner()` was redefined
-in 00009 to mean `has_permission('cycles:write')`.
-
-- New `role_assignments(participant_id, role, scope_type['global'|'lab'|'cycle'], scope_id,
-  granted_by, granted_at, revoked_at, UNIQUE … NULLS NOT DISTINCT)`. Admin tiers only;
-  moderator/memberships stay in their own tables.
-- New seam (`lib/auth/`): `isSuperAdmin` / `isAdminOf({labId}|{cycleId,labId})` /
-  `isModeratorOf` / `isMemberOf` + read-only `primaryRole`. `resolveUserRoles` stops reading
-  `participant_permissions`. Replace `withAdminAuth`/`withOwnerAuth` with
-  `withSuperAdminAuth`/`withLabAdminAuth`/`withCycleAdminAuth`.
-- **Coarse RLS**: replace `has_permission()`/`is_admin_or_owner()` with `is_super_admin()` +
-  membership predicates; **do not** add per-cycle/per-lab predicates — scope lives in the app
-  seam. Drop `participant_permissions` references.
-- **Backfill (prod)**: D-4 audit first → `role_assignments` super-admin rows for current
-  owners/developers/**observers** (observer→super accepted) + the 2 cycle-admin rows → drop
-  `participant_permissions`. **Dev: seed fresh.**
-- **Invitations**: carry `role` + scope, not `permissions[]`/`role_preset`; rewrite the
-  acceptance path in `auth/callback`. **In-flight pending invitations** are a migration
-  hazard — drain or translate them.
-- **Note the standing exceptions to AC-1**: `registrations`, `registrations/short`,
-  `auth/callback`, and both crons legitimately do service-role writes guarded by
-  session/CRON_SECRET/invitation-state, not a route wrapper. The "wrap every service-role
-  mutation" rule is really "guard it with *something*" — keep those guards.
-
-Critical files: `lib/auth/{roles,permissions,middleware}.ts`, `lib/supabase/server.ts`,
-`app/api/roles/*`, `app/api/permissions/*`, `app/api/invitations/*`, `app/api/auth/callback`,
-`supabase/migrations/00002` + `00009` (RLS), all ~27 call-site files.
-Verify: participant-only user unchanged; super admin unchanged across labs; lab admin 403s on
-foreign lab + sees only own-lab participants; cycle admin 403s on foreign cycle; no code
-references `participant_permissions`/`ROLE_PRESETS`/permission strings.
-
----
+1. Invitations → (role, scope); translate/drain pending invites (P-1).
+2. Drain `participant_permissions` (pre-drain audit first).
+3. Unify RLS; drop legacy helpers + `user_roles`/`participant_permissions`.
 
 ## End-to-end verification
 
-1. Reset dev DB; seed DC + Cycle 3 (dates verified internally consistent — all weekdays/
-   offsets check out) + super admins + 2 cycle admins.
-2. Run the Phase-0 test seams (auth scope, window resolver/DST, tz round-trip).
-3. Walk Cycle 3: problem statement → voting → pod forming (Jul 25→28) → dissolution at
-   forming close → active-join (Aug 11→25) → project stage; assert enrollment status and
-   cron behavior at each boundary (especially: nobody revoked before active-join close).
-4. Lab isolation: insert Lab 2 + foreign rows; confirm app-seam scoping + 403s.
-5. Dry-run the prod forward+backfill migrations against a **clone** of prod before applying.
+1. Staging = prod clone. Walk the full Cycle-3 calendar with the testing
+   plan's personas (P1–P11) at each gate.
+2. Seam tests: resolver bounds + storage-convention round-trip; reconciler
+   policy (Stage 2); grants attenuation (Stage 3).
+3. Dry-run every prod migration against the clone before applying; the Stage-1
+   migration is additive (new tables + nullable column) — rollback is a
+   drop, not a restore.
 
-## Residual risks (accepted / to watch)
-- observer→super-admin is a privilege escalation if prod has observer rows — D-4 audit gates it.
-- Coarse RLS means a forgotten app-seam scope check leaks cross-scope data; the single seam +
-  the lab-scope helper are the mitigations (keep scope derivation out of components/routes).
-- Per-column tz conversion is the one irreversible data step — verify against real values and
-  dry-run on a prod clone.
+## Residual risks
+
+- **Live-cycle deploys.** Stages 1–2 land inside a running cycle by design
+  (owner call). Mitigations: additive schema + dual-write mirror (old pages
+  never break), deploys in quiet stretches between anchor events, per-stage
+  fallback to manual columns.
+- **Sprint-day compression.** Jul 25's submit → vote → finalize → forming
+  chain runs inside ~4 hours with an admin in the loop — rehearse end-to-end
+  (S4.1) regardless of which stage has shipped.
+- **Metro fence vs. metro-less members** (S4.4): decide HQ-pods vs.
+  metro-backfill before Jul 25 — likeliest mass-failure of Sprint day.
+- **Reconciler policy change mid-cycle** (Stage 2): D-9 decision changes who
+  counts as active on real data; snapshot enrollment statuses before/after.
+- **Legacy-RLS unification** (Stage 3): policy-by-policy diff + before/after
+  fixtures, as before.

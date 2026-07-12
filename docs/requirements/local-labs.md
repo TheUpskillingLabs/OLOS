@@ -2,129 +2,65 @@
 
 | | |
 |---|---|
-| **Status** | Draft — for review (**active**; ships with the auth redesign) |
-| **Author** | (you) |
-| **Last updated** | 2026-06-17 |
-| **Related code** | `supabase/migrations/00001` (cycles, participants), `lib/auth/` |
-| **Related docs** | [`permissions-redesign.md`](./permissions-redesign.md) (the lab-admin tier scopes against the `labs` introduced here) |
-| **Pairs with** | This is **Change #1 of 2.** Change #2 is the admin-scope redesign in `permissions-redesign.md`. |
+| **Status** | **Superseded — implemented differently** (2026-07 re-baseline; see [`pr231-evaluation.md`](./pr231-evaluation.md)) |
+| **Last updated** | 2026-07-12 |
+| **What shipped instead** | `metros` promotion + HQ-cycle sub-cohorts: migrations `00060`, `00062_local_labs`, `00067_hq_open_cycle_sub_cohorts`, `00068_pods_local` |
+| **Live remnant** | A timezone home — picked up by [`cycle-timeline.md`](./cycle-timeline.md) |
 
-## Overview
+## What this doc proposed (June 2026)
 
-OLOS is becoming **multi-tenant** at the data-model level. Today there is one
-implicit org (`SCHEMA.md`: `cycles` = "the root of everything"; `participants` =
-"the system-wide identity table"). We are putting the **lab** concept into the
-schema **now** — a new root entity above cycles — so the data model and the
-admin tiers (super / lab / cycle) are correct from the start.
+A new `labs` root table **above** cycles: every cycle and every participant would
+carry a `NOT NULL lab_id`, all existing rows backfilled to a single "DC" lab, and
+each lab would run its own cycles.
 
-**Scope of this change:** the *structure* (the `labs` table, `lab_id` links, the
-lab-admin tier). **Out of scope:** per-lab *configuration management* — there is
-only one lab, so option lists, Slack/Drive/GitHub provisioning, and branding
-stay **global**. We are not building UI to manage those per lab (see L-2).
+## What actually shipped (July 2026) — the opposite hierarchy
 
-New scope hierarchy:
+The codebase answered the multi-tenancy question differently, and the shipped
+model **contradicts this doc's core premise**. Do not build from this doc; the
+record below is kept so the divergence is explicit.
 
-```
-lab (NEW root)  →  cycle  →  pod  →  project  →  membership
-```
+- **No `labs` table.** The existing **`metros`** table (public "Local Labs"
+  content, `00033`) was promoted into the organizational lab anchor
+  (`00062_local_labs`): `slug`/`name`/`st`/`status ('active'|'waitlist')`/
+  `zip_prefixes`/`is_default`. A participant's lab is **`participants.metro_id`**
+  (nullable), not `lab_id`.
+- **Labs are sub-cohorts *inside* the cycle, not parents *above* it.**
+  Open-mode is a **single HQ-run cycle**; `00067` folds any per-lab open cycle
+  into the HQ stream and adds the CHECK `cycles_open_is_hq_when_live` —
+  a live open cycle is *forbidden* from having a `lab_id`. A pod's lab lives on
+  **`pods.lab_id`** (its host sub-cohort), and `00068` fences membership:
+  active open-mode lab pods only admit participants whose `metro_id` matches.
+- **Per-lab cycles exist only for `mode='org'`** (internal team cycles,
+  `00060`/`00062`: `one_active_org_cycle_per_lab`).
+- **Lab leadership** is a role grant: `participant_roles(role='lab_lead',
+  lab_id=…)` (the `lab_leads` table from `00062` was folded into the unified
+  role model by `00064`/`00065`). The app seam is `lib/auth/lab.ts`
+  (`requireLabAccess`, `labForCycle`, `labForPod`) — the "single shared
+  lab-scoping helper" this doc asked for exists in that form.
+- **No backfill to "DC id 1" ever ran**; metro membership is assigned through
+  registration/directory flows instead.
 
-## Goals
+See `SCHEMA.md` for the current shapes.
 
-- A first-class **`labs`** entity in the schema now; seed the existing org as
-  **"DC"** (id 1).
-- Every **cycle** belongs to exactly one lab; every **participant** belongs to
-  exactly **one** lab. Backfill all existing rows to DC.
-- The model supports N labs even though we run one today — the admin tiers and
-  `lab_id` plumbing are real, not stubbed.
+## The one live remnant: a timezone home
 
-## Non-goals
+This doc placed `timezone` on `labs`. No timezone column exists anywhere in the
+schema today, and the cycle-timeline work still needs one. Since a live open
+cycle has no lab FK, the June rule "a cycle uses its lab's timezone" no longer
+has a path. Recommendation, carried into
+[`cycle-timeline.md`](./cycle-timeline.md):
 
-- **Per-lab configuration management.** `option_lists`, provisioning targets
-  (Slack/Drive/GitHub), and branding remain global; no per-lab admin UI. With
-  one lab this buys nothing; revisit when a second lab needs different values
-  (L-2).
-- The admin role tiers themselves — specified in
-  [`permissions-redesign.md`](./permissions-redesign.md). This doc adds the
-  `labs` entity + `lab_id` links the tiers scope against.
-- Changing the cycle→pod→project phase machine.
-
-## Glossary
-
-| Term | Meaning |
-|---|---|
-| **lab** | A local chapter. The new top-level tenant. `labs` table. UI calls it "Lab" too. Today there is one: DC. |
-| **lab membership** | `participants.lab_id` — the one lab a participant belongs to. Distinct from *administering* a lab (a role grant; see Doc B). |
-
-## Model & schema changes
-
-- **`labs`** — new table: `id`, `name`, `slug` (UK), `status`, **`timezone`**
-  (IANA, default `America/New_York` — the cycle timeline reads it; see
-  `cycle-timeline.md` D-4), `created_at`.
-  No per-lab config columns (Slack/Drive/branding) in this cut — see L-2.
-- **`cycles.lab_id`** — FK → `labs`, `NOT NULL` (after backfill). Lab is the
-  derivable parent of every pod/project (through the cycle).
-- **`participants.lab_id`** — FK → `labs`, `NOT NULL` (after backfill). "Lab
-  admins see all participants in their lab" = `WHERE participants.lab_id = <lab>`.
-
-## Data isolation
-
-Reads are lab-scoped: lab admins and participants see only their own lab's data;
-super admins see everything. **Mechanism: soft, app-level filtering** (L-1) —
-queries add `WHERE lab_id = <user's lab>` (or the cycle's lab); RLS is not the
-cross-lab wall. With a single lab everyone is in DC, so the filter is trivially
-satisfied today — but the `lab_id` + filter pattern goes in now so it is correct
-the moment a second lab exists.
-
-- **Risk to manage:** a query that forgets the lab filter would leak another
-  lab's data once 2+ labs exist. Mitigation: a single shared lab-scoping query
-  helper (mirroring the authz seam in Doc B AC-2), so the predicate lives in one
-  place. Upgradeable to RLS lab-predicates later without changing the app
-  contract.
-
-## Migration (hybrid rollout — per Doc B)
-
-**Rollout model (decided 2026-06-17):** build/test against a **reset dev DB**, but
-apply to **prod as forward-only migrations *with* backfill** — prod is **not** reset.
-The backfill steps below are therefore real (they run against prod's existing rows);
-in dev they simply seed.
-
-1. Create `labs`; insert **"DC"** (id 1).
-2. Add `lab_id` to `cycles` and `participants` (nullable), backfill **every**
-   existing row to DC, then set `NOT NULL` (default to DC for new rows until the
-   app sets it explicitly).
-3. Hand off to Doc B for the role/RLS changes that consume `lab_id`.
-
-## Acceptance criteria
-
-- `labs` exists with a DC row; every cycle and participant resolves to DC with
-  no orphans.
-- The schema + `isAdminOf`/lab-scoped queries would correctly separate a second
-  lab's data if one were inserted (verified by inserting a throwaway "Lab 2"
-  with its own cycle/participant in a test).
-- Nothing per-lab to configure: option lists, provisioning, and branding remain
-  global and unchanged.
+- Add **`metros.timezone TEXT`** (IANA, default `America/New_York`).
+- The **cycle schedule** renders/computes in the HQ default zone; **sub-cohort
+  surfaces** (a lab pod's pages, lab-scoped comms) may resolve
+  `pods.lab_id → metros.timezone` for display. Today every metro is US-Eastern,
+  so the default is correct everywhere; the column makes the first non-Eastern
+  metro a data change, not a schema change.
 
 ## Decisions log
 
-- **2026-06-17** — Put `labs` in the schema **now** (not deferred); a new root
-  above cycles. Build the structure; skip per-lab config management.
-- **2026-06-17** — One implicit lab today: **DC**. Seed it and default everyone
-  to DC.
-- **2026-06-17** — A participant belongs to **exactly one** lab
-  (`participants.lab_id`); explicit, not derived from cycle enrollment.
-- **2026-06-17** — Term is **`lab`** in code and UI (no "chapter" identifier).
-- **2026-06-17 (L-1)** — Isolation is **soft, app-level filtering**, not a strict
-  RLS wall; shared lab-scoping helper; upgradeable to RLS later.
-- **2026-06-17 (L-2)** — `option_lists`, provisioning targets, and branding stay
-  **global**; no per-lab config management until a second lab needs it.
-- **2026-06-17 (L-3)** — Participants **cannot move labs**; manual reassignment
-  only; history stays with the original lab.
-- **2026-06-17 (L-4)** — Super admins = the **current owners and admins** (the
-  Doc B backfill set; exact list via D-4).
-- **2026-06-17 (L-5)** — **Super admins only** create labs.
-
-## Open decisions
-
-- *(None blocking.)* L-2's per-lab config items (option lists, provisioning,
-  branding) are intentionally global for now; reopen per item when a second lab
-  requires different values.
+- **2026-06-17** — (original) `labs` above cycles; backfill to DC; timezone on
+  the lab. **Superseded by shipped code (00060/00062/00067/00068).**
+- **2026-07-12** — Doc re-baselined: keep as a superseded record; the timezone
+  question moves to `cycle-timeline.md` with `metros.timezone` as the
+  recommended home.
