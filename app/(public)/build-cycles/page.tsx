@@ -25,8 +25,8 @@ export const metadata = {
 };
 
 // The current cycle's public shape, inlined from the prototype's
-// cycles/data.js (CYCLE_PUBLIC + SITUATIONS). These constants move to the
-// `cycles` and `problem_situations` tables when the public cycle API lands
+// cycles/data.js (CYCLE_PUBLIC). These constants move to the
+// `cycles` table when the public cycle API lands
 // (docs/OLOS_BACKEND_CHANGES.md §2/§8).
 const CYCLE = {
   name: "Summer 2026",
@@ -54,11 +54,6 @@ const PHASES = [
   },
 ];
 
-const SITUATIONS = [
-  { title: "Benefits navigation dead-ends", owner: "DC Public Library" },
-  { title: "First-time voter information gap", owner: "League of Women Voters DC" },
-  { title: "Volunteer knowledge walks out the door", owner: "Civic Tech DC" },
-];
 
 const PROMISES: [string, string][] = [
   [
@@ -170,28 +165,6 @@ export default async function BuildCyclesPage() {
                       {ph.title} · {ph.when}
                     </div>
                     <p className="t-body ed-text">{ph.body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </EdSection>
-
-          {/* What this cycle is working on — partner problems, a single-hierarchy list */}
-          <EdSection
-            eyebrow="What this cycle is working on"
-            heading="Real problems, brought by real partners."
-          >
-            <div className="ed-cols">
-              <div>
-                {SITUATIONS.map((si) => (
-                  <div className="kv" key={si.title}>
-                    <span className="t-body">
-                      {si.title}
-                      <span className="t-small" style={{ color: "var(--meta)" }}>
-                        {" "}
-                        · Brought by {si.owner}
-                      </span>
-                    </span>
                   </div>
                 ))}
               </div>
