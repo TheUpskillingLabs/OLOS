@@ -186,34 +186,41 @@ recomputing downstream; the 24h hardcode goes away. It stays a
 
 ## Cycle template — relative schedule
 
-13-week, **all-Tuesday** cadence; events carry per-cycle-overridable offsets
-from start; software windows anchor to events. **The June draft's dates were
-superseded by the booked Cycle-3 calendar** — the shipped source of truth is
-`lib/cycles/anchor-events.ts` (it already drives the Open Cycle Agreement
-ceremony and the `.ics` download). Real instance:
+13-week, Tuesday-anchored cycle; events carry per-cycle-overridable offsets
+from start; software windows anchor to events with weekday-snap deadlines.
+**The June dates are confirmed correct (owner, 2026-07-12).** Note:
+`lib/cycles/anchor-events.ts` shipped with stale prototype dates (ported from
+onboarding-proto) that disagreed with this calendar — **corrected in this PR**;
+it drives the Open Cycle Agreement ceremony, the dashboard Key-dates card, and
+the `.ics` download, so it must always match this table.
 
-| Anchor | Relative rule (default) | Cycle 3 (real, per `anchor-events.ts`; all ET) |
+| Anchor | Relative rule (default) | Cycle 3 (all America/New_York) |
 |---|---|---|
 | Cycle **start** = **Kickoff Summit** | input — a Tuesday + timezone | Tue Jul 14, 6:00–9:00 PM |
-| **Problem Sprint** (event) | start + 2 weeks | Tue Jul 28, 6:00–8:30 PM |
-| **Meet the Pods** (event) | start + 5 weeks | Tue Aug 18, 6:00–8:30 PM |
-| **Hackathon — Frame Sprint** (event) | start + 8 weeks | Tue Sep 8, 9:00 AM–6:00 PM |
-| **Meet the Projects** (event) | start + 9 weeks | Tue Sep 15, 6:00–8:30 PM |
-| **Showcase Summit** (event) = cycle **end** | start + 13 weeks | Tue Oct 13, 6:00–9:00 PM |
+| **Problem Sprint** (event) | start + 11 days (Sat, wk 2) | **Sat Jul 25**, 9:00 AM–1:00 PM |
+| **Meet the Pods** (event) | start + 4 weeks (Tue) | **Tue Aug 11**, evening |
+| **Hackathon** (event) | start + 30 days (Thu, wk 5) | **Thu Aug 13** |
+| **Meet the Projects** (event) | start + 8 weeks (Tue) | **Tue Sep 8**, evening |
+| **Summit** (event) = cycle **end** | start + 13 weeks (Tue) | Tue Oct 13, 6:00–9:00 PM |
 
-**Software-action windows for Cycle 3 are a pending product decision** — the
-June draft assumed a Saturday-morning sprint (9am–1pm windows); the real
-Sprint is a Tuesday *evening*, so those hours don't transfer. Decide and enter
-the real windows before Jul 28 (see the testing plan S5.1 for the entry
-convention). The structural rules stand: the submission → voting → forming
-chain compresses around the Sprint; the project chain hangs off the Hackathon;
-pod active-join runs Meet-the-Pods → project-registration close.
+Software-action windows (decided; "**\<Weekday\> after X**" = first such
+weekday strictly after X; project-stage transitions at midnight, end-of-day):
+
+| Window | Opens | Closes | Cycle 3 |
+|---|---|---|---|
+| Problem statement | Sprint, 9:00 AM | Sprint, 12:00 PM | Jul 25 |
+| Pod voting | Sprint, 12:00 PM | Sprint, 1:00 PM | Jul 25 |
+| Pod forming | Sprint, 1:00 PM | Tuesday after Sprint, midnight | Jul 25 → Jul 28 EOD |
+| Pod active-join | Meet the Pods | = Project registration close | Aug 11 → Aug 25 |
+| Project proposal | Hackathon (Thu) | Tuesday after Hackathon | Aug 13 → Aug 18 |
+| Project voting | Tuesday after Hackathon | Thursday after Hackathon | Aug 18 → Aug 20 |
+| Project registration | Thursday after Hackathon | 2nd Tuesday after Hackathon | Aug 20 → Aug 25 |
 
 > **Timing decision (2026-07-12, owner): the calendar overhaul targets
 > Cycle 3, staged inside the cycle.** Day 1 (Jul 14) runs on the manual window
 > columns; the `cycle_phases`/`cycle_events` schema + resolver land **before
-> the Problem Sprint (Jul 28)**; the two pod windows + remaining page
-> consolidation land **before Meet the Pods (Aug 18)**. Stage plan and the
+> the Problem Sprint (Sat Jul 25)**; the two pod windows + remaining page
+> consolidation land **before Meet the Pods (Tue Aug 11)**. Stage plan and the
 > simplifications that make this feasible are in
 > [`implementation-plan.md`](./implementation-plan.md).
 
@@ -329,16 +336,19 @@ pod active-join runs Meet-the-Pods → project-registration close.
   are live; both must be *migrated*, not dropped.
 - **2026-07-12 (T-1 resolved, owner)** — The overhaul **targets Cycle 3,
   staged**: day 1 on manual columns; schema + resolver before the Sprint
-  (Jul 28); two pod windows + full consolidation before Meet the Pods
-  (Aug 18). Mass timestamptz conversion of legacy audit columns, DST
+  (Sat Jul 25); two pod windows + full consolidation before Meet the Pods
+  (Tue Aug 11). Mass timestamptz conversion of legacy audit columns, DST
   machinery (Cycle 3 sits entirely inside EDT), and the template-derivation
   engine are **deferred to Cycle 4** — Cycle 3 phases are seeded as explicit
   rows.
-- **2026-07-12** — The June draft's Cycle-3 dates were wrong; the real
-  calendar (all-Tuesday, evening events) comes from `anchor-events.ts`, which
-  stays the events source of truth until `cycle_events` absorbs it (its
-  retirement may slip to late Cycle 3 — the ceremony in PR #226 renders from
-  it, so both sources must agree until the swap).
+- **2026-07-12 (owner)** — **The June dates are correct.** The shipped
+  `anchor-events.ts` constant carried stale prototype dates (Sprint Jul 28,
+  Pods Aug 18, Hackathon Sep 8, Projects Sep 15) — corrected to the real
+  calendar in this PR. The constant stays the events source of truth (it
+  feeds the ceremony, Key-dates card, and `.ics`) until `cycle_events`
+  absorbs it; retirement may slip to late Cycle 3. Prod's `cycle_config`
+  windows, `phase_2/3_start`, and the Luma events must be audited against
+  the same calendar (testing plan S3.6).
 
 ## Open decisions
 

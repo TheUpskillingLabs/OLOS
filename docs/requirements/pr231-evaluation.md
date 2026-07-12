@@ -58,9 +58,12 @@ also fold into `cycle_events`. The rewrite keeps the June prescription and
 adds the fold-in plan for all four models, plus the timing note that Cycle 3
 (Jul 14) opens on manual columns; per the owner's 2026-07-12 decision the
 overhaul targets **Cycle 3, staged inside the cycle** (schema + resolver
-before the Jul 28 Sprint; pod windows before Aug 18 Meet the Pods). The
-June draft's Cycle-3 dates were themselves stale — the real calendar lives
-in `lib/cycles/anchor-events.ts` (all-Tuesday cadence, evening events).
+before the Jul 25 Sprint; pod windows before Aug 11 Meet the Pods). The
+June docs' Cycle-3 dates are **owner-confirmed correct**; the shipped
+`lib/cycles/anchor-events.ts` constant carried stale prototype dates
+(everything ~1–4 weeks late) and was corrected in this PR — it feeds the
+agreement ceremony, the dashboard Key-dates card, and the `.ics` download,
+so the fix must deploy before Jul 14.
 
 ### Pod registration partially overtaken (→ `pod-registration.md` re-baselined, core kept)
 

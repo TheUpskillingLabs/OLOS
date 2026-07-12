@@ -20,11 +20,14 @@ that premise (see [`pr231-evaluation.md`](./pr231-evaluation.md)):
   ([`pod-registration.md`](./pod-registration.md)).
 
 **Timing decision (2026-07-12, owner): the calendar overhaul targets Cycle 3,
-staged inside the live cycle.** Cycle 3's real calendar (all Eastern, per
-`lib/cycles/anchor-events.ts`): Kickoff **Jul 14** · Problem Sprint **Jul 28**
-· Meet the Pods **Aug 18** · Hackathon **Sep 8** · Meet the Projects **Sep 15**
-· Summit **Oct 13**. The stage boundaries below are those dates. Testing gates
-per stage: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md).
+staged inside the live cycle.** Cycle 3's calendar (all Eastern, confirmed by
+the owner — `cycle-timeline.md` is the source; `anchor-events.ts` shipped with
+stale prototype dates and was corrected in this PR): Kickoff **Tue Jul 14** ·
+Problem Sprint **Sat Jul 25** (windows 9am–1pm; forming closes **Jul 28** EOD)
+· Meet the Pods **Tue Aug 11** (active-join opens) · Hackathon **Thu Aug 13**
+· Meet the Projects **Tue Sep 8** · Summit **Tue Oct 13**. The stage
+boundaries below are those dates. Testing gates per stage:
+[`cycle3-testing-plan.md`](./cycle3-testing-plan.md).
 
 ### Simplifications that make Cycle-3 targeting feasible
 
@@ -48,7 +51,9 @@ per stage: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md).
 5. **`anchor-events.ts` retires late.** It feeds the live agreement ceremony
    (PR #226); `cycle_events` is seeded *from* it and the ceremony swaps data
    source only when convenient — until then both must agree (single edit
-   point: the constant).
+   point: the constant). Its stale prototype dates were corrected to the real
+   calendar in this PR — **that fix must reach `main` before Jul 14** (the
+   ceremony renders it on day 1).
 
 ### Standing decisions (carried forward)
 
@@ -74,12 +79,12 @@ per stage: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md).
   activate Cycle 3) on staging, then execute for real.
 - **Leave the revocation cron unscheduled for now** (revised from the June
   "re-schedule it" item): scheduling its "in no pods" arm before the
-  active-join window exists opens the orphan dead-zone ~Jul 29–Aug 18. It
+  active-join window exists opens the orphan dead-zone ~Jul 29–Aug 11. It
   gets scheduled in Stage 2 together with the gate move.
 - Confirm `cycle_config` values: `pod_min`, **`pod_limit` (1 vs 2 — product
   call)**, `submitter_votes`/`non_submitter_votes`, milestone weeks.
 
-## Stage 1 — calendar schema + resolver (land by ~Jul 24, before the Sprint)
+## Stage 1 — calendar schema + resolver (land by ~Jul 23, before the Jul 25 Sprint)
 
 Per [`cycle-timeline.md`](./cycle-timeline.md), minus the deferred items above.
 
@@ -98,14 +103,14 @@ Per [`cycle-timeline.md`](./cycle-timeline.md), minus the deferred items above.
 
 Gate: [`cycle3-testing-plan.md`](./cycle3-testing-plan.md) G2 (S4, S5.2–5.4,
 S6) green on staging against a prod clone before deploy; deploy in the quiet
-week (Jul 20–24), days before the Sprint.
+stretch (Jul 16–23), days before the Sprint.
 
-**Fallback:** if Stage 1 isn't green by Jul 24, the Sprint runs on manual
+**Fallback:** if Stage 1 isn't green by Jul 23, the Sprint runs on manual
 columns exactly as today (the mirror means nothing user-facing depends on the
-new tables yet) — slip Stage 1 to the Jul 29–Aug 14 quiet stretch and keep
-Stage 2's date.
+new tables yet) — slip Stage 1 to the Jul 29–Aug 9 stretch (after forming
+closes, before active-join opens) and keep Stage 2's date.
 
-## Stage 2 — two pod windows + lifecycle (land by ~Aug 14, before Meet the Pods)
+## Stage 2 — two pod windows + lifecycle (land by ~Aug 8, before Meet the Pods on Aug 11)
 
 Per [`pod-registration.md`](./pod-registration.md); needs Stage 1.
 
@@ -116,17 +121,17 @@ Per [`pod-registration.md`](./pod-registration.md); needs Stage 1.
    `inactive` self-registrants) — recommended **yes** at cutover so the two
    enrollment paths converge.
 3. Forming-close boundary event: activate ≥ `pod_min`, dissolve the rest
-   (reuse `00063` status), free + notify orphans. *(Note: with the Sprint on
-   Jul 28 and Stage 2 landing after it, Cycle 3's forming close is handled by
-   the current per-registration flip — the boundary event applies from
-   active-join close onward and for Cycle 4.)*
+   (reuse `00063` status), free + notify orphans. *(Note: Cycle 3's forming
+   window closes Jul 28 EOD, before Stage 2 lands — that close is handled by
+   the current per-registration flip; the boundary event applies from
+   active-join close (Aug 25) onward and for Cycle 4.)*
 4. Revocation cron: move the "in no pods" gate to `pod_active_join.ends_at`
    **and schedule it** in `vercel.json` (fixed UTC hour ≈ 7 AM EDT).
 5. Migrate the remaining window pages (solutions, solution-vote,
    register-projects, moderator views) to the resolver; drop the legacy
    mirror + columns once the sweep is clean.
 
-Gate: G3 (S7 + active-join suite) green before Aug 17.
+Gate: G3 (S7 + active-join suite) green before Aug 10.
 
 ## Stage 3 — auth completion (post-launch-crunch; no calendar dependency)
 
@@ -154,11 +159,11 @@ in Cycle 3 blocks on it):
   (owner call). Mitigations: additive schema + dual-write mirror (old pages
   never break), deploys in quiet stretches between anchor events, per-stage
   fallback to manual columns.
-- **Sprint-night compression.** Jul 28's submit → vote → finalize → forming
-  chain runs inside ~3 hours with an admin in the loop — rehearse end-to-end
+- **Sprint-day compression.** Jul 25's submit → vote → finalize → forming
+  chain runs inside ~4 hours with an admin in the loop — rehearse end-to-end
   (S4.1) regardless of which stage has shipped.
 - **Metro fence vs. metro-less members** (S4.4): decide HQ-pods vs.
-  metro-backfill before Jul 28 — likeliest mass-failure of Sprint night.
+  metro-backfill before Jul 25 — likeliest mass-failure of Sprint day.
 - **Reconciler policy change mid-cycle** (Stage 2): D-9 decision changes who
   counts as active on real data; snapshot enrollment statuses before/after.
 - **Legacy-RLS unification** (Stage 3): policy-by-policy diff + before/after

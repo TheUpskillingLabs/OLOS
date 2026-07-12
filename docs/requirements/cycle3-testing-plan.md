@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Scope** | Cycle 3 go-live (Jul 14) + the staged calendar work landing inside the cycle. Weighted toward the **early stages: invites, joining the cycle, joining a pod.** |
-| **Real Cycle 3 dates** | Kickoff **Tue Jul 14** 6–9 PM · Problem Sprint **Tue Jul 28** 6–8:30 PM · Meet the Pods **Tue Aug 18** · Hackathon **Tue Sep 8** · Meet the Projects **Tue Sep 15** · Showcase Summit **Tue Oct 13** (source: `lib/cycles/anchor-events.ts` — all Eastern) |
+| **Cycle 3 dates (owner-confirmed)** | Kickoff **Tue Jul 14** 6–9 PM · Problem Sprint **Sat Jul 25** 9 AM–1 PM (forming closes **Jul 28** EOD) · Meet the Pods **Tue Aug 11** (active-join opens) · Hackathon **Thu Aug 13** · Meet the Projects **Tue Sep 8** · Summit **Tue Oct 13** — all Eastern; source [`cycle-timeline.md`](./cycle-timeline.md). ⚠ `anchor-events.ts` shipped with stale prototype dates, corrected in #233 — that fix must be on `main` before Jul 14 |
 | **Related docs** | [`cycle-timeline.md`](./cycle-timeline.md), [`pod-registration.md`](./pod-registration.md), [`implementation-plan.md`](./implementation-plan.md) |
 
 ## How to use this plan
@@ -16,8 +16,8 @@ suites (S2–S4) are the priority per the owner.
 |---|---|---|
 | **G0 — pre-launch rehearsal** | by Jul 13 | S1 (handover), S5.1 (window-entry convention), fix-train merged (see Interlocks) |
 | **G1 — launch** | Jul 14 | S2 (invites), S3 (join cycle), S8 spot-checks |
-| **G2 — pre-Sprint** | by Jul 27 | S4 (pod joining), S6 (propose/vote), S5.2–5.4 if Stage 1B shipped |
-| **G3 — pre-Meet-the-Pods** | by Aug 17 | S7 (lifecycle/cron), active-join suite if two-window shipped |
+| **G2 — pre-Sprint** | by Jul 24 | S4 (pod joining), S6 (propose/vote), S5.2–5.4 if Stage 1 shipped |
+| **G3 — pre-Meet-the-Pods** | by Aug 10 | S7 (lifecycle/cron), active-join suite if two-window shipped |
 
 **Environment.** Run everything on a staging environment seeded from a prod
 clone (per the plan's rollout rule), then re-run the G1 smoke set on prod
@@ -77,34 +77,35 @@ The riskiest untested moment happens **before** anyone joins anything.
 | S3.3 | P5/P7 | Post-registration dashboard | Checklist leads with cycle registration (#228); **"Join a pod" row absent** until the forming window opens (#228); "Find your local lab" hidden when metro set |
 | S3.4 | P5/P7 | **Enrollment status check** (DB or admin view) | Known quirk: invite-path enrollees are `active`; self-registered are `inactive` until a pod join flips them. Confirm every participant-facing surface (dashboard, cycle page, counts shown to admins) treats both as "in" — flag any surface that hides content from `inactive` self-registrants |
 | S3.5 | P7 variant | Abandon funnel mid-way, return next day | Resumes/restarts cleanly; no half-created rows blocking re-entry |
-| S3.6 | P1/P2 | Kickoff-day dates audit (Jul 14) | Everywhere dates render — ceremony, dashboard, cycle page, `.ics` download — shows the **real** anchor dates, Eastern. One wrong surface = the two date sources (admin-entered windows vs `anchor-events.ts`) have drifted; see S5.1 |
+| S3.6 | P1/P2 | Kickoff-day dates audit (Jul 14) | Every surface that renders dates — ceremony, dashboard Key-dates card, cycle page, `.ics` download, phase indicator — shows the **owner-confirmed calendar** (Sprint Jul 25, Pods Aug 11, Hackathon Aug 13, Projects Sep 8). Prerequisites: the `anchor-events.ts` correction (#233) is deployed, AND prod's `cycle_config` windows + `phase_2_start`/`phase_3_start` + the Luma-synced events all match the same calendar — audit all three, they are separate sources |
 | S3.7 | P9 | Observer signs in | Sees read-only surfaces; **no pulse aggregates on the public pod page** (#225) |
 
-## S4 — Joining a pod (G2; run the whole suite before Jul 28)
+## S4 — Joining a pod (G2; run the whole suite before Jul 25)
 
-Sprint night is compressed (6–8:30 PM). Rehearse the full chain on staging
-with realistic timing before the real evening.
+Sprint day is compressed: problem statements 9 AM–12 PM, voting 12–1 PM,
+forming opens 1 PM — finalize runs in the minutes between. Rehearse the full
+chain on staging with realistic timing before the real Saturday.
 
 | ID | Persona | Scenario | Expected |
 |---|---|---|---|
 | S4.1 | P2 | **Sprint-night pipeline rehearsal**: problem window closes → voting window → finalize → forming pods exist → forming window opens | Finalize (admin-triggered) seeds `forming` pods in the minutes between voting close and forming open; document exactly who clicks what, when |
 | S4.2 | P5/P7 | Join a `forming` pod inside the window | Joins; under current code the member's enrollment flips `active` — verify no error either way |
-| S4.3 | P5 | Join a second pod | Blocked at `cycle_config.pod_limit` (**default 1** — product must confirm 1 vs 2 before Jul 28; it's a config value) |
+| S4.3 | P5 | Join a second pod | Blocked at `cycle_config.pod_limit` (**default 1** — product must confirm 1 vs 2 before Jul 25; it's a config value) |
 | S4.4 | P8 | **Metro-less member joins a pod** | If Cycle-3 pods are lab-tagged (`pods.lab_id` set), the metro fence **blocks** every metro-less member — most legacy rows. Decide before Sprint: either pods stay HQ (`lab_id NULL`, fence moot) or run a metro backfill. This is the likeliest mass-failure of Sprint night |
 | S4.5 | P5 | Leave pod in-window, rejoin same pod | Leave works; rejoin reactivates the old membership row (no duplicate error) |
 | S4.6 | P5 | Pod reaches `pod_min` | Pod flips `active`; all members' enrollments `active` (current model) |
 | S4.7 | P5, two clocks | Join at the window boundary (e.g. close at 11:59 PM ET): try 11:55 PM ET and 12:05 AM ET | 11:55 works, 12:05 refused — **in both browser timezones**. This is the #1 timezone bug signature |
-| S4.8 | P5 | Join attempt when no window open (Jul 15–27) | Clean "not open" message on page AND api; dashboard shows no join row |
+| S4.8 | P5 | Join attempt when no window open (Jul 15–24) | Clean "not open" message on page AND api; dashboard shows no join row |
 | S4.9 | P4 | Poderator assigned post-formation | Sees their pod on moderator surfaces; pulse dashboard visible to them, invisible on the public pod page (#225) |
 
-## S5 — Calendar & timezone (G0 item 1 now; rest at G2 if Stage 1B ships)
+## S5 — Calendar & timezone (G0 item 1 now; rest at G2 if Stage 1 ships)
 
 | ID | Scenario | Expected |
 |---|---|---|
-| S5.1 | **Window-entry convention (do this FIRST, before entering real windows):** admin enters "opens Jul 28 6:00 PM" intent on staging; check the stored value, the rendered value, and when the gate actually flips (set a window 10 min ahead and watch it open) | The flip happens at 6:00 PM **Eastern**. Under the pre-overhaul naive columns, entered values are compared as UTC on the server (PR #224's ops note) — this test tells the admin exactly what to type so reality matches intent; write the convention down and use it for all Cycle-3 windows |
-| S5.2 | (Stage 1B) All ~critical pages show identical boundaries with an ET label; PT browser shows the same wall-clock + label | No page disagrees; no unlabeled times |
-| S5.3 | (Stage 1B) Admin shifts a phase boundary | Every surface (dashboard, join page, checklist row, moderator views) reflects it within a reload; legacy-column mirror (if dual-write bridge used) matches `cycle_phases` |
-| S5.4 | (Stage 1B) `getCycleWeek`/learning-log milestone timing after schema change | A cycle with unchanged dates produces identical week numbers and milestone windows |
+| S5.1 | **Window-entry convention (do this FIRST, before entering real windows):** admin enters "problem statements open Jul 25 9:00 AM ET" intent on staging; check the stored value, the rendered value, and when the gate actually flips (set a window 10 min ahead and watch it open) | The flip happens at 9:00 AM **Eastern**. Under the pre-overhaul naive columns, entered values are compared as UTC on the server (PR #224's ops note) — this test tells the admin exactly what to type so reality matches intent; write the convention down and use it for all Cycle-3 windows |
+| S5.2 | (Stage 1) All ~critical pages show identical boundaries with an ET label; PT browser shows the same wall-clock + label | No page disagrees; no unlabeled times |
+| S5.3 | (Stage 1) Admin shifts a phase boundary | Every surface (dashboard, join page, checklist row, moderator views) reflects it within a reload; legacy-column mirror (dual-write bridge) matches `cycle_phases` |
+| S5.4 | (Stage 1) `getCycleWeek`/learning-log milestone timing after schema change | A cycle with unchanged dates produces identical week numbers and milestone windows |
 | S5.5 | Admin misuse guard | Confirm `advance-phase` is not reachable by non-`testing:use` admins; brief the team not to use it on the live cycle |
 
 *(Deliberately absent: DST scenarios — Cycle 3 runs Jul 14–Oct 13, entirely
@@ -123,7 +124,7 @@ inside EDT. DST testing belongs to Cycle 4.)*
 
 | ID | Persona | Scenario | Expected |
 |---|---|---|---|
-| S7.1 | P2 | Decide + execute cron re-scheduling | **Do not schedule the "in no pods" arm while the gap stands**: with forming closing ~Jul 28 and active-join not existing until the two-window work ships (~Aug 18), a scheduled cron starts warning pod-less enrollees ~Jul 29 and revoking ~Aug 1 with no way back in — the dead-zone the requirements call out. Either ship the gate move with Stage 1C, or leave the cron unscheduled until then |
+| S7.1 | P2 | Decide + execute cron re-scheduling | **Do not schedule the "in no pods" arm while the gap stands**: with forming closing Jul 28 EOD and active-join not existing until the two-window work ships (Aug 11), a scheduled cron starts warning pod-less enrollees ~Jul 29 and revoking ~Aug 1 with no way back in — the dead-zone the requirements call out. Either ship the gate move with Stage 2, or leave the cron unscheduled until then |
 | S7.2 | P5 | Pulse-check baseline for new enrollees | A Jul-14 joiner isn't warned before ~Jul 21 (7-day baseline from creation); banner timing matches |
 | S7.3 | P11 | Revoked member joins a pod during active-join (post-Stage-1C) | Reactivated cleanly |
 | S7.4 | P5 in dissolved pod (post-Stage-1C) | Forming-close dissolution | Members freed + notified; can join an active pod until active-join closes; not warned/revoked meanwhile |
