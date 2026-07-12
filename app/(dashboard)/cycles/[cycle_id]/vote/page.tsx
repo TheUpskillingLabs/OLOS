@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -30,12 +31,10 @@ export default async function VotePage({
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
+  // Naive window columns are UTC instants; entry + display are lab-local
+  // (lib/cycles/lab-time.ts).
   const now = new Date();
-  const isOpen =
-    config?.voting_open &&
-    config?.voting_close &&
-    now >= new Date(config.voting_open) &&
-    now <= new Date(config.voting_close);
+  const isOpen = windowOpen(config?.voting_open, config?.voting_close, now);
 
   // Whether the viewer submitted a proposal in this cycle decides their vote
   // budget (cycle_config.submitter_votes vs non_submitter_votes). The API
@@ -97,17 +96,12 @@ export default async function VotePage({
               ? "Voting is not currently open."
               : "This cycle isn't fully configured yet — the voting window hasn't been scheduled. If you expected it to be open, let an organizer know."}
           </p>
-          {config?.voting_open && now < new Date(config.voting_open) && (
-            <p className="mt-2 text-sm text-meta tabular-nums">
-              Opens{" "}
-              {new Date(config.voting_open).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
+          {config?.voting_open &&
+            now < (parseWindow(config.voting_open) as Date) && (
+              <p className="mt-2 text-sm text-meta tabular-nums">
+                Opens {fmtLabDateTime(config.voting_open)}
+              </p>
+            )}
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { one } from "@/lib/supabase/embed";
+import { windowOpen } from "@/lib/cycles/lab-time";
 
 type WindowField =
   | "problem_statement"
@@ -53,12 +54,11 @@ export async function checkWindow(
   const openTime = configRecord[`${field}_open`] as string | null;
   const closeTime = configRecord[`${field}_close`] as string | null;
 
-  if (!openTime || !closeTime) {
-    return { open: false, message: WINDOW_MESSAGES[field] };
-  }
-
-  const now = new Date();
-  if (now < new Date(openTime) || now > new Date(closeTime)) {
+  // windowOpen parses the naive columns explicitly as UTC instants (the
+  // storage convention) — a bare new Date(naive) would read them in the
+  // server's local zone, which diverges between Vercel (UTC) and a dev
+  // laptop. See lib/cycles/lab-time.ts.
+  if (!windowOpen(openTime, closeTime)) {
     return { open: false, message: WINDOW_MESSAGES[field] };
   }
 

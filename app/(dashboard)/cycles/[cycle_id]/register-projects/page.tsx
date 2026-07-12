@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -30,12 +31,13 @@ export default async function RegisterProjectsPage({
     .eq("cycle_id", cycleId)
     .single();
 
+  // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
   const now = new Date();
-  const isOpen =
-    config?.project_registration_open &&
-    config?.project_registration_close &&
-    now >= new Date(config.project_registration_open) &&
-    now <= new Date(config.project_registration_close);
+  const isOpen = windowOpen(
+    config?.project_registration_open,
+    config?.project_registration_close,
+    now
+  );
 
   const {
     data: { user },
@@ -140,13 +142,9 @@ export default async function RegisterProjectsPage({
             Project registration is not currently open.
           </p>
           {config?.project_registration_open &&
-            now < new Date(config.project_registration_open) && (
+            now < (parseWindow(config.project_registration_open) as Date) && (
               <p className="mt-2 text-sm text-meta tabular-nums">
-                Opens{" "}
-                {new Date(config.project_registration_open).toLocaleDateString(
-                  "en-US",
-                  { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
-                )}
+                Opens {fmtLabDateTime(config.project_registration_open)}
               </p>
             )}
         </div>

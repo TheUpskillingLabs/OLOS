@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toLabInput, fromLabInput, LAB_TZ_LABEL } from "@/lib/cycles/lab-time";
 
 type Config = {
   cycle_id: number;
@@ -34,14 +35,16 @@ type Config = {
   project_registration_close: string | null;
 };
 
+// Window timestamps are stored as naive-UTC instants (S5.1 convention,
+// docs/requirements/cycle3-testing-plan.md) but ENTERED and DISPLAYED in the
+// lab's local time — America/New_York for the DC lab — so an admin types
+// "Jul 25, 9:00 AM" and the gate opens at 9:00 AM Eastern, EDT or EST alike.
 function toLocal(iso: string | null): string {
-  if (!iso) return "";
-  return iso.replace(" ", "T").slice(0, 16);
+  return toLabInput(iso);
 }
 
 function fromLocal(val: string): string | null {
-  if (!val) return null;
-  return `${val}:00`;
+  return fromLabInput(val);
 }
 
 // ─── Schedule form ────────────────────────────────────────────────────────────
@@ -136,6 +139,9 @@ export function CycleScheduleForm({
       <div className="mb-6 rounded-card border border-ink/10 bg-white p-4 shadow-card">
         <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">
           Cycle Phases
+          <span className="ml-2 text-xs font-normal text-meta">
+            all times Eastern ({LAB_TZ_LABEL})
+          </span>
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -171,10 +177,10 @@ export function CycleScheduleForm({
                 Phase
               </th>
               <th className="lbl px-4 py-3 text-left">
-                Opens (UTC)
+                Opens ({LAB_TZ_LABEL})
               </th>
               <th className="lbl px-4 py-3 text-left">
-                Closes (UTC)
+                Closes ({LAB_TZ_LABEL})
               </th>
             </tr>
           </thead>

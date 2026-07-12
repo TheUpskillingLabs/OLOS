@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { redirect } from "next/navigation";
 import { ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -231,16 +232,12 @@ export default async function DashboardPage() {
     preRegisteredUpcoming = (count ?? 0) > 0;
   }
 
-  // Determine pod registration window status
-  let podWindowOpen = false;
-  if (activeCycleConfig) {
-    const now = new Date();
-    const open = activeCycleConfig.pod_registration_open;
-    const close = activeCycleConfig.pod_registration_close;
-    if (open && close) {
-      podWindowOpen = now >= new Date(open) && now <= new Date(close);
-    }
-  }
+  // Determine pod registration window status. Naive window columns are UTC
+  // instants; entry + display are lab-local (lib/cycles/lab-time.ts).
+  const podWindowOpen = windowOpen(
+    activeCycleConfig?.pod_registration_open,
+    activeCycleConfig?.pod_registration_close
+  );
 
   // "Past cycles" = finished cohorts only (closed/archived); the upcoming
   // recruiting cohort and drafts don't belong in an archive (SECTOR_MODEL Phase A).
@@ -896,13 +893,13 @@ export default async function DashboardPage() {
   // dismissible cards (the rail shows timing; this gives the button).
   const cfg = (activeCycleConfig ?? {}) as Record<string, string | null>;
   const nowMs = new Date().getTime();
-  const windowClose = (k: string): Date | null => {
+  const windowClose = (k: string): string | null => {
     const o = cfg[`${k}_open`];
     const c = cfg[`${k}_close`];
     if (!o || !c) return null;
-    return nowMs >= new Date(o).getTime() && nowMs <= new Date(c).getTime()
-      ? new Date(c)
-      : null;
+    const open = parseWindow(o) as Date;
+    const close = parseWindow(c) as Date;
+    return nowMs >= open.getTime() && nowMs <= close.getTime() ? c : null;
   };
   const WINDOW_TODOS = [
     { k: "problem_statement", title: "Submit a problem statement", cta: "Propose", sub: "propose" },
@@ -920,7 +917,7 @@ export default async function DashboardPage() {
           {
             id: w.k,
             title: w.title,
-            detail: `Open now — closes ${close.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`,
+            detail: `Open now — closes ${fmtLabDateTime(close)}`,
             href: `/cycles/${activeCycle.id}/${w.sub}`,
             cta: w.cta,
           },
@@ -1001,12 +998,7 @@ export default async function DashboardPage() {
               <p className="mt-1 text-sm text-meta">
                 Pod registration opens{" "}
                 {activeCycleConfig.pod_registration_open
-                  ? new Date(
-                      activeCycleConfig.pod_registration_open
-                    ).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                    })
+                  ? fmtLabDateTime(activeCycleConfig.pod_registration_open)
                   : "soon"}
                 . We&apos;ll let you know when it&apos;s time to choose your
                 pods.
