@@ -16,11 +16,16 @@ export default async function PageUpdatesSection({
   id,
   name,
   ctx,
+  showAdminsManager = true,
 }: {
   type: PageType;
   id: number;
   name: string;
   ctx: PageContext;
+  /** Hide the "Page admins" management UI on this surface. The pod page opts
+   *  out for now — adding page admins shouldn't happen from the view page, and
+   *  where it belongs is still TBD (see feedback list). */
+  showAdminsManager?: boolean;
 }) {
   const service = createServiceClient();
   const { count: followers } = await service
@@ -38,11 +43,13 @@ export default async function PageUpdatesSection({
       {ctx.isAdmin && (
         <>
           <PageUpdateComposer pageType={type} pageId={id} pageName={name} />
-          <PageAdminsManager
-            pageType={type}
-            pageId={id}
-            initialAdmins={ctx.admins}
-          />
+          {showAdminsManager && (
+            <PageAdminsManager
+              pageType={type}
+              pageId={id}
+              initialAdmins={ctx.admins}
+            />
+          )}
         </>
       )}
       <UpdatesFeed
