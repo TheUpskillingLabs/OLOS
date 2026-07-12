@@ -82,6 +82,33 @@ export const POST = withAuth(
     const body = await parseBody(request, cycleAgreementSchema);
     if (isErrorResponse(body)) return body;
 
+    // Mirror the weekly-commitment pick (answers.hours) onto the member's
+    // profile availability — one shared field with the profile (00078). Runs
+    // on every submit, including a re-sign, so the profile reflects the latest
+    // registration. availability is single-valued here: replace any prior pick.
+    const hours = (body.answers as { hours?: string } | undefined)?.hours;
+    if (hours) {
+      const { data: availOpts } = await supabase
+        .from("option_lists")
+        .select("id, value")
+        .eq("list_name", "availability")
+        .eq("active", true);
+      const chosen = (availOpts ?? []).find((o) => o.value === hours);
+      if (chosen && availOpts && availOpts.length > 0) {
+        await supabase
+          .from("participant_options")
+          .delete()
+          .eq("participant_id", participantId)
+          .in(
+            "option_id",
+            availOpts.map((o) => o.id)
+          );
+        await supabase
+          .from("participant_options")
+          .insert({ participant_id: participantId, option_id: chosen.id });
+      }
+    }
+
     // Insert-only: a second signature attempt returns the existing row
     // rather than mutating it (the signature is a record, not a setting).
     const { data: existing } = await supabase
