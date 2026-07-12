@@ -40,28 +40,12 @@ export default async function EventsPage() {
       {/* ── Browse: the month-grouped agenda island, full-width ── */}
       <section className="section">
         <div className="container">
-          {/* The island reads useSearchParams — Suspense keeps Next happy.
-              The fallback holds the agenda's rough height so the page doesn't
-              render short and then jump when the island hydrates (July 2026
-              feedback: page "landing at the footer"). */}
-          <Suspense fallback={<AgendaSkeleton />}>
+          {/* The island reads useSearchParams — Suspense keeps Next happy. */}
+          <Suspense>
             <EventsAgenda events={events} nowMs={nowMs} syncUrl />
           </Suspense>
         </div>
       </section>
     </>
-  );
-}
-
-function AgendaSkeleton() {
-  return (
-    <div aria-hidden className="animate-pulse">
-      <div className="h-[38px] w-full max-w-xl rounded-card bg-ink/5" />
-      <div className="mt-6 space-y-3">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-28 rounded-card bg-ink/5" />
-        ))}
-      </div>
-    </div>
   );
 }

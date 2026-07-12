@@ -905,12 +905,10 @@ button:focus-visible {
   }
 
   /* ── gallery (event detail) ── */
-  /* Square slides (July 2026 feedback: photos rendered as rectangles);
-     width-capped so a 1:1 hero doesn't tower over the detail column. */
-  .gallery { position: relative; max-width: 640px; }
+  .gallery { position: relative; }
   .gallery-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; border-radius: var(--r); gap: 0; }
   .gallery-track::-webkit-scrollbar { height: 0; }
-  .gallery-track .media { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 1/1; border-radius: var(--r); }
+  .gallery-track .media { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 16/10; border-radius: var(--r); }
   .gallery-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; gap: 6px; justify-content: center; pointer-events: none; }
   .gallery-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, 0.55); transition: all 0.2s; }
   .gallery-dots i.on { background: #fff; width: 18px; border-radius: 3px; }
