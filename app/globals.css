@@ -600,6 +600,10 @@ button:focus-visible {
   .story-media .m-orb { position: absolute; left: 10%; top: 16%; width: 80%; height: 80%; opacity: 0.95; }
   .story-card .card-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .story-quote { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Keep the pull-quote clear of the bottom-pinned name/role block — the name
+     uses margin-top:auto, so without this the two collapse together on a
+     tall (5-line) quote. 16px == 4× the 4px baseline grid. */
+  .story-card .story-quote { margin-bottom: 16px; }
 
   /* ── Spotlight detail (/stories/[slug]) hero ── */
   .spot-hero { display: grid; gap: 28px; align-items: center; }
