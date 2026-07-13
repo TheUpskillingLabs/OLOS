@@ -49,8 +49,9 @@ export function OsFooter() {
               />
             </Link>
             <p className="t-body">
-              A commons for upskilling — learn by doing, in the open. Projects,
-              playbooks, and lessons, built like open source.
+              The systems we&rsquo;ve relied on are breaking. Here you&rsquo;re
+              invited to turn that disruption into resilience&mdash;rooted in
+              your local library and powered by you and your neighbors.
             </p>
             <Link className="btn btn-ghost-teal btn-sm" href="/donate">
               Support The Labs
