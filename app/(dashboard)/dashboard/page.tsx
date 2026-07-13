@@ -604,7 +604,7 @@ export default async function DashboardPage() {
         )}
         <p className="mt-3 text-sm text-meta">
           {upcoming
-            ? "Pre-register now to claim your spot for the next cohort."
+            ? "Pre-register now to claim your spot for the next cycle."
             : "Complete this form to join the cycle."}
         </p>
       </div>
@@ -625,7 +625,7 @@ export default async function DashboardPage() {
       <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
       <h2 className="t-h3 text-ink">{cycle.name}</h2>
       <p className="mt-2 text-sm text-meta">
-        You&apos;re all set for the next cohort
+        You&apos;re all set for the next cycle
         {cycle.start_date
           ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
               "en-US",

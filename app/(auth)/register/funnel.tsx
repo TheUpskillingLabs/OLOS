@@ -63,7 +63,7 @@ const PARTICIPANT_AGREEMENT: { h: string; p: string }[] = [
   },
   {
     h: "Updates",
-    p: "We’ll email you about your cohort and Labs news. Unsubscribe anytime; account-critical messages still arrive.",
+    p: "We’ll email you about your cycle and Labs news. Unsubscribe anytime; account-critical messages still arrive.",
   },
   {
     h: "Leaving",
