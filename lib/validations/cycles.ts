@@ -35,6 +35,13 @@ export const updateCycleConfigSchema = z.object({
   log_gate_paused: z.boolean().optional(),
   // Leadership Log pause — org cycles only (00069, docs/ORG_CYCLES.md §4a).
   leadership_log_gate_paused: z.boolean().optional(),
+  // Phase markers — the config form has always sent these, but they were
+  // missing here, so zod silently stripped them and Meet The Pods /
+  // Meet The Projects edits 200'd without writing (found testing #247;
+  // phase_2_start now drives the pod_active_join window, so a silent drop
+  // breaks the D-10 reopen gate).
+  phase_2_start: z.string().nullable().optional(),
+  phase_3_start: z.string().nullable().optional(),
   problem_statement_open: z.string().nullable().optional(),
   problem_statement_close: z.string().nullable().optional(),
   voting_open: z.string().nullable().optional(),
