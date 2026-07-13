@@ -25,6 +25,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 17 | 2026-07-13 | Cycle page | Surface the cycle's theme/explanation copy (the new `cycle_config.theme_description`) on the cycle page, and show the volunteers/mentors/etc. specifically associated with that cycle (directory-style view). | 🆕 |
 | 18 | 2026-07-13 | Admin / test users | Need a way to mark users as **test users in prod**, and test users should be excluded from the directory (and other member-facing surfaces), not just Poderator rosters. | 🆕 |
 | 19 | 2026-07-13 | Data / labs | **Data loss:** 2 sign-ups for the Baltimore local lab were lost across the various DB migrations — recover them and prevent recurrence. (Related: 51 of 59 prod participants currently have no lab affiliation.) | 🆕 |
+| 20 | 2026-07-13 | Labs / waitlist | Need a way to **start** a waitlist for a city that has no lab yet — right now you can only *join* an existing lab's waitlist, not create a new one. | 🆕 |
 
 ## Details
 
@@ -177,6 +178,15 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 - Where lab sign-ups / waitlist entries are stored (the no-lab / waitlist path — see #11) and how a migration could have dropped `metro_id` / waitlist rows. Check the metros-era + Local Labs migrations (00067 sub-cohort model) and any that touched `participants.metro_id`.
 - **Recover** the two Baltimore sign-ups (from a Supabase point-in-time backup / earlier dump if available) and, more broadly, reconcile the 51 unaffiliated participants.
 - Add a guardrail so lab affiliation isn't silently dropped by future migrations.
+
+**Update (2026-07-13):** Recovered from the `archive_jul12` prod snapshot — the lost signup was **Sharon Lanasa** (Baltimore; the 2nd was Statecraft/Atlanta, a test account, skipped). Sharon's participant row was restored and affiliated with Baltimore; a **Dallas** lab was added for Mannan Javid; the empty **Atlanta** lab was archived. Broader reconciliation of the ~51 unaffiliated + preventing future migration loss still open.
+
+### 20 — No way to *start* a waitlist for a new city (2026-07-13)
+**Observed:** You can only **join** the waitlist of a lab that already exists. There's no way for someone in a city with no lab to **start** a waitlist / register interest for a brand-new metro.
+
+**Expected:** A path for a prospective member (or organizer) to kick off a new city — create a waitlist entry for a metro that doesn't exist yet, so demand can accumulate before HQ stands up the lab. Ties into #11 (what to collect on the no-lab path) and #19/#18 (labs + admin tooling).
+
+**To investigate:** the `/local-labs` flow + `metro_waitlist_signups` / `metros` model — currently metros are admin-created and members pick from existing ones. Decide the UX (free-text city → pending metro, vs. a curated list) and the data model for a not-yet-real metro.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
