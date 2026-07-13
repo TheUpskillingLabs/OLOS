@@ -369,8 +369,8 @@ export default function LearningLogCard({
       {journal && (
         <p className="mt-2 text-sm text-charcoal">
           A running record of what you&apos;re learning — yours to keep and look
-          back on anytime. Join a Build Cycle and this becomes your weekly
-          check-in.
+          back on anytime. When you join a Build Cycle this becomes your
+          required weekly check-in.
         </p>
       )}
 
