@@ -28,6 +28,9 @@ export const updateCycleConfigSchema = z.object({
   // Milestone evaluation weeks (0–12; migration 00047). Admin-configurable.
   milestone_mid_week: z.number().int().min(0).max(12).optional(),
   milestone_final_week: z.number().int().min(0).max(12).optional(),
+  // Per-cycle theme copy for the registration ceremony's theme info screen
+  // (00084). Blank → generic fallback in lib/cycles/info.ts.
+  theme_description: z.string().max(4000).nullable().optional(),
   // Admin gate pause — cron skips paused cycles and clears stale stamps (00040).
   log_gate_paused: z.boolean().optional(),
   // Leadership Log pause — org cycles only (00069, docs/ORG_CYCLES.md §4a).

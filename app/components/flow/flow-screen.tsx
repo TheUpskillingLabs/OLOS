@@ -665,7 +665,12 @@ function ConsentInput({
             {step.references.map((r, i) => (
               <span key={r.href}>
                 {i > 0 && " · "}
-                <a href={r.href} target="_blank" rel="noopener">
+                <a
+                  href={r.href}
+                  target="_blank"
+                  rel="noopener"
+                  className="font-semibold text-teal-deep underline hover:text-teal focus-visible:underline focus-visible:outline-none"
+                >
                   {r.label}
                 </a>
               </span>

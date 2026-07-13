@@ -39,11 +39,11 @@ import { metroLabel } from "@/lib/metros-label";
 const PARTICIPANT_AGREEMENT: { h: string; p: string }[] = [
   {
     h: "Who this is between",
-    p: "You and The Upskilling Labs, a community R&D lab. Everyone joins through the same registration and accepts this same agreement — whether you take part as a learner, mentor, organizer, or builder. It covers your member account; joining a Build Cycle adds its own agreement later.",
+    p: "You and the Upskilling Labs. Everyone joins through the same registration and accepts this same agreement: whether you take part as a learner, mentor, organizer, or builder.",
   },
   {
     h: "The full terms",
-    p: "This is a plain-language summary. Our Terms of Service, Privacy Policy, and Code of Conduct — linked below — are part of this agreement and govern in full. They apply to every member equally, regardless of role.",
+    p: "This is a plain-language summary. Our Terms of Service, Privacy Policy, and Code of Conduct (linked below) are part of this agreement and govern in full.",
   },
   {
     h: "Be someone people can build with",
@@ -59,7 +59,7 @@ const PARTICIPANT_AGREEMENT: { h: string; p: string }[] = [
   },
   {
     h: "Events",
-    p: "Public events are free and open. If you RSVP, show up or free the seat. Sessions may be photographed for the community archive — tell the host if you’d rather not appear.",
+    p: "Public events are free and open. If you RSVP, we plan for you to show up. Sessions may be photographed — you can opt out of photography consent when registering for the event.",
   },
   {
     h: "Updates",
@@ -67,7 +67,7 @@ const PARTICIPANT_AGREEMENT: { h: string; p: string }[] = [
   },
   {
     h: "Leaving",
-    p: "Close your account whenever you like. Contributions already returned to the commons stay in the commons.",
+    p: "Close your account whenever you like. Contributions already submitted to the Labs will stay with the Labs — we're open-source.",
   },
 ];
 
@@ -110,7 +110,7 @@ function signupSteps(email: string): FlowStep[] {
       id: "hearAbout",
       type: "choice",
       q: "How did you hear about The Labs?",
-      help: "Everyone registers through the same path — this helps us thank the people and places that send folks our way.",
+      help: "Help us thank the people and places that send folks our way.",
       options: [
         { v: "referral", label: "A friend or colleague referred me" },
         {
@@ -129,7 +129,7 @@ function signupSteps(email: string): FlowStep[] {
         id: "referredBy",
         label: "Who referred you? (optional — so we can thank them)",
         ph: "e.g. Priya Shah",
-        when: (v) => v === "referral" || v === "invited",
+        when: (v) => v === "referral" || v === "invited" || v === "other",
       },
     },
     {

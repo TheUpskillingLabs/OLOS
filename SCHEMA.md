@@ -110,6 +110,7 @@ erDiagram
         smallint milestone_final_week
         timestamp log_due_at
         boolean log_gate_paused
+        text theme_description
         timestamp problem_statement_open
         timestamp problem_statement_close
         timestamp voting_open
