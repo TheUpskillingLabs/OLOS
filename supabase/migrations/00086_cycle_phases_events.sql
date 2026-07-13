@@ -1,4 +1,4 @@
--- 00085_cycle_phases_events.sql — Stage 1 of the calendar overhaul
+-- 00086_cycle_phases_events.sql — Stage 1 of the calendar overhaul
 -- (docs/requirements/cycle-timeline.md + implementation-plan.md, targeting
 -- Cycle 3 staged inside the live cycle; owner decision 2026-07-12).
 --
