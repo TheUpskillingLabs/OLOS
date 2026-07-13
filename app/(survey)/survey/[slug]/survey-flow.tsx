@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   FlowScreen,
   type FlowStep,
   type FlowAnswers,
 } from "@/app/components/flow/flow-screen";
-import { EdSection, EdRow, Pull } from "@/app/components/chrome/editorial";
+import { EdRow, Pull } from "@/app/components/chrome/editorial";
 import type { SurveyQuestion } from "@/lib/content/surveys";
 
 /* The Build Cycle's five stages, as a real sequence — rendered on the
@@ -19,6 +19,30 @@ const BUILD_CYCLE_STEPS: [string, string][] = [
   ["Prototype", "Iterate on real prototypes in small teams."],
   ["Showcase", "Present your MVP in a public showcase."],
 ];
+
+/* The survey body's sections use the editorial .ed-sec grid (eyebrow in col 1,
+   heading spanning 2–5) but WITHOUT the heavy .ed-rule divider — sections are
+   separated by generous space instead (owner pref). The shared EdSection keeps
+   the rule for /about and /build-cycles. */
+function SurveySection({
+  eyebrow,
+  heading,
+  children,
+}: {
+  eyebrow: string;
+  heading: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="ed-sec">
+      <div className="ed-eyebrow">
+        <div className="lbl lbl-teal">{eyebrow}</div>
+      </div>
+      <h2 className="ed-heading t-h2">{heading}</h2>
+      {children}
+    </section>
+  );
+}
 
 /* The field survey as a one-question-at-a-time flow (SENSEMAKING_FLOW.md §3),
    on the shared FlowScreen engine — the same shell as registration + the cycle
@@ -242,9 +266,9 @@ function Landing({
           and content flows in the rows beneath, divided by heavy modernist
           rules on the 8px baseline. */}
       <div className="container" style={{ paddingTop: 88, paddingBottom: 72 }}>
-        <div className="ed-doc">
+        <div className="ed-doc" style={{ rowGap: "clamp(80px, 9vw, 128px)" }}>
           {/* Interest — why observations matter */}
-          <EdSection
+          <SurveySection
             eyebrow="Why it matters"
             heading="Observations from the people closest to a problem are where the best projects begin."
           >
@@ -255,10 +279,10 @@ function Landing({
                 identify the problems worth tackling in each Build Cycle.
               </p>
             </EdRow>
-          </EdSection>
+          </SurveySection>
 
           {/* About the Labs */}
-          <EdSection
+          <SurveySection
             eyebrow="About the Labs"
             heading="What is The Upskilling Labs?"
           >
@@ -279,10 +303,10 @@ function Landing({
                 </p>
               </div>
             </EdRow>
-          </EdSection>
+          </SurveySection>
 
           {/* The Build Cycle — a real sequence, on the numbered-process pattern */}
-          <EdSection
+          <SurveySection
             eyebrow="The Build Cycle"
             heading="The flagship program is the quarterly Build Cycle."
           >
@@ -311,10 +335,10 @@ function Landing({
                 ))}
               </div>
             </EdRow>
-          </EdSection>
+          </SurveySection>
 
           {/* Desire — where your insights go */}
-          <EdSection eyebrow="Where it goes" heading="Where do my insights go?">
+          <SurveySection eyebrow="Where it goes" heading="Where do my insights go?">
             <EdRow>
               <p className="t-lede ed-text">
                 Your insights help shape the very problems Upskillers choose to
@@ -325,10 +349,10 @@ function Landing({
               </p>
             </EdRow>
             <Pull>Everything Upskillers produce is accessible and open-source.</Pull>
-          </EdSection>
+          </SurveySection>
 
           {/* Action — the closing ask */}
-          <EdSection
+          <SurveySection
             eyebrow="Ready when you are"
             heading="Tell us what you're seeing."
           >
@@ -360,7 +384,7 @@ function Landing({
                 </p>
               </div>
             </EdRow>
-          </EdSection>
+          </SurveySection>
         </div>
       </div>
     </div>
