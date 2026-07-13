@@ -24,6 +24,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 16 | 2026-07-13 | Cycle registration | No clear way to exit the cycle-registration ceremony — only "back" between steps. Need an explicit exit/close (e.g. to the dashboard) at any step. | 🆕 |
 | 17 | 2026-07-13 | Cycle page | Surface the cycle's theme/explanation copy (the new `cycle_config.theme_description`) on the cycle page, and show the volunteers/mentors/etc. specifically associated with that cycle (directory-style view). | 🆕 |
 | 18 | 2026-07-13 | Admin / test users | Need a way to mark users as **test users in prod**, and test users should be excluded from the directory (and other member-facing surfaces), not just Poderator rosters. | 🆕 |
+| 19 | 2026-07-13 | Data / labs | **Data loss:** 2 sign-ups for the Baltimore local lab were lost across the various DB migrations — recover them and prevent recurrence. (Related: 51 of 59 prod participants currently have no lab affiliation.) | 🆕 |
 
 ## Details
 
@@ -166,6 +167,16 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 2. **Broaden the exclusion** — filter `is_test = true` out of the directory (`app/(dashboard)/directory/`) and any other member-facing lists (people-you-may-know, cycle people (#17), follows suggestions, etc.). Audit the queries and add the filter consistently.
 
 **Note:** decide whether test users are hidden from *everyone* or just non-admins (admins probably still need to see/manage them).
+
+### 19 — Lost Baltimore local-lab sign-ups in migrations (2026-07-13)
+**Observed:** Two people signed up for the **Baltimore** local lab; those sign-ups were **lost** somewhere across the various DB migrations.
+
+**Impact / context:** On prod today, **51 of 59** participants have `metro_id = NULL` (no lab affiliation) — so lab affiliation broadly got disrupted, not just Baltimore. Baltimore exists as a draft cycle ("Baltimore Fall 2026", cycle 11) but the two sign-ups aren't reflected.
+
+**To investigate:**
+- Where lab sign-ups / waitlist entries are stored (the no-lab / waitlist path — see #11) and how a migration could have dropped `metro_id` / waitlist rows. Check the metros-era + Local Labs migrations (00067 sub-cohort model) and any that touched `participants.metro_id`.
+- **Recover** the two Baltimore sign-ups (from a Supabase point-in-time backup / earlier dump if available) and, more broadly, reconcile the 51 unaffiliated participants.
+- Add a guardrail so lab affiliation isn't silently dropped by future migrations.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
