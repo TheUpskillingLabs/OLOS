@@ -23,6 +23,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 15 | 2026-07-13 | Nav / auth | Clicking the profile/avatar in the top nav navigates straight to the profile instead of opening a menu — so there's no account menu (e.g. Log out) reachable from the main/home page without loading the profile first. | 🆕 |
 | 16 | 2026-07-13 | Cycle registration | No clear way to exit the cycle-registration ceremony — only "back" between steps. Need an explicit exit/close (e.g. to the dashboard) at any step. | 🆕 |
 | 17 | 2026-07-13 | Cycle page | Surface the cycle's theme/explanation copy (the new `cycle_config.theme_description`) on the cycle page, and show the volunteers/mentors/etc. specifically associated with that cycle (directory-style view). | 🆕 |
+| 18 | 2026-07-13 | Admin / test users | Need a way to mark users as **test users in prod**, and test users should be excluded from the directory (and other member-facing surfaces), not just Poderator rosters. | 🆕 |
 
 ## Details
 
@@ -156,6 +157,15 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Two parts:**
 1. **Theme/explanation on the cycle page** — surface the admin-authored `cycle_config.theme_description` (00084; the "What {cycle} means" copy) on `app/(dashboard)/cycles/[cycle_id]/page.tsx` (and/or the public cycle page `app/c/[cycle_id]`), reusing `cycleInfoContent` so it shares copy + fallback with the registration ceremony.
 2. **Cycle people (directory view)** — a directory-style panel of volunteers, mentors, organizers, etc. **associated with this cycle** (not the whole org). Needs a way to resolve who's tied to a cycle by role — cross-check `cycle_enrollments` + `role_intents` / `user_roles` / moderator assignments, scoped to the cycle. Confirm what "associated with the cycle" means for each role (enrolled participant vs. mentor/volunteer for that cohort) before building.
+
+### 18 — Mark test users in prod + hide them from member surfaces (2026-07-13)
+**Wanted:** An admin-controllable way to flag accounts as **test users on prod**, and have those accounts excluded from the directory and other member-facing views (so dogfooding/test accounts don't clutter the real member experience).
+
+**Existing groundwork:** `participants.is_test` already exists (migration `00041`) — but today it's only consulted for Poderator roster visibility + health math, **not** the directory. Two parts:
+1. **Admin toggle** — a way to set `is_test` in prod (admin UI, or at minimum a documented/service path), since there's no UI to flip it today.
+2. **Broaden the exclusion** — filter `is_test = true` out of the directory (`app/(dashboard)/directory/`) and any other member-facing lists (people-you-may-know, cycle people (#17), follows suggestions, etc.). Audit the queries and add the filter consistently.
+
+**Note:** decide whether test users are hidden from *everyone* or just non-admins (admins probably still need to see/manage them).
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
