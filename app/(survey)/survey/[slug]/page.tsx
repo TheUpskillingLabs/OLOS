@@ -27,7 +27,7 @@ export async function generateMetadata({
     title: `${survey.title} · The Upskilling Labs`,
     description:
       survey.about ??
-      "Share what you're seeing in the field — the observations that shape what we build.",
+      "Share what you're seeing in the field — a team at The Upskilling Labs builds from it in the next Build Cycle.",
   };
 }
 

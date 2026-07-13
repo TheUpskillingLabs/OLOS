@@ -205,7 +205,7 @@ function Landing({
             </h1>
             <p className="t-lede" style={{ marginBottom: 4, maxWidth: "42ch" }}>
               {about ??
-                `You work in ${domain}. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing — it's where the next ${domain} Build Cycle begins.`}
+                `You work in ${domain}. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing — and a team at The Upskilling Labs builds from it in the next ${domain} Build Cycle.`}
             </p>
             <GoalCounter count={count} goal={goal} />
             <button
@@ -232,9 +232,11 @@ function Landing({
           </h2>
           <p className="t-lede" style={{ margin: 0 }}>
             Not a report. Not a headline. Just someone close enough to see what
-            wasn&rsquo;t working. Your observation is that starting point — read
-            by the people choosing what The Labs builds next, and weighed by how
-            close you are to the problem.
+            wasn&rsquo;t working. Every {domain} Build Cycle at The Upskilling
+            Labs starts here — a team of Upskillers reads these observations,
+            picks the problems worth solving, and spends the cycle building
+            open-source answers to them. Your view helps decide what they take
+            on.
           </p>
         </div>
       </section>
@@ -246,16 +248,17 @@ function Landing({
             Where it goes
           </div>
           <h2 className="t-h2" style={{ marginBottom: 24 }}>
-            Your observation joins an open commons.
+            It goes to the people who build.
           </h2>
           <div className="cards two">
             <div className="lcard" style={{ padding: 24 }}>
               <h3 className="t-h4" style={{ marginBottom: 6 }}>
-                Open by default
+                Built by a real team
               </h3>
               <p className="t-body text-meta" style={{ margin: 0 }}>
-                Everything The Labs builds from these observations is
-                open-source — free for anyone to use, you included.
+                Upskillers join each {domain} Build Cycle and turn these
+                observations into working, open-source projects — part of an
+                open commons, free for anyone to use, you included.
               </p>
             </div>
             <div className="lcard" style={{ padding: 24 }}>
@@ -264,8 +267,8 @@ function Landing({
               </h3>
               <p className="t-body text-meta" style={{ margin: 0 }}>
                 We&rsquo;re gathering {goal.toLocaleString()} field observations
-                to choose the problems this cycle takes on. Yours helps set the
-                agenda.
+                so that team can choose which problems to take on. Yours helps
+                set their agenda.
               </p>
             </div>
           </div>
@@ -284,7 +287,8 @@ function Landing({
             </h2>
             <p className="t-lede" style={{ marginBottom: 24, maxWidth: "42ch" }}>
               One observation is enough to start. Add as many as you&rsquo;ve
-              got — we read every one.
+              got — every one reaches the Upskillers building the next {domain}{" "}
+              Build Cycle.
             </p>
             <button
               className="btn btn-red btn-lg landing-cta"
