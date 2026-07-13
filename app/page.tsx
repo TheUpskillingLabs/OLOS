@@ -224,23 +224,16 @@ export default async function LandingPage() {
         id="sec-cycles"
       >
         <div className="container">
-          {/* Hero-size heading with the "how it works" link pushed to the far
-              right on the same baseline; the detail lives on /build-cycles. */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 16,
-              marginBottom: 40,
-            }}
-          >
+          {/* Hero-size heading; the "how it works" link sits on the heading's
+              baseline but aligned to the second column (left edge flush with the
+              benefits column below). The detail lives on /build-cycles. */}
+          <div className="cycle-head">
             <h2 className="t-display">Join a Build Cycle</h2>
             <Link
               href="/build-cycles"
               className="see"
               style={{
+                justifySelf: "start",
                 color: "var(--teal-deep)",
                 fontWeight: 600,
                 fontSize: 14,

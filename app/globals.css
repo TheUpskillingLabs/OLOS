@@ -696,6 +696,12 @@ button:focus-visible {
      cycle card. One column on small screens (benefits above the card); two from
      900px. The card stays a vertical card in its column (never the full-width
      banner's wide row layout). */
+  /* Cycles heading row — mirrors .cycle-split's grid so the "how cycles work"
+     link lands in column 2 (left edge flush with the benefits column) while
+     sitting on the heading's baseline. Collapses to one column with the split. */
+  .cycle-head { display: grid; grid-template-columns: 1fr; align-items: baseline; gap: 8px; margin-bottom: 40px; }
+  @media (min-width: 900px) { .cycle-head { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; } }
+
   .cycle-split { display: grid; gap: 28px; align-items: start; }
   /* More breathing room between the spotlights row and the cycles section —
      padding (inside the white section), not margin, so the gap stays white and
