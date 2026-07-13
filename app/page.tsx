@@ -352,7 +352,7 @@ export default async function LandingPage() {
         <div className="container">
           <SectionHead
             eyebrow="What this is"
-            heading="Local communities of practice, powered by OLOS"
+            heading="A new way to learn, together"
           />
           <div
             style={{
