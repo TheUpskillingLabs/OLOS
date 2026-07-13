@@ -4,11 +4,11 @@ import HeroFade from "@/app/components/chrome/hero-fade";
 import OrbDefs from "@/app/components/chrome/orb-defs";
 import Orb from "@/app/components/chrome/orb";
 import { OsFooter } from "@/app/components/chrome/site-footers";
-import MetroSearch from "@/app/components/content/metro-search";
 import HomeSpotlights from "@/app/components/content/home-spotlights";
 import {
   EventTeaser,
   ResourceTeaser,
+  LabTeaser,
 } from "@/app/components/content/teasers";
 import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
@@ -67,6 +67,26 @@ function SectionHead({
     </div>
   );
 }
+
+// The three-month arc shown under the cycle banner. Copy moves to the
+// `cycles` table if months ever become data-driven.
+const CYCLE_ANATOMY: [string, string, string][] = [
+  [
+    "Month 1",
+    "Problem Discovery",
+    "You’ll explore challenges that matter to you and your industry. Through community voting, the most compelling problems rise to the top—and small teams called “pods” form around them.",
+  ],
+  [
+    "Month 2",
+    "Experimentation",
+    "Pods dig deeper into solutions via projects. You’ll research, prototype, test ideas, and learn by doing. Mentors and peers support you along the way.",
+  ],
+  [
+    "Month 3",
+    "Synthesis",
+    "Pods turn experiments into working prototypes—tools, workflows, templates—that you can use in your job and share with others. Every cycle ends with a public showcase, so your work has visibility and impact beyond the Lab.",
+  ],
+];
 
 /* The public landing — onboarding-proto's view-landing: dark hero over
    photography, then browse-free sections (cycles · workshops · library ·
@@ -179,8 +199,8 @@ export default async function LandingPage() {
       >
         <div className="container">
           <SectionHead
-            eyebrow="Build Cycles · 4 a year"
-            heading="Join a cohort, ship something real"
+            eyebrow="Build Cycles · 4 per year"
+            heading="Join a Build Cycle, solve a real problem"
           />
           {recruitingCycle ? (
             <div className="cycle-banner s-cover grain on-dark">
@@ -189,7 +209,7 @@ export default async function LandingPage() {
                 <span className="cb-status">
                   {recruitingCycle.status === "upcoming"
                     ? "Registration open now"
-                    : "Cohort in progress"}
+                    : "Cycle in progress"}
                 </span>
                 {bannerSeason && (
                   <div className="lbl lbl-teal" style={{ margin: "14px 0 6px" }}>
@@ -236,6 +256,35 @@ export default async function LandingPage() {
               </div>
             </div>
           )}
+
+          {/* Anatomy of a Build Cycle — the three-month arc */}
+          <div style={{ marginTop: 48 }}>
+            <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
+              Anatomy of a Build Cycle
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gap: 32,
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                alignItems: "start",
+              }}
+            >
+              {CYCLE_ANATOMY.map(([month, title, body]) => (
+                <div key={month}>
+                  <div className="lbl" style={{ marginBottom: 8 }}>
+                    {month}
+                  </div>
+                  <h3 className="t-h3" style={{ marginBottom: 8 }}>
+                    {title}
+                  </h3>
+                  <p className="t-body" style={{ maxWidth: "44ch" }}>
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -284,7 +333,13 @@ export default async function LandingPage() {
             eyebrow="Local labs"
             heading="Find your city"
           />
-          <MetroSearch metros={metros} initial={landingLabs} signedIn={signedIn} />
+          {/* Just the lab cards — the search bar waits until there are more
+              than two cities (it lives on /local-labs). */}
+          <div className="cards">
+            {landingLabs.map((m) => (
+              <LabTeaser key={m.slug} metro={m} />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -308,18 +363,30 @@ export default async function LandingPage() {
           >
             <div>
               <p className="t-lede" style={{ marginBottom: 16, maxWidth: "60ch" }}>
-                The Upskilling Labs is a network of local communities of
-                practice — people navigating career change who learn by doing
-                and keep leveling up for life. OLOS (Open Labs OS) is the
-                platform that runs it: you sign in to join your local lab, form
-                a cohort in a twelve-week Build Cycle, ship a real project, drop
-                into workshops, and keep a Learning Log — alongside people who
-                notice your work.
+                An Open Lab is how we learn together&mdash;openly, practically,
+                and as a community.
+              </p>
+              <p className="t-body" style={{ marginBottom: 16, maxWidth: "60ch" }}>
+                Unlike traditional courses with fixed enrollment and passive
+                instruction, Open Labs are peer-powered and project-based. You
+                don&rsquo;t need a technical background to get
+                started&mdash;just a willingness to learn by doing alongside
+                others.
+              </p>
+              <p className="t-body" style={{ marginBottom: 16, maxWidth: "60ch" }}>
+                Inside an Open Lab, you&rsquo;ll find weekly workshops and
+                quarterly Build Cycles. Workshops support you in building the
+                skills you need to master the future of work: from durable
+                skills like problem framing to AI-specific skills like
+                prompt-engineering.
               </p>
               <p className="t-body" style={{ maxWidth: "60ch" }}>
-                Membership is free. Browse cycles, workshops, the Learning
-                Library, and local labs above — no account needed. You only sign
-                in when you&rsquo;re ready to join.
+                Build Cycles are a twelve-week program where you go from deeply
+                exploring a problem space, to forming a pod with peers, to
+                rapidly prototyping solutions. Each month is anchored by a
+                meetup where you present your progress, culminating in a demo at
+                our Summit. And everything you create is open-source by default
+                so others can learn from and build on your work.
               </p>
             </div>
             <div className="lcard" style={{ padding: 28 }}>

@@ -19,6 +19,8 @@ import { DONATE_URL } from "@/lib/donate";
 
 const DESTS = [
   { key: "events", label: "Events", href: "/events" },
+  { key: "about", label: "About", href: "/about" },
+  { key: "get-involved", label: "Get Involved", href: "/get-involved" },
 ];
 
 export default function PublicNav({
@@ -123,7 +125,6 @@ export default function PublicNav({
             {d.label}
           </Link>
         ))}
-        <Link className="nav-link" href="/about">About</Link>
         {!signedIn && (
           <Link className="nav-link" href="/login">Log in</Link>
         )}
