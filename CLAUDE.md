@@ -1,5 +1,9 @@
 @AGENTS.md
 
+## Branch discipline
+
+**Never commit or push to `dev` or `main` directly.** Every change goes on a feature branch and into `dev` via a PR; promotion to `main` is its own `dev` → `main` PR. The only exception is when the user *explicitly* asks to push a specific change straight to `dev` or `main` in that moment — otherwise, always branch + PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
+
 ## Orientation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the codebase is organized (App Router, `lib/`, migrations, core concepts).
