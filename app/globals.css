@@ -697,13 +697,16 @@ button:focus-visible {
      900px. The card stays a vertical card in its column (never the full-width
      banner's wide row layout). */
   .cycle-split { display: grid; gap: 28px; align-items: start; }
-  /* More breathing room between the spotlights row and the cycles section. */
-  .sec-cycles-gap { margin-top: 40px; }
+  /* More breathing room between the spotlights row and the cycles section —
+     padding (inside the white section), not margin, so the gap stays white and
+     doesn't reveal the paper page background as an off-white band. The
+     `.section` qualifier out-specifies `.section + .section { padding-top: 0 }`. */
+  .section.sec-cycles-gap { padding-top: 40px; }
   @media (min-width: 900px) {
     .cycle-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
     .cycle-split .cycle-banner { flex-direction: column; align-items: flex-start; padding: 32px 32px; }
     .cycle-split .cycle-banner .cb-cta { width: 100%; }
-    .sec-cycles-gap { margin-top: 64px; }
+    .section.sec-cycles-gap { padding-top: 64px; }
   }
 
   /* ── cycle threshold — commitment cards on the dark cover ── */
