@@ -76,7 +76,7 @@ const WHAT_YOU_LEARN: [string, string][] = [
   ],
   [
     "AI skills",
-    "The technical side of working with AI—prompt engineering, vibe coding, working with agents, and more.",
+    "The technical side of working with AI—prompt engineering, vibe coding, working with agents, and more. Hands-on practice with the tools that are reshaping how work gets done, so you can build alongside them instead of being left behind.",
   ],
   [
     "Supports the cycle",
@@ -405,7 +405,7 @@ export default async function LandingPage() {
             }}
           >
             <div>
-              <p className="t-lede" style={{ marginBottom: 16, maxWidth: "60ch" }}>
+              <p className="t-body" style={{ marginBottom: 16, maxWidth: "60ch" }}>
                 Unlike traditional courses with fixed enrollment and passive
                 instruction, Open Labs are peer-powered and project-based. You
                 don&rsquo;t need a technical background to get
