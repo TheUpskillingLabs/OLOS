@@ -132,7 +132,11 @@ async function withMemberCounts(
 /** Active lab first, then waitlists by list size (the prototype's sort). */
 export async function getMetros(): Promise<MetroRow[]> {
   const supabase = createServiceClient();
-  const { data, error } = await supabase.from("metros").select("*");
+  // Archived labs (metros.archived_at, 00081) are soft-hidden — never list them.
+  const { data, error } = await supabase
+    .from("metros")
+    .select("*")
+    .is("archived_at", null);
   if (error) console.error("[content] getMetros:", error.message);
   const rows = await withMemberCounts((data as Record<string, unknown>[]) ?? []);
   return rows.sort((a, b) =>
@@ -146,6 +150,7 @@ export async function getMetro(slug: string): Promise<MetroRow | null> {
     .from("metros")
     .select("*")
     .eq("slug", slug)
+    .is("archived_at", null)
     .maybeSingle();
   if (!data) return null;
   const [row] = await withMemberCounts([data as Record<string, unknown>]);
