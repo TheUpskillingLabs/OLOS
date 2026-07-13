@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { parseWindow, fmtLabDate } from "@/lib/cycles/lab-time";
 import { getCycleWeek } from "@/lib/cycle/week";
 
 type CycleConfig = {
@@ -68,10 +69,9 @@ const OPERATIONAL_WINDOWS = [
 ] as const;
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  // Window timestamps are naive-UTC instants; render lab-local dates
+  // (lib/cycles/lab-time.ts).
+  return fmtLabDate(iso);
 }
 
 function daysUntil(from: Date, to: Date): number {
@@ -89,7 +89,10 @@ function getActiveWindows(
     const openVal = config[openKey];
     const closeVal = config[closeKey];
     if (openVal && closeVal) {
-      if (now >= new Date(openVal) && now <= new Date(closeVal)) {
+      if (
+        now >= (parseWindow(openVal) as Date) &&
+        now <= (parseWindow(closeVal) as Date)
+      ) {
         active.push({ label: w.label, closesAt: closeVal, route: w.route });
       }
     }
@@ -104,7 +107,7 @@ function getUpcomingWindow(
   for (const w of OPERATIONAL_WINDOWS) {
     const openKey = `${w.field}_open` as keyof CycleConfig;
     const openVal = config[openKey];
-    if (openVal && new Date(openVal) > now) {
+    if (openVal && (parseWindow(openVal) as Date) > now) {
       return { label: w.label, opensAt: openVal };
     }
   }

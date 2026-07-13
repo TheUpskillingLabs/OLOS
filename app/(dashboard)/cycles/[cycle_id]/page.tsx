@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { windowOpen, fmtLabDate } from "@/lib/cycles/lab-time";
 import { BookOpen, ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -83,7 +84,7 @@ export default async function CycleDetailPage({
       const configRecord = config as Record<string, string | null>;
       const openVal = configRecord[`${w.field}_open`];
       const closeVal = configRecord[`${w.field}_close`];
-      if (openVal && closeVal && now >= new Date(openVal) && now <= new Date(closeVal)) {
+      if (openVal && closeVal && windowOpen(openVal, closeVal, now)) {
         activeWindows.push({ label: w.label, route: w.route, closesAt: closeVal });
       }
     }
@@ -135,10 +136,7 @@ export default async function CycleDetailPage({
               <div className="flex items-center gap-2 text-sm text-slate">
                 <span className="tabular-nums">
                   closes{" "}
-                  {new Date(w.closesAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {fmtLabDate(w.closesAt)}
                 </span>
                 <ArrowRight
                   className="h-4 w-4 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"

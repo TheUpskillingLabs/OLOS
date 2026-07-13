@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -32,12 +33,14 @@ export default async function ProposePage({
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
+  // Naive window columns are UTC instants; entry + display are lab-local
+  // (lib/cycles/lab-time.ts).
   const now = new Date();
-  const isOpen =
-    config?.problem_statement_open &&
-    config?.problem_statement_close &&
-    now >= new Date(config.problem_statement_open) &&
-    now <= new Date(config.problem_statement_close);
+  const isOpen = windowOpen(
+    config?.problem_statement_open,
+    config?.problem_statement_close,
+    now
+  );
 
   // Get user's name for pre-filling
   const {
@@ -92,18 +95,9 @@ export default async function ProposePage({
               : "This cycle isn't fully configured yet — the submission window hasn't been scheduled. If you expected it to be open, let an organizer know."}
           </p>
           {config?.problem_statement_open &&
-            now < new Date(config.problem_statement_open) && (
+            now < (parseWindow(config.problem_statement_open) as Date) && (
               <p className="mt-2 text-sm text-meta tabular-nums">
-                Opens{" "}
-                {new Date(config.problem_statement_open).toLocaleDateString(
-                  "en-US",
-                  {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }
-                )}
+                Opens {fmtLabDateTime(config.problem_statement_open)}
               </p>
             )}
         </div>

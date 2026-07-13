@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { windowOpen } from "@/lib/cycles/lab-time";
 import CycleCeremony from "./ceremony";
+import { cycleInfoContent } from "@/lib/cycles/info";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
 // FLOWS('cycle') → the Open Cycle Agreement signature → view-cycle-signed).
@@ -48,7 +50,7 @@ export default async function JoinCyclePage({
 
   const { data: cycle } = await serviceClient
     .from("cycles")
-    .select("id, name, status, mode, lab_id")
+    .select("id, name, status, mode, lab_id, description, what_you_build")
     .eq("id", cycleId)
     .single();
 
@@ -81,26 +83,33 @@ export default async function JoinCyclePage({
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
-  // Pod-registration window drives the confirmation's primary CTA.
+  // Pod-registration window drives the confirmation's primary CTA;
+  // theme_description feeds the ceremony's theme info screen (00084).
   const { data: config } = await serviceClient
     .from("cycle_config")
-    .select("pod_registration_open, pod_registration_close")
+    .select("pod_registration_open, pod_registration_close, theme_description")
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
-  const now = new Date();
-  const podRegistrationOpen =
-    !!config?.pod_registration_open &&
-    !!config?.pod_registration_close &&
-    now >= new Date(config.pod_registration_open) &&
-    now <= new Date(config.pod_registration_close);
+  // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
+  const podRegistrationOpen = windowOpen(
+    config?.pod_registration_open,
+    config?.pod_registration_close
+  );
 
   const fullName = `${participant.first_name} ${participant.last_name}`.trim();
+  const info = cycleInfoContent({
+    ...cycle,
+    theme_description: config?.theme_description,
+  });
 
   return (
     <CycleCeremony
       cycleId={cycleId}
       cycleName={cycle.name}
+      cycleDescription={info.description}
+      whatYouBuild={info.whatYouBuild}
+      themeDescription={info.themeDescription}
       fullName={fullName}
       fromSignup={from === "signup"}
       alreadySigned={!!agreement}

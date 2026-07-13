@@ -6,7 +6,11 @@ import { can, isOwner } from "@/lib/auth/roles";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import OwnerLifecycle from "@/app/components/owner-lifecycle";
 import CycleStatusForm from "./cycle-status-form";
-import { CycleScheduleForm, CycleParamsForm } from "./cycle-config-form";
+import {
+  CycleScheduleForm,
+  CycleParamsForm,
+  CycleRegInfoForm,
+} from "./cycle-config-form";
 import CycleLogGateForm from "./cycle-log-gate-form";
 import CycleLeadershipLogGateForm from "./cycle-leadership-log-gate-form";
 import ParticipantsTable from "./participants-table";
@@ -334,6 +338,14 @@ export default async function AdminCycleDetailPage({
     <div className="space-y-10">
       {!isOrg && (
         <>
+          <section>
+            <h2 className="mb-1 t-h3 text-ink">Registration</h2>
+            <p className="mb-4 text-sm text-meta">
+              Theme copy shown during cycle registration.
+            </p>
+            <CycleRegInfoForm cycleId={cycle.id} config={config} />
+          </section>
+          <hr className="border-ink/10" />
           <section>
             <h2 className="mb-1 t-h3 text-ink">Schedule</h2>
             <p className="mb-4 text-sm text-meta">

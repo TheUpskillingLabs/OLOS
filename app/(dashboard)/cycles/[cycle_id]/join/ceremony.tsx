@@ -30,12 +30,41 @@ import { OPEN_CYCLE_AGREEMENT_VERSION } from "@/lib/validations/cycle-agreement"
 
 const HOURS = ["2–4 hrs / week", "5–8 hrs / week", "8+ hrs / week"];
 
-function cycleSteps(cycleName: string, fullName: string): FlowStep[] {
+function cycleSteps(
+  cycleName: string,
+  fullName: string,
+  cycleDescription: string,
+  whatYouBuild: string,
+  themeDescription: string
+): FlowStep[] {
   // The presence commitment lists each core event with its date — testers
   // couldn't parse the old inline comma string (July 2026 feedback: "list
   // dates out more clearly").
   const coreDates = coreEvents().map((e) => `${e.name} — ${fmtEvt(e)}`);
   return [
+    {
+      id: "what_is_a_build_cycle",
+      type: "info",
+      q: "What a Build Cycle is",
+      render: (
+        <div style={{ display: "grid", gap: 14 }}>
+          <p className="t-body">{cycleDescription}</p>
+          <p className="t-body">{whatYouBuild}</p>
+        </div>
+      ),
+    },
+    {
+      id: "what_this_cycle_means",
+      type: "info",
+      q: `What ${cycleName} means`,
+      render: (
+        <div style={{ display: "grid", gap: 14 }}>
+          <p className="t-body" style={{ whiteSpace: "pre-line" }}>
+            {themeDescription}
+          </p>
+        </div>
+      ),
+    },
     {
       id: "theme_interest",
       type: "textarea",
@@ -95,6 +124,9 @@ export default function CycleCeremony({
   cycleId,
   cycleName,
   fullName,
+  cycleDescription,
+  whatYouBuild,
+  themeDescription,
   fromSignup,
   alreadySigned,
   signedAt,
@@ -103,22 +135,33 @@ export default function CycleCeremony({
   cycleId: number;
   cycleName: string;
   fullName: string;
+  cycleDescription: string;
+  whatYouBuild: string;
+  themeDescription: string;
   fromSignup: boolean;
   alreadySigned: boolean;
   signedAt: string | null;
   podRegistrationOpen: boolean;
 }) {
   const router = useRouter();
-  // The cycle's purpose + dates + open-source policy now live on the public
-  // /build-cycles page; registration goes straight to the questions + sign
-  // (owner decision — read the pitch there, just agree + register here).
+  // The full pitch (dates, open-source policy) lives on the public
+  // /build-cycles page; the ceremony opens with two short info beats — what a
+  // Build Cycle is, what this cycle's theme means — before the questions +
+  // sign, so a deep-linked registrant isn't answering cold.
   const [stage, setStage] = useState<"flow" | "signed">(
     alreadySigned ? "signed" : "flow"
   );
   const [signedNow, setSignedNow] = useState<string | null>(signedAt);
   const steps = useMemo(
-    () => cycleSteps(cycleName, fullName),
-    [cycleName, fullName]
+    () =>
+      cycleSteps(
+        cycleName,
+        fullName,
+        cycleDescription,
+        whatYouBuild,
+        themeDescription
+      ),
+    [cycleName, fullName, cycleDescription, whatYouBuild, themeDescription]
   );
 
   const eyebrow = fromSignup

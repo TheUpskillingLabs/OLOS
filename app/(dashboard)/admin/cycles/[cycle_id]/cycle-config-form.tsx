@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toLabInput, fromLabInput, LAB_TZ_LABEL } from "@/lib/cycles/lab-time";
 
 type Config = {
   cycle_id: number;
@@ -32,16 +33,19 @@ type Config = {
   solution_voting_close: string | null;
   project_registration_open: string | null;
   project_registration_close: string | null;
+  theme_description: string | null;
 };
 
+// Window timestamps are stored as naive-UTC instants (S5.1 convention,
+// docs/requirements/cycle3-testing-plan.md) but ENTERED and DISPLAYED in the
+// lab's local time — America/New_York for the DC lab — so an admin types
+// "Jul 25, 9:00 AM" and the gate opens at 9:00 AM Eastern, EDT or EST alike.
 function toLocal(iso: string | null): string {
-  if (!iso) return "";
-  return iso.replace(" ", "T").slice(0, 16);
+  return toLabInput(iso);
 }
 
 function fromLocal(val: string): string | null {
-  if (!val) return null;
-  return `${val}:00`;
+  return fromLabInput(val);
 }
 
 // ─── Schedule form ────────────────────────────────────────────────────────────
@@ -136,6 +140,9 @@ export function CycleScheduleForm({
       <div className="mb-6 rounded-card border border-ink/10 bg-white p-4 shadow-card">
         <h3 className="mb-3 text-sm font-semibold tracking-tight text-ink">
           Cycle Phases
+          <span className="ml-2 text-xs font-normal text-meta">
+            all times Eastern ({LAB_TZ_LABEL})
+          </span>
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -171,10 +178,10 @@ export function CycleScheduleForm({
                 Phase
               </th>
               <th className="lbl px-4 py-3 text-left">
-                Opens (UTC)
+                Opens ({LAB_TZ_LABEL})
               </th>
               <th className="lbl px-4 py-3 text-left">
-                Closes (UTC)
+                Closes ({LAB_TZ_LABEL})
               </th>
             </tr>
           </thead>
@@ -212,6 +219,80 @@ export function CycleScheduleForm({
         {saved && <span className="text-sm font-medium text-teal-deep">Saved.</span>}
         {serverError && (
           <span role="alert" className="text-sm text-red">{serverError}</span>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// ─── Registration info form ────────────────────────────────────────────────────
+
+// Per-cycle theme copy shown on the registration ceremony's "What <cycle>
+// means" info screen (00084). Blank → generic fallback (lib/cycles/info.ts).
+export function CycleRegInfoForm({
+  cycleId,
+  config,
+}: {
+  cycleId: number;
+  config: Config;
+}) {
+  const [saved, setSaved] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<{ theme_description: string }>({
+    defaultValues: { theme_description: config.theme_description ?? "" },
+  });
+
+  async function onSubmit(data: { theme_description: string }) {
+    setSaved(false);
+    setServerError(null);
+
+    const res = await fetch(`/api/cycles/${cycleId}/config`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        theme_description: data.theme_description.trim() || null,
+      }),
+    });
+
+    if (res.ok) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } else {
+      const json = await res.json();
+      setServerError(json.error ?? "Failed to save theme description");
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <label htmlFor="theme_description" className="mb-1 block text-sm text-meta">
+        Shown on the &ldquo;What this cycle means&rdquo; screen during
+        registration. Leave blank to use the generic theme copy.
+      </label>
+      <textarea
+        id="theme_description"
+        rows={6}
+        {...register("theme_description")}
+        className="block w-full rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+      />
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSubmitting ? "Saving…" : "Save Theme"}
+        </button>
+        {saved && <span className="text-sm font-medium text-teal-deep">Saved.</span>}
+        {serverError && (
+          <span role="alert" className="text-sm text-red">
+            {serverError}
+          </span>
         )}
       </div>
     </form>

@@ -16,6 +16,8 @@
  * rather than an empty state. If the cycle is over, returns null.
  */
 
+import { parseWindow } from "@/lib/cycles/lab-time";
+
 export type PhaseNum = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface ResolvedPhase {
@@ -90,7 +92,10 @@ export function resolveCurrentPhase(
     const openAt = cfg[spec.openKey];
     const closeAt = cfg[spec.closeKey];
     if (!openAt || !closeAt) continue;
-    if (now >= new Date(openAt) && now <= new Date(closeAt)) {
+    if (
+      now >= (parseWindow(openAt) as Date) &&
+      now <= (parseWindow(closeAt) as Date)
+    ) {
       return toResolved(spec, openAt, closeAt, true);
     }
   }
@@ -101,7 +106,7 @@ export function resolveCurrentPhase(
   for (const spec of PHASES) {
     const openAt = cfg[spec.openKey];
     if (!openAt) continue;
-    const openMs = new Date(openAt).getTime();
+    const openMs = (parseWindow(openAt) as Date).getTime();
     if (openMs > now.getTime() && openMs < upcomingOpenMs) {
       upcoming = toResolved(spec, openAt, cfg[spec.closeKey], false);
       upcomingOpenMs = openMs;
