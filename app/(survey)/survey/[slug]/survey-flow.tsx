@@ -188,14 +188,6 @@ function Landing({
     <div className="flex min-h-screen flex-col">
       {/* Attention — full-bleed hero */}
       <section className="s-cover grain on-dark landing-hero">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="landing-orb"
-          src="/assets/orb-mark.png"
-          alt=""
-          aria-hidden
-        />
-        <div className="landing-scrim" aria-hidden />
         <div className="container landing-hero-inner">
           <div className="landing-col">
             <div className="lbl" style={{ marginBottom: 28 }}>

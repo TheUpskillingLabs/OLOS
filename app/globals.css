@@ -460,11 +460,6 @@ dialog::backdrop {
 
   /* ── field-survey landing (full-width AIDA entry) ── */
   .landing-hero { position: relative; overflow: hidden; isolation: isolate; }
-  /* The real orb (public/assets/orb-mark.png) ships on a baked dark ground, so
-     mix-blend-mode:screen knocks the dark square out and lets the orb glow over
-     the cover. */
-  .landing-orb { position: absolute; right: -70px; bottom: -100px; width: 420px; height: 420px; object-fit: contain; opacity: 0.9; pointer-events: none; z-index: 0; mix-blend-mode: screen; }
-  .landing-scrim { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(130% 110% at 85% 100%, transparent 35%, rgba(0, 20, 27, 0.55) 82%); }
   .landing-hero-inner { position: relative; z-index: 1; padding-top: 64px; padding-bottom: 76px; }
   .landing-col { max-width: 720px; }
   .landing-goal { margin: 28px 0 32px; }
@@ -473,7 +468,6 @@ dialog::backdrop {
   .goal-fill { height: 100%; border-radius: inherit; background: var(--teal); transition: width 0.4s cubic-bezier(0.2, 0.7, 0.1, 1); }
   @media (min-width: 640px) { .landing-cta { width: auto; } }
   @media (min-width: 1024px) { .landing-hero-inner { padding-top: 100px; padding-bottom: 112px; } }
-  @media (max-width: 640px) { .landing-orb { width: 260px; height: 260px; right: -50px; bottom: -60px; opacity: 0.3; } }
 
   /* ── google ── */
   .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; border-radius: var(--r); background: var(--ink); color: #fff; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; }
