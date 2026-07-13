@@ -197,8 +197,9 @@ function Landing({
             <div className="lbl" style={{ marginBottom: 18 }}>
               The Upskilling Labs
             </div>
-            <h1 className="t-display" style={{ marginBottom: 8 }}>
-              Field Survey
+            <h1 className="survey-title" style={{ marginBottom: 14 }}>
+              <span>Field</span>
+              <span>Survey</span>
             </h1>
             <div
               className="t-h2"

@@ -196,7 +196,7 @@ dialog::backdrop {
   .lbl-teal { color: var(--teal-deep); }
   .idx { font-weight: 700; font-size: 18px; line-height: 24px; letter-spacing: -0.01em; color: var(--teal-deep); }
   .t-stat { font-weight: 700; font-size: 64px; line-height: 64px; letter-spacing: -0.04em; color: var(--teal-deep); }
-  .on-dark, .on-dark .t-display, .on-dark .t-h1, .on-dark .t-h2 { color: var(--od1); }
+  .on-dark, .on-dark .t-display, .on-dark .t-h1, .on-dark .t-h2, .on-dark .survey-title { color: var(--od1); }
   .on-dark .t-lede, .on-dark .t-body { color: var(--od2); }
   .on-dark .t-small, .on-dark .lbl { color: var(--od3); }
   .on-dark .lbl-teal, .on-dark .idx { color: var(--teal); }
@@ -462,6 +462,11 @@ dialog::backdrop {
   .landing-hero { position: relative; overflow: hidden; isolation: isolate; }
   .landing-hero-inner { position: relative; z-index: 1; padding-top: 64px; padding-bottom: 76px; }
   .landing-col { max-width: 720px; }
+  /* Oversized editorial masthead — the survey name stacked into a tight, fluid
+     display lockup that scales with the viewport (roughly 2x .t-display on wide
+     screens). Two words on their own lines so it can grow without overflowing. */
+  .survey-title { font-weight: 700; font-size: clamp(64px, 13vw, 160px); line-height: 0.9; letter-spacing: -0.045em; }
+  .survey-title span { display: block; }
   .landing-goal { margin: 28px 0 32px; }
   .landing-cta { width: 100%; }
   .goal-bar { width: 100%; max-width: 440px; height: 8px; border-radius: var(--r); background: rgba(255, 255, 255, 0.14); overflow: hidden; margin-top: 14px; }
