@@ -194,18 +194,21 @@ function Landing({
       <section className="s-cover grain on-dark landing-hero">
         <div className="container landing-hero-inner">
           <div className="landing-col">
-            <div className="lbl" style={{ marginBottom: 28 }}>
+            <div className="lbl" style={{ marginBottom: 18 }}>
               The Upskilling Labs
             </div>
-            <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
-              Field survey · {domain}
-            </div>
-            <h1 className="t-display" style={{ marginBottom: 18 }}>
-              You see what the data misses.
+            <h1 className="t-display" style={{ marginBottom: 8 }}>
+              The Field Survey
             </h1>
+            <div
+              className="t-h2"
+              style={{ marginBottom: 22, color: "var(--teal)" }}
+            >
+              {domain} Edition
+            </div>
             <p className="t-lede" style={{ marginBottom: 4, maxWidth: "42ch" }}>
               {about ??
-                `You work in ${domain}. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing — and a team at The Upskilling Labs builds from it in the next ${domain} Build Cycle.`}
+                `You see what the data misses. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing, and a team at The Upskilling Labs builds from it in the next ${domain} Build Cycle.`}
             </p>
             <GoalCounter count={count} goal={goal} />
             <button
