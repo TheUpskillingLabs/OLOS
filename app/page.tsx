@@ -224,22 +224,30 @@ export default async function LandingPage() {
         id="sec-cycles"
       >
         <div className="container">
-          {/* Hero-size heading (no eyebrow) — the "how it works" detail lives on
-              the /build-cycles page now, linked beneath. */}
-          <div style={{ marginBottom: 40 }}>
+          {/* Hero-size heading with the "how it works" link pushed to the far
+              right on the same baseline; the detail lives on /build-cycles. */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 16,
+              marginBottom: 40,
+            }}
+          >
             <h2 className="t-display">Join a Build Cycle</h2>
             <Link
               href="/build-cycles"
               className="see"
               style={{
-                display: "inline-block",
-                marginTop: 14,
                 color: "var(--teal-deep)",
                 fontWeight: 600,
                 fontSize: 14,
+                whiteSpace: "nowrap",
               }}
             >
-              How a cycle works →
+              How cycles work →
             </Link>
           </div>
           {/* Two columns — the current cycle card on the left, the three benefits
@@ -301,22 +309,17 @@ export default async function LandingPage() {
             </div>
 
             {/* Right — what you walk away with */}
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
-                What you walk away with
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-                {CYCLE_BENEFITS.map(({ title, body }) => (
-                  <div key={title}>
-                    <h3 className="t-h3" style={{ marginBottom: 6 }}>
-                      {title}
-                    </h3>
-                    <p className="t-body" style={{ maxWidth: "44ch" }}>
-                      {body}
-                    </p>
-                  </div>
-                ))}
-              </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+              {CYCLE_BENEFITS.map(({ title, body }) => (
+                <div key={title}>
+                  <h3 className="t-h3" style={{ marginBottom: 6 }}>
+                    {title}
+                  </h3>
+                  <p className="t-body" style={{ maxWidth: "44ch" }}>
+                    {body}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
