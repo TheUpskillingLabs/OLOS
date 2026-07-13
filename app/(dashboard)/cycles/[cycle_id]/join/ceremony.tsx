@@ -76,8 +76,8 @@ function cycleSteps(
     {
       id: "learning_goals",
       type: "textarea",
-      q: "What do you want to learn or get sharper at?",
-      help: "A line is plenty.",
+      q: "What are you hoping to get better at?",
+      help: "Give one or two concrete things: public speaking, building agents, evaluating LLM outputs",
       ph: "e.g. get comfortable shipping a real data pipeline",
     },
     {
