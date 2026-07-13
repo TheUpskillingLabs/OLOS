@@ -72,15 +72,15 @@ function SectionHead({
 const WHAT_YOU_LEARN: [string, string][] = [
   [
     "Durable skills",
-    "The human skills the future of work runs on—communication, storytelling, problem framing, rapid iteration. AI means anyone can build; these are how you find the problems worth solving.",
+    "The human skills the future of work runs on—skills like communication, collaboration, storytelling, and problem framing.",
   ],
   [
     "AI skills",
-    "The technical side of working with AI—prompt engineering, vibe coding, working with agents, and more. Hands-on practice with the tools that are reshaping how work gets done, so you can build alongside them instead of being left behind.",
+    "The technical side of working with AI—understanding LLMs, prompt engineering, vibe coding, building agents, and more.",
   ],
   [
     "Supports the cycle",
-    "Workshops track the Build Cycle, so each session gives you what your pod needs next—from framing a problem, to prototyping, to telling the story of what you built.",
+    "You can drop in whenever, but workshops track the Build Cycle, so each session gives you what your pod needs next.",
   ],
 ];
 
