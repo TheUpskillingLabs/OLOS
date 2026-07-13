@@ -65,3 +65,20 @@ export const CONTENT_TYPE_LABEL: Record<string, string> = {
   course: "Course",
   playbook: "Playbook",
 };
+
+/** A compact monogram from a label — first letter of each word, uppercased,
+    capped at `max`. Punctuation (hyphens, ampersands, apostrophes, commas…) is
+    treated as a word break and dropped, so people ("Jane Doe" → "JD"), titles
+    ("AI & Automation" → "AA") and slugs ("san-francisco" → "SF", "dc" → "DC")
+    all yield a clean 2–3 char mark. Single-word labels fall back to their first
+    `max` letters ("Baltimore" → "BA"). */
+export function initials(text: string | null | undefined, max = 2): string {
+  const words = (text ?? "")
+    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return "•";
+  if (words.length === 1) return words[0].slice(0, max).toUpperCase();
+  return words.slice(0, max).map((w) => w[0]).join("").toUpperCase();
+}

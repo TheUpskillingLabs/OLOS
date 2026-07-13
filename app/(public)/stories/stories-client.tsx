@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Orb from "@/app/components/chrome/orb";
+import Monogram from "@/app/components/content/monogram";
+import { initials } from "@/lib/content/format";
 import ShareStoryModal from "@/app/components/content/share-story-modal";
 import type { Spotlight, SpotlightTag } from "@/lib/content/spotlights";
 
@@ -86,7 +87,7 @@ export default function StoriesClient({ spotlights }: { spotlights: Spotlight[] 
                       }}
                     />
                   ) : (
-                    <Orb />
+                    <Monogram label={initials(s.name, 2)} />
                   )}
                 </div>
                 <div className="card-body">

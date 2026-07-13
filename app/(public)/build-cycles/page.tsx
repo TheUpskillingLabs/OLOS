@@ -56,6 +56,27 @@ const PROMISES: [string, string][] = [
   ],
 ];
 
+// The three-month arc — the "how it works" detail, moved off the landing page
+// so the cycles section there can stay benefit-led. Rendered as the editorial
+// numbered-process row (.ed-steps).
+const CYCLE_ANATOMY: [string, string, string][] = [
+  [
+    "Month 1",
+    "Problem Discovery",
+    "You’ll explore challenges that matter to you and to an entire industry, from real-world surveys to AI-assisted research. Through community voting, the most compelling problems rise to the top—and small teams called “pods” form around them.",
+  ],
+  [
+    "Month 2",
+    "Experimentation",
+    "As your pod explores your problem spaces, you come up with projects—proposed solutions to the challenges you’ve deeply understood. You’ll research, prototype, and test ideas: learning AI by doing, supported by peers and mentors along the way.",
+  ],
+  [
+    "Month 3",
+    "Synthesis",
+    "Projects turn experiments into working prototypes—tools, workflows, templates. Every cycle ends with a public showcase, so your work has visibility and impact beyond the twelve weeks. Projects can keep going at the end of the cycle as open-source efforts in the Labs.",
+  ],
+];
+
 export default async function BuildCyclesPage() {
   const events = await getEvents();
   const anchors = events.filter((e) => e.anchor);
@@ -92,6 +113,24 @@ export default async function BuildCyclesPage() {
                 </div>
               ))}
             </EdRow>
+          </EdSection>
+
+          {/* How a cycle works — the three-month arc, as a numbered process row */}
+          <EdSection eyebrow="How a cycle works" heading="Three months, three phases.">
+            <div className="ed-steps">
+              {CYCLE_ANATOMY.map(([month, title, body]) => (
+                <div key={month}>
+                  <span className="ed-step-n">{month}</span>
+                  <div className="ed-step-rule" aria-hidden />
+                  <h3 className="t-h3" style={{ marginBottom: 8 }}>
+                    {title}
+                  </h3>
+                  <p className="t-body ed-text" style={{ color: "var(--slate)" }}>
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
           </EdSection>
 
           {/* The current cycle — theme + name head row; details and anchor events beneath */}

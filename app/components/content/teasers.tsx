@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import Orb from "@/app/components/chrome/orb";
-import { fmtDate, cityOf, CONTENT_TYPE_LABEL } from "@/lib/content/format";
+import Monogram from "@/app/components/content/monogram";
+import { fmtDate, cityOf, CONTENT_TYPE_LABEL, initials } from "@/lib/content/format";
 import { metroLabel } from "@/lib/metros-label";
 import type { EventRow, ResourceRow, MetroRow } from "@/lib/content/queries";
 
@@ -20,12 +20,14 @@ export function MediaFrame({
   tag,
   square,
   corner,
+  label,
 }: {
   img?: string | null;
   grad?: string | null;
   tag?: string | null;
   square?: boolean;
   corner?: ReactNode;
+  label?: string | null;
 }) {
   const sq = square ? " sq" : "";
   if (img) {
@@ -44,7 +46,7 @@ export function MediaFrame({
   }
   return (
     <div className={`media${sq} ${grad || "m-teal"}`}>
-      <Orb />
+      <Monogram label={label ?? "•"} />
       {tag && <div className="m-tag">{tag}</div>}
       {corner}
     </div>
@@ -63,7 +65,7 @@ export function EventTeaser({
       className={`card tappable event-card${corner ? " has-save" : ""}`}
       href={`/events/${e.slug}`}
     >
-      <MediaFrame img={e.img} grad={e.grad} tag={e.kind} square />
+      <MediaFrame img={e.img} grad={e.grad} tag={e.kind} square label={initials(e.name, 2)} />
       {/* Save button lives at the card level (not inside the thumbnail) so it can
           pin to the card's top-right on mobile, where the thumbnail is only 1/4 wide. */}
       {corner}
@@ -91,7 +93,7 @@ export function ResourceTeaser({
   const typeLabel = CONTENT_TYPE_LABEL[r.content_type] || "Guide";
   return (
     <Link className="card tappable" href={`/library/${r.slug}`}>
-      <MediaFrame img={r.img} grad={r.grad} tag={typeLabel} square corner={corner} />
+      <MediaFrame img={r.img} grad={r.grad} tag={typeLabel} square corner={corner} label={initials(r.title, 2)} />
       <div className="card-body">
         <div className="lbl lbl-teal">{r.meta || ""}</div>
         <div className="t-h4" style={{ margin: "6px 0 4px" }}>
@@ -110,7 +112,7 @@ export function LabTeaser({ metro: m }: { metro: MetroRow }) {
       : `${m.waiting} ${m.waiting === 1 ? "person" : "people"} waiting`;
   return (
     <Link className="card tappable" href={`/local-labs/${m.slug}`}>
-      <MediaFrame grad={m.slug === "dc" ? "m-navy" : "m-forest"} tag={m.slug === "dc" ? "Flagship" : ""} />
+      <MediaFrame grad={m.slug === "dc" ? "m-navy" : "m-forest"} tag={m.slug === "dc" ? "Flagship" : ""} label={initials(m.slug, 3)} />
       <div className="card-body">
         <div className="card-row" style={{ marginBottom: 6 }}>
           {m.status === "active" ? (

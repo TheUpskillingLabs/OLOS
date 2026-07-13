@@ -561,22 +561,23 @@ button:focus-visible {
    onboarding-proto system.css + app.css for the full reskin). Same rule:
    the prototype is the reference design — change it there first. ════ */
 @layer components {
-  /* ── media frames + orb gradients ── */
+  /* ── media frames + gradients ── */
   .media { position: relative; aspect-ratio: 16/10; border-radius: var(--r); overflow: hidden; background: var(--navy); }
   .media::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); mix-blend-mode: overlay; opacity: 0.45; pointer-events: none; }
-  .media .m-orb { position: absolute; width: 148px; height: 148px; right: -26px; bottom: -34px; opacity: 0.95; transition: transform 0.3s ease; filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.3)); }
+  /* The imageless-card fallback mark — centered initials on the tile's gradient
+     (replaces the retired orb). Inherits the tile's 14px corner via overflow:hidden. */
+  .monogram { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-sans); font-weight: 700; font-size: 34px; line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; color: var(--od1); user-select: none; pointer-events: none; }
+  .cards.dense .monogram { font-size: 28px; }
   .media .m-tag { position: absolute; top: 12px; left: 12px; padding: 6px 12px; border-radius: var(--r); background: rgba(255, 255, 255, 0.92); color: var(--ink); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; backdrop-filter: blur(4px); }
   .m-teal { background: radial-gradient(120% 120% at 0% 100%, rgba(0, 148, 160, 0.7), transparent 62%), linear-gradient(150deg, var(--ink), var(--navy)); }
   .m-forest { background: radial-gradient(120% 120% at 100% 0%, rgba(0, 148, 160, 0.55), transparent 60%), linear-gradient(150deg, var(--forest), var(--ink)); }
   .m-navy { background: radial-gradient(110% 110% at 50% 120%, rgba(0, 148, 160, 0.5), transparent 60%), linear-gradient(160deg, var(--navy), var(--ink)); }
-  @media (hover: hover) { .card.tappable:hover .media > .m-orb { transform: scale(1.06); } }
 
   /* ── Upskiller Spotlights (/stories) — ported from onboarding-proto stories.html ── */
   .spot-grid { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: start; }
   @media (min-width: 1024px) { .spot-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); } }
   .spot-media { position: relative; aspect-ratio: 16/10; overflow: hidden; }
   .spot-media::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); mix-blend-mode: overlay; opacity: 0.45; pointer-events: none; }
-  .spot-media .m-orb { position: absolute; width: 148px; height: 148px; right: -26px; bottom: -34px; opacity: 0.95; }
   .spot-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal-deep); background: rgba(0, 148, 160, 0.1); border-radius: var(--r); padding: 4px 10px; }
   .spot-story { border-top: 1px solid var(--rule); padding-top: 14px; margin-top: 14px; }
   .spot-more { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--teal-deep); margin-top: 12px; }
@@ -597,7 +598,6 @@ button:focus-visible {
   .story-card { display: flex; align-items: stretch; color: inherit; text-decoration: none; }
   .story-media { flex: 0 0 120px; position: relative; overflow: hidden; }
   .story-media::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); mix-blend-mode: overlay; opacity: 0.45; pointer-events: none; }
-  .story-media .m-orb { position: absolute; left: 10%; top: 16%; width: 80%; height: 80%; opacity: 0.95; }
   .story-card .card-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .story-quote { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
   /* Keep the pull-quote clear of the bottom-pinned name/role block — the name
@@ -686,14 +686,9 @@ button:focus-visible {
   /* ── dashboard cover + cycle banner (dark "cover" surfaces) ── */
   .app-cover { position: relative; overflow: hidden; }
   .app-cover-inner { position: relative; z-index: 1; padding-top: 44px; padding-bottom: 48px; }
-  .app-cover .m-orb { position: absolute; width: 200px; height: 200px; right: -36px; bottom: -52px; opacity: 0.85; pointer-events: none; }
   .cycle-banner { position: relative; overflow: hidden; border-radius: var(--r); padding: 28px 24px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start; }
-  .cycle-banner .m-orb { position: absolute; width: 210px; height: 210px; right: -34px; bottom: -54px; opacity: 0.9; pointer-events: none; }
   .cycle-banner .cb-body { position: relative; z-index: 1; }
   .cycle-banner .cb-cta { position: relative; z-index: 1; width: 100%; }
-  /* scrim between the orb and the banner's text/CTA — the orb never sits raw under content */
-  .cycle-banner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0, 20, 27, 0) 35%, rgba(0, 20, 27, 0.55) 100%); pointer-events: none; }
-  @media (max-width: 699px) { .cycle-banner { min-height: 85svh; justify-content: center; } .cycle-banner .m-orb { opacity: 0.4; } .cycle-banner::after { background: rgba(0, 20, 27, 0.35); } }
   .cb-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--r); background: rgba(0, 148, 160, 0.22); border: 1px solid rgba(0, 148, 160, 0.55); color: #fff; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
   .cb-status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px rgba(0, 148, 160, 0.25); }
 
@@ -800,7 +795,6 @@ button:focus-visible {
     .dash { grid-template-columns: 1fr 340px; gap: 48px; }
     .section { padding: 72px 0; }
     .app-cover-inner { padding-top: 56px; padding-bottom: 60px; }
-    .app-cover .m-orb { width: 260px; height: 260px; right: -44px; bottom: -64px; }
     .cycle-banner { flex-direction: row; align-items: center; justify-content: space-between; gap: 40px; padding: 40px 48px; }
     .cycle-banner .cb-cta { width: auto; flex-shrink: 0; }
   }

@@ -1,18 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Orb from "@/app/components/chrome/orb";
 
 /* The dashboard hero — the signed-in identity band (prototype panel-dashboard
-   ".app-cover"): a warm dark orb cover carrying the member's avatar, a greeting,
-   a one-line status, and (when engaged) an at-a-glance stat strip. LinkedIn's
-   identity header married to Airbnb's rounded, orb-lit cover.
+   ".app-cover"): a warm dark gradient cover carrying the member's avatar, a
+   greeting, a one-line status, and (when engaged) an at-a-glance stat strip.
+   LinkedIn's identity header married to Airbnb's rounded cover.
 
    Dismissible (July 2026 feedback: "make the big blue hero dismissible") —
    the choice persists in localStorage like the other member-local dashboard
-   preferences, so it's a client component now; OrbDefs stays mounted once by
-   the dashboard layout. The "view your full profile" CTA was struck from the
-   header in the same feedback pass (the avatar menu covers it). */
+   preferences, so it's a client component now. The "view your full profile"
+   CTA was struck from the header in the same feedback pass (the avatar menu
+   covers it). */
 
 export interface HeroStat {
   value: string | number;
@@ -66,16 +65,6 @@ export default function DashboardHero({
 
   return (
     <section className="app-cover s-cover grain on-dark relative mb-8 rounded-card shadow-card">
-      <Orb />
-      {/* Scrim — the orb never sits raw under text (design rule). */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(100deg, rgba(0,20,27,0) 42%, rgba(0,20,27,0.5) 100%)",
-        }}
-      />
       <button
         type="button"
         aria-label="Hide the welcome banner"

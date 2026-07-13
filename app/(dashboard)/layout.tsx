@@ -6,7 +6,6 @@ import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { one } from "@/lib/supabase/embed";
 import AppNav from "@/app/components/chrome/app-nav";
-import OrbDefs from "@/app/components/chrome/orb-defs";
 import FeedbackWidget from "@/app/components/feedback/feedback-widget";
 import DashboardFooter from "@/app/components/chrome/dashboard-footer";
 import { learningLogGate } from "@/lib/learning-logs/gate";
@@ -160,7 +159,6 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <OrbDefs />
       <AppNav
         initials={initials}
         avatarUrl={avatarUrl}

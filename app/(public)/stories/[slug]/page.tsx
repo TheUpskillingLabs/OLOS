@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EditorialHeader, EdSection } from "@/app/components/chrome/editorial";
-import Orb from "@/app/components/chrome/orb";
+import Monogram from "@/app/components/content/monogram";
+import { initials } from "@/lib/content/format";
 import {
   getSpotlight,
   getPublishedSpotlights,
@@ -47,7 +48,7 @@ export async function generateMetadata({
   };
 }
 
-/* The dark hero media — a photo, or the brand gradient with the orb. */
+/* The dark hero media — a photo, or the brand gradient with a monogram. */
 function HeroMedia({ s }: { s: Spotlight }) {
   if (s.image_url) {
     return (
@@ -70,7 +71,7 @@ function HeroMedia({ s }: { s: Spotlight }) {
   }
   return (
     <div className={`media ${s.grad || "m-teal"}`} aria-hidden="true">
-      <Orb />
+      <Monogram label={initials(s.name, 2)} />
     </div>
   );
 }
@@ -197,7 +198,7 @@ export default async function SpotlightPage({
                         }}
                       />
                     ) : (
-                      <Orb />
+                      <Monogram label={initials(x.name, 2)} />
                     )}
                   </div>
                   <div className="card-body">

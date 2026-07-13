@@ -1,5 +1,4 @@
 import PublicNav from "@/app/components/chrome/public-nav";
-import OrbDefs from "@/app/components/chrome/orb-defs";
 import { OsFooter } from "@/app/components/chrome/site-footers";
 import { publicSession } from "@/lib/auth/public-session";
 
@@ -15,7 +14,6 @@ export default async function PublicLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <OrbDefs />
       <PublicNav signedIn={signedIn} initials={initials} avatarUrl={avatarUrl} />
       <div className="flex-1">{children}</div>
       <OsFooter />

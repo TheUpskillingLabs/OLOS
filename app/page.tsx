@@ -1,8 +1,7 @@
 import Link from "next/link";
 import PublicNav from "@/app/components/chrome/public-nav";
 import HeroFade from "@/app/components/chrome/hero-fade";
-import OrbDefs from "@/app/components/chrome/orb-defs";
-import Orb from "@/app/components/chrome/orb";
+import { Hammer, BadgeCheck, Users, type LucideIcon } from "lucide-react";
 import { OsFooter } from "@/app/components/chrome/site-footers";
 import HomeSpotlights from "@/app/components/content/home-spotlights";
 import {
@@ -101,24 +100,24 @@ const OUR_STORY: [string, string][] = [
   ],
 ];
 
-// The three-month arc shown under the cycle banner. Copy moves to the
-// `cycles` table if months ever become data-driven.
-const CYCLE_ANATOMY: [string, string, string][] = [
-  [
-    "Month 1",
-    "Problem Discovery",
-    "You’ll explore challenges that matter to you and to an entire industry, from real-world surveys to AI-assisted research. Through community voting, the most compelling problems rise to the top—and small teams called “pods” form around them.",
-  ],
-  [
-    "Month 2",
-    "Experimentation",
-    "As your pod explores your problem spaces, you come up with projects—proposed solutions to the challenges you’ve deeply understood. You’ll research, prototype, and test ideas: learning AI by doing, supported by peers and mentors along the way.",
-  ],
-  [
-    "Month 3",
-    "Synthesis",
-    "Projects turn experiments into working prototypes—tools, workflows, templates. Every cycle ends with a public showcase, so your work has visibility and impact beyond the twelve weeks. Projects can keep going at the end of the cycle as open-source efforts in the Labs.",
-  ],
+// What a participant walks away with — the benefit of a Build Cycle, not the
+// process. The three-month arc (the "how") now lives on /build-cycles.
+const CYCLE_BENEFITS: { icon: LucideIcon; title: string; body: string }[] = [
+  {
+    icon: Hammer,
+    title: "Something real you built",
+    body: "A working prototype your pod actually shipped — a tool, workflow, or template, not just notes.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Proof on your profile",
+    body: "It ships in the open and lands on your profile, so your work is easy to point to.",
+  },
+  {
+    icon: Users,
+    title: "People who’ve seen your work",
+    body: "A pod of peers and mentors near you who’ve watched what you can do.",
+  },
 ];
 
 /* The public landing — onboarding-proto's view-landing: dark hero over
@@ -180,8 +179,6 @@ export default async function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <OrbDefs />
-
       {/* ── Hero ── The nav + hero share one shell so the nav stays sticky only
           while the hero is on screen, then scrolls away with it. */}
       <div className="hero-shell">
@@ -231,13 +228,26 @@ export default async function LandingPage() {
         id="sec-cycles"
       >
         <div className="container">
-          <SectionHead
-            eyebrow="Build Cycles · 4 per year"
-            heading="Join a Build Cycle, solve a real problem"
-          />
+          {/* Hero-size heading (no eyebrow) — the "how it works" detail lives on
+              the /build-cycles page now, linked beneath. */}
+          <div style={{ marginBottom: 40 }}>
+            <h2 className="t-display">Join a Build Cycle</h2>
+            <Link
+              href="/build-cycles"
+              className="see"
+              style={{
+                display: "inline-block",
+                marginTop: 14,
+                color: "var(--teal-deep)",
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              How a cycle works →
+            </Link>
+          </div>
           {recruitingCycle ? (
             <div className="cycle-banner s-cover grain on-dark">
-              <Orb />
               <div className="cb-body">
                 <span className="cb-status">
                   {recruitingCycle.status === "upcoming"
@@ -252,15 +262,13 @@ export default async function LandingPage() {
                 <h3 className="t-h2">{recruitingCycle.name}</h3>
                 {bannerKickoff && (
                   <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                    Kicks off {bannerKickoff} — twelve weeks, a group of curious
-                    peers learning AI by tackling problems worth caring about
-                    with solutions worth building.
+                    Kicks off {bannerKickoff} — twelve weeks of curious peers
+                    learning AI by building something that matters.
                   </p>
                 )}
                 {recruitingCycle.mode === "open" && (
                   <p className="t-small" style={{ marginTop: 6, color: "var(--od2)", maxWidth: "52ch" }}>
-                    An Open Cycle — the projects are open source, free for anyone
-                    to use and build on.
+                    An Open Cycle — projects are open source and free to build on.
                   </p>
                 )}
               </div>
@@ -272,7 +280,6 @@ export default async function LandingPage() {
             </div>
           ) : (
             <div className="cycle-banner s-cover grain on-dark">
-              <Orb />
               <div className="cb-body">
                 <span className="cb-status">Next cycle coming soon</span>
                 <h3 className="t-h2" style={{ marginTop: 14 }}>
@@ -291,10 +298,10 @@ export default async function LandingPage() {
             </div>
           )}
 
-          {/* Anatomy of a Build Cycle — the three-month arc */}
+          {/* What you walk away with — the benefits of a Build Cycle */}
           <div style={{ marginTop: 48 }}>
             <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
-              Anatomy of a Build Cycle
+              What you walk away with
             </div>
             <div
               style={{
@@ -304,11 +311,9 @@ export default async function LandingPage() {
                 alignItems: "start",
               }}
             >
-              {CYCLE_ANATOMY.map(([month, title, body]) => (
-                <div key={month}>
-                  <div className="lbl" style={{ marginBottom: 8 }}>
-                    {month}
-                  </div>
+              {CYCLE_BENEFITS.map(({ icon: Icon, title, body }) => (
+                <div key={title}>
+                  <Icon aria-hidden size={24} style={{ color: "var(--teal-deep)", marginBottom: 12 }} />
                   <h3 className="t-h3" style={{ marginBottom: 8 }}>
                     {title}
                   </h3>
