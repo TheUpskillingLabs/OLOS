@@ -53,7 +53,7 @@ export interface MetroRow {
   members: number | null;
   waiting_baseline: number;
   blurb: string | null;
-  waiting: number; // baseline + live signups
+  waiting: number; // live participant count for this lab (metro_id)
 }
 
 export async function getEvents(): Promise<EventRow[]> {
@@ -100,21 +100,33 @@ export async function getResource(slug: string): Promise<ResourceRow | null> {
   return (data as ResourceRow) ?? null;
 }
 
-async function withWaiting(rows: Record<string, unknown>[]): Promise<MetroRow[]> {
+// Live per-lab counts: how many participants are affiliated with each lab
+// (participants.metro_id). Drives both the active "N members" label and the
+// waitlist "N people waiting" label (a waitlisted member's metro_id points at
+// the waitlist lab). This replaces the old static metros.members column +
+// metro_waitlist_signups tally, which drifted from reality. Test accounts are
+// excluded so public counts aren't inflated.
+async function withMemberCounts(
+  rows: Record<string, unknown>[]
+): Promise<MetroRow[]> {
   const supabase = createServiceClient();
-  const { data: signups } = await supabase
-    .from("metro_waitlist_signups")
-    .select("metro_id");
+  const { data: parts } = await supabase
+    .from("participants")
+    .select("metro_id")
+    .not("metro_id", "is", null)
+    .not("is_test", "is", true);
   const counts = new Map<number, number>();
-  for (const s of (signups as { metro_id: number }[]) ?? []) {
-    counts.set(s.metro_id, (counts.get(s.metro_id) ?? 0) + 1);
+  for (const p of (parts as { metro_id: number }[]) ?? []) {
+    counts.set(p.metro_id, (counts.get(p.metro_id) ?? 0) + 1);
   }
-  return rows.map((m) => ({
-    ...(m as unknown as Omit<MetroRow, "waiting">),
-    waiting:
-      ((m as { waiting_baseline: number }).waiting_baseline ?? 0) +
-      (counts.get((m as { id: number }).id) ?? 0),
-  }));
+  return rows.map((m) => {
+    const n = counts.get((m as { id: number }).id) ?? 0;
+    return {
+      ...(m as unknown as Omit<MetroRow, "waiting" | "members">),
+      members: n,
+      waiting: n,
+    };
+  });
 }
 
 /** Active lab first, then waitlists by list size (the prototype's sort). */
@@ -122,7 +134,7 @@ export async function getMetros(): Promise<MetroRow[]> {
   const supabase = createServiceClient();
   const { data, error } = await supabase.from("metros").select("*");
   if (error) console.error("[content] getMetros:", error.message);
-  const rows = await withWaiting((data as Record<string, unknown>[]) ?? []);
+  const rows = await withMemberCounts((data as Record<string, unknown>[]) ?? []);
   return rows.sort((a, b) =>
     a.status === "active" ? -1 : b.status === "active" ? 1 : b.waiting - a.waiting
   );
@@ -136,6 +148,6 @@ export async function getMetro(slug: string): Promise<MetroRow | null> {
     .eq("slug", slug)
     .maybeSingle();
   if (!data) return null;
-  const [row] = await withWaiting([data as Record<string, unknown>]);
+  const [row] = await withMemberCounts([data as Record<string, unknown>]);
   return row ?? null;
 }
