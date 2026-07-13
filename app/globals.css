@@ -895,9 +895,7 @@ button:focus-visible {
   .hero-login { display: inline-flex; }
   .sec-after-hero { padding-top: calc(56px + 3 * var(--r)); }
   @media (min-width: 1024px) {
-    /* Capped on desktop — a full-viewport hero on a large monitor towers over
-       the content; mobile keeps 100svh where it fits. */
-    .hero-band { align-items: center; min-height: calc(min(80svh, 600px) + 3 * var(--r)); }
+    .hero-band { align-items: center; min-height: calc(80svh + 3 * var(--r)); }
     .hero-inner { padding: 120px var(--pad) 72px; display: grid; grid-template-columns: repeat(7, 1fr); column-gap: var(--pad); row-gap: 40px; align-items: start; }
     .hero-band .hero-inner .t-display { grid-column: 1 / -1; font-size: 96px; line-height: 100px; letter-spacing: -0.05em; }
     .hero-cta { grid-column: 5 / -1; align-items: flex-start; margin-top: 0; }
