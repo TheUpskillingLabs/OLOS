@@ -33,6 +33,7 @@ type Config = {
   solution_voting_close: string | null;
   project_registration_open: string | null;
   project_registration_close: string | null;
+  theme_description: string | null;
 };
 
 // Window timestamps are stored as naive-UTC instants (S5.1 convention,
@@ -218,6 +219,80 @@ export function CycleScheduleForm({
         {saved && <span className="text-sm font-medium text-teal-deep">Saved.</span>}
         {serverError && (
           <span role="alert" className="text-sm text-red">{serverError}</span>
+        )}
+      </div>
+    </form>
+  );
+}
+
+// ─── Registration info form ────────────────────────────────────────────────────
+
+// Per-cycle theme copy shown on the registration ceremony's "What <cycle>
+// means" info screen (00084). Blank → generic fallback (lib/cycles/info.ts).
+export function CycleRegInfoForm({
+  cycleId,
+  config,
+}: {
+  cycleId: number;
+  config: Config;
+}) {
+  const [saved, setSaved] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<{ theme_description: string }>({
+    defaultValues: { theme_description: config.theme_description ?? "" },
+  });
+
+  async function onSubmit(data: { theme_description: string }) {
+    setSaved(false);
+    setServerError(null);
+
+    const res = await fetch(`/api/cycles/${cycleId}/config`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        theme_description: data.theme_description.trim() || null,
+      }),
+    });
+
+    if (res.ok) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } else {
+      const json = await res.json();
+      setServerError(json.error ?? "Failed to save theme description");
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <label htmlFor="theme_description" className="mb-1 block text-sm text-meta">
+        Shown on the &ldquo;What this cycle means&rdquo; screen during
+        registration. Leave blank to use the generic theme copy.
+      </label>
+      <textarea
+        id="theme_description"
+        rows={6}
+        {...register("theme_description")}
+        className="block w-full rounded-card border border-ink/10 bg-white px-3 py-2 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+      />
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSubmitting ? "Saving…" : "Save Theme"}
+        </button>
+        {saved && <span className="text-sm font-medium text-teal-deep">Saved.</span>}
+        {serverError && (
+          <span role="alert" className="text-sm text-red">
+            {serverError}
+          </span>
         )}
       </div>
     </form>
