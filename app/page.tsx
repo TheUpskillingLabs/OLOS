@@ -84,6 +84,23 @@ const WHAT_YOU_LEARN: [string, string][] = [
   ],
 ];
 
+// The story arc under "Find your city" — where the Labs came from, how they
+// scale, and where they're headed.
+const OUR_STORY: [string, string][] = [
+  [
+    "Founded in DC",
+    "The Upskilling Labs started as a pilot in Washington, DC at the DC Public Library in fall of 2025—a small group of ex-feds proving that people navigating career change and new technologies learn faster together. Now, DC is home to our first chapter and our mission has expanded to all professionals.",
+  ],
+  [
+    "Built to scale",
+    "We run our own Build Cycle process on ourselves, turning what works into an operating system and playbooks—so a new lab can stand up anywhere without reinventing how it works. Every cycle makes it better, and we’re building it all for the community, open-source.",
+  ],
+  [
+    "Expanding nationally",
+    "We’re just getting started—and the impacts of AI are far from local. From DC, we’re heading to cities across the country. We aim to build a more resilient future of work for all of us by bringing the Labs to wherever people are ready to learn by doing alongside their neighbors.",
+  ],
+];
+
 // The three-month arc shown under the cycle banner. Copy moves to the
 // `cycles` table if months ever become data-driven.
 const CYCLE_ANATOMY: [string, string, string][] = [
@@ -382,6 +399,32 @@ export default async function LandingPage() {
             {landingLabs.map((m) => (
               <LabTeaser key={m.slug} metro={m} />
             ))}
+          </div>
+
+          {/* Our story — founded in DC, built to scale, expanding nationally */}
+          <div style={{ marginTop: 48 }}>
+            <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
+              Our story
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gap: 32,
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                alignItems: "start",
+              }}
+            >
+              {OUR_STORY.map(([title, body]) => (
+                <div key={title}>
+                  <h3 className="t-h3" style={{ marginBottom: 8 }}>
+                    {title}
+                  </h3>
+                  <p className="t-body" style={{ maxWidth: "44ch" }}>
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
