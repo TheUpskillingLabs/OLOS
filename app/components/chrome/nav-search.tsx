@@ -3,38 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FolderKanban, Search, Users } from "lucide-react";
+import { Search } from "lucide-react";
+import SearchThumb from "@/app/components/search/search-thumb";
+import { SEARCH_GROUP_LABELS, type SearchResult } from "@/lib/search/types";
 
 /**
- * The app bar's LinkedIn-style search — a compact dark-chrome input with
- * typeahead across people, pods, and projects (GET /api/directory/suggest).
+ * The app bar's LinkedIn-style global search — a compact dark-chrome input
+ * with typeahead across people, pods, projects, events, local labs, and
+ * cycles (GET /api/search/suggest).
  *
  * Desktop (≥900px): inline input that widens on focus; suggestions drop in a
  * white panel below (combobox/listbox semantics, arrow-key navigation).
- * Below 900px: an icon-only button linking to /directory?focus=1 — the
- * directory page autofocuses its own search box. Escape and outside-click
- * dismissal follow the avatar-menu contract.
+ * Below 900px: an icon-only button linking to /search?focus=1 — the search
+ * page autofocuses its own box. Escape and outside-click dismissal follow
+ * the avatar-menu contract. Plain Enter and "See all results" land on
+ * /search?q=….
  */
-
-interface Suggestion {
-  type: "person" | "pod" | "project";
-  href: string;
-  label: string;
-  sublabel: string | null;
-  imageUrl: string | null;
-  initials: string;
-}
-
-const GROUP_LABELS: Record<Suggestion["type"], string> = {
-  person: "People",
-  pod: "Pods",
-  project: "Projects",
-};
 
 export default function NavSearch() {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [results, setResults] = useState<Suggestion[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -52,11 +41,11 @@ export default function NavSearch() {
       abortRef.current = controller;
       try {
         const res = await fetch(
-          `/api/directory/suggest?q=${encodeURIComponent(query)}`,
+          `/api/search/suggest?q=${encodeURIComponent(query)}`,
           { signal: controller.signal }
         );
         if (!res.ok) return;
-        const body = (await res.json()) as { results: Suggestion[] };
+        const body = (await res.json()) as { results: SearchResult[] };
         setResults(body.results);
         setActiveIndex(-1);
         setOpen(true);
@@ -87,10 +76,10 @@ export default function NavSearch() {
     };
   }, [open]);
 
-  const goToDirectory = () => {
+  const goToSearch = () => {
     const query = q.trim();
     setOpen(false);
-    router.push(query ? `/directory?q=${encodeURIComponent(query)}` : "/directory");
+    router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -108,17 +97,17 @@ export default function NavSearch() {
         setOpen(false);
         router.push(results[activeIndex].href);
       } else if (q.trim()) {
-        goToDirectory();
+        goToSearch();
       }
     }
   };
 
   return (
     <>
-      {/* Below 900px: icon-only, lands on the directory's own search box. */}
+      {/* Below 900px: icon-only, lands on the search page's own box. */}
       <Link
-        href="/directory?focus=1"
-        aria-label="Search the directory"
+        href="/search?focus=1"
+        aria-label="Search"
         className="appnav-search-icon grid h-10 w-10 shrink-0 place-items-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white min-[900px]:hidden"
       >
         <Search className="h-5 w-5" aria-hidden />
@@ -149,7 +138,7 @@ export default function NavSearch() {
             if (results.length > 0 && q.trim().length >= 2) setOpen(true);
           }}
           placeholder="Search"
-          aria-label="Search people, pods, and projects"
+          aria-label="Search people, pods, projects, events, labs, and cycles"
           role="combobox"
           aria-expanded={open}
           aria-controls="nav-search-listbox"
@@ -163,7 +152,7 @@ export default function NavSearch() {
             id="nav-search-listbox"
             role="listbox"
             aria-label="Search suggestions"
-            className="absolute left-0 top-[calc(100%+10px)] z-[210] w-[320px] rounded-card border border-ink/10 bg-white p-2 shadow-lg"
+            className="absolute left-0 top-[calc(100%+10px)] z-[210] max-h-[70vh] w-[320px] overflow-y-auto rounded-card border border-ink/10 bg-white p-2 shadow-lg"
           >
             {results.map((r, i) => {
               const groupStart = i === 0 || results[i - 1].type !== r.type;
@@ -171,7 +160,7 @@ export default function NavSearch() {
                 <div key={`${r.type}-${r.href}`}>
                   {groupStart && (
                     <div className="lbl" style={{ padding: "8px 12px 4px" }}>
-                      {GROUP_LABELS[r.type]}
+                      {SEARCH_GROUP_LABELS[r.type]}
                     </div>
                   )}
                   <Link
@@ -182,7 +171,7 @@ export default function NavSearch() {
                     className={`menu-item${i === activeIndex ? " bg-teal/10" : ""}`}
                     onClick={() => setOpen(false)}
                   >
-                    <SuggestionThumb suggestion={r} />
+                    <SearchThumb result={r} size="sm" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{r.label}</span>
                       {r.sublabel && (
@@ -196,7 +185,7 @@ export default function NavSearch() {
               );
             })}
             <div className="menu-rule" />
-            <button type="button" className="menu-item" onClick={goToDirectory}>
+            <button type="button" className="menu-item" onClick={goToSearch}>
               <Search className="h-4 w-4 shrink-0 text-meta" aria-hidden />
               See all results for “{q.trim()}”
             </button>
@@ -204,37 +193,5 @@ export default function NavSearch() {
         )}
       </div>
     </>
-  );
-}
-
-function SuggestionThumb({ suggestion: r }: { suggestion: Suggestion }) {
-  if (r.type === "person") {
-    if (r.imageUrl) {
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={r.imageUrl}
-          alt=""
-          className="h-7 w-7 shrink-0 rounded-full object-cover"
-        />
-      );
-    }
-    return (
-      <span
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-teal-deep text-[10px] font-bold text-white"
-        aria-hidden
-      >
-        {r.initials}
-      </span>
-    );
-  }
-  const Icon = r.type === "pod" ? Users : FolderKanban;
-  return (
-    <span
-      className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] bg-navy"
-      aria-hidden
-    >
-      <Icon className="h-3.5 w-3.5 text-white/90" />
-    </span>
   );
 }
