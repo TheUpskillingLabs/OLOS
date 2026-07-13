@@ -68,23 +68,39 @@ function SectionHead({
   );
 }
 
+// The three strands of the workshop curriculum, shown under the events row.
+const WHAT_YOU_LEARN: [string, string][] = [
+  [
+    "Durable skills",
+    "The human skills the future of work runs on—communication, storytelling, problem framing, rapid iteration. AI means anyone can build; these are how you find the problems worth solving.",
+  ],
+  [
+    "AI skills",
+    "The technical side of working with AI—prompt engineering, vibe coding, working with agents, and more.",
+  ],
+  [
+    "Supports the cycle",
+    "Workshops track the Build Cycle, so each session gives you what your pod needs next—from framing a problem, to prototyping, to telling the story of what you built.",
+  ],
+];
+
 // The three-month arc shown under the cycle banner. Copy moves to the
 // `cycles` table if months ever become data-driven.
 const CYCLE_ANATOMY: [string, string, string][] = [
   [
     "Month 1",
     "Problem Discovery",
-    "You’ll explore challenges that matter to you and your industry. Through community voting, the most compelling problems rise to the top—and small teams called “pods” form around them.",
+    "You’ll explore challenges that matter to you and to an entire industry, from real-world surveys to AI-assisted research. Through community voting, the most compelling problems rise to the top—and small teams called “pods” form around them.",
   ],
   [
     "Month 2",
     "Experimentation",
-    "Pods dig deeper into solutions via projects. You’ll research, prototype, test ideas, and learn by doing. Mentors and peers support you along the way.",
+    "As your pod explores your problem spaces, you come up with projects—proposed solutions to the challenges you’ve deeply understood. You’ll research, prototype, and test ideas: learning AI by doing, supported by peers and mentors along the way.",
   ],
   [
     "Month 3",
     "Synthesis",
-    "Pods turn experiments into working prototypes—tools, workflows, templates—that you can use in your job and share with others. Every cycle ends with a public showcase, so your work has visibility and impact beyond the Lab.",
+    "Projects turn experiments into working prototypes—tools, workflows, templates—that you can use and share with others. Every cycle ends with a public showcase, so your work has visibility and impact beyond the Lab. Projects can keep going at the end of the cycle as open-source efforts within the Labs.",
   ],
 ];
 
@@ -303,6 +319,32 @@ export default async function LandingPage() {
               <EventTeaser key={e.slug} event={e} />
             ))}
           </div>
+
+          {/* What you learn — the three strands of the curriculum */}
+          <div style={{ marginTop: 48 }}>
+            <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
+              What you learn
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gap: 32,
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                alignItems: "start",
+              }}
+            >
+              {WHAT_YOU_LEARN.map(([title, body]) => (
+                <div key={title}>
+                  <h3 className="t-h3" style={{ marginBottom: 8 }}>
+                    {title}
+                  </h3>
+                  <p className="t-body" style={{ maxWidth: "44ch" }}>
+                    {body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -364,10 +406,6 @@ export default async function LandingPage() {
           >
             <div>
               <p className="t-lede" style={{ marginBottom: 16, maxWidth: "60ch" }}>
-                An Open Lab is how we learn together&mdash;openly, practically,
-                and as a community.
-              </p>
-              <p className="t-body" style={{ marginBottom: 16, maxWidth: "60ch" }}>
                 Unlike traditional courses with fixed enrollment and passive
                 instruction, Open Labs are peer-powered and project-based. You
                 don&rsquo;t need a technical background to get
