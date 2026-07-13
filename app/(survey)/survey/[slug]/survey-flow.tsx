@@ -404,7 +404,7 @@ function Done({
               Back to your dashboard →
             </Link>
           ) : (
-            <Link className="btn btn-teal btn-lg btn-block" href="/login">
+            <Link className="btn btn-teal btn-lg btn-block" href="/login?intent=join">
               Join The Labs →
             </Link>
           )}

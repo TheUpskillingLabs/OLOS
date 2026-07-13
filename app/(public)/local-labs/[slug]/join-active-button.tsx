@@ -29,7 +29,7 @@ export default function JoinActiveButton({
 
   if (!signedIn) {
     return (
-      <Link className={className} href="/login">
+      <Link className={className} href="/login?intent=join">
         Join this lab
       </Link>
     );

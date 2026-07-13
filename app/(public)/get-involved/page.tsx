@@ -58,7 +58,7 @@ export default function GetInvolvedPage() {
         you’d like to take part when you sign up, or reach out if you’d like to talk
         through where you might fit.
       </p>
-      <Link className="btn btn-red btn-lg" href="/login">
+      <Link className="btn btn-red btn-lg" href="/login?intent=join">
         Join The Labs
       </Link>
       <p style={{ marginTop: 16 }}>

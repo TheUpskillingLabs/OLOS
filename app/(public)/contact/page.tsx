@@ -67,7 +67,7 @@ export default function ContactPage() {
       <p className="t-body" style={p}>
         If you’d rather roll up your sleeves, see the{" "}
         <Link className="see" href="/get-involved">ways to volunteer</Link> or{" "}
-        <Link className="see" href="/login">join The Labs</Link>.
+        <Link className="see" href="/login?intent=join">join The Labs</Link>.
       </p>
     </ProsePage>
   );
