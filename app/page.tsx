@@ -219,8 +219,9 @@ export default async function LandingPage() {
                 <h3 className="t-h2">{recruitingCycle.name}</h3>
                 {bannerKickoff && (
                   <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                    Kicks off {bannerKickoff} — twelve weeks, one real project,
-                    with people who notice.
+                    Kicks off {bannerKickoff} — twelve weeks, a group of curious
+                    peers learning AI by tackling problems worth caring about
+                    with solutions worth building.
                   </p>
                 )}
                 {recruitingCycle.mode === "open" && (
