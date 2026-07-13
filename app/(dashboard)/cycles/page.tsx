@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { BookOpen, ArrowRight } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { fmtLabDateTime } from "@/lib/cycles/lab-time";
+import {
+  registrationWindow,
+  type RegistrationWindow,
+} from "@/lib/cycles/schedule";
 import { StatusBadge } from "@/app/components/ui";
 import CyclePhaseIndicator from "./cycle-phase-indicator";
 
@@ -94,6 +99,15 @@ export default async function CyclesPage() {
   const upcomingCycles = otherCycles.filter(
     (c) => c.mode !== "org" && c.status === "upcoming"
   );
+
+  // D-10 (docs/requirements/pod-registration.md): cycle registration closes
+  // between pod-forming close and the active-join window, then again after
+  // active-join ends — the CTA must say so instead of "Register". At most a
+  // cohort or two is upcoming at once, so per-cycle lookups are fine.
+  const regWindows = new Map<number, RegistrationWindow>();
+  for (const c of upcomingCycles) {
+    regWindows.set(c.id, await registrationWindow(serviceClient, c.id));
+  }
   // Everything else, in the query's original start_date-descending order —
   // a single filter over `otherCycles` rather than two mode-partitioned
   // filters concatenated, so an archived org cycle sorts alongside past
@@ -219,32 +233,45 @@ export default async function CyclesPage() {
         <>
           <h2 className="lbl mb-4">Open for registration</h2>
           <div className="mb-8 autogrid">
-            {upcomingCycles.map((cycle) => (
-              <Link
-                key={cycle.id}
-                href={`/cycles/${cycle.id}/join`}
-                className="group rounded-card border border-teal/30 bg-teal/10 p-6 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="t-h4 text-ink">{cycle.name}</h3>
-                  <StatusBadge variant={STATUS_VARIANT.upcoming}>
-                    {cycle.status}
-                  </StatusBadge>
-                </div>
-                <p className="mt-2 text-sm text-meta">
-                  Starts {new Date(cycle.start_date).toLocaleDateString()}
-                </p>
-                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
-                  {registeredCycleIds.has(cycle.id)
-                    ? "You’re registered — view details"
-                    : "Register"}
-                  <ArrowRight
-                    className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-                    aria-hidden
-                  />
-                </span>
-              </Link>
-            ))}
+            {upcomingCycles.map((cycle) => {
+              const w = regWindows.get(cycle.id);
+              const regClosed = !registeredCycleIds.has(cycle.id) && w && !w.open;
+              const cta = registeredCycleIds.has(cycle.id)
+                ? "You’re registered — view details"
+                : !regClosed
+                  ? "Register"
+                  : w?.state === "dead_zone" && w.reopensAt
+                    ? `Registration reopens ${fmtLabDateTime(w.reopensAt.toISOString())}`
+                    : "Registration closed";
+              return (
+                <Link
+                  key={cycle.id}
+                  href={`/cycles/${cycle.id}/join`}
+                  className="group rounded-card border border-teal/30 bg-teal/10 p-6 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="t-h4 text-ink">{cycle.name}</h3>
+                    <StatusBadge variant={STATUS_VARIANT.upcoming}>
+                      {cycle.status}
+                    </StatusBadge>
+                  </div>
+                  <p className="mt-2 text-sm text-meta">
+                    Starts {new Date(cycle.start_date).toLocaleDateString()}
+                  </p>
+                  <span
+                    className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight ${
+                      regClosed ? "text-meta" : "text-teal-deep"
+                    }`}
+                  >
+                    {cta}
+                    <ArrowRight
+                      className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </>
       )}

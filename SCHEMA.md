@@ -52,6 +52,8 @@ flowchart TD
 
 > **Sector model — Phase A (migration `00049`, `docs/SECTOR_MODEL.md`).** `sectors` is the durable, cross-cohort home for a theme's projects + field research (public commons; `status` active/dormant). A cycle is a *run under a sector*: `cycles.sector_id` FK + `cycles.mode` (`open`/`closed`/`org` — `org` added by migration `00060`, see below). The lifecycle extends to **draft → upcoming → active → closing → archived** (`closed` kept as a legacy terminal), with a sibling `one_upcoming_cycle` partial unique index (≤1 `upcoming`) — since rescoped per mode by `00060` (previous paragraph). `cycle_enrollments.tier` (`member`/`contributor`) is the cohort authority tier; `projects.sector_id` + `projects.governance` (`cycle`→`sector` at graduation) give a project its durable home. Reads split via `lib/cycle/active.ts`: `getOperatingCycle()` (the `active` cohort) vs `getRecruitingCycle()` (the `upcoming` cohort, else active). Phases B–D (windows/tiers UI, graduation, living sector) are still design-only.
 
+> **Cycle calendar — Stage 1 (migration `00085`, `docs/requirements/cycle-timeline.md`).** `cycle_phases` and `cycle_events` are the tz-aware **read model** for the cycle schedule: phases are born `TIMESTAMPTZ` rows (`[starts_at, ends_at)` semantics), so gating no longer depends on the naive-column-as-UTC convention. The seven `phase_key`s are the six spine phases (`problem_statement`, `voting`, `pod_forming`, `solution_proposal`, `solution_voting`, `project_registration` — `pod_forming` is seeded from the legacy `pod_registration_*` pair per the two-window split in `docs/requirements/pod-registration.md`) plus the `pod_active_join` **overlay**, which is *derived*, not entered: `cycle_config.phase_2_start` (the Meet-the-Pods marker) → `project_registration_close`. For Stage 1 the **write model stays `cycle_config`** — the admin schedule PATCH writes the legacy naive columns and calls `syncPhasesFromConfig()` (`lib/cycles/schedule.ts`) so phase rows always mirror them; Stage 2 flips write authority and retires the columns. `cycle_events` holds the cohort's anchor events (kickoff, Problem Sprint, Meet the Pods, hackathon, Meet the Projects, summit) with an optional `luma_api_id` for Luma sync. Same migration: `cycles.start_at TIMESTAMPTZ` (backfilled from `start_date` at lab-local midnight) and `metros.timezone` (default `America/New_York`). The window resolver (`lib/auth/windows.ts`) and the D-10 cycle-registration gate (`registrationWindow()`) read phases first and fall back to the legacy columns for cycles without rows.
+
 > **Org cycles (migration `00060`, `docs/ORG_CYCLES.md`).** The org (HQ + Core Contributors) runs quarterly cycles on internal workstreams — `cycles.mode='org'`, dogfooding the participant cycle machinery instead of forking it — under a seeded `sectors` row (`slug='the-upskilling-labs-hq'`). `workstreams` is the durable, cross-cycle unit of internal work; each org cycle spins up a per-workstream "run", which is an ordinary `pods` row (`pods.workstream_id` FK, `problem_statement_id` now nullable — a run is chartered, not voted into existence from a ballot). Co-leads on a run are `moderator_assignments` + `pod_memberships`; core contributors are invite-only `pod_memberships` (`invitations.pod_role` — `co_lead` fulfills into `moderator_assignments` + `pod_memberships`, `member` into `pod_memberships` only; `NULL` = legacy poderator-only invite). Org *projects* are chartered by a run's co-leads rather than voted out of a `solution_proposals` ballot, so `projects.solution_proposal_id` is now nullable too; `projects.forked_from_project_id` is a fork-lineage pointer (no endpoint/UI yet). ICs join a project via `project_subscriptions` (self-serve follow) and, once promoted by a DRI, `project_roles` (`dri`/`contributor`) — the open-source-style ladder SECTOR_MODEL §5/§7 describes, reused for both org and participant projects.
 
 ```mermaid
@@ -62,10 +64,32 @@ erDiagram
         varchar slug UK
         timestamp start_date
         timestamp end_date
+        timestamptz start_at "real instant; backfilled from start_date at lab-local midnight (00085)"
         varchar status
         int sector_id FK "→ sectors(id) (00049)"
         int lab_id FK "→ metros(id), NULL = HQ/global (00062)"
         varchar mode "open/closed/org (00049; org added 00060)"
+    }
+
+    cycle_phases {
+        int id PK
+        int cycle_id FK "→ cycles(id) CASCADE (00085)"
+        text phase_key "UK with cycle_id; 6 spine keys + pod_active_join"
+        text kind "spine/overlay"
+        smallint position "spine order; NULL for overlays"
+        text anchor "informational in v1"
+        interval duration "informational in v1"
+        timestamptz starts_at
+        timestamptz ends_at "CHECK starts_at < ends_at"
+    }
+
+    cycle_events {
+        int id PK
+        int cycle_id FK "→ cycles(id) CASCADE (00085)"
+        text key "UK with cycle_id; kickoff/problem_sprint/…"
+        text label
+        timestamptz occurs_at
+        text luma_api_id "nullable — Luma sync hook"
     }
 
     cycle_config {
@@ -166,6 +190,8 @@ erDiagram
     }
 
     cycles ||--|| cycle_config : "configures"
+    cycles ||--o{ cycle_phases : "schedules (00085)"
+    cycles ||--o{ cycle_events : "anchors (00085)"
     participants ||--o{ participant_options : "selects"
     option_lists ||--o{ participant_options : "defines"
 ```
@@ -513,6 +539,7 @@ erDiagram
         int waiting_baseline
         text blurb
         text_array zip_prefixes
+        text timezone "IANA zone, default America/New_York (00085)"
     }
 
     metro_waitlist_signups {

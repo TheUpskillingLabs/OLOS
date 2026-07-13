@@ -6,6 +6,8 @@ import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleAgreementSchema } from "@/lib/validations/cycle-agreement";
 import { requireActiveLabMembership } from "@/lib/labs/membership";
+import { registrationWindow } from "@/lib/cycles/schedule";
+import { fmtLabDateTime } from "@/lib/cycles/lab-time";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // The Open Cycle Agreement signature (backend doc §2c) — the completion of
@@ -122,6 +124,26 @@ export const POST = withAuth(
       return NextResponse.json(
         { agreement: existing, already_signed: true },
         { status: 200 }
+      );
+    }
+
+    // D-10 (pod-registration.md, owner 2026-07-12): self-serve cycle
+    // registration is open through pod_forming close and again during
+    // pod_active_join. New signatures outside those windows are refused;
+    // already-signed members returned above are unaffected, and invite
+    // fulfillment never calls this route.
+    const regWindow = await registrationWindow(supabase, cycleId);
+    if (!regWindow.open) {
+      return NextResponse.json(
+        {
+          error:
+            regWindow.state === "dead_zone" && regWindow.reopensAt
+              ? `Cycle registration is paused until pods reopen on ${fmtLabDateTime(
+                  regWindow.reopensAt.toISOString()
+                )}.`
+              : "Cycle registration has closed for this cycle.",
+        },
+        { status: 403 }
       );
     }
 
