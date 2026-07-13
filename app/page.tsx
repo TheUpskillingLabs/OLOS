@@ -89,7 +89,7 @@ const WHAT_YOU_LEARN: [string, string][] = [
 const OUR_STORY: [string, string][] = [
   [
     "Founded in DC",
-    "The Upskilling Labs started as a pilot in Washington, DC at the DC Public Library in fall of 2025—a small group of ex-feds proving that people navigating career change and new technologies learn faster together. Now, DC is home to our first chapter and our mission has expanded to all professionals.",
+    "The Upskilling Labs started as a pilot at the DC Public Library in the fall of 2025—a small group of 50 ex-feds navigating career change and new technologies together. Now, DC is home to our first chapter and our mission has expanded to all professionals.",
   ],
   [
     "Built to scale",
