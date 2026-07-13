@@ -4,6 +4,7 @@ import { BookOpen, ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
+import { cycleInfoContent } from "@/lib/cycles/info";
 
 type CycleStatus = "active" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -72,10 +73,18 @@ export default async function CycleDetailPage({
   const { data: config } = await serviceClient
     .from("cycle_config")
     .select(
-      "problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+      "theme_description, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
     )
     .eq("cycle_id", cycle.id)
     .single();
+
+  // The cycle's theme/explanation copy (cycle_config.theme_description, 00084)
+  // — same source + generic fallback as the registration ceremony's theme
+  // screen, surfaced on the cycle page below the header.
+  const themeDescription = cycleInfoContent({
+    theme_description: (config as { theme_description?: string | null } | null)
+      ?.theme_description,
+  }).themeDescription;
 
   const now = new Date();
   const activeWindows: { label: string; route: string; closesAt: string }[] = [];
@@ -114,6 +123,16 @@ export default async function CycleDetailPage({
           <StatusBadge variant={cycleStatusVariant}>{cycle.status}</StatusBadge>
         </div>
       </div>
+
+      {/* Cycle theme/explanation copy — below the title/dates, above the tiles */}
+      {themeDescription && (
+        <p
+          className="mb-8 max-w-2xl text-charcoal"
+          style={{ whiteSpace: "pre-line" }}
+        >
+          {themeDescription}
+        </p>
+      )}
 
       {/* Active window CTAs */}
       {activeWindows.length > 0 && (

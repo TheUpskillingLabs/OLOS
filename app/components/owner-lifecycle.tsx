@@ -33,7 +33,7 @@ const COPY: Record<EntityKey, Record<Action, { title: string; blurb: string; con
     reset: {
       title: "Reset this cycle",
       blurb:
-        "Wipes the cohort back to a pristine draft: removes every enrollment, pod, project, submission, vote, and engagement log, and resets the config to defaults. Field-survey research and the revocation audit log are kept. This cannot be undone.",
+        "Wipes the cycle back to a pristine draft: removes every enrollment, pod, project, submission, vote, and engagement log, and resets the config to defaults. Field-survey research and the revocation audit log are kept. This cannot be undone.",
       confirmLabel: "Reset cycle",
       typed: true,
       variant: "destructive",

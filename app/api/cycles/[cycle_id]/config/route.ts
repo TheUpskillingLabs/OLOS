@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { syncPhasesFromConfig } from "@/lib/cycles/schedule";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
@@ -62,6 +63,25 @@ export const PATCH = withAdminAuth(
 
     if (error) {
       return dbError(error);
+    }
+
+    // Stage 1 calendar overhaul: keep the cycle_phases read model in sync
+    // with the legacy columns (single write path — see
+    // lib/cycles/schedule.ts). A sync failure must be loud, not silent:
+    // divergent stores would gate members off the wrong clock.
+    if (cycle?.mode !== "org") {
+      try {
+        await syncPhasesFromConfig(cycleId);
+      } catch (e) {
+        return NextResponse.json(
+          {
+            error: `Saved, but the phase schedule failed to sync: ${
+              e instanceof Error ? e.message : "unknown error"
+            }. Re-save to retry.`,
+          },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json(data);
