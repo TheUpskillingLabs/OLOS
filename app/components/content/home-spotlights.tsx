@@ -64,11 +64,8 @@ export default function HomeSpotlights({ spotlights }: { spotlights: Spotlight[]
               className="card-body"
               style={{ display: "flex", flexDirection: "column", height: "100%" }}
             >
-              <div className="lbl lbl-teal" style={{ marginBottom: 10 }}>
-                Your turn
-              </div>
               <div className="t-h3" style={{ marginBottom: 10 }}>
-                Share your story
+                Upskiller Spotlights
               </div>
               <p className="t-body" style={{ marginBottom: 18 }}>
                 Spotlights are public — the Labs team edits it with you before
