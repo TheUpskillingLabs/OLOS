@@ -21,6 +21,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 13 | 2026-07-12 | Dashboard | New user's setup / to-do list showed **collapsed** on first login (prod) — a brand-new member should see it expanded. | 🆕 |
 | 14 | 2026-07-13 | Auth / login | Logging in with no account fails ungracefully — it should detect there's no account and direct you to create one. | 🆕 |
 | 15 | 2026-07-13 | Nav / auth | Clicking the profile/avatar in the top nav navigates straight to the profile instead of opening a menu — so there's no account menu (e.g. Log out) reachable from the main/home page without loading the profile first. | 🆕 |
+| 16 | 2026-07-13 | Cycle registration | No clear way to exit the cycle-registration ceremony — only "back" between steps. Need an explicit exit/close (e.g. to the dashboard) at any step. | 🆕 |
 
 ## Details
 
@@ -140,6 +141,13 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Expected:** The profile/avatar in the nav opens an **account menu** (profile, settings, log out, …) on click, reachable from any page — including the home/public page — without navigating to the profile first.
 
 **To investigate:** the signed-in nav (`app/components/chrome/` — the public/app nav) — the avatar is currently a plain link to the profile; add a dropdown menu with the account actions (Log out at minimum). Confirm behavior on both the public home page and the dashboard chrome.
+
+### 16 — No way to exit cycle registration (2026-07-13)
+**Observed:** Inside the cycle-registration ceremony there's only "back" between steps — no clear way to leave/close the flow (e.g. bail to the dashboard) once you've started.
+
+**Expected:** A visible exit/close affordance at any step of the ceremony that drops you out (to the dashboard) without finishing registration.
+
+**To investigate:** the flow engine `FlowScreen` (`app/components/flow/flow-screen.tsx`) already takes an `onExit` prop (the cycle ceremony passes `() => router.push("/dashboard")`) — it just isn't surfaced as a visible control on every step. Add an always-available close/exit button (× or "Exit") wired to `onExit`. Same engine powers signup, so confirm the affordance is appropriate there too (or scope it to the cycle ceremony).
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
