@@ -875,7 +875,7 @@ button:focus-visible {
      translucent bar, exactly as the old fixed nav did. */
   .hero-shell { position: relative; --hero-nav-h: 76px; }
   .hero-shell > .hero-band { margin-top: calc(-1 * var(--hero-nav-h)); }
-  .hero-band { position: relative; z-index: 2; overflow: hidden; border-radius: 0 0 calc(var(--r) * 3) calc(var(--r) * 3); margin-bottom: calc(-3 * var(--r)); min-height: calc(100svh + calc(var(--r) * 3)); display: flex; align-items: flex-end; background: none; }
+  .hero-band { position: relative; z-index: 2; overflow: hidden; border-radius: 0 0 calc(var(--r) * 3) calc(var(--r) * 3); margin-bottom: calc(-3 * var(--r)); min-height: calc(90svh + calc(var(--r) * 3)); display: flex; align-items: flex-end; background: none; }
   .hero-scrim { position: absolute; top: 0; left: 0; right: 0; height: 190px; z-index: 3; pointer-events: none; background: linear-gradient(to bottom, var(--ink) 0%, rgba(0, 20, 27, 0.55) 45%, transparent 100%); }
   .hero-band::before { z-index: 2; } /* grain sits over the tint */
   .hero-photo { position: absolute; inset: 0; z-index: 0; background: url(/assets/img_9531.jpg) center top/cover no-repeat; filter: grayscale(1); }
@@ -889,9 +889,7 @@ button:focus-visible {
   .hero-login { display: inline-flex; }
   .sec-after-hero { padding-top: calc(56px + 3 * var(--r)); }
   @media (min-width: 1024px) {
-    /* Capped on desktop — a full-viewport hero on a large monitor towers over
-       the content; mobile keeps 100svh where it fits. */
-    .hero-band { align-items: center; min-height: calc(min(100svh, 600px) + 3 * var(--r)); }
+    .hero-band { align-items: center; min-height: calc(90svh + 3 * var(--r)); }
     .hero-inner { padding: 120px var(--pad) 72px; display: grid; grid-template-columns: repeat(7, 1fr); column-gap: var(--pad); row-gap: 40px; align-items: start; }
     .hero-band .hero-inner .t-display { grid-column: 1 / -1; font-size: 96px; line-height: 100px; letter-spacing: -0.05em; }
     .hero-cta { grid-column: 5 / -1; align-items: flex-start; margin-top: 0; }
