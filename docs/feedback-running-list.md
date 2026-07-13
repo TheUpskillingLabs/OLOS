@@ -19,6 +19,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🆕 |
 | 12 | 2026-07-12 | Profile / nav | Profile back link still lands in the Directory, not the page I came from. #229 fixed the owner `/profile` route (→ dashboard) but viewing your own profile via `/u/[handle]` still shows "Back to the Directory"; back should be referrer-aware. | 🆕 |
 | 13 | 2026-07-12 | Dashboard | New user's setup / to-do list showed **collapsed** on first login (prod) — a brand-new member should see it expanded. | 🆕 |
+| 14 | 2026-07-13 | Auth / login | Logging in with no account fails ungracefully — it should detect there's no account and direct you to create one. | 🆕 |
 
 ## Details
 
@@ -124,6 +125,13 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Likely cause:** the collapse preference persists in `localStorage` (`olos.setupChecklistCollapsed.v1`, added in #228) which is **per-browser, not per-user**. A new account signed into a browser that previously collapsed — or completed — the checklist inherits the stored "collapsed" flag; the "completing setup cements the collapse" effect writes `"1"`, which then applies to the next user in that browser. `setup-checklist.tsx`: `collapsed = stored ?? allDone`.
 
 **Fix direction:** make collapse state per-user (key the storage entry by participant id, or persist server-side), and/or always start expanded for a brand-new member with no completed items regardless of a stale flag.
+
+### 14 — "Log in" with no account fails ungracefully (2026-07-13)
+**Observed:** Choosing "Log in" when you don't have an account yet fails without a helpful path forward — it should recognize there's no account and route you to create one.
+
+**Expected:** On a sign-in attempt for an email/identity with no participant account, degrade gracefully: a clear "no account yet — create one" message and a link/redirect into the sign-up / account-creation flow (rather than a dead-end error).
+
+**To investigate:** the sign-in path under `app/(auth)/` and `lib/auth/` — how a login with no matching account is handled and where to branch to account creation. Relates to the recent "login doors" work (join explainer vs. straight sign-in, account chooser, no-account notice) already on dev; check whether that covers this case or leaves a gap. See also #10 (login intro on return) in the same area.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
