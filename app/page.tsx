@@ -100,7 +100,7 @@ const CYCLE_ANATOMY: [string, string, string][] = [
   [
     "Month 3",
     "Synthesis",
-    "Projects turn experiments into working prototypes—tools, workflows, templates—that you can use and share with others. Every cycle ends with a public showcase, so your work has visibility and impact beyond the Lab. Projects can keep going at the end of the cycle as open-source efforts within the Labs.",
+    "Projects turn experiments into working prototypes—tools, workflows, templates. Every cycle ends with a public showcase, so your work has visibility and impact beyond the twelve weeks. Projects can keep going at the end of the cycle as open-source efforts in the Labs.",
   ],
 ];
 
