@@ -167,10 +167,14 @@ export default function SurveyFlow({
 }
 
 /* ── Landing — the full-width, responsive AIDA entry that fronts the flow.
-   A scrolling content page (NOT the .onboard sheet, which locks scroll):
-   Attention hero (+ live counter) → Interest → Desire → Action, then Begin
-   drops into the one-question flow. Copy is DRAFT (owner-approvable, ported
-   from the prototype byte-for-byte per DESIGN_INTENT §1). ── */
+   A scrolling content page (NOT the .onboard sheet, which locks scroll),
+   built as a clean Attention → Interest → Desire → Action arc:
+     A  hero — who you are, what you see, one clear ask (+ live counter)
+     I  why one person's observation is the real starting point
+     D  where it goes — an open commons, one of {goal}
+     A  the closing ask, left-aligned to match the hero and the brand
+   Begin drops into the one-question flow. Copy is owner-approvable draft,
+   in the Red Antler / benefit-led register (DESIGN_INTENT §1). ── */
 function Landing({
   domain,
   about,
@@ -197,11 +201,11 @@ function Landing({
               Field survey · {domain}
             </div>
             <h1 className="t-display" style={{ marginBottom: 18 }}>
-              You see something the data misses.
+              You see what the data misses.
             </h1>
-            <p className="t-lede" style={{ marginBottom: 4, maxWidth: "40ch" }}>
+            <p className="t-lede" style={{ marginBottom: 4, maxWidth: "42ch" }}>
               {about ??
-                `You live in a field. You notice what's stuck, what's broken, what keeps coming back. Tell us — that's where the next ${domain} Build Cycle begins.`}
+                `You work in ${domain}. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing — it's where the next ${domain} Build Cycle begins.`}
             </p>
             <GoalCounter count={count} goal={goal} />
             <button
@@ -224,13 +228,13 @@ function Landing({
             Why it matters
           </div>
           <h2 className="t-h2" style={{ marginBottom: 16 }}>
-            The best projects start with what someone noticed.
+            The best projects start with what one person noticed.
           </h2>
           <p className="t-lede" style={{ margin: 0 }}>
-            Not a report. Not a headline. A person who was close enough to see
-            what wasn&rsquo;t working. Your observation is that starting point —
-            weighed by who&rsquo;s speaking, and read by the people deciding what
-            to build next.
+            Not a report. Not a headline. Just someone close enough to see what
+            wasn&rsquo;t working. Your observation is that starting point — read
+            by the people choosing what The Labs builds next, and weighed by how
+            close you are to the problem.
           </p>
         </div>
       </section>
@@ -250,8 +254,8 @@ function Landing({
                 Open by default
               </h3>
               <p className="t-body text-meta" style={{ margin: 0 }}>
-                Everything built from these observations is open-source — free
-                for anyone to use, including you.
+                Everything The Labs builds from these observations is
+                open-source — free for anyone to use, you included.
               </p>
             </div>
             <div className="lcard" style={{ padding: 24 }}>
@@ -260,31 +264,38 @@ function Landing({
               </h3>
               <p className="t-body text-meta" style={{ margin: 0 }}>
                 We&rsquo;re gathering {goal.toLocaleString()} field observations
-                to choose the problems this cycle takes on. Add yours.
+                to choose the problems this cycle takes on. Yours helps set the
+                agenda.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Action — the closing ask */}
-      <section
-        className="s-cover grain on-dark"
-        style={{ padding: "72px 0", textAlign: "center" }}
-      >
-        <div className="container" style={{ maxWidth: 640 }}>
-          <h2 className="t-h2" style={{ marginBottom: 22 }}>
-            Tell us what you&rsquo;re seeing.
-          </h2>
-          <button
-            className="btn btn-red btn-lg landing-cta"
-            onClick={onBegin}
-          >
-            Share your observation →
-          </button>
-          <p className="t-small" style={{ marginTop: 16 }}>
-            Voluntary and anonymous. Answer only what you want.
-          </p>
+      {/* Action — the closing ask (left-aligned, mirrors the hero + brand) */}
+      <section className="s-cover grain on-dark" style={{ padding: "72px 0" }}>
+        <div className="container">
+          <div className="landing-col">
+            <div className="lbl lbl-teal" style={{ marginBottom: 14 }}>
+              Ready when you are
+            </div>
+            <h2 className="t-h2" style={{ marginBottom: 16 }}>
+              Tell us what you&rsquo;re seeing.
+            </h2>
+            <p className="t-lede" style={{ marginBottom: 24, maxWidth: "42ch" }}>
+              One observation is enough to start. Add as many as you&rsquo;ve
+              got — we read every one.
+            </p>
+            <button
+              className="btn btn-red btn-lg landing-cta"
+              onClick={onBegin}
+            >
+              Share your observation →
+            </button>
+            <p className="t-small" style={{ marginTop: 16 }}>
+              ~2 minutes · no account needed · anonymous by default
+            </p>
+          </div>
         </div>
       </section>
     </div>
