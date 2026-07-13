@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { registrationWindow } from "@/lib/cycles/schedule";
 import { redirect } from "next/navigation";
 import { ArrowRight, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -441,6 +442,17 @@ export default async function DashboardPage() {
       ? preRegisteredUpcoming
       : hasAgreement || enrollment?.status === "active";
 
+  // D-10 (docs/requirements/pod-registration.md): registration for a cohort
+  // closes between pod-forming close and the active-join window, and again
+  // after active-join ends. Gates the register checklist row and the join
+  // CTA card below — members who already signed keep their done row and
+  // confirmation regardless of the window.
+  const regWindow =
+    registerCycle && !registerDone
+      ? await registrationWindow(serviceClient, registerCycle.id)
+      : null;
+  const regOpen = registerDone || (regWindow?.open ?? false);
+
   // The field survey is the cohort's opening activity and the member's first
   // CTA (SENSEMAKING_FLOW §2, Stage 0–1). Surface the survey tied to the cohort
   // the member is engaged with (its cycle, else its sector commons). The
@@ -466,8 +478,10 @@ export default async function DashboardPage() {
   const checklistItems: ChecklistItem[] = [
     // Cycle registration leads the list — it's the reason most members are
     // here, and testers looked for it above the housekeeping rows (July 2026
-    // feedback: "civics/elections registration comes first").
-    ...(registerCycle
+    // feedback: "civics/elections registration comes first"). Hidden while
+    // the D-10 window is closed (nothing actionable); a signed member's done
+    // row always shows.
+    ...(registerCycle && regOpen
       ? [
           {
             key: "register",
@@ -619,6 +633,23 @@ export default async function DashboardPage() {
             )}`
           : ""}
         . We&apos;ll open your next steps here when it starts.
+      </p>
+    </div>
+  );
+
+  // Shown instead of the join card while the D-10 registration window is
+  // closed — names the reopen instant during the dead zone (pods forming),
+  // plain "closed" after active-join ends.
+  const registrationClosedCard = (cycle: CycleCardData) => (
+    <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
+      <div className="lbl mb-2">Registration closed</div>
+      <h2 className="t-h3 text-ink">{cycle.name}</h2>
+      <p className="mt-2 text-sm text-meta">
+        {regWindow?.state === "dead_zone" && regWindow.reopensAt
+          ? `Pods are forming right now, so registration is paused. It reopens ${fmtLabDateTime(
+              regWindow.reopensAt.toISOString()
+            )}, when pods open to new members.`
+          : "Registration for this cycle has closed. The next Build Cycle will show up right here."}
       </p>
     </div>
   );
@@ -822,8 +853,12 @@ export default async function DashboardPage() {
               (upcomingCycle
                 ? preRegisteredUpcoming
                   ? preRegisteredCard(upcomingCycle)
-                  : joinCycleCard(upcomingCycle, true)
-                : joinCycleCard(activeCycle, false))}
+                  : regOpen
+                    ? joinCycleCard(upcomingCycle, true)
+                    : registrationClosedCard(upcomingCycle)
+                : regOpen
+                  ? joinCycleCard(activeCycle, false)
+                  : registrationClosedCard(activeCycle))}
             {logDueBanner}
             {leadershipSection}
             <div className="mt-8">{feedFor(!orgActive)}</div>
@@ -865,8 +900,10 @@ export default async function DashboardPage() {
               (upcomingCycle ? (
                 preRegisteredUpcoming ? (
                   preRegisteredCard(upcomingCycle)
-                ) : (
+                ) : regOpen ? (
                   joinCycleCard(upcomingCycle, true)
+                ) : (
+                  registrationClosedCard(upcomingCycle)
                 )
               ) : (
                 <EmptyState

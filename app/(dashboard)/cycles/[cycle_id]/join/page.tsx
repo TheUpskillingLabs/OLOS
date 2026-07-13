@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { windowOpen } from "@/lib/cycles/lab-time";
+import { windowOpen, fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { registrationWindow } from "@/lib/cycles/schedule";
 import CycleCeremony from "./ceremony";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
@@ -81,6 +84,40 @@ export default async function JoinCyclePage({
     .eq("participant_id", participant.id)
     .eq("cycle_id", cycleId)
     .maybeSingle();
+
+  // D-10 gate (docs/requirements/pod-registration.md, owner 2026-07-12):
+  // self-serve registration is open only while a new member can still land
+  // in a pod — through pod-forming close, and again during the active-join
+  // window. Members who already signed pass through to their confirmation;
+  // the agreement API enforces the same rule server-side, this is the
+  // friendly surface for it.
+  if (!agreement) {
+    const regWindow = await registrationWindow(serviceClient, cycleId);
+    if (!regWindow.open) {
+      return (
+        <div className="mx-auto max-w-xl py-12">
+          <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
+            <div className="lbl mb-2">Registration closed</div>
+            <h1 className="t-h2 text-ink">{cycle.name}</h1>
+            <p className="mt-3 text-meta">
+              {regWindow.state === "dead_zone" && regWindow.reopensAt
+                ? `Pods are forming right now, so registration is paused. It reopens ${fmtLabDateTime(
+                    regWindow.reopensAt.toISOString()
+                  )}, when pods open to new members — check back then.`
+                : "Registration for this cycle has closed. Keep an eye out for the next Build Cycle."}
+            </p>
+            <Link
+              href="/cycles"
+              className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep hover:underline"
+            >
+              Back to cycles
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        </div>
+      );
+    }
+  }
 
   // Pod-registration window drives the confirmation's primary CTA.
   const { data: config } = await serviceClient
