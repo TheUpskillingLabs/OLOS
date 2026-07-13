@@ -224,7 +224,7 @@ export default async function LandingPage() {
 
       {/* ── Cycles ── */}
       <section
-        className={`section s-white${spotlights.length > 0 ? "" : " sec-after-hero"}`}
+        className={`section s-white${spotlights.length > 0 ? " sec-cycles-gap" : " sec-after-hero"}`}
         id="sec-cycles"
       >
         <div className="container">
@@ -246,82 +246,82 @@ export default async function LandingPage() {
               How a cycle works →
             </Link>
           </div>
-          {recruitingCycle ? (
-            <div className="cycle-banner s-cover grain on-dark">
-              <div className="cb-body">
-                <span className="cb-status">
-                  {recruitingCycle.status === "upcoming"
-                    ? "Registration open now"
-                    : "Cycle in progress"}
-                </span>
-                {bannerSeason && (
-                  <div className="lbl lbl-teal" style={{ margin: "14px 0 6px" }}>
-                    {bannerSeason}
+          {/* Two columns — the three benefits stacked on the left, the current
+              cycle card on the right (stacks on mobile). */}
+          <div className="cycle-split">
+            {/* Left — what you walk away with */}
+            <div>
+              <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
+                What you walk away with
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                {CYCLE_BENEFITS.map(({ icon: Icon, title, body }) => (
+                  <div key={title}>
+                    <Icon aria-hidden size={24} style={{ color: "var(--teal-deep)", marginBottom: 10 }} />
+                    <h3 className="t-h3" style={{ marginBottom: 6 }}>
+                      {title}
+                    </h3>
+                    <p className="t-body" style={{ maxWidth: "44ch" }}>
+                      {body}
+                    </p>
                   </div>
-                )}
-                <h3 className="t-h2">{recruitingCycle.name}</h3>
-                {bannerKickoff && (
-                  <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                    Kicks off {bannerKickoff} — twelve weeks of curious peers
-                    learning AI by building something that matters.
-                  </p>
-                )}
-                {recruitingCycle.mode === "open" && (
-                  <p className="t-small" style={{ marginTop: 6, color: "var(--od2)", maxWidth: "52ch" }}>
-                    An Open Cycle — projects are open source and free to build on.
-                  </p>
-                )}
-              </div>
-              <div className="cb-cta">
-                <Link className="btn btn-red btn-lg" href={joinCycleHref}>
-                  {signedIn ? "Join this cycle" : "Join The Labs"}
-                </Link>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="cycle-banner s-cover grain on-dark">
-              <div className="cb-body">
-                <span className="cb-status">Next cycle coming soon</span>
-                <h3 className="t-h2" style={{ marginTop: 14 }}>
-                  No cycle is open right now
-                </h3>
-                <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                  The next Build Cycle is still being planned. Join The Labs and
-                  we&apos;ll tell you the moment registration opens.
-                </p>
-              </div>
-              <div className="cb-cta">
-                <Link className="btn btn-red btn-lg" href={joinCycleHref}>
-                  {signedIn ? "Go to your dashboard" : "Join The Labs"}
-                </Link>
-              </div>
-            </div>
-          )}
 
-          {/* What you walk away with — the benefits of a Build Cycle */}
-          <div style={{ marginTop: 48 }}>
-            <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
-              What you walk away with
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gap: 32,
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                alignItems: "start",
-              }}
-            >
-              {CYCLE_BENEFITS.map(({ icon: Icon, title, body }) => (
-                <div key={title}>
-                  <Icon aria-hidden size={24} style={{ color: "var(--teal-deep)", marginBottom: 12 }} />
-                  <h3 className="t-h3" style={{ marginBottom: 8 }}>
-                    {title}
-                  </h3>
-                  <p className="t-body" style={{ maxWidth: "44ch" }}>
-                    {body}
-                  </p>
+            {/* Right — the current cycle card */}
+            <div>
+              {recruitingCycle ? (
+                <div className="cycle-banner s-cover grain on-dark">
+                  <div className="cb-body">
+                    <span className="cb-status">
+                      {recruitingCycle.status === "upcoming"
+                        ? "Registration open now"
+                        : "Cycle in progress"}
+                    </span>
+                    {bannerSeason && (
+                      <div className="lbl lbl-teal" style={{ margin: "14px 0 6px" }}>
+                        {bannerSeason}
+                      </div>
+                    )}
+                    <h3 className="t-h2">{recruitingCycle.name}</h3>
+                    {bannerKickoff && (
+                      <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                        Kicks off {bannerKickoff} — twelve weeks of curious peers
+                        learning AI by building something that matters.
+                      </p>
+                    )}
+                    {recruitingCycle.mode === "open" && (
+                      <p className="t-small" style={{ marginTop: 6, color: "var(--od2)", maxWidth: "52ch" }}>
+                        An Open Cycle — projects are open source and free to build on.
+                      </p>
+                    )}
+                  </div>
+                  <div className="cb-cta">
+                    <Link className="btn btn-red btn-lg" href={joinCycleHref}>
+                      {signedIn ? "Join this cycle" : "Join The Labs"}
+                    </Link>
+                  </div>
                 </div>
-              ))}
+              ) : (
+                <div className="cycle-banner s-cover grain on-dark">
+                  <div className="cb-body">
+                    <span className="cb-status">Next cycle coming soon</span>
+                    <h3 className="t-h2" style={{ marginTop: 14 }}>
+                      No cycle is open right now
+                    </h3>
+                    <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                      The next Build Cycle is still being planned. Join The Labs and
+                      we&apos;ll tell you the moment registration opens.
+                    </p>
+                  </div>
+                  <div className="cb-cta">
+                    <Link className="btn btn-red btn-lg" href={joinCycleHref}>
+                      {signedIn ? "Go to your dashboard" : "Join The Labs"}
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
