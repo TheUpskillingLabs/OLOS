@@ -7,7 +7,18 @@ import {
   type FlowStep,
   type FlowAnswers,
 } from "@/app/components/flow/flow-screen";
+import { EdSection, EdRow, Pull } from "@/app/components/chrome/editorial";
 import type { SurveyQuestion } from "@/lib/content/surveys";
+
+/* The Build Cycle's five stages, as a real sequence — rendered on the
+   standards-manual numbered-process pattern (.ed-steps). */
+const BUILD_CYCLE_STEPS: [string, string][] = [
+  ["Learn", "Get up to speed on the theme and the tools, together."],
+  ["Understand", "Dig into the problem as a community until you can see it clearly."],
+  ["Ideate", "Turn what you've learned into solutions worth building."],
+  ["Prototype", "Iterate on real prototypes in small teams."],
+  ["Showcase", "Present your MVP in a public showcase."],
+];
 
 /* The field survey as a one-question-at-a-time flow (SENSEMAKING_FLOW.md §3),
    on the shared FlowScreen engine — the same shell as registration + the cycle
@@ -225,107 +236,133 @@ function Landing({
         </div>
       </section>
 
-      {/* Interest — why an observation matters */}
-      <section className="section s-white">
-        <div className="container" style={{ maxWidth: 760 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
-            Why it matters
-          </div>
-          <h2 className="t-h2" style={{ marginBottom: 16 }}>
-            Observations from the people closest to a problem are where the best
-            projects begin.
-          </h2>
-          <p className="t-lede" style={{ margin: 0 }}>
-            The Upskilling Labs collects observations from workers, researchers,
-            community members, and the general public to identify the problems
-            worth tackling in each Build Cycle.
-          </p>
-        </div>
-      </section>
+      {/* Body — recomposed on the editorial "standards-manual" grid (ref: 1976
+          NASA Graphics Standards Manual), matching /about and /build-cycles:
+          each section's eyebrow owns column 1, the heading spans columns 2–5,
+          and content flows in the rows beneath, divided by heavy modernist
+          rules on the 8px baseline. */}
+      <div className="container" style={{ paddingTop: 88, paddingBottom: 72 }}>
+        <div className="ed-doc">
+          {/* Interest — why observations matter */}
+          <EdSection
+            eyebrow="Why it matters"
+            heading="Observations from the people closest to a problem are where the best projects begin."
+          >
+            <EdRow>
+              <p className="t-lede ed-text">
+                The Upskilling Labs collects observations from workers,
+                researchers, community members, and the general public to
+                identify the problems worth tackling in each Build Cycle.
+              </p>
+            </EdRow>
+          </EdSection>
 
-      {/* Interest — who The Labs is (credibility) */}
-      <section className="section s-white">
-        <div className="container" style={{ maxWidth: 760 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
-            About the Labs
-          </div>
-          <h2 className="t-h2" style={{ marginBottom: 16 }}>
-            What is The Upskilling Labs?
-          </h2>
-          <p className="t-lede" style={{ marginBottom: 18 }}>
-            Founded in January 2026, The Upskilling Labs is a free workforce
-            development and community organization that helps professionals
-            build not just AI literacy, but the skills and capacity to identify
-            problems, lead initiatives, and drive real outcomes in the age of
-            AI.
-          </p>
-          <p className="t-body" style={{ marginBottom: 18 }}>
-            Based in Washington, DC and partnered with DC Public Library, the
-            Labs brings together workers, builders, and thinkers. The Labs is a
-            fiscally sponsored project of Superbloom Design, a 501(c)(3)
-            nonprofit organization.
-          </p>
-          <p className="t-body" style={{ margin: 0 }}>
-            Our flagship program is the quarterly Build Cycle, each one focused
-            on a different sector-based theme. Upskillers go from learning, to
-            deeply understanding a problem as a community, to ideating on
-            solutions, to iterating on prototypes in small teams and presenting
-            their MVPs in a public showcase — all in three months, while using
-            and learning emerging technologies like AI.
-          </p>
-        </div>
-      </section>
+          {/* About the Labs */}
+          <EdSection
+            eyebrow="About the Labs"
+            heading="What is The Upskilling Labs?"
+          >
+            <EdRow>
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 16 }}>
+                  Founded in January 2026, The Upskilling Labs is a free
+                  workforce development and community organization that helps
+                  professionals build not just AI literacy, but the skills and
+                  capacity to identify problems, lead initiatives, and drive
+                  real outcomes in the age of AI.
+                </p>
+                <p className="t-body ed-text" style={{ color: "var(--slate)" }}>
+                  Based in Washington, DC and partnered with DC Public Library,
+                  the Labs brings together workers, builders, and thinkers. The
+                  Labs is a fiscally sponsored project of Superbloom Design, a
+                  501(c)(3) nonprofit organization.
+                </p>
+              </div>
+            </EdRow>
+          </EdSection>
 
-      {/* Desire — where your insights go */}
-      <section className="section s-white">
-        <div className="container" style={{ maxWidth: 760 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
-            Where it goes
-          </div>
-          <h2 className="t-h2" style={{ marginBottom: 16 }}>
-            Where do my insights go?
-          </h2>
-          <p className="t-lede" style={{ marginBottom: 18 }}>
-            Your insights help shape the very problems Upskillers choose to
-            explore in our upcoming {domain} Build Cycle. As they form their
-            problem frames, Upskillers draw on an insights repository —
-            contributed by subject-matter experts, practitioners in the field,
-            and members of the public.
-          </p>
-          <p className="t-body" style={{ margin: 0 }}>
-            Everything Upskillers produce is accessible and open-source.
-          </p>
-        </div>
-      </section>
+          {/* The Build Cycle — a real sequence, on the numbered-process pattern */}
+          <EdSection
+            eyebrow="The Build Cycle"
+            heading="The flagship program is the quarterly Build Cycle."
+          >
+            <EdRow>
+              <p className="t-lede ed-text">
+                Each cycle centers on a different sector-based theme. Over three
+                months, Upskillers move through five stages — using and learning
+                emerging technologies like AI along the way.
+              </p>
+            </EdRow>
+            <EdRow>
+              <div className="ed-steps">
+                {BUILD_CYCLE_STEPS.map(([label, blurb], i) => (
+                  <div key={label}>
+                    <div className="ed-step-n">
+                      {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div className="ed-step-rule" />
+                    <div className="lbl" style={{ marginBottom: 6 }}>
+                      {label}
+                    </div>
+                    <p className="t-body" style={{ color: "var(--slate)" }}>
+                      {blurb}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </EdRow>
+          </EdSection>
 
-      {/* Action — the closing ask (left-aligned, mirrors the hero + brand) */}
-      <section className="s-cover grain on-dark" style={{ padding: "72px 0" }}>
-        <div className="container">
-          <div className="landing-col">
-            <div className="lbl lbl-teal" style={{ marginBottom: 14 }}>
-              Ready when you are
-            </div>
-            <h2 className="t-h2" style={{ marginBottom: 16 }}>
-              Tell us what you&rsquo;re seeing.
-            </h2>
-            <p className="t-lede" style={{ marginBottom: 24, maxWidth: "42ch" }}>
-              One observation is enough to start. Add as many as you&rsquo;ve
-              got — every one reaches the Upskillers building the next {domain}{" "}
-              Build Cycle.
-            </p>
-            <button
-              className="btn btn-red btn-lg landing-cta"
-              onClick={onBegin}
-            >
-              Share your observation →
-            </button>
-            <p className="t-small" style={{ marginTop: 16 }}>
-              Submissions are voluntary and anonymous unless you choose to share
-              your contact information.
-            </p>
-          </div>
+          {/* Desire — where your insights go */}
+          <EdSection eyebrow="Where it goes" heading="Where do my insights go?">
+            <EdRow>
+              <p className="t-lede ed-text">
+                Your insights help shape the very problems Upskillers choose to
+                explore in our upcoming {domain} Build Cycle. As they form their
+                problem frames, Upskillers draw on an insights repository —
+                contributed by subject-matter experts, practitioners in the
+                field, and members of the public.
+              </p>
+            </EdRow>
+            <Pull>Everything Upskillers produce is accessible and open-source.</Pull>
+          </EdSection>
+
+          {/* Action — the closing ask */}
+          <EdSection
+            eyebrow="Ready when you are"
+            heading="Tell us what you're seeing."
+          >
+            <EdRow>
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
+                  One observation is enough to start. Add as many as you&rsquo;ve
+                  got — every one reaches the Upskillers building the next{" "}
+                  {domain} Build Cycle.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <button className="btn btn-red btn-lg" onClick={onBegin}>
+                    Share your observation →
+                  </button>
+                </div>
+                <p
+                  className="t-small"
+                  style={{ marginTop: 16, color: "var(--meta)" }}
+                >
+                  Submissions are voluntary and anonymous unless you choose to
+                  share your contact information.
+                </p>
+              </div>
+            </EdRow>
+          </EdSection>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
