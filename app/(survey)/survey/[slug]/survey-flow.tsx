@@ -219,7 +219,7 @@ function Landing({
               Share what you&rsquo;re seeing →
             </button>
             <p className="t-small" style={{ marginTop: 16 }}>
-              ~2 minutes · no account needed · anonymous by default
+              ~2 minutes
             </p>
           </div>
         </div>
@@ -232,50 +232,69 @@ function Landing({
             Why it matters
           </div>
           <h2 className="t-h2" style={{ marginBottom: 16 }}>
-            The best projects start with what one person noticed.
+            Observations from the people closest to a problem are where the best
+            projects begin.
           </h2>
           <p className="t-lede" style={{ margin: 0 }}>
-            Not a report. Not a headline. Just someone close enough to see what
-            wasn&rsquo;t working. Every {domain} Build Cycle at The Upskilling
-            Labs starts here — a team of Upskillers reads these observations,
-            picks the problems worth solving, and spends the cycle building
-            open-source answers to them. Your view helps decide what they take
-            on.
+            The Upskilling Labs collects observations from workers, researchers,
+            community members, and the general public to identify the problems
+            worth tackling in each Build Cycle.
           </p>
         </div>
       </section>
 
-      {/* Desire — where it goes */}
+      {/* Interest — who The Labs is (credibility) */}
+      <section className="section s-white">
+        <div className="container" style={{ maxWidth: 760 }}>
+          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
+            About the Labs
+          </div>
+          <h2 className="t-h2" style={{ marginBottom: 16 }}>
+            What is The Upskilling Labs?
+          </h2>
+          <p className="t-lede" style={{ marginBottom: 18 }}>
+            Founded in January 2026, The Upskilling Labs is a free workforce
+            development and community organization that helps professionals
+            build not just AI literacy, but the skills and capacity to identify
+            problems, lead initiatives, and drive real outcomes in the age of
+            AI.
+          </p>
+          <p className="t-body" style={{ marginBottom: 18 }}>
+            Based in Washington, DC and partnered with DC Public Library, the
+            Labs brings together workers, builders, and thinkers. The Labs is a
+            fiscally sponsored project of Superbloom Design, a 501(c)(3)
+            nonprofit organization.
+          </p>
+          <p className="t-body" style={{ margin: 0 }}>
+            Our flagship program is the quarterly Build Cycle, each one focused
+            on a different sector-based theme. Upskillers go from learning, to
+            deeply understanding a problem as a community, to ideating on
+            solutions, to iterating on prototypes in small teams and presenting
+            their MVPs in a public showcase — all in three months, while using
+            and learning emerging technologies like AI.
+          </p>
+        </div>
+      </section>
+
+      {/* Desire — where your insights go */}
       <section className="section s-white">
         <div className="container" style={{ maxWidth: 760 }}>
           <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
             Where it goes
           </div>
-          <h2 className="t-h2" style={{ marginBottom: 24 }}>
-            It goes to the people who build.
+          <h2 className="t-h2" style={{ marginBottom: 16 }}>
+            Where do my insights go?
           </h2>
-          <div className="cards two">
-            <div className="lcard" style={{ padding: 24 }}>
-              <h3 className="t-h4" style={{ marginBottom: 6 }}>
-                Built by a real team
-              </h3>
-              <p className="t-body text-meta" style={{ margin: 0 }}>
-                Upskillers join each {domain} Build Cycle and turn these
-                observations into working, open-source projects — part of an
-                open commons, free for anyone to use, you included.
-              </p>
-            </div>
-            <div className="lcard" style={{ padding: 24 }}>
-              <h3 className="t-h4" style={{ marginBottom: 6 }}>
-                One of {goal.toLocaleString()}
-              </h3>
-              <p className="t-body text-meta" style={{ margin: 0 }}>
-                We&rsquo;re gathering {goal.toLocaleString()} field observations
-                so that team can choose which problems to take on. Yours helps
-                set their agenda.
-              </p>
-            </div>
-          </div>
+          <p className="t-lede" style={{ marginBottom: 18 }}>
+            Your insights help shape the very problems Upskillers choose to
+            explore in our upcoming {domain} Build Cycle. As they form their
+            problem frames, Upskillers draw on an insights repository —
+            contributed by subject-matter experts, practitioners in the field,
+            and members of the public.
+          </p>
+          <p className="t-body" style={{ margin: 0 }}>
+            Everything Upskillers produce is accessible and open-source.
+          </p>
         </div>
       </section>
 
@@ -301,7 +320,8 @@ function Landing({
               Share your observation →
             </button>
             <p className="t-small" style={{ marginTop: 16 }}>
-              ~2 minutes · no account needed · anonymous by default
+              Submissions are voluntary and anonymous unless you choose to share
+              your contact information.
             </p>
           </div>
         </div>
