@@ -22,6 +22,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 14 | 2026-07-13 | Auth / login | Logging in with no account fails ungracefully — it should detect there's no account and direct you to create one. | 🆕 |
 | 15 | 2026-07-13 | Nav / auth | Clicking the profile/avatar in the top nav navigates straight to the profile instead of opening a menu — so there's no account menu (e.g. Log out) reachable from the main/home page without loading the profile first. | 🆕 |
 | 16 | 2026-07-13 | Cycle registration | No clear way to exit the cycle-registration ceremony — only "back" between steps. Need an explicit exit/close (e.g. to the dashboard) at any step. | 🆕 |
+| 17 | 2026-07-13 | Cycle page | Surface the cycle's theme/explanation copy (the new `cycle_config.theme_description`) on the cycle page, and show the volunteers/mentors/etc. specifically associated with that cycle (directory-style view). | 🆕 |
 
 ## Details
 
@@ -148,6 +149,13 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Expected:** A visible exit/close affordance at any step of the ceremony that drops you out (to the dashboard) without finishing registration.
 
 **To investigate:** the flow engine `FlowScreen` (`app/components/flow/flow-screen.tsx`) already takes an `onExit` prop (the cycle ceremony passes `() => router.push("/dashboard")`) — it just isn't surfaced as a visible control on every step. Add an always-available close/exit button (× or "Exit") wired to `onExit`. Same engine powers signup, so confirm the affordance is appropriate there too (or scope it to the cycle ceremony).
+
+### 17 — Show theme copy + associated people on the cycle page (2026-07-13)
+**Observed / wanted:** The cycle page should present the cycle's theme/explanation copy, and show the people specifically tied to that cycle.
+
+**Two parts:**
+1. **Theme/explanation on the cycle page** — surface the admin-authored `cycle_config.theme_description` (00084; the "What {cycle} means" copy) on `app/(dashboard)/cycles/[cycle_id]/page.tsx` (and/or the public cycle page `app/c/[cycle_id]`), reusing `cycleInfoContent` so it shares copy + fallback with the registration ceremony.
+2. **Cycle people (directory view)** — a directory-style panel of volunteers, mentors, organizers, etc. **associated with this cycle** (not the whole org). Needs a way to resolve who's tied to a cycle by role — cross-check `cycle_enrollments` + `role_intents` / `user_roles` / moderator assignments, scoped to the cycle. Confirm what "associated with the cycle" means for each role (enrolled participant vs. mentor/volunteer for that cohort) before building.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
