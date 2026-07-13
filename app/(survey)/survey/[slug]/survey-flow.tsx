@@ -1,13 +1,48 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   FlowScreen,
   type FlowStep,
   type FlowAnswers,
 } from "@/app/components/flow/flow-screen";
+import { EdRow, Pull } from "@/app/components/chrome/editorial";
 import type { SurveyQuestion } from "@/lib/content/surveys";
+
+/* The Build Cycle's five stages, as a real sequence — rendered on the
+   standards-manual numbered-process pattern (.ed-steps). */
+const BUILD_CYCLE_STEPS: [string, string][] = [
+  ["Learn", "Get up to speed on the theme and the tools, together."],
+  ["Understand", "Dig into the problem as a community until you can see it clearly."],
+  ["Ideate", "Turn what you've learned into solutions worth building."],
+  ["Prototype", "Iterate on real prototypes in small teams."],
+  ["Showcase", "Present your MVP in a public showcase."],
+];
+
+/* The survey body's sections use the editorial .ed-sec grid (eyebrow in col 1,
+   heading spanning 2–5) but WITHOUT the heavy .ed-rule divider — sections are
+   separated by generous space instead (owner pref). The shared EdSection keeps
+   the rule for /about and /build-cycles. */
+function SurveySection({
+  eyebrow,
+  heading,
+  children,
+}: {
+  eyebrow: string;
+  heading: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="ed-sec">
+      <div className="ed-eyebrow">
+        <div className="lbl lbl-teal">{eyebrow}</div>
+      </div>
+      <h2 className="ed-heading t-h2">{heading}</h2>
+      {children}
+    </section>
+  );
+}
 
 /* The field survey as a one-question-at-a-time flow (SENSEMAKING_FLOW.md §3),
    on the shared FlowScreen engine — the same shell as registration + the cycle
@@ -167,10 +202,14 @@ export default function SurveyFlow({
 }
 
 /* ── Landing — the full-width, responsive AIDA entry that fronts the flow.
-   A scrolling content page (NOT the .onboard sheet, which locks scroll):
-   Attention hero (+ live counter) → Interest → Desire → Action, then Begin
-   drops into the one-question flow. Copy is DRAFT (owner-approvable, ported
-   from the prototype byte-for-byte per DESIGN_INTENT §1). ── */
+   A scrolling content page (NOT the .onboard sheet, which locks scroll),
+   built as a clean Attention → Interest → Desire → Action arc:
+     A  hero — who you are, what you see, one clear ask (+ live counter)
+     I  why one person's observation is the real starting point
+     D  where it goes — an open commons, one of {goal}
+     A  the closing ask, left-aligned to match the hero and the brand
+   Begin drops into the one-question flow. Copy is owner-approvable draft,
+   in the Red Antler / benefit-led register (DESIGN_INTENT §1). ── */
 function Landing({
   domain,
   about,
@@ -188,28 +227,24 @@ function Landing({
     <div className="flex min-h-screen flex-col">
       {/* Attention — full-bleed hero */}
       <section className="s-cover grain on-dark landing-hero">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="landing-orb"
-          src="/assets/orb-mark.png"
-          alt=""
-          aria-hidden
-        />
-        <div className="landing-scrim" aria-hidden />
         <div className="container landing-hero-inner">
-          <div className="landing-col">
-            <div className="lbl" style={{ marginBottom: 28 }}>
+          <div className="landing-masthead">
+            <div className="lbl" style={{ marginBottom: 18 }}>
               The Upskilling Labs
             </div>
-            <div className="lbl lbl-teal" style={{ marginBottom: 16 }}>
-              Field survey · {domain}
-            </div>
-            <h1 className="t-display" style={{ marginBottom: 18 }}>
-              You see something the data misses.
+            <h1 className="survey-title" style={{ marginBottom: 14 }}>
+              <span>Field</span>
+              <span>Survey</span>
             </h1>
-            <p className="t-lede" style={{ marginBottom: 4, maxWidth: "40ch" }}>
+            <div className="t-h2" style={{ color: "var(--teal)" }}>
+              {domain} Edition
+            </div>
+            <div className="landing-rule" aria-hidden />
+          </div>
+          <div className="landing-support">
+            <p className="t-lede" style={{ marginBottom: 4, maxWidth: "42ch" }}>
               {about ??
-                `You live in a field. You notice what's stuck, what's broken, what keeps coming back. Tell us — that's where the next ${domain} Build Cycle begins.`}
+                `You see what the data misses. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing, and a team at The Upskilling Labs builds from it in the next ${domain} Build Cycle.`}
             </p>
             <GoalCounter count={count} goal={goal} />
             <button
@@ -219,82 +254,139 @@ function Landing({
               Share what you&rsquo;re seeing →
             </button>
             <p className="t-small" style={{ marginTop: 16 }}>
-              ~2 minutes · no account needed · anonymous by default
+              ~2 minutes
             </p>
           </div>
         </div>
       </section>
 
-      {/* Interest — why an observation matters */}
-      <section className="section s-white">
-        <div className="container" style={{ maxWidth: 760 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
-            Why it matters
-          </div>
-          <h2 className="t-h2" style={{ marginBottom: 16 }}>
-            The best projects start with what someone noticed.
-          </h2>
-          <p className="t-lede" style={{ margin: 0 }}>
-            Not a report. Not a headline. A person who was close enough to see
-            what wasn&rsquo;t working. Your observation is that starting point —
-            weighed by who&rsquo;s speaking, and read by the people deciding what
-            to build next.
-          </p>
-        </div>
-      </section>
-
-      {/* Desire — where it goes */}
-      <section className="section s-white">
-        <div className="container" style={{ maxWidth: 760 }}>
-          <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
-            Where it goes
-          </div>
-          <h2 className="t-h2" style={{ marginBottom: 24 }}>
-            Your observation joins an open commons.
-          </h2>
-          <div className="cards two">
-            <div className="lcard" style={{ padding: 24 }}>
-              <h3 className="t-h4" style={{ marginBottom: 6 }}>
-                Open by default
-              </h3>
-              <p className="t-body text-meta" style={{ margin: 0 }}>
-                Everything built from these observations is open-source — free
-                for anyone to use, including you.
-              </p>
-            </div>
-            <div className="lcard" style={{ padding: 24 }}>
-              <h3 className="t-h4" style={{ marginBottom: 6 }}>
-                One of {goal.toLocaleString()}
-              </h3>
-              <p className="t-body text-meta" style={{ margin: 0 }}>
-                We&rsquo;re gathering {goal.toLocaleString()} field observations
-                to choose the problems this cycle takes on. Add yours.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Action — the closing ask */}
-      <section
-        className="s-cover grain on-dark"
-        style={{ padding: "72px 0", textAlign: "center" }}
-      >
-        <div className="container" style={{ maxWidth: 640 }}>
-          <h2 className="t-h2" style={{ marginBottom: 22 }}>
-            Tell us what you&rsquo;re seeing.
-          </h2>
-          <button
-            className="btn btn-red btn-lg landing-cta"
-            onClick={onBegin}
+      {/* Body — recomposed on the editorial "standards-manual" grid (ref: 1976
+          NASA Graphics Standards Manual), matching /about and /build-cycles:
+          each section's eyebrow owns column 1, the heading spans columns 2–5,
+          and content flows in the rows beneath, divided by heavy modernist
+          rules on the 8px baseline. */}
+      <div className="container" style={{ paddingTop: 88, paddingBottom: 72 }}>
+        <div className="ed-doc" style={{ rowGap: "clamp(80px, 9vw, 128px)" }}>
+          {/* Interest — why observations matter */}
+          <SurveySection
+            eyebrow="Why it matters"
+            heading="Observations from the people closest to a problem are where the best projects begin."
           >
-            Share your observation →
-          </button>
-          <p className="t-small" style={{ marginTop: 16 }}>
-            Voluntary and anonymous. Answer only what you want.
-          </p>
+            <EdRow>
+              <p className="t-lede ed-text">
+                The Upskilling Labs collects observations from workers,
+                researchers, community members, and the general public to
+                identify the problems worth tackling in each Build Cycle.
+              </p>
+            </EdRow>
+          </SurveySection>
+
+          {/* About the Labs */}
+          <SurveySection
+            eyebrow="About the Labs"
+            heading="What is The Upskilling Labs?"
+          >
+            <EdRow>
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 16 }}>
+                  Founded in January 2026, The Upskilling Labs is a free
+                  workforce development and community organization that helps
+                  professionals build not just AI literacy, but the skills and
+                  capacity to identify problems, lead initiatives, and drive
+                  real outcomes in the age of AI.
+                </p>
+                <p className="t-body ed-text" style={{ color: "var(--slate)" }}>
+                  Based in Washington, DC and partnered with DC Public Library,
+                  the Labs brings together workers, builders, and thinkers. The
+                  Labs is a fiscally sponsored project of Superbloom Design, a
+                  501(c)(3) nonprofit organization.
+                </p>
+              </div>
+            </EdRow>
+          </SurveySection>
+
+          {/* The Build Cycle — a real sequence, on the numbered-process pattern */}
+          <SurveySection
+            eyebrow="The Build Cycle"
+            heading="The flagship program is the quarterly Build Cycle."
+          >
+            <EdRow>
+              <p className="t-lede ed-text">
+                Each cycle centers on a different sector-based theme. Over three
+                months, Upskillers move through five stages — using and learning
+                emerging technologies like AI along the way.
+              </p>
+            </EdRow>
+            <EdRow>
+              <div className="ed-steps">
+                {BUILD_CYCLE_STEPS.map(([label, blurb], i) => (
+                  <div key={label}>
+                    <div className="ed-step-n">
+                      {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div className="ed-step-rule" />
+                    <div className="lbl" style={{ marginBottom: 6 }}>
+                      {label}
+                    </div>
+                    <p className="t-body" style={{ color: "var(--slate)" }}>
+                      {blurb}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </EdRow>
+          </SurveySection>
+
+          {/* Desire — where your insights go */}
+          <SurveySection eyebrow="Where it goes" heading="Where do my insights go?">
+            <EdRow>
+              <p className="t-lede ed-text">
+                Your insights help shape the very problems Upskillers choose to
+                explore in our upcoming {domain} Build Cycle. As they form their
+                problem frames, Upskillers draw on an insights repository —
+                contributed by subject-matter experts, practitioners in the
+                field, and members of the public.
+              </p>
+            </EdRow>
+            <Pull>Everything Upskillers produce is accessible and open-source.</Pull>
+          </SurveySection>
+
+          {/* Action — the closing ask */}
+          <SurveySection
+            eyebrow="Ready when you are"
+            heading="Tell us what you're seeing."
+          >
+            <EdRow>
+              <div>
+                <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
+                  One observation is enough to start. Add as many as you&rsquo;ve
+                  got — every one reaches the Upskillers building the next{" "}
+                  {domain} Build Cycle.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <button className="btn btn-red btn-lg" onClick={onBegin}>
+                    Share your observation →
+                  </button>
+                </div>
+                <p
+                  className="t-small"
+                  style={{ marginTop: 16, color: "var(--meta)" }}
+                >
+                  Submissions are voluntary and anonymous unless you choose to
+                  share your contact information.
+                </p>
+              </div>
+            </EdRow>
+          </SurveySection>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
@@ -357,19 +449,6 @@ function Done({
         <div className="vscroll pad" style={{ paddingTop: 8 }}>
           <div className="media" style={{ marginBottom: 24 }}>
             <span className="m-tag">Received ✓</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/assets/orb-mark.png"
-              alt=""
-              aria-hidden
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
           </div>
           <div className="lbl lbl-teal" style={{ marginBottom: 14 }}>
             Thank you
