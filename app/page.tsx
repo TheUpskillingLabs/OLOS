@@ -72,7 +72,7 @@ function SectionHead({
 const WHAT_YOU_LEARN: [string, string][] = [
   [
     "Durable skills",
-    "The human skills the future of work runs on—skills like communication, collaboration, storytelling, and problem framing.",
+    "The human skills the future of work runs on—skills like communication, storytelling, and framing problems well.",
   ],
   [
     "AI skills",
