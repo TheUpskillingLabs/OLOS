@@ -17,6 +17,15 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 9 | 2026-07-12 | Pages / admins | Adding page admins shouldn't happen from a page's "view" page — removed from the pod page for now; decide where page-admin management belongs. | 🆕 |
 | 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | 🆕 |
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🆕 |
+| 12 | 2026-07-12 | Profile / nav | Profile back link still lands in the Directory, not the page I came from. #229 fixed the owner `/profile` route (→ dashboard) but viewing your own profile via `/u/[handle]` still shows "Back to the Directory"; back should be referrer-aware. | 🆕 |
+| 13 | 2026-07-12 | Dashboard | New user's setup / to-do list showed **collapsed** on first login (prod) — a brand-new member should see it expanded. | 🆕 |
+| 14 | 2026-07-13 | Auth / login | Logging in with no account fails ungracefully — it should detect there's no account and direct you to create one. | 🆕 |
+| 15 | 2026-07-13 | Nav / auth | Clicking the profile/avatar in the top nav navigates straight to the profile instead of opening a menu — so there's no account menu (e.g. Log out) reachable from the main/home page without loading the profile first. | 🆕 |
+| 16 | 2026-07-13 | Cycle registration | No clear way to exit the cycle-registration ceremony — only "back" between steps. Need an explicit exit/close (e.g. to the dashboard) at any step. | 🆕 |
+| 17 | 2026-07-13 | Cycle page | Surface the cycle's theme/explanation copy (the new `cycle_config.theme_description`) on the cycle page, and show the volunteers/mentors/etc. specifically associated with that cycle (directory-style view). | 🆕 |
+| 18 | 2026-07-13 | Admin / test users | Need a way to mark users as **test users in prod**, and test users should be excluded from the directory (and other member-facing surfaces), not just Poderator rosters. | 🆕 |
+| 19 | 2026-07-13 | Data / labs | **Data loss:** 2 sign-ups for the Baltimore local lab were lost across the various DB migrations — recover them and prevent recurrence. (Related: 51 of 59 prod participants currently have no lab affiliation.) | 🆕 |
+| 20 | 2026-07-13 | Labs / waitlist | Need a way to **start** a waitlist for a city that has no lab yet — right now you can only *join* an existing lab's waitlist, not create a new one. | 🆕 |
 
 ## Details
 
@@ -106,6 +115,78 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Needs judgement:** When someone is in a city without a Local Lab and joins the waitlist, decide what else we should capture beyond the basics — e.g. specific city/metro, how many others they know who'd join, willingness to help start/lead a lab, sector interest, contact/notify preferences. The answers shape whether/when we stand up a new lab.
 
 **To figure out:** the intended data model + form for the no-lab / waitlist path (relates to the Local Labs model, `docs/LOCAL_LABS.md`, and the active-lab gate that currently holds lab-less members out of cycle registration). Define the fields, then wire the waitlist capture.
+
+### 12 — Profile back link isn't referrer-aware (2026-07-12)
+**Observed:** Viewing/editing my profile, the "back" still takes me to the Directory, not the dashboard (or page) I came from. #229 only fixed the owner `/profile` route.
+
+**Root cause:** `member-profile-view.tsx` has two fixed back bars — owner (`/profile`) → `/dashboard`, visitor (`/u/[handle]`) → `/directory`. Reaching your *own* profile via `/u/[handle]` (e.g. clicking your name in the Directory) renders the visitor bar, so it says "← Back to the Directory." The Edit page also returns to a fixed default (`app/(dashboard)/profile/edit/page.tsx` back helper → `/dashboard`).
+
+**Expected:** Back should return to wherever the user actually came from, regardless of which route rendered the profile — not a hardcoded `/directory` or `/dashboard`.
+
+**To investigate:** make the back target referrer/`?next=`-aware across the profile view (both routes) and edit; and detect "this is my own profile" on `/u/[handle]` so the owner affordances (and a sensible back) apply there too.
+
+### 13 — Setup/to-do list collapsed for a brand-new user (2026-07-12, prod)
+**Observed:** On first login as a new user in production, the setup / to-do checklist rendered **collapsed**. A first-time member (nothing completed yet) should land with it **expanded**.
+
+**Likely cause:** the collapse preference persists in `localStorage` (`olos.setupChecklistCollapsed.v1`, added in #228) which is **per-browser, not per-user**. A new account signed into a browser that previously collapsed — or completed — the checklist inherits the stored "collapsed" flag; the "completing setup cements the collapse" effect writes `"1"`, which then applies to the next user in that browser. `setup-checklist.tsx`: `collapsed = stored ?? allDone`.
+
+**Fix direction:** make collapse state per-user (key the storage entry by participant id, or persist server-side), and/or always start expanded for a brand-new member with no completed items regardless of a stale flag.
+
+### 14 — "Log in" with no account fails ungracefully (2026-07-13)
+**Observed:** Choosing "Log in" when you don't have an account yet fails without a helpful path forward — it should recognize there's no account and route you to create one.
+
+**Expected:** On a sign-in attempt for an email/identity with no participant account, degrade gracefully: a clear "no account yet — create one" message and a link/redirect into the sign-up / account-creation flow (rather than a dead-end error).
+
+**To investigate:** the sign-in path under `app/(auth)/` and `lib/auth/` — how a login with no matching account is handled and where to branch to account creation. Relates to the recent "login doors" work (join explainer vs. straight sign-in, account chooser, no-account notice) already on dev; check whether that covers this case or leaves a gap. See also #10 (login intro on return) in the same area.
+
+### 15 — Profile nav item has no account menu (Log out) (2026-07-13)
+**Observed:** From the home page, clicking your profile/avatar in the top nav goes **straight to the profile page** — it doesn't open a dropdown. To do account actions (e.g. **Log out**) you first have to load your profile and then click again. There's no way to log out from the main page.
+
+**Expected:** The profile/avatar in the nav opens an **account menu** (profile, settings, log out, …) on click, reachable from any page — including the home/public page — without navigating to the profile first.
+
+**To investigate:** the signed-in nav (`app/components/chrome/` — the public/app nav) — the avatar is currently a plain link to the profile; add a dropdown menu with the account actions (Log out at minimum). Confirm behavior on both the public home page and the dashboard chrome.
+
+### 16 — No way to exit cycle registration (2026-07-13)
+**Observed:** Inside the cycle-registration ceremony there's only "back" between steps — no clear way to leave/close the flow (e.g. bail to the dashboard) once you've started.
+
+**Expected:** A visible exit/close affordance at any step of the ceremony that drops you out (to the dashboard) without finishing registration.
+
+**To investigate:** the flow engine `FlowScreen` (`app/components/flow/flow-screen.tsx`) already takes an `onExit` prop (the cycle ceremony passes `() => router.push("/dashboard")`) — it just isn't surfaced as a visible control on every step. Add an always-available close/exit button (× or "Exit") wired to `onExit`. Same engine powers signup, so confirm the affordance is appropriate there too (or scope it to the cycle ceremony).
+
+### 17 — Show theme copy + associated people on the cycle page (2026-07-13)
+**Observed / wanted:** The cycle page should present the cycle's theme/explanation copy, and show the people specifically tied to that cycle.
+
+**Two parts:**
+1. **Theme/explanation on the cycle page** — surface the admin-authored `cycle_config.theme_description` (00084; the "What {cycle} means" copy) on `app/(dashboard)/cycles/[cycle_id]/page.tsx` (and/or the public cycle page `app/c/[cycle_id]`), reusing `cycleInfoContent` so it shares copy + fallback with the registration ceremony.
+2. **Cycle people (directory view)** — a directory-style panel of volunteers, mentors, organizers, etc. **associated with this cycle** (not the whole org). Needs a way to resolve who's tied to a cycle by role — cross-check `cycle_enrollments` + `role_intents` / `user_roles` / moderator assignments, scoped to the cycle. Confirm what "associated with the cycle" means for each role (enrolled participant vs. mentor/volunteer for that cohort) before building.
+
+### 18 — Mark test users in prod + hide them from member surfaces (2026-07-13)
+**Wanted:** An admin-controllable way to flag accounts as **test users on prod**, and have those accounts excluded from the directory and other member-facing views (so dogfooding/test accounts don't clutter the real member experience).
+
+**Existing groundwork:** `participants.is_test` already exists (migration `00041`) — but today it's only consulted for Poderator roster visibility + health math, **not** the directory. Two parts:
+1. **Admin toggle** — a way to set `is_test` in prod (admin UI, or at minimum a documented/service path), since there's no UI to flip it today.
+2. **Broaden the exclusion** — filter `is_test = true` out of the directory (`app/(dashboard)/directory/`) and any other member-facing lists (people-you-may-know, cycle people (#17), follows suggestions, etc.). Audit the queries and add the filter consistently.
+
+**Note:** decide whether test users are hidden from *everyone* or just non-admins (admins probably still need to see/manage them).
+
+### 19 — Lost Baltimore local-lab sign-ups in migrations (2026-07-13)
+**Observed:** Two people signed up for the **Baltimore** local lab; those sign-ups were **lost** somewhere across the various DB migrations.
+
+**Impact / context:** On prod today, **51 of 59** participants have `metro_id = NULL` (no lab affiliation) — so lab affiliation broadly got disrupted, not just Baltimore. Baltimore exists as a draft cycle ("Baltimore Fall 2026", cycle 11) but the two sign-ups aren't reflected.
+
+**To investigate:**
+- Where lab sign-ups / waitlist entries are stored (the no-lab / waitlist path — see #11) and how a migration could have dropped `metro_id` / waitlist rows. Check the metros-era + Local Labs migrations (00067 sub-cohort model) and any that touched `participants.metro_id`.
+- **Recover** the two Baltimore sign-ups (from a Supabase point-in-time backup / earlier dump if available) and, more broadly, reconcile the 51 unaffiliated participants.
+- Add a guardrail so lab affiliation isn't silently dropped by future migrations.
+
+**Update (2026-07-13):** Recovered from the `archive_jul12` prod snapshot — the lost signup was **Sharon Lanasa** (Baltimore; the 2nd was Statecraft/Atlanta, a test account, skipped). Sharon's participant row was restored and affiliated with Baltimore; a **Dallas** lab was added for Mannan Javid; the empty **Atlanta** lab was archived. Broader reconciliation of the ~51 unaffiliated + preventing future migration loss still open.
+
+### 20 — No way to *start* a waitlist for a new city (2026-07-13)
+**Observed:** You can only **join** the waitlist of a lab that already exists. There's no way for someone in a city with no lab to **start** a waitlist / register interest for a brand-new metro.
+
+**Expected:** A path for a prospective member (or organizer) to kick off a new city — create a waitlist entry for a metro that doesn't exist yet, so demand can accumulate before HQ stands up the lab. Ties into #11 (what to collect on the no-lab path) and #19/#18 (labs + admin tooling).
+
+**To investigate:** the `/local-labs` flow + `metro_waitlist_signups` / `metros` model — currently metros are admin-created and members pick from existing ones. Decide the UX (free-text city → pending metro, vs. a curated list) and the data model for a not-yet-real metro.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
