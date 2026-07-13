@@ -28,7 +28,7 @@ export default function JoinButton({
 
   if (!signedIn) {
     return (
-      <Link className="btn btn-red btn-block" href="/login">
+      <Link className="btn btn-red btn-block" href="/login?intent=join">
         Join the {metroName} waitlist
       </Link>
     );

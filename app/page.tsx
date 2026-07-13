@@ -156,7 +156,7 @@ export default async function LandingPage() {
                 </Link>
               ) : (
                 <>
-                  <Link className="btn btn-red btn-lg" href="/login">
+                  <Link className="btn btn-red btn-lg" href="/login?intent=join">
                     Join The Labs
                   </Link>
                   <Link className="btn btn-ghost btn-lg hero-login" href="/login">

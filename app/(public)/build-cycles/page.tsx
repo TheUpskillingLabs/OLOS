@@ -69,7 +69,7 @@ export default async function BuildCyclesPage() {
         standfirst="You’ll pick a problem that matters to you, team up, and see it through — with mentors and a whole community behind you."
       >
         <div className="ed-cols">
-          <Link className="btn btn-red btn-lg" href="/login">
+          <Link className="btn btn-red btn-lg" href="/login?intent=join">
             Register for this cycle
           </Link>
         </div>
@@ -150,7 +150,7 @@ export default async function BuildCyclesPage() {
                     alignItems: "center",
                   }}
                 >
-                  <Link className="btn btn-red btn-lg" href="/login">
+                  <Link className="btn btn-red btn-lg" href="/login?intent=join">
                     Register for this cycle
                   </Link>
                   <Link className="see" href="/events/kickoff-summit">
