@@ -349,19 +349,6 @@ function Done({
         <div className="vscroll pad" style={{ paddingTop: 8 }}>
           <div className="media" style={{ marginBottom: 24 }}>
             <span className="m-tag">Received ✓</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/assets/orb-mark.png"
-              alt=""
-              aria-hidden
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
           </div>
           <div className="lbl lbl-teal" style={{ marginBottom: 14 }}>
             Thank you
