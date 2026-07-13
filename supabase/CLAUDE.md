@@ -76,6 +76,7 @@ Fresh installs use the baseline; deployed environments are unaffected (they've a
 | Original | Renamed to | Date | Reason |
 |---|---|---|---|
 | `00015_pod_memberships_preference_rank.sql` | `00028_pod_memberships_preference_rank.sql` | 2026-06-02 | Filename collided with `00015_grant_role_privileges.sql`. `supabase_migrations.schema_migrations.version` is a PK, so `supabase db push --include-all` couldn't insert both. The preference-rank DDL was already applied to dev; renumbering the disk file plus a one-row repair on the remote brought tracking back in sync. See the renamed file's header for the repair SQL pointer. |
+| `00068_service_role_admin_paths.sql` | `00085_service_role_admin_paths.sql` | 2026-07-13 | Filename collided with `00068_pods_local.sql` (two branches both grabbed `00068`, both merged to dev → `check:migrations` red). File-rename only: both were already applied to the DBs out-of-band under unrelated `schema_migrations` versions (`00059` / a timestamp), not `00068`, and nothing in CI/deploy runs `supabase db push` — so no remote history repair was needed. |
 
 Going forward: **never reuse a migration number.** Before writing a new file, `ls supabase/migrations/ | tail -1` to confirm the next free number.
 
