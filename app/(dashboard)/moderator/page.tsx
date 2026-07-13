@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { parseWindow } from "@/lib/cycles/lab-time";
 import { Users } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -398,8 +399,9 @@ function formatPhaseSuffix(
 ): string | null {
   if (!closeAt) return null;
   const now = Date.now();
-  const close = new Date(closeAt).getTime();
-  const open = openAt ? new Date(openAt).getTime() : null;
+  // Window strings are naive-UTC instants (lib/cycles/lab-time.ts).
+  const close = (parseWindow(closeAt) as Date).getTime();
+  const open = openAt ? (parseWindow(openAt) as Date).getTime() : null;
   const dayMs = 86_400_000;
 
   if (open !== null && now < open) {

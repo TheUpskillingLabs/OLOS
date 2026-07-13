@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -31,8 +32,9 @@ export default async function SolutionsPage({
   if (!cycle) notFound();
 
   const now = new Date();
-  const openAt = config?.solution_proposal_open ? new Date(config.solution_proposal_open) : null;
-  const closeAt = config?.solution_proposal_close ? new Date(config.solution_proposal_close) : null;
+  // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
+  const openAt = parseWindow(config?.solution_proposal_open);
+  const closeAt = parseWindow(config?.solution_proposal_close);
 
   const tabVisibleFrom = openAt ? new Date(openAt.getTime() - DAY_MS) : null;
   const tabVisibleUntil = closeAt ? new Date(closeAt.getTime() + DAY_MS) : null;
@@ -112,12 +114,7 @@ export default async function SolutionsPage({
           {openAt && now < openAt && (
             <p className="mt-2 text-sm text-meta tabular-nums">
               Opens{" "}
-              {openAt.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
+              {fmtLabDateTime(config?.solution_proposal_open)}
             </p>
           )}
         </div>
@@ -143,12 +140,7 @@ export default async function SolutionsPage({
               <strong className="font-semibold">Heads up:</strong>{" "}if you don&apos;t
               submit a project by{" "}
               <span className="tabular-nums">
-                {closeAt.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+                {fmtLabDateTime(config?.solution_proposal_close)}
               </span>
               , you won&apos;t be eligible to vote in the next phase.
             </div>

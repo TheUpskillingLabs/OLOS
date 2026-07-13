@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { parseWindow } from "@/lib/cycles/lab-time";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getResendClient, FROM_EMAIL } from "@/lib/email";
 import {
@@ -135,9 +136,12 @@ export async function GET(request: NextRequest) {
       );
       continue;
     }
+    // parseWindow: naive column read explicitly as a UTC instant
+    // (lib/cycles/lab-time.ts) — server-tz-independent.
     const podRegistrationClosed =
       config.pod_registration_close !== null &&
-      new Date(config.pod_registration_close).getTime() < now.getTime();
+      (parseWindow(config.pod_registration_close) as Date).getTime() <
+        now.getTime();
     const missThreshold = config.at_risk_consecutive_misses ?? 2;
 
     // Active enrollments in this cycle, with the participant's identity,

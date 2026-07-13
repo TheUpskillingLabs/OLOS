@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { parseWindow } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
@@ -57,9 +58,10 @@ export default async function ModeratorVoteProgressPage({
     .eq("cycle_id", cycleId)
     .single();
 
+  // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
   const now = new Date();
-  const openAt = config?.solution_voting_open ? new Date(config.solution_voting_open) : null;
-  const closeAt = config?.solution_voting_close ? new Date(config.solution_voting_close) : null;
+  const openAt = parseWindow(config?.solution_voting_open);
+  const closeAt = parseWindow(config?.solution_voting_close);
   const isOpen = openAt !== null && closeAt !== null && now >= openAt && now <= closeAt;
 
   // Scope: admins see every pod; moderators see only their assigned pods.
