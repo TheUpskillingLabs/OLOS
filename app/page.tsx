@@ -181,10 +181,10 @@ export default async function LandingPage() {
             </h1>
             <div className="hero-cta">
               <p className="t-lede" style={{ marginBottom: 24, maxWidth: "54ch" }}>
-                Nobody gets good at the hard stuff alone. So we help you find
-                your crew — a handful of people near you who meet up for a few
-                months, build something real, and keep each other going. Sign in
-                with Google to jump in.
+                AI is rewriting how we work, and it&rsquo;s easier to learn
+                together than alone. So we help you find people near you to learn
+                with, build something real with AI, and grow more confident
+                together. Sign in with Google to jump in.
               </p>
               {signedIn ? (
                 <Link className="btn btn-teal btn-lg" href="/dashboard">
