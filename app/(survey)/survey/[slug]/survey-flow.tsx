@@ -198,14 +198,15 @@ function Landing({
               The Upskilling Labs
             </div>
             <h1 className="t-display" style={{ marginBottom: 8 }}>
-              The Field Survey
+              Field Survey
             </h1>
             <div
               className="t-h2"
-              style={{ marginBottom: 22, color: "var(--teal)" }}
+              style={{ marginBottom: 20, color: "var(--teal)" }}
             >
               {domain} Edition
             </div>
+            <div className="landing-rule" aria-hidden />
             <p className="t-lede" style={{ marginBottom: 4, maxWidth: "42ch" }}>
               {about ??
                 `You see what the data misses. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing, and a team at The Upskilling Labs builds from it in the next ${domain} Build Cycle.`}

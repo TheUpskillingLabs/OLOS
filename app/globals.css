@@ -466,6 +466,21 @@ dialog::backdrop {
   .landing-cta { width: 100%; }
   .goal-bar { width: 100%; max-width: 440px; height: 8px; border-radius: var(--r); background: rgba(255, 255, 255, 0.14); overflow: hidden; margin-top: 14px; }
   .goal-fill { height: 100%; border-radius: inherit; background: var(--teal); transition: width 0.4s cubic-bezier(0.2, 0.7, 0.1, 1); }
+  /* Editorial nameplate rule under the masthead — a hairline that fades out,
+     separating the "Field Survey · Edition" title block from the pitch. */
+  .landing-rule { height: 1px; max-width: 520px; margin: 4px 0 24px; background: linear-gradient(90deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0)); }
+  /* Staggered entrance — each masthead element rises in on load, in the app's
+     existing viewIn idiom. The global prefers-reduced-motion block neutralizes
+     it. Scoped to the hero so the closing Action column isn't affected. */
+  .landing-hero .landing-col > * { animation: heroRise 0.55s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
+  .landing-hero .landing-col > *:nth-child(1) { animation-delay: 0.04s; }
+  .landing-hero .landing-col > *:nth-child(2) { animation-delay: 0.10s; }
+  .landing-hero .landing-col > *:nth-child(3) { animation-delay: 0.16s; }
+  .landing-hero .landing-col > *:nth-child(4) { animation-delay: 0.20s; }
+  .landing-hero .landing-col > *:nth-child(5) { animation-delay: 0.26s; }
+  .landing-hero .landing-col > *:nth-child(6) { animation-delay: 0.34s; }
+  .landing-hero .landing-col > *:nth-child(7) { animation-delay: 0.42s; }
+  .landing-hero .landing-col > *:nth-child(8) { animation-delay: 0.48s; }
   @media (min-width: 640px) { .landing-cta { width: auto; } }
   @media (min-width: 1024px) { .landing-hero-inner { padding-top: 100px; padding-bottom: 112px; } }
 
@@ -528,6 +543,10 @@ button:focus-visible {
 
 @keyframes viewIn {
   from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes heroRise {
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
 @keyframes gateFade {
