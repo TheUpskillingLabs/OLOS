@@ -106,7 +106,7 @@ function cycleSteps(
           list: coreDates,
         },
         {
-          title: "I’ll check in every week.",
+          title: "I’ll fill out my learning log every week.",
           body: "Five minutes, once a week. If I skip it, the app pauses until I catch up. If life gets in the way, I’ll tell my Poderator instead of going quiet.",
         },
         {
