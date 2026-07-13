@@ -1,7 +1,6 @@
 import Link from "next/link";
 import PublicNav from "@/app/components/chrome/public-nav";
 import HeroFade from "@/app/components/chrome/hero-fade";
-import { Hammer, BadgeCheck, Users, type LucideIcon } from "lucide-react";
 import { OsFooter } from "@/app/components/chrome/site-footers";
 import HomeSpotlights from "@/app/components/content/home-spotlights";
 import {
@@ -102,19 +101,16 @@ const OUR_STORY: [string, string][] = [
 
 // What a participant walks away with — the benefit of a Build Cycle, not the
 // process. The three-month arc (the "how") now lives on /build-cycles.
-const CYCLE_BENEFITS: { icon: LucideIcon; title: string; body: string }[] = [
+const CYCLE_BENEFITS: { title: string; body: string }[] = [
   {
-    icon: Hammer,
     title: "Something real you built",
     body: "A working prototype your pod actually shipped — a tool, workflow, or template, not just notes.",
   },
   {
-    icon: BadgeCheck,
     title: "Proof on your profile",
     body: "It ships in the open and lands on your profile, so your work is easy to point to.",
   },
   {
-    icon: Users,
     title: "People who’ve seen your work",
     body: "A pod of peers and mentors near you who’ve watched what you can do.",
   },
@@ -246,30 +242,10 @@ export default async function LandingPage() {
               How a cycle works →
             </Link>
           </div>
-          {/* Two columns — the three benefits stacked on the left, the current
-              cycle card on the right (stacks on mobile). */}
+          {/* Two columns — the current cycle card on the left, the three benefits
+              stacked on the right. Stacks on mobile with the card on top. */}
           <div className="cycle-split">
-            {/* Left — what you walk away with */}
-            <div>
-              <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
-                What you walk away with
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-                {CYCLE_BENEFITS.map(({ icon: Icon, title, body }) => (
-                  <div key={title}>
-                    <Icon aria-hidden size={24} style={{ color: "var(--teal-deep)", marginBottom: 10 }} />
-                    <h3 className="t-h3" style={{ marginBottom: 6 }}>
-                      {title}
-                    </h3>
-                    <p className="t-body" style={{ maxWidth: "44ch" }}>
-                      {body}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right — the current cycle card */}
+            {/* Left — the current cycle card */}
             <div>
               {recruitingCycle ? (
                 <div className="cycle-banner s-cover grain on-dark">
@@ -322,6 +298,25 @@ export default async function LandingPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Right — what you walk away with */}
+            <div>
+              <div className="lbl lbl-teal" style={{ marginBottom: 20 }}>
+                What you walk away with
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                {CYCLE_BENEFITS.map(({ title, body }) => (
+                  <div key={title}>
+                    <h3 className="t-h3" style={{ marginBottom: 6 }}>
+                      {title}
+                    </h3>
+                    <p className="t-body" style={{ maxWidth: "44ch" }}>
+                      {body}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
