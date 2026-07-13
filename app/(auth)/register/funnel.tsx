@@ -110,7 +110,7 @@ function signupSteps(email: string): FlowStep[] {
       id: "hearAbout",
       type: "choice",
       q: "How did you hear about The Labs?",
-      help: "Everyone registers through the same path — this helps us thank the people and places that send folks our way.",
+      help: "Help us thank the people and places that send folks our way.",
       options: [
         { v: "referral", label: "A friend or colleague referred me" },
         {
