@@ -459,9 +459,18 @@ dialog::backdrop {
   .survey-join { border: 1px solid var(--tint-edge); background: var(--tint); border-radius: var(--r); padding: 20px; }
 
   /* ── field-survey landing (full-width AIDA entry) ── */
-  .landing-hero { position: relative; overflow: hidden; isolation: isolate; }
-  .landing-hero-inner { position: relative; z-index: 1; padding-top: 64px; padding-bottom: 76px; }
-  .landing-col { max-width: 720px; }
+  /* The hero is a full-viewport band (like the home hero's .hero-band): 100svh,
+     content vertically centered. On desktop it splits into a balanced two-column
+     grid — the oversized masthead left, the supporting pitch + live counter +
+     CTA right — so the tall title and the pitch sit SIDE BY SIDE (height =
+     max(cols), which fits 100vh) instead of stacking past the fold. */
+  .landing-hero { position: relative; overflow: hidden; isolation: isolate; min-height: 100svh; display: flex; align-items: center; }
+  .landing-hero-inner { position: relative; z-index: 1; width: 100%; min-width: 0; padding-top: 72px; padding-bottom: 72px; display: flex; flex-direction: column; gap: 36px; }
+  .landing-col { max-width: 720px; } /* still used by the closing Action section */
+  /* min-width:0 lets the two zones (and their text) shrink below content
+     max-content instead of blowing their track/column past the viewport. */
+  .landing-masthead, .landing-support { min-width: 0; }
+  .landing-support { max-width: 560px; }
   /* Oversized editorial masthead — the survey name stacked into a tight, fluid
      display lockup that scales with the viewport (roughly 2x .t-display on wide
      screens). Two words on their own lines so it can grow without overflowing. */
@@ -472,22 +481,27 @@ dialog::backdrop {
   .goal-bar { width: 100%; max-width: 440px; height: 8px; border-radius: var(--r); background: rgba(255, 255, 255, 0.14); overflow: hidden; margin-top: 14px; }
   .goal-fill { height: 100%; border-radius: inherit; background: var(--teal); transition: width 0.4s cubic-bezier(0.2, 0.7, 0.1, 1); }
   /* Editorial nameplate rule under the masthead — a hairline that fades out,
-     separating the "Field Survey · Edition" title block from the pitch. */
-  .landing-rule { height: 1px; max-width: 520px; margin: 4px 0 24px; background: linear-gradient(90deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0)); }
-  /* Staggered entrance — each masthead element rises in on load, in the app's
-     existing viewIn idiom. The global prefers-reduced-motion block neutralizes
-     it. Scoped to the hero so the closing Action column isn't affected. */
-  .landing-hero .landing-col > * { animation: heroRise 0.55s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
-  .landing-hero .landing-col > *:nth-child(1) { animation-delay: 0.04s; }
-  .landing-hero .landing-col > *:nth-child(2) { animation-delay: 0.10s; }
-  .landing-hero .landing-col > *:nth-child(3) { animation-delay: 0.16s; }
-  .landing-hero .landing-col > *:nth-child(4) { animation-delay: 0.20s; }
-  .landing-hero .landing-col > *:nth-child(5) { animation-delay: 0.26s; }
-  .landing-hero .landing-col > *:nth-child(6) { animation-delay: 0.34s; }
-  .landing-hero .landing-col > *:nth-child(7) { animation-delay: 0.42s; }
-  .landing-hero .landing-col > *:nth-child(8) { animation-delay: 0.48s; }
+     closing the "Field Survey · Edition" title block. */
+  .landing-rule { height: 1px; max-width: 520px; margin: 8px 0 0; background: linear-gradient(90deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0)); }
+  /* Staggered entrance — each element rises in on load, in the app's existing
+     viewIn idiom (global prefers-reduced-motion neutralizes it). The masthead
+     leads, the support column trails a beat. Scoped to .landing-hero so the
+     closing Action column isn't affected. */
+  .landing-hero .landing-masthead > *, .landing-hero .landing-support > * { animation: heroRise 0.55s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
+  .landing-hero .landing-masthead > *:nth-child(1) { animation-delay: 0.04s; }
+  .landing-hero .landing-masthead > *:nth-child(2) { animation-delay: 0.10s; }
+  .landing-hero .landing-masthead > *:nth-child(3) { animation-delay: 0.16s; }
+  .landing-hero .landing-masthead > *:nth-child(4) { animation-delay: 0.22s; }
+  .landing-hero .landing-support > *:nth-child(1) { animation-delay: 0.16s; }
+  .landing-hero .landing-support > *:nth-child(2) { animation-delay: 0.22s; }
+  .landing-hero .landing-support > *:nth-child(3) { animation-delay: 0.28s; }
+  .landing-hero .landing-support > *:nth-child(4) { animation-delay: 0.34s; }
   @media (min-width: 640px) { .landing-cta { width: auto; } }
-  @media (min-width: 1024px) { .landing-hero-inner { padding-top: 100px; padding-bottom: 112px; } }
+  @media (min-width: 1024px) {
+    .landing-hero-inner { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--pad); align-items: center; padding-top: 64px; padding-bottom: 64px; }
+    .landing-masthead { grid-column: 1 / 8; }
+    .landing-support { grid-column: 8 / -1; max-width: none; }
+  }
 
   /* ── google ── */
   .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; border-radius: var(--r); background: var(--ink); color: #fff; font-weight: 600; font-size: 15px; border: none; cursor: pointer; width: 100%; }

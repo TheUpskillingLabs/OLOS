@@ -193,7 +193,7 @@ function Landing({
       {/* Attention — full-bleed hero */}
       <section className="s-cover grain on-dark landing-hero">
         <div className="container landing-hero-inner">
-          <div className="landing-col">
+          <div className="landing-masthead">
             <div className="lbl" style={{ marginBottom: 18 }}>
               The Upskilling Labs
             </div>
@@ -201,13 +201,12 @@ function Landing({
               <span>Field</span>
               <span>Survey</span>
             </h1>
-            <div
-              className="t-h2"
-              style={{ marginBottom: 20, color: "var(--teal)" }}
-            >
+            <div className="t-h2" style={{ color: "var(--teal)" }}>
               {domain} Edition
             </div>
             <div className="landing-rule" aria-hidden />
+          </div>
+          <div className="landing-support">
             <p className="t-lede" style={{ marginBottom: 4, maxWidth: "42ch" }}>
               {about ??
                 `You see what the data misses. You know what keeps breaking, what's stuck, what nobody has fixed. Tell us what you're seeing, and a team at The Upskilling Labs builds from it in the next ${domain} Build Cycle.`}
