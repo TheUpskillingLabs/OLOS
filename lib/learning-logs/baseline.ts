@@ -76,7 +76,7 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
 export const SCALE_ANCHORS: { value: number; label: string }[] = [
   { value: 1, label: "Strongly disagree" },
   { value: 2, label: "Disagree" },
-  { value: 3, label: "Neutral" },
+  { value: 3, label: "Neither agree nor disagree" },
   { value: 4, label: "Agree" },
   { value: 5, label: "Strongly agree" },
 ];

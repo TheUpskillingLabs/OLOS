@@ -102,7 +102,7 @@ export const POST = withAuth(
         return NextResponse.json(
           {
             error:
-              "cycle_id must be an open cycle you're enrolled in with no baseline filed yet",
+              "We couldn't match your Cycle onboarding Learning Log to a cycle you're registered for. Refresh the page and try again.",
           },
           { status: 400 }
         );
@@ -133,7 +133,7 @@ export const POST = withAuth(
           return NextResponse.json(
             {
               error:
-                "cycle_id must be one of your active enrollments in an active cycle",
+                "That log couldn't be matched to an active cycle you're enrolled in. Refresh the page and try again.",
             },
             { status: 400 }
           );
@@ -242,7 +242,10 @@ export const POST = withAuth(
         // conflict rather than a 500.
         if ((baselineError as { code?: string }).code === "23505") {
           return NextResponse.json(
-            { error: "You've already completed the baseline for this cycle." },
+            {
+              error:
+                "You've already completed your Cycle onboarding Learning Log for this cycle — refresh to see your weekly log.",
+            },
             { status: 409 }
           );
         }

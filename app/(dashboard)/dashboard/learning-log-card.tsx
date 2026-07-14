@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BaselineSection, {
   DEFAULT_BASELINE_ANSWERS,
-  isBaselineComplete,
+  missingBaselineKeys,
   type BaselineConfig,
 } from "./baseline-section";
 import type { BaselineAnswers } from "@/lib/learning-logs/baseline";
@@ -158,6 +158,11 @@ export default function LearningLogCard({
   const [baselineAnswers, setBaselineAnswers] = useState<BaselineAnswers>(
     DEFAULT_BASELINE_ANSWERS
   );
+  // Form-wide "you tried to save with these unanswered" set. Today only the
+  // onboarding picks can be missing (weekly fields default or are optional);
+  // the standard questions plug into the same mechanism when they grow
+  // required states.
+  const [missingFields, setMissingFields] = useState<Set<string>>(new Set());
   const [recent, setRecent] = useState<RecentLog[]>([]);
   const [count, setCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
@@ -256,6 +261,17 @@ export default function LearningLogCard({
         ];
 
   async function save() {
+    // Required-answer check before anything ships: an incomplete form doesn't
+    // submit — it flags exactly which questions still need an answer.
+    const missing = baseline ? missingBaselineKeys(baselineAnswers) : [];
+    if (missing.length > 0) {
+      setMissingFields(new Set(missing));
+      setError(
+        "A few questions still need an answer — they’re highlighted above."
+      );
+      return;
+    }
+    setMissingFields(new Set());
     setBusy(true);
     setError(null);
     try {
@@ -349,7 +365,7 @@ export default function LearningLogCard({
           <div>
             <p className="lbl">
               {baseline
-                ? "Baseline"
+                ? "Onboarding"
                 : journal
                   ? "Journal"
                   : activeMilestone
@@ -358,7 +374,7 @@ export default function LearningLogCard({
             </p>
             <h2 className="t-h3 text-ink">
               {baseline
-                ? "Cycle onboarding"
+                ? "Cycle onboarding Learning Log"
                 : activeMilestone
                   ? activeMilestone.label
                   : "Learning Log"}
@@ -430,6 +446,15 @@ export default function LearningLogCard({
           aiUsageOptions={baseline.aiUsageOptions}
           value={baselineAnswers}
           onChange={setBaselineAnswers}
+          // Only keys still unanswered stay flagged — answering one clears its
+          // highlight live, without waiting for the next save attempt.
+          missingKeys={
+            new Set(
+              missingBaselineKeys(baselineAnswers).filter((k) =>
+                missingFields.has(k)
+              )
+            )
+          }
         />
       )}
 
@@ -568,16 +593,10 @@ export default function LearningLogCard({
       <button
         type="button"
         onClick={save}
-        disabled={busy || (!!baseline && !isBaselineComplete(baselineAnswers))}
+        disabled={busy}
         className="btn btn-teal mt-5"
       >
-        {busy
-          ? "Saving…"
-          : baseline
-            ? "Save baseline"
-            : activeMilestone
-              ? "Save review"
-              : "Save log"}
+        {busy ? "Saving…" : activeMilestone ? "Save review" : "Save log"}
       </button>
 
       {/* Your record — every past entry, readable in place (review, don't

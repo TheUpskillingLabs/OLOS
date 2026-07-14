@@ -43,18 +43,23 @@ export const DEFAULT_BASELINE_ANSWERS: BaselineAnswers = {
 
 const PICKED = (n: number) => n >= 1 && n <= 5;
 
-/** A baseline is complete once every pick — the AI-usage frequency and all
-    five scales — holds a deliberate 1–5 choice. Only the two free responses
-    are optional. */
-export function isBaselineComplete(v: BaselineAnswers): boolean {
-  return (
-    PICKED(v.ai_usage_frequency) &&
-    PICKED(v.autonomy) &&
-    PICKED(v.skills_readiness) &&
-    PICKED(v.learning_confidence) &&
-    PICKED(v.judgment_confidence) &&
-    PICKED(v.peer_investment)
-  );
+const REQUIRED_PICKS: (keyof BaselineAnswers)[] = [
+  "ai_usage_frequency",
+  "autonomy",
+  "skills_readiness",
+  "learning_confidence",
+  "judgment_confidence",
+  "peer_investment",
+];
+
+/** The required picks — the AI-usage choice and all five scales — that don't
+    yet hold a deliberate 1–5 answer. Empty means the form can save; the card
+    uses the non-empty case to highlight exactly what's missing (only the two
+    free responses are optional). */
+export function missingBaselineKeys(
+  v: BaselineAnswers
+): (keyof BaselineAnswers)[] {
+  return REQUIRED_PICKS.filter((k) => !PICKED(Number(v[k])));
 }
 
 const SCALE = [1, 2, 3, 4, 5];
@@ -64,17 +69,28 @@ const SCALE = [1, 2, 3, 4, 5];
 // its row carries just the prompt, no per-row low/high labels.
 function BaselineScaleRow({
   label,
+  missing,
   value,
   onChange,
 }: {
   label: string;
+  missing?: boolean;
   value: number;
   onChange: (v: number) => void;
 }) {
   return (
     <div>
       <span className="text-sm font-semibold text-ink">{label}</span>
-      <div className="mt-2 flex gap-2" role="radiogroup" aria-label={label}>
+      {missing && (
+        <p className="mt-0.5 text-sm font-semibold text-red">Choose an answer</p>
+      )}
+      <div
+        className={`mt-2 flex gap-2 ${
+          missing ? "rounded-card ring-1 ring-red ring-offset-2" : ""
+        }`}
+        role="radiogroup"
+        aria-label={label}
+      >
         {SCALE.map((n) => (
           <button
             key={n}
@@ -101,11 +117,14 @@ export default function BaselineSection({
   aiUsageOptions,
   value,
   onChange,
+  missingKeys,
 }: {
   questions: BaselineQuestion[];
   aiUsageOptions: { value: number; label: string }[];
   value: BaselineAnswers;
   onChange: (v: BaselineAnswers) => void;
+  /** Required picks the member tried to save without — flagged in red. */
+  missingKeys?: Set<string>;
 }) {
   function update<K extends keyof BaselineAnswers>(
     key: K,
@@ -120,7 +139,7 @@ export default function BaselineSection({
 
   return (
     <div className="mt-5 space-y-6 rounded-card border border-teal/20 bg-teal/[0.04] p-4">
-      <h3 className="t-h4 text-ink">Cycle onboarding</h3>
+      <h3 className="t-h4 text-ink">Cycle onboarding Learning Log</h3>
 
       {/* AI-usage frequency — the one required pick, as a radio-pill group. */}
       {choiceQuestion && (
@@ -128,8 +147,17 @@ export default function BaselineSection({
           <span className="text-sm font-semibold text-ink">
             {choiceQuestion.prompt}
           </span>
+          {missingKeys?.has("ai_usage_frequency") && (
+            <p className="mt-0.5 text-sm font-semibold text-red">
+              Choose an answer
+            </p>
+          )}
           <div
-            className="mt-2 flex flex-wrap gap-2"
+            className={`mt-2 flex flex-wrap gap-2 ${
+              missingKeys?.has("ai_usage_frequency")
+                ? "rounded-card ring-1 ring-red ring-offset-2"
+                : ""
+            }`}
             role="radiogroup"
             aria-label={choiceQuestion.prompt}
           >
@@ -184,7 +212,7 @@ export default function BaselineSection({
           </p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-charcoal">
             <li>1 = Strongly disagree</li>
-            <li>3 = Neutral</li>
+            <li>3 = Neither agree nor disagree</li>
             <li>5 = Strongly agree</li>
           </ul>
         </div>
@@ -192,6 +220,7 @@ export default function BaselineSection({
           <BaselineScaleRow
             key={q.key}
             label={q.prompt}
+            missing={missingKeys?.has(q.key)}
             value={Number(value[q.key])}
             onChange={(v) => update(q.key, v)}
           />

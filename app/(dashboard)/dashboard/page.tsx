@@ -555,7 +555,7 @@ export default async function DashboardPage() {
       ? [
           {
             key: "baseline",
-            label: "Complete your Baseline Learning Log",
+            label: "Complete your Cycle onboarding Learning Log",
             done: false,
             href: "#learning-log",
             cta: "Log",
