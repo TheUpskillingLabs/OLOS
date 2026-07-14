@@ -12,7 +12,6 @@ import {
   CycleRegInfoForm,
 } from "./cycle-config-form";
 import CycleLogGateForm from "./cycle-log-gate-form";
-import CycleWeeklyMessagesForm from "./cycle-weekly-messages-form";
 import CycleLeadershipLogGateForm from "./cycle-leadership-log-gate-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
@@ -59,24 +58,18 @@ export default async function AdminCycleDetailPage({
 
   const cycleId = parseInt(cycle_id);
 
-  const [{ data: cycle }, { data: config }, { data: weeklyMessages }] =
-    await Promise.all([
-      serviceClient
-        .from("cycles")
-        .select("id, name, start_date, end_date, status, mode, lab_id, metros(name)")
-        .eq("id", cycleId)
-        .single(),
-      serviceClient
-        .from("cycle_config")
-        .select("*")
-        .eq("cycle_id", cycleId)
-        .single(),
-      serviceClient
-        .from("cycle_weekly_messages")
-        .select("week, message")
-        .eq("cycle_id", cycleId)
-        .order("week", { ascending: true }),
-    ]);
+  const [{ data: cycle }, { data: config }] = await Promise.all([
+    serviceClient
+      .from("cycles")
+      .select("id, name, start_date, end_date, status, mode, lab_id, metros(name)")
+      .eq("id", cycleId)
+      .single(),
+    serviceClient
+      .from("cycle_config")
+      .select("*")
+      .eq("cycle_id", cycleId)
+      .single(),
+  ]);
 
   if (!cycle) notFound();
 
@@ -351,20 +344,6 @@ export default async function AdminCycleDetailPage({
               Theme copy shown during cycle registration.
             </p>
             <CycleRegInfoForm cycleId={cycle.id} config={config} />
-          </section>
-          <hr className="border-ink/10" />
-          <section>
-            <h2 className="mb-1 t-h3 text-ink">
-              Weekly &ldquo;What&apos;s next&rdquo; messages
-            </h2>
-            <p className="mb-4 text-sm text-meta">
-              Shown to participants after they save that week&apos;s Learning
-              Log.
-            </p>
-            <CycleWeeklyMessagesForm
-              cycleId={cycle.id}
-              messages={weeklyMessages ?? []}
-            />
           </section>
           <hr className="border-ink/10" />
           <section>

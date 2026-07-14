@@ -1000,10 +1000,11 @@ export default async function DashboardPage() {
       })
     : [];
 
-  // The per-week "What's next" nudge (cycle_weekly_messages) — surfaced only
-  // once the member has actually logged this cycle week, and only for a live
-  // open cycle inside its wk0→wk12 calendar. Both reads stay behind the guard
-  // so non-active states pay nothing. Mirrors the POST route's selection.
+  // The per-week "What's next" nudge (weekly_messages — program-global, the
+  // cycle only supplies which week it is) — surfaced only once the member has
+  // actually logged this cycle week, and only for a live open cycle inside
+  // its wk0→wk12 calendar. Both reads stay behind the guard so non-active
+  // states pay nothing. Mirrors the POST route's selection.
   let whatsNext: { cycleId: number; week: number; message: string } | null =
     null;
   if (
@@ -1019,9 +1020,8 @@ export default async function DashboardPage() {
     if (week >= 0 && week <= 12) {
       const [{ data: weekMsg }, { count: weekLogCount }] = await Promise.all([
         serviceClient
-          .from("cycle_weekly_messages")
+          .from("weekly_messages")
           .select("message")
-          .eq("cycle_id", activeCycle.id)
           .eq("week", week)
           .maybeSingle(),
         serviceClient

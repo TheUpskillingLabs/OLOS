@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-/* Per-week "What's next" copy for a cycle (cycle_weekly_messages). Thirteen
-   textareas — one per wk0→wk12 marker — saved together in one PUT; an empty
-   box clears that week's row server-side. Mirrors CycleRegInfoForm's
-   saved/serverError structure. */
+/* Program-global per-week "What's next" copy (weekly_messages). Thirteen
+   textareas — one per wk0→wk12 marker, shared by every open cycle — saved
+   together in one PUT; an empty box clears that week's row server-side.
+   Mirrors CycleRegInfoForm's saved/serverError structure. */
 
 const WEEK_LABELS = Array.from({ length: 13 }, (_, w) =>
   w === 0 ? "Week 0 (Kickoff)" : w === 12 ? "Week 12 (Showcase)" : `Week ${w}`
@@ -16,11 +16,9 @@ type WeeklyMessagesFormData = Record<string, string>;
 
 const fieldName = (week: number) => `week_${week}`;
 
-export default function CycleWeeklyMessagesForm({
-  cycleId,
+export default function WeeklyMessagesForm({
   messages,
 }: {
-  cycleId: number;
   messages: { week: number; message: string }[];
 }) {
   const [saved, setSaved] = useState(false);
@@ -42,7 +40,7 @@ export default function CycleWeeklyMessagesForm({
     setSaved(false);
     setServerError(null);
 
-    const res = await fetch(`/api/cycles/${cycleId}/weekly-messages`, {
+    const res = await fetch(`/api/admin/weekly-messages`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

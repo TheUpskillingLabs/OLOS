@@ -24,18 +24,24 @@ describe("baselineSchema", () => {
     expect(baselineSchema.safeParse(validBaseline).success).toBe(true);
   });
 
-  it("accepts null/omitted free-text fields", () => {
+  it("rejects null, omitted, or blank free-text fields (required)", () => {
     const { work_shift_outlook, role_change_outlook, ...rest } = validBaseline;
     void work_shift_outlook;
     void role_change_outlook;
-    expect(baselineSchema.safeParse(rest).success).toBe(true);
+    expect(baselineSchema.safeParse(rest).success).toBe(false);
     expect(
       baselineSchema.safeParse({
         ...rest,
         work_shift_outlook: null,
         role_change_outlook: null,
       }).success
-    ).toBe(true);
+    ).toBe(false);
+    expect(
+      baselineSchema.safeParse({
+        ...validBaseline,
+        work_shift_outlook: "   ",
+      }).success
+    ).toBe(false);
   });
 
   it("rejects a scale value out of the 1–5 range", () => {

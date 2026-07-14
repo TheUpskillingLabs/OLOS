@@ -43,8 +43,10 @@ export const DEFAULT_BASELINE_ANSWERS: BaselineAnswers = {
 
 const PICKED = (n: number) => n >= 1 && n <= 5;
 
-const REQUIRED_PICKS: (keyof BaselineAnswers)[] = [
+const REQUIRED_KEYS: (keyof BaselineAnswers)[] = [
   "ai_usage_frequency",
+  "work_shift_outlook",
+  "role_change_outlook",
   "autonomy",
   "skills_readiness",
   "learning_confidence",
@@ -52,14 +54,19 @@ const REQUIRED_PICKS: (keyof BaselineAnswers)[] = [
   "peer_investment",
 ];
 
-/** The required picks — the AI-usage choice and all five scales — that don't
-    yet hold a deliberate 1–5 answer. Empty means the form can save; the card
-    uses the non-empty case to highlight exactly what's missing (only the two
-    free responses are optional). */
+/** Every question is required: the picks need a deliberate 1–5 choice, the
+    two free responses need non-empty text. Returns the keys still
+    unanswered — empty means the form can save; the card uses the non-empty
+    case to highlight exactly what's missing. */
 export function missingBaselineKeys(
   v: BaselineAnswers
 ): (keyof BaselineAnswers)[] {
-  return REQUIRED_PICKS.filter((k) => !PICKED(Number(v[k])));
+  return REQUIRED_KEYS.filter((k) => {
+    const answer = v[k];
+    return typeof answer === "string"
+      ? answer.trim() === ""
+      : !PICKED(answer);
+  });
 }
 
 const SCALE = [1, 2, 3, 4, 5];
@@ -181,7 +188,7 @@ export default function BaselineSection({
         </div>
       )}
 
-      {/* Free-response outlook prompts — optional. */}
+      {/* Free-response outlook prompts — required, like everything here. */}
       <div className="space-y-4">
         {textQuestions.map((q) => (
           <div key={q.key}>
@@ -191,13 +198,20 @@ export default function BaselineSection({
             >
               {q.prompt}
             </label>
+            {missingKeys?.has(q.key) && (
+              <p className="mt-0.5 text-sm font-semibold text-red">
+                Add an answer
+              </p>
+            )}
             <textarea
               id={`baseline-${q.key}`}
               value={String(value[q.key])}
               onChange={(e) => update(q.key, e.target.value)}
               rows={2}
               maxLength={2000}
-              className="mt-1 w-full rounded-card border border-ink/15 p-3 text-base"
+              className={`mt-1 w-full rounded-card border p-3 text-base ${
+                missingKeys?.has(q.key) ? "border-red" : "border-ink/15"
+              }`}
             />
           </div>
         ))}

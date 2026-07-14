@@ -281,9 +281,11 @@ export const POST = withAuth(
     const gateAfter = await learningLogGate(participantId, eligibleCycles);
 
     // "What's next" — the current week's admin-authored message
-    // (cycle_weekly_messages), surfaced back to the member after any save
-    // against a LIVE open cycle (baseline or weekly). Service client — reads
-    // don't need the member's RLS and this mirrors the milestone reads above.
+    // (weekly_messages — program-global, one message per week shared by every
+    // open cycle), surfaced back to the member after any save against a LIVE
+    // open cycle (baseline or weekly); the cycle only supplies which week it
+    // is. Service client — reads don't need the member's RLS and this mirrors
+    // the milestone reads above.
     let whatsNext: { week: number; message: string } | null = null;
     if (
       chosenCycleId != null &&
@@ -295,9 +297,8 @@ export const POST = withAuth(
       const week = getCycleWeek(new Date(), cycleStart, cycleEnd);
       if (week >= 0 && week <= 12) {
         const { data: msg } = await service
-          .from("cycle_weekly_messages")
+          .from("weekly_messages")
           .select("message")
-          .eq("cycle_id", chosenCycleId)
           .eq("week", week)
           .maybeSingle();
         if (msg?.message) whatsNext = { week, message: msg.message };

@@ -22,21 +22,22 @@ const scale = (field: string) =>
 /* The Baseline Learning Log answers (lib/learning-logs/baseline.ts;
    baseline_responses migration in flight). One AI-usage frequency choice, two
    free-text outlooks, and five 1–5 readiness scales — all reusing the same
-   1–5 scale helper as the weekly health check. Strict, so an unknown key is a
+   1–5 scale helper as the weekly health check. Every answer is required —
+   the outlooks must be non-empty text. Strict, so an unknown key is a
    400 rather than a silent drop. */
 export const baselineSchema = z
   .object({
     ai_usage_frequency: scale("ai_usage_frequency"),
     work_shift_outlook: z
       .string()
-      .max(4000, "work_shift_outlook must be 4000 characters or fewer")
-      .optional()
-      .nullable(),
+      .trim()
+      .min(1, "work_shift_outlook is required")
+      .max(4000, "work_shift_outlook must be 4000 characters or fewer"),
     role_change_outlook: z
       .string()
-      .max(4000, "role_change_outlook must be 4000 characters or fewer")
-      .optional()
-      .nullable(),
+      .trim()
+      .min(1, "role_change_outlook is required")
+      .max(4000, "role_change_outlook must be 4000 characters or fewer"),
     skills_readiness: scale("skills_readiness"),
     learning_confidence: scale("learning_confidence"),
     judgment_confidence: scale("judgment_confidence"),
