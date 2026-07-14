@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
         destination: "/local-labs/:slug",
         permanent: true,
       },
+      // The team page was trimmed to the board and moved /team → /board
+      // (July 2026); old links follow permanently.
+      { source: "/team", destination: "/board", permanent: true },
     ];
   },
   async headers() {
