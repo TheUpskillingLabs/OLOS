@@ -29,11 +29,31 @@ const STATUS_VARIANT: Record<
 export default async function AdminSurveysPage() {
   const { serviceClient } = await requireAdmin();
 
-  const { data } = await serviceClient
-    .from("field_surveys")
-    .select("id, title, share_slug, status, problem_domain, cycle_id")
-    .order("id", { ascending: false });
+  const [{ data }, { data: cycleRows }] = await Promise.all([
+    serviceClient
+      .from("field_surveys")
+      .select("id, title, share_slug, status, problem_domain, cycle_id")
+      .order("id", { ascending: false }),
+    serviceClient
+      .from("cycles")
+      .select("id, name, status")
+      .order("start_date", { ascending: false }),
+  ]);
   const surveys = (data as SurveyRow[] | null) ?? [];
+  const cycles = (cycleRows as { id: number; name: string; status: string }[] | null) ?? [];
+
+  // One survey per cycle (00089) — the form disables cycles already taken so
+  // the conflict is visible before submit, not just at the 409.
+  const takenCycleIds = new Set(
+    surveys.map((s) => s.cycle_id).filter((id): id is number => id !== null)
+  );
+  const cycleOptions = cycles.map((c) => ({
+    id: c.id,
+    name: c.name,
+    status: c.status,
+    hasSurvey: takenCycleIds.has(c.id),
+  }));
+  const cycleName = new Map(cycles.map((c) => [c.id, c.name]));
 
   const counts = await Promise.all(
     surveys.map(async (s) => {
@@ -56,7 +76,7 @@ export default async function AdminSurveysPage() {
             questions, open or close a survey, and export responses.
           </p>
         </div>
-        <CreateSurveyForm />
+        <CreateSurveyForm cycles={cycleOptions} />
       </div>
 
       {surveys.length === 0 ? (
@@ -67,6 +87,7 @@ export default async function AdminSurveysPage() {
             <thead className="border-b border-ink/10 text-xs uppercase tracking-wide text-meta">
               <tr>
                 <th className="px-4 py-3 font-semibold">Survey</th>
+                <th className="px-4 py-3 font-semibold">Cycle</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
                 <th className="px-4 py-3 font-semibold">Responses</th>
                 <th className="px-4 py-3 font-semibold">Slug</th>
@@ -87,6 +108,11 @@ export default async function AdminSurveysPage() {
                         {s.problem_domain}
                       </span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-meta">
+                    {s.cycle_id !== null
+                      ? cycleName.get(s.cycle_id) ?? `Cycle ${s.cycle_id}`
+                      : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge variant={STATUS_VARIANT[s.status]}>
