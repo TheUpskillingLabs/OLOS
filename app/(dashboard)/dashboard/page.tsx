@@ -8,7 +8,7 @@ import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import { type MilestoneContext } from "./learning-log-card";
-import { getCycleWeek } from "@/lib/cycle/week";
+import { getCycleWeek, getCycleWeekStart } from "@/lib/cycle/week";
 import {
   milestoneKindForWeek,
   milestoneLabel,
@@ -30,6 +30,12 @@ import { getParticipantMemberships } from "@/lib/participants/memberships";
 import { ensurePageFollowsSeeded } from "@/lib/follows/seed";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
+import {
+  pendingBaselineCycles,
+  BASELINE_QUESTIONS,
+  AI_USAGE_OPTIONS,
+} from "@/lib/learning-logs/baseline";
+import WhatsNextCard from "./whats-next-card";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
 import { resolveUserRoles } from "@/lib/auth/roles";
 import { pagesUserCanPostAs } from "@/lib/pages/authz";
@@ -217,7 +223,14 @@ export default async function DashboardPage() {
   // picker (dual-enrolled staff log against either) and agrees with the
   // gate's own resolution, so a mode='closed' active-cycle enrollment (or
   // any future mode) is never gated here but ungateable there.
-  const logCycles = await eligibleLogCycles(participant.id);
+  // Both derive from the member's enrollments/logs but are independent reads —
+  // resolve them together. baselineCycles is the pending-baseline set (upcoming
+  // OR active open cycles the member is enrolled in and hasn't filed for yet).
+  const [logCycles, baselineCycles] = await Promise.all([
+    eligibleLogCycles(participant.id),
+    pendingBaselineCycles(participant.id),
+  ]);
+  const pendingBaseline = baselineCycles[0] ?? null;
 
   // Has the member already signed the upcoming cohort's Open Cycle Agreement?
   // Drives the "Register" checklist row + the pre-registration confirmation so
@@ -534,6 +547,21 @@ export default async function DashboardPage() {
           },
         ]
       : []),
+    // The Baseline Learning Log — a one-time snapshot filed before the weekly
+    // ritual begins; the row is present only while a pending baseline exists
+    // (it drops out the moment the member files it). Same #learning-log anchor
+    // as the first-log row, sitting just above it.
+    ...(pendingBaseline
+      ? [
+          {
+            key: "baseline",
+            label: "Complete your Baseline Learning Log",
+            done: false,
+            href: "#learning-log",
+            cta: "Log",
+          },
+        ]
+      : []),
     ...(activeCycle
       ? [
           {
@@ -823,6 +851,16 @@ export default async function DashboardPage() {
         logCycles={logCycles}
         pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
         postAsPages={postAsPages}
+        baseline={
+          pendingBaseline
+            ? {
+                cycleId: pendingBaseline.id,
+                cycleName: pendingBaseline.name,
+                questions: BASELINE_QUESTIONS,
+                aiUsageOptions: AI_USAGE_OPTIONS,
+              }
+            : null
+        }
       />
       <UpdatesFeed viewerParticipantId={participant.id} />
     </section>
@@ -962,6 +1000,43 @@ export default async function DashboardPage() {
       })
     : [];
 
+  // The per-week "What's next" nudge (cycle_weekly_messages) — surfaced only
+  // once the member has actually logged this cycle week, and only for a live
+  // open cycle inside its wk0→wk12 calendar. Both reads stay behind the guard
+  // so non-active states pay nothing. Mirrors the POST route's selection.
+  let whatsNext: { cycleId: number; week: number; message: string } | null =
+    null;
+  if (
+    state === "active" &&
+    activeCycle &&
+    activeCycle.mode === "open" &&
+    activeCycle.start_date &&
+    activeCycle.end_date
+  ) {
+    const start = new Date(activeCycle.start_date);
+    const end = new Date(activeCycle.end_date);
+    const week = getCycleWeek(new Date(), start, end);
+    if (week >= 0 && week <= 12) {
+      const [{ data: weekMsg }, { count: weekLogCount }] = await Promise.all([
+        serviceClient
+          .from("cycle_weekly_messages")
+          .select("message")
+          .eq("cycle_id", activeCycle.id)
+          .eq("week", week)
+          .maybeSingle(),
+        serviceClient
+          .from("learning_logs")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", activeCycle.id)
+          .gte("created_at", getCycleWeekStart(week, start, end).toISOString()),
+      ]);
+      if (weekMsg?.message && (weekLogCount ?? 0) > 0) {
+        whatsNext = { cycleId: activeCycle.id, week, message: weekMsg.message };
+      }
+    }
+  }
+
   // Hero copy + at-a-glance stats — the identity band adapts to the state.
   const heroLede = logGate.active
     ? "Your weekly Learning Log is due — save it below and everything unlocks."
@@ -1054,6 +1129,15 @@ export default async function DashboardPage() {
 
           {/* Up next — dismissible action cards for the currently-open windows */}
           {upNextTodos.length > 0 && <UpNext todos={upNextTodos} />}
+
+          {/* This week's "What's next" nudge — shown once they've logged. */}
+          {whatsNext && (
+            <WhatsNextCard
+              cycleId={whatsNext.cycleId}
+              week={whatsNext.week}
+              message={whatsNext.message}
+            />
+          )}
 
           {/* My Pod — the dashboard is optimized for one pod; a single pod
               gets a full-width card, more than one falls back to a grid. */}

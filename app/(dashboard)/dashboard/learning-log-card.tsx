@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import BaselineSection, {
+  DEFAULT_BASELINE_ANSWERS,
+  isBaselineComplete,
+  type BaselineConfig,
+} from "./baseline-section";
+import type { BaselineAnswers } from "@/lib/learning-logs/baseline";
 
 /* The Learning Log — the weekly ritual, on the dashboard where the practice
    lives (owner decision: the ritual is Home, not a nav destination). Three
@@ -95,6 +101,7 @@ export default function LearningLogCard({
   logCycles = [],
   pendingCycleIds = [],
   embedded = false,
+  baseline = null,
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
@@ -119,6 +126,12 @@ export default function LearningLogCard({
       header — the composer's card + "Learning Log" tab supply them — and
       render just the form. */
   embedded?: boolean;
+  /** When set, this render is the one-time Baseline Learning Log for the given
+      cycle: the baseline questionnaire appears above the weekly form, the
+      "Log for" picker is hidden (the save is pinned to this cycle), and the
+      save ships a `baseline` payload alongside the weekly fields. Carries the
+      question set from the server (baseline.ts is server-tainted). */
+  baseline?: BaselineConfig | null;
 }) {
   const router = useRouter();
   const pf = milestone?.prefill ?? null;
@@ -140,7 +153,11 @@ export default function LearningLogCard({
   const [justSaved, setJustSaved] = useState<null | {
     cleared: boolean;
     stillDue: string | null;
+    whatsNext: { week: number; message: string } | null;
   }>(null);
+  const [baselineAnswers, setBaselineAnswers] = useState<BaselineAnswers>(
+    DEFAULT_BASELINE_ANSWERS
+  );
   const [recent, setRecent] = useState<RecentLog[]>([]);
   const [count, setCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
@@ -257,7 +274,9 @@ export default function LearningLogCard({
           work_progress: workProgress || null,
           work_blockers: workBlockers || null,
           share_publicly: share,
-          cycle_id: selectedCycleId,
+          ...(baseline
+            ? { baseline: baselineAnswers, cycle_id: baseline.cycleId }
+            : { cycle_id: selectedCycleId }),
         }),
       });
       if (!res.ok) {
@@ -279,7 +298,11 @@ export default function LearningLogCard({
           ? `${stillDueCycle.name}${stillDueCycle.mode === "org" ? " (org)" : ""}`
           : null
         : null;
-      setJustSaved({ cleared: !!data.gate_cleared, stillDue });
+      setJustSaved({
+        cleared: !!data.gate_cleared,
+        stillDue,
+        whatsNext: data.whats_next ?? null,
+      });
       // The form resets in place — log as often as you like.
       setClarity(3);
       setAlignment(3);
@@ -289,6 +312,9 @@ export default function LearningLogCard({
       setExploring("");
       setNextFocus("");
       setShare(false);
+      // A filed baseline is one-per-cycle — clear it so a second save (before
+      // the server refresh drops the section) doesn't resubmit it.
+      if (baseline) setBaselineAnswers(DEFAULT_BASELINE_ANSWERS);
       loadRecent();
       // Refresh the server components so anything derived from log state
       // updates in place — notably the setup checklist's "Save your first
@@ -322,14 +348,20 @@ export default function LearningLogCard({
         <div className="flex items-baseline justify-between">
           <div>
             <p className="lbl">
-              {journal
-                ? "Journal"
-                : activeMilestone
-                  ? "Milestone"
-                  : "Weekly ritual"}
+              {baseline
+                ? "Baseline"
+                : journal
+                  ? "Journal"
+                  : activeMilestone
+                    ? "Milestone"
+                    : "Weekly ritual"}
             </p>
             <h2 className="t-h3 text-ink">
-              {activeMilestone ? activeMilestone.label : "Learning Log"}
+              {baseline
+                ? `Baseline Learning Log — ${baseline.cycleName}`
+                : activeMilestone
+                  ? activeMilestone.label
+                  : "Learning Log"}
             </h2>
           </div>
           {count > 0 && (
@@ -348,7 +380,7 @@ export default function LearningLogCard({
         </p>
       )}
 
-      {logCycles.length > 1 && (
+      {!baseline && logCycles.length > 1 && (
         <label className="mt-4 block">
           <span className="text-sm font-semibold text-ink">Log for</span>
           <select
@@ -381,7 +413,25 @@ export default function LearningLogCard({
         >
           Logged ✓{justSaved.cleared ? " — you’re back in ✓" : ""}
           {justSaved.stillDue && ` · Still due: ${justSaved.stillDue}`}
+          {justSaved.whatsNext && (
+            <span className="mt-2 block border-t border-teal/20 pt-2 font-normal text-charcoal">
+              <span className="block font-semibold text-teal-deep">
+                What’s next · Week {justSaved.whatsNext.week}
+              </span>
+              {justSaved.whatsNext.message}
+            </span>
+          )}
         </div>
+      )}
+
+      {baseline && (
+        <BaselineSection
+          cycleName={baseline.cycleName}
+          questions={baseline.questions}
+          aiUsageOptions={baseline.aiUsageOptions}
+          value={baselineAnswers}
+          onChange={setBaselineAnswers}
+        />
       )}
 
       {/* Part 1 — health check (private). Cycle practice only: it's the
@@ -519,10 +569,16 @@ export default function LearningLogCard({
       <button
         type="button"
         onClick={save}
-        disabled={busy}
+        disabled={busy || (!!baseline && !isBaselineComplete(baselineAnswers))}
         className="btn btn-teal mt-5"
       >
-        {busy ? "Saving…" : activeMilestone ? "Save review" : "Save log"}
+        {busy
+          ? "Saving…"
+          : baseline
+            ? "Save baseline"
+            : activeMilestone
+              ? "Save review"
+              : "Save log"}
       </button>
 
       {/* Your record — every past entry, readable in place (review, don't

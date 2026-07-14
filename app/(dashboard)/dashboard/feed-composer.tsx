@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
+import { type BaselineConfig } from "./baseline-section";
 import type { PageRef } from "@/lib/pages/authz";
 
 /**
@@ -30,6 +31,7 @@ export default function FeedComposer({
   logCycles = [],
   pendingCycleIds = [],
   postAsPages = [],
+  baseline = null,
 }: {
   avatarUrl: string | null;
   initials: string;
@@ -40,9 +42,14 @@ export default function FeedComposer({
   pendingCycleIds?: number[];
   /** Pages this member can post AS (they admin them). Empty → just "You". */
   postAsPages?: PageRef[];
+  /** When set, the Learning Log tab hosts the one-time Baseline Learning Log
+      for this cycle and opens by default. */
+  baseline?: BaselineConfig | null;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>(gateActive ? "log" : "update");
+  const [tab, setTab] = useState<Tab>(
+    gateActive || !!baseline ? "log" : "update"
+  );
   // "self" or a "type:id" key into postAsPages.
   const [postAs, setPostAs] = useState("self");
   const selectedPage =
@@ -237,6 +244,7 @@ export default function FeedComposer({
               journal={journal}
               logCycles={logCycles}
               pendingCycleIds={pendingCycleIds}
+              baseline={baseline}
             />
           </div>
         )}
