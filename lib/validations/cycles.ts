@@ -56,6 +56,25 @@ export const updateCycleConfigSchema = z.object({
   project_registration_close: z.string().nullable().optional(),
 });
 
+/* Per-week "What's next" copy (cycle_weekly_messages, migration in flight).
+   Admins set one program-global message per cycle week (0–12), shared by
+   every open cycle (weekly_messages, 00088); the Learning Log POST surfaces
+   the current week's message back to the member after a save. A blank/
+   whitespace-only message deletes that week's row (route-side). Strict +
+   capped at 13 entries (one per week). */
+export const weeklyMessagesSchema = z
+  .object({
+    messages: z
+      .array(
+        z.object({
+          week: z.number().int().min(0).max(12),
+          message: z.string().max(4000),
+        })
+      )
+      .max(13),
+  })
+  .strict();
+
 export const updateCycleStatusSchema = z.object({
   // Cycle lifecycle (SECTOR_MODEL.md §4): draft → upcoming → active → closing →
   // archived. 'closed' retained as a legacy terminal. The status route enforces
