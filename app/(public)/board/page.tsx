@@ -11,12 +11,12 @@ export const metadata = {
     "The board of directors of The Upskilling Labs, Inc.",
 };
 
-// [name, role]
-const BOARD: [string, string][] = [
-  ["Sandra Moscoso", "President"],
-  ["Ann Marie Guzzi", "Treasurer"],
-  ["Jenna Schmidt", "Secretary"],
-  ["Dr. Tati Warren", "At-Large Member"],
+// [name, role, headshot filename in /assets/board-headshots]
+const BOARD: [string, string, string][] = [
+  ["Sandra Moscoso", "President", "Sandra.webp"],
+  ["Ann Marie Guzzi", "Treasurer", "AMG.webp"],
+  ["Jenna Schmidt", "Secretary", "Jenna.webp"],
+  ["Dr. Tati Warren", "At-Large Member", "tati.webp"],
 ];
 
 export default function BoardPage() {
@@ -27,13 +27,36 @@ export default function BoardPage() {
       lede="The board of directors guiding our work — building in the open, alongside a community of volunteers."
     >
       <div className="cards two" style={{ marginBottom: 8 }}>
-        {BOARD.map(([name, role]) => (
-          <div className="lcard" style={{ padding: 22 }} key={role}>
-            <div className="t-body" style={{ fontWeight: 600 }}>
-              {name}
-            </div>
-            <div className="lbl lbl-teal" style={{ marginTop: 6 }}>
-              {role}
+        {BOARD.map(([name, role, img]) => (
+          <div
+            className="lcard"
+            style={{ padding: 22, display: "flex", alignItems: "center", gap: 18 }}
+            key={role}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/assets/board-headshots/${img}`}
+              alt={name}
+              width={88}
+              height={88}
+              style={{
+                width: 88,
+                height: 88,
+                borderRadius: "50%",
+                objectFit: "cover",
+                objectPosition: "center 20%",
+                flexShrink: 0,
+                border: "1px solid var(--rule)",
+                background: "var(--paper-edge)",
+              }}
+            />
+            <div>
+              <div className="t-body" style={{ fontWeight: 600 }}>
+                {name}
+              </div>
+              <div className="lbl lbl-teal" style={{ marginTop: 6 }}>
+                {role}
+              </div>
             </div>
           </div>
         ))}

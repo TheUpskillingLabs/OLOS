@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getCycleWeek } from "./week";
+import { getCycleWeek, getCycleWeekStart } from "./week";
 import { milestoneKindForWeek, MILESTONES } from "./milestones";
 
 const start = new Date("2026-01-05T00:00:00Z");
@@ -32,6 +32,27 @@ describe("getCycleWeek", () => {
 
   it("handles a zero-length span without dividing by zero", () => {
     expect(getCycleWeek(start, start, start)).toBe(0);
+  });
+});
+
+describe("getCycleWeekStart", () => {
+  it("returns the cycle start for week 0", () => {
+    expect(getCycleWeekStart(0, start, end).getTime()).toBe(start.getTime());
+  });
+
+  it("round-trips with getCycleWeek for weeks 0–12", () => {
+    for (let w = 0; w <= 12; w++) {
+      const weekStart = getCycleWeekStart(w, start, end);
+      // An instant just after a week's start lands inside that week.
+      expect(getCycleWeek(new Date(weekStart.getTime() + 1), start, end)).toBe(w);
+    }
+  });
+
+  it("spaces the 13 markers evenly across the span", () => {
+    const span = end.getTime() - start.getTime();
+    expect(getCycleWeekStart(6, start, end).getTime()).toBe(
+      start.getTime() + (6 * span) / 13
+    );
   });
 });
 
