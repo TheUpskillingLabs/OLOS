@@ -19,6 +19,35 @@ const scale = (field: string) =>
     .min(1, `${field} must be an integer between 1 and 5`)
     .max(5, `${field} must be an integer between 1 and 5`);
 
+/* The Baseline Learning Log answers (lib/learning-logs/baseline.ts;
+   baseline_responses migration in flight). One AI-usage frequency choice, two
+   free-text outlooks, and five 1–5 readiness scales — all reusing the same
+   1–5 scale helper as the weekly health check. Every answer is required —
+   the outlooks must be non-empty text. Strict, so an unknown key is a
+   400 rather than a silent drop. */
+export const baselineSchema = z
+  .object({
+    ai_usage_frequency: scale("ai_usage_frequency"),
+    work_shift_outlook: z
+      .string()
+      .trim()
+      .min(1, "work_shift_outlook is required")
+      .max(4000, "work_shift_outlook must be 4000 characters or fewer"),
+    role_change_outlook: z
+      .string()
+      .trim()
+      .min(1, "role_change_outlook is required")
+      .max(4000, "role_change_outlook must be 4000 characters or fewer"),
+    skills_readiness: scale("skills_readiness"),
+    learning_confidence: scale("learning_confidence"),
+    judgment_confidence: scale("judgment_confidence"),
+    autonomy: scale("autonomy"),
+    peer_investment: scale("peer_investment"),
+  })
+  .strict();
+
+export type BaselineInput = z.infer<typeof baselineSchema>;
+
 export const learningLogSchema = z
   .object({
     clarity: scale("clarity"),
@@ -64,6 +93,10 @@ export const learningLogSchema = z
       .nullable(),
     share_publicly: z.boolean().default(false),
     cycle_id: z.number().int().positive().optional().nullable(),
+    // Baseline onboarding reflection (one-time per cycle). When present, the
+    // route files a kind='baseline' log + baseline_responses row and skips the
+    // weekly milestone/work-field derivation entirely.
+    baseline: baselineSchema.optional(),
   })
   .strict();
 
