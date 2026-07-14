@@ -28,47 +28,52 @@ export interface BaselineConfig {
   aiUsageOptions: { value: number; label: string }[];
 }
 
-/** The blank slate: scales sit at the neutral middle (3), the AI-usage pick is
-    unset (0), free responses empty. */
+/** The blank slate: every pick — the AI-usage choice and all five scales —
+    starts unset (0) so nothing is answered by default; free responses empty. */
 export const DEFAULT_BASELINE_ANSWERS: BaselineAnswers = {
   ai_usage_frequency: 0,
   work_shift_outlook: "",
   role_change_outlook: "",
-  skills_readiness: 3,
-  learning_confidence: 3,
-  judgment_confidence: 3,
-  autonomy: 3,
-  peer_investment: 3,
+  skills_readiness: 0,
+  learning_confidence: 0,
+  judgment_confidence: 0,
+  autonomy: 0,
+  peer_investment: 0,
 };
 
-/** A baseline is complete once the one required pick — AI-usage frequency — is
-    a valid 1–5 choice. Scales default to a neutral middle and the two free
-    responses are optional, so nothing else can block the save. */
+const PICKED = (n: number) => n >= 1 && n <= 5;
+
+/** A baseline is complete once every pick — the AI-usage frequency and all
+    five scales — holds a deliberate 1–5 choice. Only the two free responses
+    are optional. */
 export function isBaselineComplete(v: BaselineAnswers): boolean {
-  return v.ai_usage_frequency >= 1 && v.ai_usage_frequency <= 5;
+  return (
+    PICKED(v.ai_usage_frequency) &&
+    PICKED(v.autonomy) &&
+    PICKED(v.skills_readiness) &&
+    PICKED(v.learning_confidence) &&
+    PICKED(v.judgment_confidence) &&
+    PICKED(v.peer_investment)
+  );
 }
 
 const SCALE = [1, 2, 3, 4, 5];
 
 // Self-contained scale row (deliberately NOT the card's ScaleRow import): the
 // baseline uses shared agree/disagree anchors shown once above the group, so
-// its row carries just the prompt + an optional attribution note, no per-row
-// low/high labels.
+// its row carries just the prompt, no per-row low/high labels.
 function BaselineScaleRow({
   label,
-  note,
   value,
   onChange,
 }: {
   label: string;
-  note?: string;
   value: number;
   onChange: (v: number) => void;
 }) {
   return (
     <div>
       <span className="text-sm font-semibold text-ink">{label}</span>
-      {note && <p className="mt-0.5 text-xs text-meta">{note}</p>}
       <div className="mt-2 flex gap-2" role="radiogroup" aria-label={label}>
         {SCALE.map((n) => (
           <button
@@ -170,16 +175,23 @@ export default function BaselineSection({
         ))}
       </div>
 
-      {/* Readiness scales — shared 1–5 agree/disagree anchors, shown once. */}
+      {/* Readiness scales — shared 1–5 agree/disagree anchors, spelled out
+          once as a header so nobody has to guess what the numbers mean. */}
       <div className="space-y-4">
-        <p className="text-xs text-meta">
-          1 = Strongly disagree · 5 = Strongly agree
-        </p>
+        <div>
+          <p className="text-sm font-semibold text-ink">
+            The next questions all use this scale:
+          </p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-charcoal">
+            <li>1 = Strongly disagree</li>
+            <li>3 = Neutral</li>
+            <li>5 = Strongly agree</li>
+          </ul>
+        </div>
         {scaleQuestions.map((q) => (
           <BaselineScaleRow
             key={q.key}
             label={q.prompt}
-            note={q.note}
             value={Number(value[q.key])}
             onChange={(v) => update(q.key, v)}
           />

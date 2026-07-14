@@ -24,8 +24,6 @@ export interface BaselineQuestion {
   key: keyof BaselineAnswers;
   prompt: string;
   type: "choice" | "text" | "scale";
-  /** Attribution note surfaced under the prompt, when adapted from a source. */
-  note?: string;
 }
 
 export const BASELINE_QUESTIONS: BaselineQuestion[] = [
@@ -46,8 +44,14 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
     type: "text",
   },
   {
+    key: "autonomy",
+    prompt: "I feel a sense of choice and freedom in the work I undertake.",
+    type: "scale",
+  },
+  {
     key: "skills_readiness",
-    prompt: "I have the skills I need for where my work is headed.",
+    prompt:
+      "I have the range of skills (technical and non-technical) I need for where my work is headed.",
     type: "scale",
   },
   {
@@ -61,12 +65,6 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
     type: "scale",
   },
   {
-    key: "autonomy",
-    prompt: "I feel a sense of choice and freedom in the work I undertake.",
-    type: "scale",
-    note: "Adapted from Chen et al., 2015, BPNSF",
-  },
-  {
     key: "peer_investment",
     prompt: "I have peers who are invested in my growth, and I in theirs.",
     type: "scale",
@@ -78,7 +76,7 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
 export const SCALE_ANCHORS: { value: number; label: string }[] = [
   { value: 1, label: "Strongly disagree" },
   { value: 2, label: "Disagree" },
-  { value: 3, label: "Neither agree nor disagree" },
+  { value: 3, label: "Neutral" },
   { value: 4, label: "Agree" },
   { value: 5, label: "Strongly agree" },
 ];
