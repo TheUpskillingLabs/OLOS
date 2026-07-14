@@ -92,6 +92,14 @@ erDiagram
         text luma_api_id "nullable — Luma sync hook"
     }
 
+    cycle_weekly_messages {
+        int id PK
+        int cycle_id FK "→ cycles(id) CASCADE (00087)"
+        smallint week "UK with cycle_id; 0–12"
+        text message
+        timestamptz updated_at
+    }
+
     cycle_config {
         int id PK
         int cycle_id FK
@@ -193,6 +201,7 @@ erDiagram
     cycles ||--|| cycle_config : "configures"
     cycles ||--o{ cycle_phases : "schedules (00085)"
     cycles ||--o{ cycle_events : "anchors (00085)"
+    cycles ||--o{ cycle_weekly_messages : "weekly copy (00087)"
     participants ||--o{ participant_options : "selects"
     option_lists ||--o{ participant_options : "defines"
 ```
@@ -607,6 +616,23 @@ erDiagram
         timestamptz removed_at "NULL = active"
     }
 
+    baseline_responses {
+        int id PK
+        int learning_log_id FK "→ learning_logs(id), UK (00087)"
+        int participant_id FK
+        int cycle_id FK
+        smallint ai_usage_frequency "1–5"
+        text work_shift_outlook
+        text role_change_outlook
+        smallint skills_readiness "1–5"
+        smallint learning_confidence "1–5"
+        smallint judgment_confidence "1–5"
+        smallint autonomy "1–5 (BPNSF, Chen 2015)"
+        smallint peer_investment "1–5"
+        varchar schema_version "instrument version, default v1"
+        timestamptz created_at
+    }
+
     metros ||--o{ metro_waitlist_signups : "collects"
     metros ||--o{ cycles : "lab stream (00062; NULL = HQ)"
     metros ||--o{ workstreams : "lab workstreams (00062)"
@@ -621,6 +647,7 @@ erDiagram
     participants ||--o{ profile_update_comments : "comments"
     participants ||--o{ follows : "follows (00074)"
     participants ||--o{ page_admins : "admins pages (00076)"
+    participants ||--o{ baseline_responses : "measured (00087)"
     events ||--o{ event_rsvps : "collects"
 ```
 
@@ -638,7 +665,9 @@ erDiagram
 
 **RSVP hardening (migration `00039`):** `event_rsvps.ip_hash` (sha256, never the raw IP) backs the anonymous path's per-IP window cap in `POST /api/events/[event_id]/rsvp` (`lib/api/rate-limit.ts` — the backend doc §8 pre-launch blocker); `participant_id` records member identity on the one-tap path (NULL for anonymous), feeding the Poderator workshop-signups view.
 
-**Learning Log (migrations `00040`, `00041` — roadmap Phase 1):** `learning_logs` is the weekly practice ritual replacing `pulse_checks` for new cycles (pulse history stays, private, untouched). Three parts in one row: health check (`clarity`/`alignment` 1–5 + `is_blocked`/`blocker_context` — visible to the member, their Poderator, and admins; never shared), scaffolded reflection (`accomplished`/`exploring`/`next_focus`), and `share_publicly` — when true the API writes a `profile_updates` row carrying ONLY the concatenated paragraph (provenance via `learning_log_id`; the metrics never travel). `kind` carries the milestone variants (`milestone_7` / `milestone_13`, surfaced as Mid-cycle / End-cycle) — opened on the admin-configurable `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default weeks 6 / 12), server-derived at write time. No per-window unique — unlimited logs. The weekly gate is config-as-data: the Friday cron (`/api/cron/learning-log-window`) stamps `cycle_config.log_due_at`; an active enrollee with no log at/after the stamp is locked to the dashboard (`lib/learning-logs/gate.ts`); `log_gate_paused` is the grace toggle. RLS: self + cycle-staff SELECT, self INSERT, append-only; `profile_updates` is authenticated-SELECT (`visibility='labs'`), self-DELETE, service-role INSERT only. `participants.is_staff`/`is_test` (00041) are roster-visibility flags (hidden by default on Poderator rosters, excluded from health math) — never permissions.
+**Learning Log (migrations `00040`, `00041` — roadmap Phase 1):** `learning_logs` is the weekly practice ritual replacing `pulse_checks` for new cycles (pulse history stays, private, untouched). Three parts in one row: health check (`clarity`/`alignment` 1–5 + `is_blocked`/`blocker_context` — visible to the member, their Poderator, and admins; never shared), scaffolded reflection (`accomplished`/`exploring`/`next_focus`), and `share_publicly` — when true the API writes a `profile_updates` row carrying ONLY the concatenated paragraph (provenance via `learning_log_id`; the metrics never travel). `kind` carries the milestone variants (`milestone_7` / `milestone_13`, surfaced as Mid-cycle / End-cycle) — opened on the admin-configurable `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default weeks 6 / 12), server-derived at write time — plus `baseline` (migration `00087`), the one-time Week-0 measurement whose eight structured answers land in `baseline_responses` (below) while its `learning_logs` row satisfies the weekly gate like any other log. No per-window unique — unlimited logs. The weekly gate is config-as-data: the Friday cron (`/api/cron/learning-log-window`) stamps `cycle_config.log_due_at`; an active enrollee with no log at/after the stamp is locked to the dashboard (`lib/learning-logs/gate.ts`); `log_gate_paused` is the grace toggle. RLS: self + cycle-staff SELECT, self INSERT, append-only; `profile_updates` is authenticated-SELECT (`visibility='labs'`), self-DELETE, service-role INSERT only. `participants.is_staff`/`is_test` (00041) are roster-visibility flags (hidden by default on Poderator rosters, excluded from health math) — never permissions.
+
+**Baseline + weekly messages (migration `00087`):** `baseline_responses` holds the one-time Week-0 baseline measurement — one row per participant per cycle (`UNIQUE(participant_id, cycle_id)`), tied to the `kind='baseline'` `learning_logs` row that opened it (`learning_log_id` UNIQUE). Its eight answers are a fixed instrument (`ai_usage_frequency`, two free-text outlook prompts, and five 1–5 scales — `skills_readiness`/`learning_confidence`/`judgment_confidence`/`autonomy`/`peer_investment`, the `autonomy` item adapted from Chen et al. 2015 BPNSF), deliberately **hardcoded** in `lib/learning-logs/baseline.ts` rather than admin-configurable so the measure stays comparable across cycles; `schema_version` pins the instrument version. RLS mirrors `learning_logs`: self + cycle-staff SELECT, self INSERT, append-only (a baseline is measured once, never edited). `cycle_weekly_messages` is the admin-authored per-week "What's next" copy shown to a participant right after they save that week's log — one row per `(cycle_id, week)` (`week` 0–12). RLS follows the `cycle_phases`/`cycle_events` pattern (00086): authenticated SELECT, `is_admin_or_owner()` writes.
 
 **Upskiller Spotlights (migration `00051`):** `spotlights` is the public `/stories` page (onboarding-proto's `stories.html`) plus its submission pipeline, in one table. A "Share your story" submission (public `POST /api/stories`, per-IP throttled) lands as a row with `status='submitted'` and only `name` + `story` filled; the Labs team enriches the editorial fields (`role`, `tag`, `tag_label`, `quote`, `grad`) and flips `status='published'` from `/admin/stories` (`PATCH /api/admin/stories/[id]`, which stamps `published_at` and derives a unique `slug` — the `#s-{slug}` deep-link contract). RLS is anon-SELECT-`published`-only (mirrors events/resources); every write is service-role. Launches empty — no auto-publish (owner decision, concierge review), the same empty-until-real posture the Library took in `00036`. `image_url` (migration `00052`) is an optional member headshot (a `/assets/...` static path or an absolute URL); when NULL the `/stories` card + landing story row fall back to the orb placeholder — the same image-or-orb pattern the content teasers use for events/resources.
 
@@ -853,7 +882,9 @@ erDiagram
 | `metro_waitlist_signups` | Public Content | Participant ↔ metro waitlist joins (unique pair) |
 | `event_rsvps` | Public Content | Email-only public RSVPs (never account-gated) |
 | `announcements` | Public Content | Admin-authored org news for the dashboard rail; `lab_id` NULL = global, else lab-scoped (00070) |
-| `learning_logs` | Practice | The weekly ritual: health check + reflection + share flag (replaces pulse_checks for new cycles). For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
+| `learning_logs` | Practice | The weekly ritual: health check + reflection + share flag (replaces pulse_checks for new cycles). `kind` adds `baseline` (00087) for the one-time Week-0 measurement. For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
+| `baseline_responses` | Practice | The one-time Week-0 baseline (00087): eight fixed-instrument answers per participant per cycle, tied to the `kind='baseline'` learning_logs row. Append-only, self + cycle-staff read. Questions hardcoded in `lib/learning-logs/baseline.ts` |
+| `cycle_weekly_messages` | Core | Admin-authored per-week "What's next" copy shown after a participant saves that week's learning log (00087); one row per `(cycle_id, week)`, `week` 0–12 |
 | `leadership_logs` | Practice | The org leadership cascade (00069): weekly reflections by `workstream_lead` (Thu) and `lab_lead` (Fri) tiers, scoped to a run pod or a lab; non-blocking, written in the context of the tier below |
 | `profile_updates` | Practice | The feed's updates. Polymorphic author: a member (`participant_id`) OR a **page** (`author_page_type`+`author_page_id` = lab/sector/workstream/pod/project, with `posted_by_participant_id` provenance; 00076) — exactly one. `visibility` `labs` (public/members-wide) or `private` (member posts only; page posts are always `labs`). Learning Log shares + freeform member posts (00072) + page updates (00076) |
 | `page_admins` | Practice | Explicit admins of a page (00076) — the "others can be added" list beyond a page's auto-admins (leads; a project's members/maintainers). Polymorphic (`page_type`+`page_id`). A page admin may post as the page and manage its admin list. Active = `removed_at IS NULL` |
