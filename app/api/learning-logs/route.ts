@@ -8,6 +8,9 @@ import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import {
   learningLogSchema,
   sharedParagraph,
+  weeklyV2Error,
+  legacyError,
+  looksLikeWeeklyV2,
 } from "@/lib/validations/learning-logs";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import {
@@ -129,26 +132,81 @@ export const POST = withAuth(
     // them just for org cycles so an open-cycle log never carries them.
     const isOrg = chosenCycle?.mode === "org";
 
+    // Which instrument is this save? Weekly v2 (00087) is the open-cycle
+    // weekly log only; milestone reviews, journal logs (no cycle), and
+    // org-cycle logs all stay on the v1 shape. kind is server-derived, so
+    // requiredness is enforced here, after resolution — the superset schema
+    // above can't know which fields are mandatory.
+    const isWeeklyV2 = kind === "weekly" && chosenCycle?.mode === "open";
+    if (isWeeklyV2) {
+      const problem = weeklyV2Error(body);
+      if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+    } else {
+      const problem = legacyError(body);
+      if (problem) {
+        // The friendly case: the member had the weekly form open while the
+        // week rolled into a milestone review (kind flipped server-side).
+        if (looksLikeWeeklyV2(body)) {
+          return NextResponse.json(
+            {
+              error:
+                "This week opened a milestone review — refresh the page to load it.",
+            },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json({ error: problem }, { status: 400 });
+      }
+    }
+
     const { data: log, error } = await auth.supabase
       .from("learning_logs")
-      .insert({
-        participant_id: participantId,
-        cycle_id: chosenCycle?.id ?? null,
-        kind,
-        clarity: body.clarity,
-        alignment: body.alignment,
-        is_blocked: body.is_blocked,
-        blocker_context: body.is_blocked
-          ? (body.blocker_context?.trim() || null)
-          : null,
-        accomplished: body.accomplished?.trim() || null,
-        exploring: body.exploring?.trim() || null,
-        next_focus: body.next_focus?.trim() || null,
-        work_summary: isOrg ? (body.work_summary?.trim() || null) : null,
-        work_progress: isOrg ? (body.work_progress?.trim() || null) : null,
-        work_blockers: isOrg ? (body.work_blockers?.trim() || null) : null,
-        share_publicly: body.share_publicly,
-      })
+      .insert(
+        isWeeklyV2
+          ? {
+              participant_id: participantId,
+              cycle_id: chosenCycle?.id ?? null,
+              kind,
+              clarity: null,
+              alignment: null,
+              is_blocked: body.is_blocked,
+              stuck_tried: body.is_blocked
+                ? (body.stuck_tried?.trim() || null)
+                : null,
+              blocker_context: body.is_blocked
+                ? (body.blocker_context?.trim() || null)
+                : null,
+              hours_bucket: body.hours_bucket,
+              collab_rating: body.collab_rating,
+              progress_rating: body.progress_rating,
+              contribution: body.contribution?.trim() || null,
+              learned: body.learned?.trim() || null,
+              capability_rating: body.capability_rating,
+              energy_rating: body.energy_rating,
+              feeling_word: body.feeling_word?.trim() || null,
+              recognition: body.recognition?.trim() || null,
+              share_publicly: body.share_publicly,
+              schema_version: "v2",
+            }
+          : {
+              participant_id: participantId,
+              cycle_id: chosenCycle?.id ?? null,
+              kind,
+              clarity: body.clarity,
+              alignment: body.alignment,
+              is_blocked: body.is_blocked,
+              blocker_context: body.is_blocked
+                ? (body.blocker_context?.trim() || null)
+                : null,
+              accomplished: body.accomplished?.trim() || null,
+              exploring: body.exploring?.trim() || null,
+              next_focus: body.next_focus?.trim() || null,
+              work_summary: isOrg ? (body.work_summary?.trim() || null) : null,
+              work_progress: isOrg ? (body.work_progress?.trim() || null) : null,
+              work_blockers: isOrg ? (body.work_blockers?.trim() || null) : null,
+              share_publicly: body.share_publicly,
+            }
+      )
       .select("id, created_at")
       .single();
     if (error || !log) return dbError(error, "learning-log");
@@ -157,7 +215,7 @@ export const POST = withAuth(
     // Service client — profile_updates has no client INSERT policy.
     let shared = false;
     if (body.share_publicly) {
-      const paragraph = sharedParagraph(body);
+      const paragraph = sharedParagraph(body, isWeeklyV2 ? "weekly_v2" : "v1");
       if (paragraph) {
         const { error: shareError } = await service
           .from("profile_updates")
@@ -203,7 +261,7 @@ export const GET = withAuth(
     const { data: logs, count } = await auth.supabase
       .from("learning_logs")
       .select(
-        "id, cycle_id, kind, clarity, alignment, is_blocked, accomplished, exploring, next_focus, share_publicly, created_at",
+        "id, cycle_id, kind, schema_version, clarity, alignment, is_blocked, accomplished, exploring, next_focus, stuck_tried, blocker_context, hours_bucket, collab_rating, progress_rating, contribution, learned, capability_rating, energy_rating, feeling_word, recognition, share_publicly, created_at",
         { count: "exact" }
       )
       .eq("participant_id", participantId)

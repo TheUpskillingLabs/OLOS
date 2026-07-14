@@ -15,6 +15,7 @@ import {
   ANCHOR_EVENTS,
 } from "@/lib/cycles/anchor-events";
 import { OPEN_CYCLE_AGREEMENT_VERSION } from "@/lib/validations/cycle-agreement";
+import { HOURS_BUCKETS } from "@/lib/cycles/hours";
 
 /* ════════════════════════════════════════════════════════════════════════
    The cycle registration ceremony — ported from onboarding-proto:
@@ -28,7 +29,7 @@ import { OPEN_CYCLE_AGREEMENT_VERSION } from "@/lib/validations/cycle-agreement"
    plain language) — change it in the prototype first.
    ════════════════════════════════════════════════════════════════════════ */
 
-const HOURS = ["2–4 hrs / week", "5–8 hrs / week", "8+ hrs / week"];
+const HOURS = HOURS_BUCKETS;
 
 function cycleSteps(
   cycleName: string,

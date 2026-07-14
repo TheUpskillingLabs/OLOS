@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
 import type { PageRef } from "@/lib/pages/authz";
+import type { CyclePhase } from "@/lib/cycle/phase";
 
 /**
  * The feed composer — one LinkedIn-style card at the top of the community feed
@@ -30,6 +31,7 @@ export default function FeedComposer({
   logCycles = [],
   pendingCycleIds = [],
   postAsPages = [],
+  phase = 1,
 }: {
   avatarUrl: string | null;
   initials: string;
@@ -40,6 +42,9 @@ export default function FeedComposer({
   pendingCycleIds?: number[];
   /** Pages this member can post AS (they admin them). Empty → just "You". */
   postAsPages?: PageRef[];
+  /** Current phase of the open cycle — the Learning Log's phase-contextual
+      stems (lib/cycle/phase.ts). */
+  phase?: CyclePhase;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(gateActive ? "log" : "update");
@@ -237,6 +242,7 @@ export default function FeedComposer({
               journal={journal}
               logCycles={logCycles}
               pendingCycleIds={pendingCycleIds}
+              phase={phase}
             />
           </div>
         )}

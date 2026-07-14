@@ -2,76 +2,55 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { CyclePhase } from "@/lib/cycle/phase";
+import WeeklyV2Fields, {
+  ScaleRow,
+  emptyWeeklyV2State,
+  weeklyV2Complete,
+  type WeeklyV2State,
+} from "./learning-log-v2-fields";
 
 /* The Learning Log — the weekly ritual, on the dashboard where the practice
-   lives (owner decision: the ritual is Home, not a nav destination). Three
-   parts, one Save (prototype dashboard/index.html + app.js
-   renderLearningLog/saveLearningLog):
+   lives (owner decision: the ritual is Home, not a nav destination).
+
+   The weekly open-cycle log runs the v2 instrument (00087, rendered by
+   WeeklyV2Fields): stuck check → hours → collaboration → progress →
+   contribution → learned → capability → energy → optional feeling word +
+   shout-out, with phase-contextual stems on collaboration/contribution.
+
+   Milestone reviews, journal logs, and org-cycle logs keep the original
+   three-part ritual (prototype dashboard/index.html + app.js):
      1. Health check — two 1–5 scales + an "I'm blocked" toggle. Private to
         the member, their Poderator, and admins. Never shared.
      2. Scaffolded reflection — three prompts that kill the blank page.
-     3. Share preview — the prompts concatenated into one paragraph, with a
-        members-only share toggle (one of two feed sources, alongside the
-        freeform Update composer).
+     3. Share preview — a members-only share toggle (one of two feed
+        sources, alongside the freeform Update composer).
    Unlimited logs; the form resets after save; saving clears the weekly
    gate instantly ("You're back in ✓" — firm, never shaming). */
 
 interface RecentLog {
   id: number;
   kind: string;
-  clarity: number;
-  alignment: number;
+  schema_version: string;
+  clarity: number | null;
+  alignment: number | null;
   is_blocked: boolean;
   accomplished: string | null;
   exploring: string | null;
   next_focus: string | null;
+  stuck_tried: string | null;
+  blocker_context: string | null;
+  hours_bucket: string | null;
+  collab_rating: number | null;
+  progress_rating: number | null;
+  contribution: string | null;
+  learned: string | null;
+  capability_rating: number | null;
+  energy_rating: number | null;
+  feeling_word: string | null;
+  recognition: string | null;
   share_publicly: boolean;
   created_at: string;
-}
-
-const SCALE = [1, 2, 3, 4, 5];
-
-function ScaleRow({
-  label,
-  low,
-  high,
-  value,
-  onChange,
-}: {
-  label: string;
-  low: string;
-  high: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm font-semibold text-ink">{label}</span>
-        <span className="text-xs text-meta">
-          {low} → {high}
-        </span>
-      </div>
-      <div className="mt-2 flex gap-2" role="radiogroup" aria-label={label}>
-        {SCALE.map((n) => (
-          <button
-            key={n}
-            type="button"
-            role="radio"
-            aria-checked={value === n}
-            onClick={() => onChange(n)}
-            className={`h-11 flex-1 rounded-card border text-sm font-semibold transition-colors duration-150 ${
-              value === n
-                ? "border-teal-deep bg-teal-deep text-white"
-                : "border-ink/15 bg-white text-charcoal hover:border-teal"
-            }`}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export interface MilestoneContext {
@@ -95,6 +74,7 @@ export default function LearningLogCard({
   logCycles = [],
   pendingCycleIds = [],
   embedded = false,
+  phase = 1,
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
@@ -119,6 +99,10 @@ export default function LearningLogCard({
       header — the composer's card + "Learning Log" tab supply them — and
       render just the form. */
   embedded?: boolean;
+  /** Which cycle phase "now" is for the open cycle (lib/cycle/phase.ts) —
+      drives the v2 instrument's collaboration/contribution stems. Server
+      computed; defaults to 1 so the stems always render something. */
+  phase?: CyclePhase;
 }) {
   const router = useRouter();
   const pf = milestone?.prefill ?? null;
@@ -134,6 +118,9 @@ export default function LearningLogCard({
   const [workSummary, setWorkSummary] = useState("");
   const [workProgress, setWorkProgress] = useState("");
   const [workBlockers, setWorkBlockers] = useState("");
+  // The weekly v2 instrument's answers (00087) — one state object, patched
+  // by WeeklyV2Fields.
+  const [v2, setV2] = useState<WeeklyV2State>(emptyWeeklyV2State);
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,6 +154,13 @@ export default function LearningLogCard({
     milestone && (!selectedCycle || selectedCycle.mode === "open")
       ? milestone
       : null;
+
+  // The v2 instrument is the weekly OPEN-cycle log only — the same predicate
+  // the POST route derives server-side (kind === 'weekly' && mode === 'open').
+  // Milestone reviews, journal logs, and org-cycle logs stay on the v1 form,
+  // so switching the "Log for" picker to the org cycle live-swaps the form.
+  const isWeeklyV2 =
+    !journal && !activeMilestone && selectedCycle?.mode === "open";
 
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
@@ -208,13 +202,27 @@ export default function LearningLogCard({
     };
   }, []);
 
-  const preview = [
-    accomplished.trim() && `This week, I figured out ${accomplished.trim()}`,
-    exploring.trim() && `I’m currently exploring ${exploring.trim()}`,
-    nextFocus.trim() && `Next week, my focus is ${nextFocus.trim()}`,
-  ]
+  // The live share preview — mirrors sharedParagraph() exactly (v2 composes
+  // from contribution + learned; v1 from the three prompts). The stuck check
+  // and the metrics never appear here.
+  const preview = (
+    isWeeklyV2
+      ? [
+          v2.contribution.trim() && `This week: ${v2.contribution.trim()}`,
+          v2.learned.trim() &&
+            `One thing I figured out: ${v2.learned.trim()}`,
+        ]
+      : [
+          accomplished.trim() &&
+            `This week, I figured out ${accomplished.trim()}`,
+          exploring.trim() && `I’m currently exploring ${exploring.trim()}`,
+          nextFocus.trim() && `Next week, my focus is ${nextFocus.trim()}`,
+        ]
+  )
     .filter(Boolean)
     .join(" ");
+
+  const saveDisabled = busy || (isWeeklyV2 && !weeklyV2Complete(v2));
 
   // Milestone weeks reframe the same three prompts as an evaluation.
   const isFinal = activeMilestone?.kind === "milestone_13";
@@ -242,23 +250,43 @@ export default function LearningLogCard({
     setBusy(true);
     setError(null);
     try {
+      // The payload matches the instrument the member answered — the server
+      // re-derives the same predicate and validates per-instrument.
+      const payload = isWeeklyV2
+        ? {
+            is_blocked: v2.stuck,
+            stuck_tried: v2.stuck ? v2.stuckTried : null,
+            blocker_context: v2.stuck ? v2.stuckHelp : null,
+            hours_bucket: v2.hoursBucket,
+            collab_rating: v2.collab,
+            progress_rating: v2.progress,
+            contribution: v2.contribution || null,
+            learned: v2.learned || null,
+            capability_rating: v2.capable,
+            energy_rating: v2.energy,
+            feeling_word: v2.feelingWord || null,
+            recognition: v2.recognition || null,
+            share_publicly: share,
+            cycle_id: selectedCycleId,
+          }
+        : {
+            clarity,
+            alignment,
+            is_blocked: blocked,
+            blocker_context: blocked ? blockerContext : null,
+            accomplished: accomplished || null,
+            exploring: exploring || null,
+            next_focus: nextFocus || null,
+            work_summary: workSummary || null,
+            work_progress: workProgress || null,
+            work_blockers: workBlockers || null,
+            share_publicly: share,
+            cycle_id: selectedCycleId,
+          };
       const res = await fetch("/api/learning-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clarity,
-          alignment,
-          is_blocked: blocked,
-          blocker_context: blocked ? blockerContext : null,
-          accomplished: accomplished || null,
-          exploring: exploring || null,
-          next_focus: nextFocus || null,
-          work_summary: workSummary || null,
-          work_progress: workProgress || null,
-          work_blockers: workBlockers || null,
-          share_publicly: share,
-          cycle_id: selectedCycleId,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -288,6 +316,7 @@ export default function LearningLogCard({
       setAccomplished("");
       setExploring("");
       setNextFocus("");
+      setV2(emptyWeeklyV2State);
       setShare(false);
       loadRecent();
       // Refresh the server components so anything derived from log state
@@ -384,11 +413,27 @@ export default function LearningLogCard({
         </div>
       )}
 
-      {/* Part 1 — health check (private). Cycle practice only: it's the
-          pod-support instrument (clarity + pod alignment + blocked → the
-          Poderator). A solo journaler has no pod, so journal mode drops it
-          and keeps the reflection. */}
-      {!journal && (
+      {/* The weekly open-cycle log: the v2 instrument (00087). The stuck
+          check keeps v1's privacy contract, so the note renders above it. */}
+      {isWeeklyV2 && (
+        <>
+          <p className="mt-5 text-xs text-meta">
+            Your answers stay between you, your Poderator, and admins — only
+            what you choose to share below travels.
+          </p>
+          <WeeklyV2Fields
+            phase={phase}
+            value={v2}
+            onChange={(patch) => setV2((prev) => ({ ...prev, ...patch }))}
+          />
+        </>
+      )}
+
+      {/* Part 1 — health check (private). Milestone/journal/org practice
+          only: it's the pod-support instrument (clarity + pod alignment +
+          blocked → the Poderator). A solo journaler has no pod, so journal
+          mode drops it and keeps the reflection. */}
+      {!journal && !isWeeklyV2 && (
         <div className="mt-5 space-y-4">
           <p className="text-xs text-meta">
             This part stays between you, your Poderator, and admins. It never
@@ -431,7 +476,8 @@ export default function LearningLogCard({
         </div>
       )}
 
-      {/* Part 2 — scaffolded reflection */}
+      {/* Part 2 — scaffolded reflection (v1 instruments only) */}
+      {!isWeeklyV2 && (
       <div className="mt-6 space-y-4">
         {(
           [
@@ -458,6 +504,7 @@ export default function LearningLogCard({
           </div>
         ))}
       </div>
+      )}
 
       {/* Work log (org cycles only, 00069) — the member tier of the
           Leadership Log cascade: your work on the workstream this week. */}
@@ -519,11 +566,17 @@ export default function LearningLogCard({
       <button
         type="button"
         onClick={save}
-        disabled={busy}
+        disabled={saveDisabled}
         className="btn btn-teal mt-5"
       >
         {busy ? "Saving…" : activeMilestone ? "Save review" : "Save log"}
       </button>
+      {isWeeklyV2 && !busy && saveDisabled && (
+        <p className="mt-2 text-xs text-meta">
+          Pick your hours and fill in the written answers to save
+          {v2.stuck ? " — including what you tried and what would help" : ""}.
+        </p>
+      )}
 
       {/* Your record — every past entry, readable in place (review, don't
           re-derive). Tap a row to open the full reflection. */}
@@ -533,13 +586,21 @@ export default function LearningLogCard({
           <ul className="space-y-1.5">
             {(showAll ? recent : recent.slice(0, 5)).map((log) => {
               const open = expanded.has(log.id);
+              const isV2 = log.schema_version === "v2";
               const summary =
+                log.contribution ||
+                log.learned ||
                 log.accomplished ||
                 log.exploring ||
                 log.next_focus ||
-                "Health check";
-              const hasBody =
-                !!(log.accomplished || log.exploring || log.next_focus);
+                (isV2 ? "Check-in" : "Health check");
+              const hasBody = !!(
+                log.contribution ||
+                log.learned ||
+                log.accomplished ||
+                log.exploring ||
+                log.next_focus
+              );
               return (
                 <li
                   key={log.id}
@@ -577,6 +638,46 @@ export default function LearningLogCard({
                   </button>
                   {open && (
                     <div className="space-y-1.5 border-t border-ink/10 px-3 py-2.5 text-sm text-charcoal break-words">
+                      {log.contribution && (
+                        <p>
+                          <span className="font-semibold text-ink">
+                            Contributed:
+                          </span>{" "}
+                          {log.contribution}
+                        </p>
+                      )}
+                      {log.learned && (
+                        <p>
+                          <span className="font-semibold text-ink">
+                            Learned:
+                          </span>{" "}
+                          {log.learned}
+                        </p>
+                      )}
+                      {log.stuck_tried && (
+                        <p>
+                          <span className="font-semibold text-ink">
+                            Tried:
+                          </span>{" "}
+                          {log.stuck_tried}
+                        </p>
+                      )}
+                      {isV2 && log.blocker_context && (
+                        <p>
+                          <span className="font-semibold text-ink">
+                            Help needed:
+                          </span>{" "}
+                          {log.blocker_context}
+                        </p>
+                      )}
+                      {log.recognition && (
+                        <p>
+                          <span className="font-semibold text-ink">
+                            Shout-out:
+                          </span>{" "}
+                          {log.recognition}
+                        </p>
+                      )}
                       {log.accomplished && (
                         <p>
                           <span className="font-semibold text-ink">
@@ -604,10 +705,29 @@ export default function LearningLogCard({
                           No written reflection on this one.
                         </p>
                       )}
-                      {!journal && (
+                      {isV2 ? (
                         <p className="text-xs text-meta">
-                          Clarity {log.clarity}/5 · Alignment {log.alignment}/5
+                          {[
+                            log.progress_rating != null &&
+                              `Progress ${log.progress_rating}/5`,
+                            log.energy_rating != null &&
+                              `Energy ${log.energy_rating}/5`,
+                            log.collab_rating != null &&
+                              `Collab ${log.collab_rating}/5`,
+                            log.hours_bucket,
+                            log.feeling_word && `“${log.feeling_word}”`,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
+                      ) : (
+                        !journal &&
+                        log.clarity != null && (
+                          <p className="text-xs text-meta">
+                            Clarity {log.clarity}/5 · Alignment{" "}
+                            {log.alignment}/5
+                          </p>
+                        )
                       )}
                     </div>
                   )}

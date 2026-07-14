@@ -85,25 +85,51 @@ export default async function PodSquadSections({
 
         {health.sample_size === 0 ? (
           <p className="mt-3 text-sm text-meta">
-            No logs yet. Once the pod starts logging, clarity and alignment
+            No logs yet. Once the pod starts logging, their check-in signals
             show up here.
           </p>
         ) : (
           <div className="mt-4 flex flex-wrap gap-6">
-            <div>
-              <p className="lbl">Clarity</p>
-              <p className="t-h3 text-ink">
-                {health.avg_clarity ?? "–"}
-                <span className="text-sm text-meta"> / 5</span>
-              </p>
-            </div>
-            <div>
-              <p className="lbl">Pod alignment</p>
-              <p className="t-h3 text-ink">
-                {health.avg_alignment ?? "–"}
-                <span className="text-sm text-meta"> / 5</span>
-              </p>
-            </div>
+            {/* v2 weekly-instrument averages (00087) — the live signals once
+                the pod is logging on the new questions. */}
+            {health.avg_progress != null && (
+              <div>
+                <p className="lbl">Progress</p>
+                <p className="t-h3 text-ink">
+                  {health.avg_progress}
+                  <span className="text-sm text-meta"> / 5</span>
+                </p>
+              </div>
+            )}
+            {health.avg_energy != null && (
+              <div>
+                <p className="lbl">Energy</p>
+                <p className="t-h3 text-ink">
+                  {health.avg_energy}
+                  <span className="text-sm text-meta"> / 5</span>
+                </p>
+              </div>
+            )}
+            {/* v1 averages — render only while recent v1 logs still exist
+                (milestone reviews, pre-cutover history). */}
+            {health.avg_clarity != null && (
+              <div>
+                <p className="lbl">Clarity</p>
+                <p className="t-h3 text-ink">
+                  {health.avg_clarity}
+                  <span className="text-sm text-meta"> / 5</span>
+                </p>
+              </div>
+            )}
+            {health.avg_alignment != null && (
+              <div>
+                <p className="lbl">Pod alignment</p>
+                <p className="t-h3 text-ink">
+                  {health.avg_alignment}
+                  <span className="text-sm text-meta"> / 5</span>
+                </p>
+              </div>
+            )}
             <div>
               <p className="lbl">Logged this window</p>
               <p className="t-h3 text-ink">

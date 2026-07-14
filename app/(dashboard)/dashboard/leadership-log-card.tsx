@@ -11,8 +11,10 @@ import { useRouter } from "next/navigation";
 
 export interface LeadershipTeamLog {
   participantName: string;
-  clarity: number;
-  alignment: number;
+  // Nullable since 00087 — mirrors lib/leadership-logs/context.ts's
+  // TeamLogEntry (org logs still write both; the column allows NULL).
+  clarity: number | null;
+  alignment: number | null;
   is_blocked: boolean;
   blocker_context: string | null;
   accomplished: string | null;
