@@ -4,13 +4,27 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /* Create a new field survey (draft). Ships with no questions — the builder
-   opens straight after so the admin can add them before opening it. */
+   opens straight after so the admin can add them before opening it. Every
+   survey is affiliated with a cycle at creation, one survey per cycle
+   (00089) — cycles that already have one render disabled. */
 
-export default function CreateSurveyForm() {
+export interface CycleOption {
+  id: number;
+  name: string;
+  status: string;
+  hasSurvey: boolean;
+}
+
+export default function CreateSurveyForm({
+  cycles,
+}: {
+  cycles: CycleOption[];
+}) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [domain, setDomain] = useState("");
+  const [cycleId, setCycleId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -26,6 +40,7 @@ export default function CreateSurveyForm() {
         title: title.trim(),
         share_slug: slug.trim(),
         problem_domain: domain.trim() || null,
+        cycle_id: Number(cycleId),
       }),
     }).catch(() => null);
     setSubmitting(false);
@@ -60,6 +75,21 @@ export default function CreateSurveyForm() {
       </h2>
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5 text-xs font-medium text-charcoal">
+          Cycle (one survey per cycle)
+          <select
+            value={cycleId}
+            onChange={(e) => setCycleId(e.target.value)}
+            className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+          >
+            <option value="">Choose a cycle…</option>
+            {cycles.map((c) => (
+              <option key={c.id} value={c.id} disabled={c.hasSurvey}>
+                {c.name} ({c.status}){c.hasSurvey ? " — has a survey" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5 text-xs font-medium text-charcoal">
           Title
           <input
             value={title}
@@ -90,7 +120,7 @@ export default function CreateSurveyForm() {
       <div className="mt-4 flex items-center gap-2">
         <button
           type="submit"
-          disabled={submitting || !title.trim() || !slug.trim()}
+          disabled={submitting || !title.trim() || !slug.trim() || !cycleId}
           className="btn btn-teal px-4 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Creating…" : "Create & edit"}
