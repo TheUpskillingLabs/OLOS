@@ -92,13 +92,11 @@ function BaselineScaleRow({
 }
 
 export default function BaselineSection({
-  cycleName,
   questions,
   aiUsageOptions,
   value,
   onChange,
 }: {
-  cycleName: string;
   questions: BaselineQuestion[];
   aiUsageOptions: { value: number; label: string }[];
   value: BaselineAnswers;
@@ -117,14 +115,7 @@ export default function BaselineSection({
 
   return (
     <div className="mt-5 space-y-6 rounded-card border border-teal/20 bg-teal/[0.04] p-4">
-      <div>
-        <p className="lbl">Baseline</p>
-        <h3 className="t-h4 text-ink">Baseline Learning Log — {cycleName}</h3>
-        <p className="mt-1 text-sm text-charcoal">
-          A one-time snapshot before you start — your answers set the baseline
-          we&apos;ll measure growth against.
-        </p>
-      </div>
+      <h3 className="t-h4 text-ink">Cycle onboarding</h3>
 
       {/* AI-usage frequency — the one required pick, as a radio-pill group. */}
       {choiceQuestion && (

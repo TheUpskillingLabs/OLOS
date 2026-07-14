@@ -358,7 +358,7 @@ export default function LearningLogCard({
             </p>
             <h2 className="t-h3 text-ink">
               {baseline
-                ? `Baseline Learning Log — ${baseline.cycleName}`
+                ? "Cycle onboarding"
                 : activeMilestone
                   ? activeMilestone.label
                   : "Learning Log"}
@@ -426,7 +426,6 @@ export default function LearningLogCard({
 
       {baseline && (
         <BaselineSection
-          cycleName={baseline.cycleName}
           questions={baseline.questions}
           aiUsageOptions={baseline.aiUsageOptions}
           value={baselineAnswers}
