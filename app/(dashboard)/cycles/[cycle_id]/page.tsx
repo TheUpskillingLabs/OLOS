@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { windowOpen, fmtLabDate } from "@/lib/cycles/lab-time";
-import { BookOpen, ArrowRight, ChevronLeft } from "lucide-react";
+import { BookOpen, ArrowRight, ChevronLeft, ClipboardList } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import { cycleInfoContent } from "@/lib/cycles/info";
+import { getFieldSurveyForCycle } from "@/lib/content/surveys";
 
 type CycleStatus = "active" | "closed" | "draft";
 type PodStatus = "active" | "forming" | "closed" | "inactive";
@@ -48,11 +49,18 @@ export default async function CycleDetailPage({
 
   const { data: cycle } = await supabase
     .from("cycles")
-    .select("id, name, slug, start_date, end_date, status")
+    .select("id, name, slug, start_date, end_date, status, sector_id")
     .eq("id", parseInt(cycle_id))
     .single();
 
   if (!cycle) notFound();
+
+  // The cycle's open field survey (cycle-tied, else sector commons) — same
+  // resolution the dashboard uses for the member's first CTA.
+  const fieldSurvey = await getFieldSurveyForCycle(
+    cycle.id,
+    cycle.sector_id ?? null
+  );
 
   const { data: pods } = await supabase
     .from("pods")
@@ -164,6 +172,39 @@ export default async function CycleDetailPage({
               </div>
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Insights survey — link + a two-line explainer of what it is and why
+          we run one (grounding the cycle in real problems, not assumptions) */}
+      {fieldSurvey && (
+        <div className="mb-8">
+          <Link
+            href={`/survey/${fieldSurvey.share_slug}`}
+            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+          >
+            <div className="flex items-center gap-3">
+              <ClipboardList
+                className="h-5 w-5 flex-shrink-0 text-teal-deep"
+                aria-hidden
+              />
+              <div>
+                <span className="font-semibold tracking-tight text-ink">
+                  Insights survey: {fieldSurvey.title}
+                </span>
+                <p className="mt-0.5 text-sm text-meta">
+                  A short, open survey for anyone close to this cycle&apos;s
+                  theme. First-hand observations are how we make sure pods work
+                  on real problems, not assumptions — take it, then share it
+                  with a friend.
+                </p>
+              </div>
+            </div>
+            <ArrowRight
+              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              aria-hidden
+            />
+          </Link>
         </div>
       )}
 
