@@ -833,6 +833,15 @@ button:focus-visible {
     .dash-12 > .dash-center { grid-column: 4 / span 6; grid-row: 1; }
     .dash-12 > .dash-right { grid-column: 10 / span 3; grid-row: 1; position: sticky; top: 88px; align-self: start; }
   }
+  /* Phone feed-first order (LinkedIn posture): the center column's task group
+     (.dash-defer) visually drops below the strip + composer + feed without
+     changing the DOM, which stays in desktop order. A deliberate, coarse
+     two-block divergence between reading order and visual order, confined to
+     <768px — screen readers and tab order still meet the tasks first. */
+  @media (max-width: 767.98px) {
+    .dash-center { display: flex; flex-direction: column; }
+    .dash-center > .dash-defer { order: 1; }
+  }
 }
 
 @keyframes pulse {
