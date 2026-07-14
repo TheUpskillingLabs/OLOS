@@ -102,7 +102,7 @@ export const POST = withAuth(
         return NextResponse.json(
           {
             error:
-              "We couldn't match your Cycle onboarding Learning Log to a cycle you're registered for. Refresh the page and try again.",
+              "We couldn't match your Cycle Onboarding Learning Log to a cycle you're registered for. Refresh the page and try again.",
           },
           { status: 400 }
         );
@@ -244,7 +244,7 @@ export const POST = withAuth(
           return NextResponse.json(
             {
               error:
-                "You've already completed your Cycle onboarding Learning Log for this cycle — refresh to see your weekly log.",
+                "You've already completed your Cycle Onboarding Learning Log for this cycle — refresh to see your weekly log.",
             },
             { status: 409 }
           );

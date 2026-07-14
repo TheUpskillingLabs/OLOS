@@ -374,7 +374,7 @@ export default function LearningLogCard({
             </p>
             <h2 className="t-h3 text-ink">
               {baseline
-                ? "Cycle onboarding Learning Log"
+                ? "Cycle Onboarding Learning Log"
                 : activeMilestone
                   ? activeMilestone.label
                   : "Learning Log"}
@@ -456,6 +456,18 @@ export default function LearningLogCard({
             )
           }
         />
+      )}
+
+      {/* During onboarding the weekly questions sit below the one-time
+          baseline block — this heading marks where the recurring part
+          starts. */}
+      {baseline && (
+        <div className="mt-6">
+          <h3 className="t-h4 text-ink">Weekly Learning Log</h3>
+          <p className="mt-1 text-sm text-charcoal">
+            You&apos;ll fill this out every week
+          </p>
+        </div>
       )}
 
       {/* Part 1 — health check (private). Cycle practice only: it's the
