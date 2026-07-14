@@ -734,7 +734,6 @@ export default async function DashboardPage() {
         metroName={labName}
         avatarUrl={avatarUrl}
         initials={initials}
-        handle={participant.handle}
         followingCount={followingTotal ?? 0}
       />
       <MembershipsPanel
