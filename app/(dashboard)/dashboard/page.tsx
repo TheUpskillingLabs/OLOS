@@ -570,7 +570,31 @@ export default async function DashboardPage() {
   // The prominent first-CTA card — the visual lead for the cohort's opening
   // activity. Renders above the setup checklist in every state where the cohort
   // has an open survey; pairs "contribute" with "share" (Stage 1 = Distribute).
-  const fieldSurveyCard = (survey: FieldSurvey) => (
+  // Once the member has contributed, the big pitch has done its job — collapse
+  // to a strip (same shape as the checklist's collapsed state) with the two
+  // follow-on actions. Sharing keeps its own Up-next card.
+  const fieldSurveyCard = (survey: FieldSurvey) =>
+    surveyContributed ? (
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-card border border-ink/10 bg-white px-5 py-3 shadow-card">
+        <span className="text-sm font-semibold text-teal-deep">
+          Field survey · Contributed ✓
+        </span>
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <Link
+            href={`/survey/${survey.share_slug}`}
+            className="font-semibold text-teal-deep hover:underline"
+          >
+            Add another →
+          </Link>
+          <Link
+            href={`/survey/${survey.share_slug}/results`}
+            className="text-meta transition-colors hover:text-teal-deep hover:underline"
+          >
+            See what the cycle is finding →
+          </Link>
+        </span>
+      </div>
+    ) : (
     <section className="mb-6 rounded-card border border-teal/30 bg-white p-6 shadow-card">
       <div className="lbl lbl-teal mb-2">Start here · Field survey</div>
       <h2 className="t-h3 text-ink">{survey.title}</h2>
@@ -584,9 +608,7 @@ export default async function DashboardPage() {
           href={`/survey/${survey.share_slug}`}
           className="inline-flex items-center gap-1.5 rounded-card bg-teal-deep px-4 py-2 text-sm font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
-          {surveyContributed
-            ? "Add another observation"
-            : "Contribute an observation"}
+          Contribute an observation
           <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
         <ShareSurveyButton slug={survey.share_slug} title={survey.title} />
