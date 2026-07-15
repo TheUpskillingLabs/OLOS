@@ -2,6 +2,15 @@
 
 Raw feedback thoughts captured during hands-on testing. **Not yet deduped** against changes already made — review and reconcile before acting.
 
+## How to add feedback
+
+Add a row to the table below (next number, today's date) and, if there's more to say than fits in a row, a matching `### N — Title (date)` section under **Details**. Every entry should cover four things:
+
+1. **Describe the issue** — what you observed and, where it isn't obvious, what you expected instead. Concrete beats general: name the page/flow and what you were doing.
+2. **Urgency** — does it feel urgent (blocks or breaks something people are actively using) or can it wait? Say so explicitly.
+3. **Needs more thought?** — is the fix clear-cut, or does it need design/product judgement before anyone implements it? Flag open questions rather than implying the fix is settled.
+4. **Who's submitting** — your name, so follow-up questions have somewhere to go.
+
 Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 
 | # | Date | Area | Feedback | Status |
