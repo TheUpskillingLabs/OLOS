@@ -18,6 +18,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | 🆕 |
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🆕 |
 | 12 | 2026-07-14 | Cycles / pods | Closing a cycle doesn't touch its pods — the Energy & Climate pods still showed `active` in prod after the cycle went `closed`. Rule: when a cycle's status flips to `closed`, set its pods `inactive` in the same admin action. | 🆕 |
+| 13 | 2026-07-15 | Problem statements | Users should be able to **view and edit** their problem statements after submission — right now there's just a small card/preview of what they submitted. Extends #2. | 🆕 |
 
 ## Details
 
@@ -116,6 +117,13 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Data fix (applied by hand to prod, 2026-07-14):** `UPDATE pods SET status = 'inactive' WHERE cycle_id = 1 AND status = 'active';` — note `pods_status_check` (00063) allows only `forming/active/inactive/dissolved`; `'closed'` exists in UI badge mappings (`POD_STATUS_VARIANT`) but not in the DB constraint. First attempt with `'closed'` bounced off the CHECK.
 
 **Rule to implement:** when an admin sets a cycle's status to `closed`, set its pods `inactive` in the same action (in the admin cycle-update route — keep `pods.status` authoritative rather than deriving the badge from the cycle, so the column keeps one meaning). While there, reconcile the UI's phantom `closed` pod status with the DB's actual value set.
+
+### 13 — View and edit problem statements after submission (2026-07-15)
+**Observed:** After submitting a problem statement, all you get back is a small card/preview of what you submitted. There's no way to open the full submission, and no way to edit it after the fact.
+
+**Expected:** A full view of your own submitted problem statement(s), plus the ability to edit them after submission (at least while the submission window is still open).
+
+**To investigate:** Extends #2 (which covered *seeing* the submission at all — the preview card partially answers that; reconcile #2's status). For edit: whether any update path exists on the problem-statements API (likely only POST today), what edit window makes sense (e.g. until the submission window closes / voting opens — editing after votes are cast is problematic), and where the edit surface should live (the cycle page card → detail view → edit form).
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
