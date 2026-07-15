@@ -1001,7 +1001,7 @@ export default async function DashboardPage() {
       id: "share-survey",
       title: "Share the insights survey with a friend",
       detail:
-        "More voices from the field keep the cohort pointed at real problems.",
+        "More voices from the field keep the cycle pointed at real problems.",
       href: `/survey/${fieldSurvey.share_slug}`,
       cta: "Open survey",
       secondaryHref: `/survey/${fieldSurvey.share_slug}/results`,
