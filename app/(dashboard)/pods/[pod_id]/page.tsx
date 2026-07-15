@@ -11,7 +11,8 @@ import FollowButton from "@/app/components/follow-button";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
 
-type PodStatus = "active" | "forming" | "closed" | "inactive";
+// Matches pods_status_check (00063): forming/active/inactive/dissolved.
+type PodStatus = "active" | "forming" | "inactive" | "dissolved";
 
 const POD_STATUS_VARIANT: Record<
   PodStatus,
@@ -19,8 +20,8 @@ const POD_STATUS_VARIANT: Record<
 > = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 export default async function PodDetailPage({

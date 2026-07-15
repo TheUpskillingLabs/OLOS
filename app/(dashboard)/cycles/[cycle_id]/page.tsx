@@ -8,7 +8,8 @@ import { cycleInfoContent } from "@/lib/cycles/info";
 import { getFieldSurveyForCycle } from "@/lib/content/surveys";
 
 type CycleStatus = "active" | "closed" | "draft";
-type PodStatus = "active" | "forming" | "closed" | "inactive";
+// Matches pods_status_check (00063): forming/active/inactive/dissolved.
+type PodStatus = "active" | "forming" | "inactive" | "dissolved";
 
 const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
   active: "active",
@@ -22,8 +23,8 @@ const POD_STATUS_VARIANT: Record<
 > = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 const WINDOW_ROUTES: {
