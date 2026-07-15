@@ -253,6 +253,7 @@ export default async function ProjectDetailPage({
               id={project.id}
               initialFollowing={pageCtx.following}
               size="sm"
+              refreshOnChange
             />
           )}
         </div>

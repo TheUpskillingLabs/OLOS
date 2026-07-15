@@ -117,6 +117,7 @@ export default async function PodDetailPage({
               id={pod.id}
               initialFollowing={pageCtx.following}
               size="sm"
+              refreshOnChange
             />
           )}
         </div>
