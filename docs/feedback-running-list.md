@@ -2,6 +2,15 @@
 
 Raw feedback thoughts captured during hands-on testing. Deduped against merged work in the 2026-07-15 triage pass (every line below was verified against code on main/dev; "triage branch" = the 2026-07-15 feedback-triage branch).
 
+## How to add feedback
+
+Add a row to the table below (next number, today's date) and, if there's more to say than fits in a row, a matching `### N — Title (date)` section under **Details**. Every entry should cover four things:
+
+1. **Describe the issue** — what you observed and, where it isn't obvious, what you expected instead. Concrete beats general: name the page/flow and what you were doing.
+2. **Urgency** — does it feel urgent (blocks or breaks something people are actively using) or can it wait? Say so explicitly.
+3. **Needs more thought?** — is the fix clear-cut, or does it need design/product judgement before anyone implements it? Flag open questions rather than implying the fix is settled.
+4. **Who's submitting** — your name, so follow-up questions have somewhere to go.
+
 Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do · 🧭 needs a product decision
 
 | # | Date | Area | Feedback | Status |
@@ -18,6 +27,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do ·
 | 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | ✅ |
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🧭 |
 | 12 | 2026-07-14 | Cycles / pods | Closing a cycle doesn't touch its pods — the Energy & Climate pods still showed `active` in prod after the cycle went `closed`. Rule: when a cycle's status flips to `closed`, set its pods `inactive` in the same admin action. | ✅ |
+| 13 | 2026-07-15 | Problem statements | Users should be able to **view and edit** their problem statements after submission — right now there's just a small card/preview of what they submitted. Extends #2. | 🆕 |
 
 ## Details
 
@@ -130,6 +140,13 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Rule to implement:** when an admin sets a cycle's status to `closed`, set its pods `inactive` in the same action (in the admin cycle-update route — keep `pods.status` authoritative rather than deriving the badge from the cycle, so the column keeps one meaning). While there, reconcile the UI's phantom `closed` pod status with the DB's actual value set.
 
 **Addressed (verified 2026-07-15):** The cascade already exists — `/api/cycles/[cycle_id]/status` calls `closeOutCycle()` (`lib/cycle/closeout.ts`) on `closed`/`archived`, which sets pods → **`dissolved`** (not `inactive` — a deliberate distinction), stamps memberships/moderator assignments, and graduates projects. The prod Energy & Climate pods predated this. The phantom-`closed` cleanup landed on the triage branch: every pod/project badge map now carries `dissolved` and drops `closed` (neither DB CHECK ever allowed it), and the directory's "inactive" filter matches `dissolved`. Note for admins: closed-cycle pods read **dissolved**, not inactive.
+
+### 13 — View and edit problem statements after submission (2026-07-15)
+**Observed:** After submitting a problem statement, all you get back is a small card/preview of what you submitted. There's no way to open the full submission, and no way to edit it after the fact.
+
+**Expected:** A full view of your own submitted problem statement(s), plus the ability to edit them after submission (at least while the submission window is still open).
+
+**To investigate:** Extends #2, whose fix (propose-form echo + the "Your problem statements" section on the cycle page) covers *seeing* the submission — a full detail view and editing are still missing. For edit: whether any update path exists on the problem-statements API (likely only POST today), what edit window makes sense (e.g. until the submission window closes / voting opens — editing after votes are cast is problematic), and where the edit surface should live (the cycle page card → detail view → edit form).
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
