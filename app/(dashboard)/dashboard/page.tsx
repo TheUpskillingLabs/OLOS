@@ -762,7 +762,6 @@ export default async function DashboardPage() {
         metroName={labName}
         avatarUrl={avatarUrl}
         initials={initials}
-        handle={participant.handle}
         followingCount={followingTotal ?? 0}
       />
       <MembershipsPanel
@@ -999,6 +998,20 @@ export default async function DashboardPage() {
         ];
       })
     : [];
+  // Distributing the field survey rides the same list (SENSEMAKING_FLOW §2,
+  // Stage 1 "Distribute") — unlike the window todos it isn't deadline-bound,
+  // just open while the cohort's survey is. getFieldSurveyForCycle only
+  // returns open surveys, so presence is the whole gate.
+  if (fieldSurvey) {
+    upNextTodos.push({
+      id: "share-survey",
+      title: "Share the insights survey with a friend",
+      detail:
+        "More voices from the field keep the cohort pointed at real problems.",
+      href: `/survey/${fieldSurvey.share_slug}`,
+      cta: "Open survey",
+    });
+  }
 
   // The per-week "What's next" nudge (weekly_messages — program-global, the
   // cycle only supplies which week it is) — surfaced only once the member has

@@ -17,6 +17,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
 | 9 | 2026-07-12 | Pages / admins | Adding page admins shouldn't happen from a page's "view" page — removed from the pod page for now; decide where page-admin management belongs. | 🆕 |
 | 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | 🆕 |
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🆕 |
+| 12 | 2026-07-14 | Cycles / pods | Closing a cycle doesn't touch its pods — the Energy & Climate pods still showed `active` in prod after the cycle went `closed`. Rule: when a cycle's status flips to `closed`, set its pods `inactive` in the same admin action. | 🆕 |
 
 ## Details
 
@@ -106,6 +107,15 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Needs judgement:** When someone is in a city without a Local Lab and joins the waitlist, decide what else we should capture beyond the basics — e.g. specific city/metro, how many others they know who'd join, willingness to help start/lead a lab, sector interest, contact/notify preferences. The answers shape whether/when we stand up a new lab.
 
 **To figure out:** the intended data model + form for the no-lab / waitlist path (relates to the Local Labs model, `docs/LOCAL_LABS.md`, and the active-lab gate that currently holds lab-less members out of cycle registration). Define the fields, then wire the waitlist capture.
+
+### 12 — Pods stay `active` after their cycle closes (2026-07-14)
+**Observed:** All four Energy & Climate pods (prod cycle 1, `status='closed'`) still carried `pods.status='active'` and rendered active badges everywhere. Same latent state on the three HQ org pods (`active` under a `draft` cycle).
+
+**Root cause (confirmed 2026-07-14):** `pods.status` is an independent, manually-managed column — no cascade exists anywhere (admin cycle routes, triggers, migrations) that touches pods when a cycle's status changes. Every surface renders `pods.status` straight from the table.
+
+**Data fix (applied by hand to prod, 2026-07-14):** `UPDATE pods SET status = 'inactive' WHERE cycle_id = 1 AND status = 'active';` — note `pods_status_check` (00063) allows only `forming/active/inactive/dissolved`; `'closed'` exists in UI badge mappings (`POD_STATUS_VARIANT`) but not in the DB constraint. First attempt with `'closed'` bounced off the CHECK.
+
+**Rule to implement:** when an admin sets a cycle's status to `closed`, set its pods `inactive` in the same action (in the admin cycle-update route — keep `pods.status` authoritative rather than deriving the badge from the cycle, so the column keeps one meaning). While there, reconcile the UI's phantom `closed` pod status with the DB's actual value set.
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
