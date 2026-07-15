@@ -1,23 +1,23 @@
 # Feedback — Running List
 
-Raw feedback thoughts captured during hands-on testing. **Not yet deduped** against changes already made — review and reconcile before acting.
+Raw feedback thoughts captured during hands-on testing. Deduped against merged work in the 2026-07-15 triage pass (every line below was verified against code on main/dev; "triage branch" = the 2026-07-15 feedback-triage branch).
 
-Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do
+Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do · 🧭 needs a product decision
 
 | # | Date | Area | Feedback | Status |
 |---|------|------|----------|--------|
-| 1 | 2026-07-12 | Cycle registration | Can't register for a cycle while the problem-statement window is open, but registration *should* be allowed during that window. **Root cause confirmed** — Register CTA only renders for `status='upcoming'` cycles; disappears once cycle goes `active`. | 🔍 |
-| 2 | 2026-07-12 | Problem statements | After submitting a problem statement, I should be able to see my own submission (confirmation / list of what I submitted). | 🆕 |
+| 1 | 2026-07-12 | Cycle registration | Can't register for a cycle while the problem-statement window is open, but registration *should* be allowed during that window. **Root cause confirmed** — Register CTA only renders for `status='upcoming'` cycles; disappears once cycle goes `active`. | ✅ |
+| 2 | 2026-07-12 | Problem statements | After submitting a problem statement, I should be able to see my own submission (confirmation / list of what I submitted). | ✅ |
 | 3 | 2026-07-12 | Voting UX | Exceeding vote budget: interaction is confusing (shows "can't click" icon, buffers, then applies one vote anyway), and the follow-up error message on trying again isn't clear. Should say "You have used all of your votes. Remove votes from a problem statement before adding them to a new one." | ✅ |
 | 4 | 2026-07-12 | Voting UX | Can't see where my votes went — no visibility into which problem statement(s) I've allocated votes to. | ✅ |
 | 5 | 2026-07-12 | Voting UX | No ability to remove/undo votes once cast on a problem statement. | ✅ |
-| 6 | 2026-07-12 | Profile | Should be able to auto-fill state from zipcode (state lookup from zip) instead of entering it manually. | 🆕 |
-| 7 | 2026-07-12 | Profile | Availability isn't populating in the profile after completing cycle registration — the availability captured during registration should carry through to the profile. | 🆕 |
-| 8 | 2026-07-12 | Dashboard | The "You're pre-registered" card is a dead end — it should link through to the cycle page. | 🆕 |
-| 9 | 2026-07-12 | Pages / admins | Adding page admins shouldn't happen from a page's "view" page — removed from the pod page for now; decide where page-admin management belongs. | 🆕 |
-| 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | 🆕 |
-| 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🆕 |
-| 12 | 2026-07-14 | Cycles / pods | Closing a cycle doesn't touch its pods — the Energy & Climate pods still showed `active` in prod after the cycle went `closed`. Rule: when a cycle's status flips to `closed`, set its pods `inactive` in the same admin action. | 🆕 |
+| 6 | 2026-07-12 | Profile | Should be able to auto-fill state from zipcode (state lookup from zip) instead of entering it manually. | ✅ |
+| 7 | 2026-07-12 | Profile | Availability isn't populating in the profile after completing cycle registration — the availability captured during registration should carry through to the profile. | ✅ |
+| 8 | 2026-07-12 | Dashboard | The "You're pre-registered" card is a dead end — it should link through to the cycle page. | ✅ |
+| 9 | 2026-07-12 | Pages / admins | Adding page admins shouldn't happen from a page's "view" page — removed from the pod page for now; decide where page-admin management belongs. | 🧭 |
+| 10 | 2026-07-12 | Auth / login | The intro/welcome screen shows even when signing back in — it should only appear when creating an account, not on return login. | ✅ |
+| 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🧭 |
+| 12 | 2026-07-14 | Cycles / pods | Closing a cycle doesn't touch its pods — the Energy & Climate pods still showed `active` in prod after the cycle went `closed`. Rule: when a cycle's status flips to `closed`, set its pods `inactive` in the same admin action. | ✅ |
 
 ## Details
 
@@ -36,10 +36,14 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 
 **To dedupe against:** the pod-registration redesign (two status-keyed windows, decoupling membership from enrollment) — likely the intended home for a proper registration window. Reconcile before implementing.
 
+**Addressed (2026-07-15):** The pod-registration redesign had already delivered (b) — the derived D-10 window (`registrationWindow()` in `lib/cycles/schedule.ts`, reading `cycle_phases`/`cycle_config`) — and the dashboard already surfaced a window-gated Register into the active cycle. The remaining UI gap was parity: `/cycles` still keyed its Register cards on `status='upcoming'`, and the cycle detail page had no Register entry at all. Triage branch: `/cycles` now includes the active cycle in "Open for registration" when the viewer hasn't signed its agreement and the window is open, and the cycle detail page gets the same window-gated Register card.
+
 ### 2 — Can't see my own problem statement after submitting (2026-07-12)
 **Observed:** After submitting a problem statement, there's no way to view my own submission — no confirmation showing what I submitted, and it doesn't appear in a "my submissions" list. Expectation is that once submitted, I can see my problem statement(s) back.
 
 **To investigate:** whether the propose flow shows a post-submit confirmation of the actual text, and whether the cycle page / a "my problem statements" view lists the current user's own submissions. The GET route (`app/api/problem-statements/[cycle_id]/route.ts`) filters by the viewer's `metro_id`/lab — check whether that filtering hides the user's own just-submitted statement (e.g. metro mismatch, or listing only surfaces during the voting phase).
+
+**Addressed (2026-07-15, triage branch):** Confirmed statements were only ever listed on the vote ballot during voting. Two additions: (a) the propose form's submitted screen now echoes the statement + how-might-we question back, with a Back-to-dashboard action; (b) the cycle detail page shows a "Your problem statements" section in every phase — an owner-scoped query on the page itself, deliberately not a change to the shared GET route (its per-lab filter shapes the ballot and stays as designed). Residual edge: a member who changes labs after submitting still won't see their old-lab statement on the *ballot* — by design under per-lab voting, and the cycle page now covers visibility.
 
 ### 3 — Confusing UX when a vote exceeds the vote budget (2026-07-12)
 **Observed:** When casting a vote that would exceed the participant's vote budget, the UI shows a "can't click" cursor icon, buffers, and then applies one vote anyway (inconsistent with the disabled-looking state). Trying to vote again afterward shows an error, but the error message isn't clear about *why*.
@@ -75,6 +79,8 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 
 **To investigate:** the profile edit form (`app/(dashboard)/profile/edit/`) and whatever registration/profile forms collect location — where zip and state are captured, and whether a zip→state mapping/util already exists in `lib/`.
 
+**Addressed (2026-07-15, triage branch):** No zip→state util existed (`metroFromZip` maps zip→lab, not state). Added `lib/zip-state.ts` — a 3-digit-prefix map covering the DC-metro set the state field actually allows (MD/DC/VA/Other, incl. the 201-is-VA wrinkle), with tests — and the profile edit form now sets the state select when a 5-digit zip is completed; the select stays editable as the manual fallback.
+
 ### 7 — Availability not carried from cycle registration into profile (2026-07-12)
 **Observed:** After completing cycle registration (which captures availability), the profile doesn't show that availability — it reads as empty/unpopulated.
 
@@ -82,12 +88,16 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 
 **To investigate:** where the cycle-registration/join flow (`/cycles/[id]/join` + `api/cycles/[id]/agreement`) stores availability vs. where the profile reads it — likely a mismatch between the registration-captured field and the profile's source column (or it's saved on an enrollment/agreement row but never surfaced on the participant profile).
 
+**Addressed (already fixed, verified 2026-07-15):** Exactly the suspected mismatch — the ceremony captured `"2–4 hrs / week"`-style strings while the `availability` option list held older `"< 2 hrs/week"` values, so the agreement route's mirror silently no-op'd. Migration `00082_availability_reg_hours.sql` rebuilt the option list to match the ceremony strings byte-for-byte; the full capture (`ceremony.tsx` HOURS) → mirror (`agreement/route.ts`) → read (`participant_options` → profile) chain is intact. **Verify 00082 is applied in prod.**
+
 ### 8 — "Pre-registered" card should link to the cycle page (2026-07-12)
 **Observed:** When the dashboard shows the "You're pre-registered" state for an upcoming cohort, the card is static — there's no way to click through to the cycle's page to see details.
 
 **Expected:** The pre-registered card should be (or contain) a link to `/cycles/[cycle_id]` so a member can open the cohort page from it.
 
 **To investigate:** `preRegisteredCard` in `app/(dashboard)/dashboard/page.tsx` (~line 610) renders a plain `<div>` with no link — wrap it in a `<Link href={\`/cycles/${cycle.id}\`}>` (or add a "View cycle" CTA), matching the clickable `joinCycleCard` right above it.
+
+**Addressed (2026-07-15, triage branch):** Exactly that — the card is now a `<Link>` to `/cycles/[id]` with a "View cycle" CTA and the join card's hover affordance.
 
 ### 9 — Page-admin management doesn't belong on the "view" page (2026-07-12)
 **Observed:** The pod view page (`/pods/[id]`) exposed the "Page admins" manager (add/remove admins) inline. Adding page admins from the public-ish view surface is the wrong place for it.
@@ -103,6 +113,8 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 
 **To investigate:** the sign-in flow under `app/(auth)/` and `lib/auth/` — where the intro/welcome step is rendered and whether it can branch on new-account vs. existing-account (e.g. distinguish sign-up from sign-in, or skip the intro when the auth user already has a participant record). See `lib/auth/CLAUDE.md` for the sign-in/role-resolution flow.
 
+**Addressed (already fixed, verified 2026-07-15):** The July "two doors" login rework resolved this — `login-card.tsx` renders a bare sign-in for the Log-in door (intro/benefits only behind `?intent=join`/invites), `api/auth/callback` sends returning members straight to `/dashboard`, and `/register` redirects existing participants away. If a tester still hits an intro on return login, capture the exact URL — the branch logic is in place.
+
 ### 11 — What to collect when joining the waitlist for a lab in another city (2026-07-12)
 **Needs judgement:** When someone is in a city without a Local Lab and joins the waitlist, decide what else we should capture beyond the basics — e.g. specific city/metro, how many others they know who'd join, willingness to help start/lead a lab, sector interest, contact/notify preferences. The answers shape whether/when we stand up a new lab.
 
@@ -117,23 +129,25 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 
 **Rule to implement:** when an admin sets a cycle's status to `closed`, set its pods `inactive` in the same action (in the admin cycle-update route — keep `pods.status` authoritative rather than deriving the badge from the cycle, so the column keeps one meaning). While there, reconcile the UI's phantom `closed` pod status with the DB's actual value set.
 
+**Addressed (verified 2026-07-15):** The cascade already exists — `/api/cycles/[cycle_id]/status` calls `closeOutCycle()` (`lib/cycle/closeout.ts`) on `closed`/`archived`, which sets pods → **`dissolved`** (not `inactive` — a deliberate distinction), stamps memberships/moderator assignments, and graduates projects. The prod Energy & Climate pods predated this. The phantom-`closed` cleanup landed on the triage branch: every pod/project badge map now carries `dissolved` and drops `closed` (neither DB CHECK ever allowed it), and the directory's "inactive" filter matches `dissolved`. Note for admins: closed-cycle pods read **dissolved**, not inactive.
+
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
 ### Fix Now (blocks or breaks initial Cycle registration)
 
 **Registration**
 - Remove helper text on names/zip — *Confusing interaction* — ✅ (#227)
-- Fix broken links in Participant Agreement — *Bug*
-- Fix "Washington, DC, DC" location rendering — *Bug*
+- Fix broken links in Participant Agreement — *Bug* — ✅ (verified 2026-07-15: agreement body has no inline links; its references — /terms, /privacy, /code-of-conduct — all exist as pages and render as real anchors in `flow-screen.tsx`; the feedback likely predated those pages)
+- Fix "Washington, DC, DC" location rendering — *Bug* — ✅ (`lib/metros-label.ts` `metroLabel()`, with tests)
 
 **Registering for Cycle**
-- First page needs to explain the Theme before asking what draws them to it — *Confusing interaction*
-- Add a description of what the Cycle will cover — *Missing behavior*
-- Fix helper text (Jennifer flagged as confusing) — *Confusing interaction*
+- First page needs to explain the Theme before asking what draws them to it — *Confusing interaction* — ✅ (ceremony steps 1–2 explain the cycle + theme before `theme_interest`; copy from `lib/cycles/info.ts` + `cycle_config.theme_description`, 00084)
+- Add a description of what the Cycle will cover — *Missing behavior* — ✅ (same — `what_is_a_build_cycle` step)
+- Fix helper text (Jennifer flagged as confusing) — *Confusing interaction* — 🧭 which string? Candidates are the `help` fields in `ceremony.tsx` (theme_interest, learning_goals, professional_goals, signature) — ask Jennifer to point at it, then it's a copy-only fix
 - Soften date language ("I'll make my best effort to be there") — *Copy* — ✅ (#226)
 - List dates out more clearly — *Copy* — ✅ (#226)
-- "All Cycles" view still shows "Register" for a Cycle the user is already registered in — *Bug* — ⏳ (#226 touched the Register CTA — verify) · see table #1
-- Fix "active" definition — participants should be active by default until proven inactive — *Bug*
+- "All Cycles" view still shows "Register" for a Cycle the user is already registered in — *Bug* — ✅ (verified: `registeredCycleIds` flips the CTA to "You're registered — view details") · see table #1
+- Fix "active" definition — participants should be active by default until proven inactive — *Bug* — 🧭 **high-risk, needs product definition first**: current behavior is the opposite by design (`cycle_enrollments` default `'inactive'`; only an active pod membership promotes via `lib/enrollment/reconciler.ts`). Redefining touches the DB default, the shared reconciler, revocation paths, and directory/moderator surfaces — define "proven inactive" before any code
 
 **Dashboard**
 - Reorder To Do list so civics/elections registration comes first — *Confusing interaction* — ✅ (#228)
@@ -141,10 +155,10 @@ Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feed
 - "Choose a pod" appears on To Do list after Cycle registration when no pod is open yet — *Bug* — ✅ (#228, window-gated pod row)
 
 **Learning Log** *(flagged — Friday deadline)*
-- First Learning Log needs to be live and set a baseline pegged to SDT — *Missing behavior*
+- First Learning Log needs to be live and set a baseline pegged to SDT — *Missing behavior* — ✅ (#264, merged to main and dev)
 
 **Events** *(flagged — data-integrity call)*
-- App registration for events skips the Luma registration questions — *Data integrity*
+- App registration for events skips the Luma registration questions — *Data integrity* — 🧭 **verified to be a documented design decision**, not a bug: `api/events/[event_id]/rsvp/route.ts` deliberately one-tap-registers signed-in members via the Luma guest-list API without Luma's questions (rationale: the Participant Agreement, incl. photo clause, already covers consent; anonymous visitors are linked out to Luma's own page, which does ask). Confirm the rationale holds or reverse it (reversal = a sizable Luma-API integration)
 
 ### Fix Soon (post-registration UX, polish, bugs)
 
@@ -155,50 +169,50 @@ Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feed
 - "Add events" at end of registration should pull in Luma events with one-click register — *Missing behavior*
 
 **Profile**
-- Slug numbers (do we need them?) — *UX polish*
-- Prefill zip, role, hours based on sign-up and Cycle registration — *Missing behavior* — ⏳ hours ✅ (#238); zip→state is table #6; role open
-- Save Profile scrolls to top but success message is at bottom — *Bug*
-- Add pinned "back" button — *Missing behavior*
-- Fix Profile "back" — should return to dashboard, not directory — *Bug*
-- Consolidate View and Edit Profile — *Confusing interaction*
+- Slug numbers (do we need them?) — *UX polish* — ✅ (00083 desuffixes handles where the base is unclaimed; the 00044 trigger still suffixes genuine collisions). ⚠️ **Prod decision**: applying 00083 changes `/u/[handle]` URLs with no redirect — previously shared numbered links 404
+- Prefill zip, role, hours based on sign-up and Cycle registration — *Missing behavior* — ✅ hours (#238); zip→state (triage branch, table #6); role was already wired — `participants.role_intents` is a shared column that flows sign-up → profile edit, nothing to build
+- Save Profile scrolls to top but success message is at bottom — *Bug* — ✅ (confirmation now renders at the top of the form, comment cites this feedback)
+- Add pinned "back" button — *Missing behavior* — 🧭 the profile back link exists but isn't sticky; decide whether the persistent chrome (logo + Home nav + mobile tab, all → /dashboard) already satisfies this before adding another affordance
+- Fix Profile "back" — should return to dashboard, not directory — *Bug* — ✅ (`member-profile-view.tsx` owner mode: "← Back to dashboard")
+- Consolidate View and Edit Profile — *Confusing interaction* — ⏳ #268 made the dashboard profile card a single link and consolidated the actions; a true merged view+edit surface is a 🧭 product call (recommend keeping the two surfaces)
 
 **Directory**
-- Rework Active/Forming/Inactive labels — *Confusing interaction*
-- Follow count doesn't update without hard refresh — *Bug*
-- Move Follow and follower count inside the card — *UX polish*
+- Rework Active/Forming/Inactive labels — *Confusing interaction* — 🧭 needs the label taxonomy decided first (note: closed-cycle pods now read `dissolved`)
+- Follow count doesn't update without hard refresh — *Bug* — ✅ profile/network/PYMK counts already refreshed; triage branch added `refreshOnChange` to the remaining count-bearing surfaces (project, pod, sector, local lab, workstream)
+- Move Follow and follower count inside the card — *UX polish* — 🧭 directory rows currently have no follow control at all; net-new addition, watch per-row count query cost (`lib/directory/data.ts`)
 - Clicking Pods fails and toggles back to "All" — *Bug* — ✅ (#225)
 - Pod page in Directory shows the poderator view to all viewers (pulse completion, avg energy) — *Bug* — ✅ (#225)
 - Broader permissions logic isn't following intent — *Bug* — ⏳ (partially #225)
 
 **Dashboard**
-- Make Update/Learning Log toggle more obvious — *Confusing interaction*
+- Make Update/Learning Log toggle more obvious — *Confusing interaction* — ⏳ the gated/baseline states already emphasize the log (red border, pip, default tab — #264 wiring); the ungated state keeps equal-weight tabs, which is a 🧭 call (recommend leaving until usage data says otherwise)
 - Strike the "view your full profile" CTA in the header — *UX polish* — ✅ (#228)
 - Make the big blue hero dismissible — *UX polish* — ✅ (#228)
-- Pin "back to dashboard" on every page — *Missing behavior*
+- Pin "back to dashboard" on every page — *Missing behavior* — 🧭 see the Profile "pinned back" note — the shared nav already links Home/logo → /dashboard on every dashboard page
 - Keep Show/Collapse control in the same spot — *UX polish* — ✅ (#228)
-- Match Learning Log prominence to its required status — *Confusing interaction*
+- Match Learning Log prominence to its required status — *Confusing interaction* — ⏳ same as the toggle note above
 - Hide "find your local lab" quick link when user is already registered to a lab — *Bug* — ✅ (#228)
 - More prominent Support button, and add it to the footer — *UX polish* — ✅ (#228, dashboard footer)
 - To Do list reopens when a new Cycle is added — *Bug* — ✅ (#228, persistent collapse)
-- Link each commitment in "Your Commitments" to its event — *Missing behavior*
+- Link each commitment in "Your Commitments" to its event — *Missing behavior* — 🧭 blocked on data, not markup: commitments render from the hardcoded `lib/cycles/anchor-events.ts` constants (placeholder ids, interim by its own header note), whose slugs aren't guaranteed to match real `/events/[slug]` pages — reconcile anchors with the synced `events` table first (recommend waiting for the Luma events cache work rather than linking to guessy slugs)
 
 **Events**
-- Reduce load time and fix landing at the footer — *Bug*
-- Shorten Upcoming/Past pill — *UX polish*
-- Bigger search bar — *UX polish*
-- Fix jumping pill size as results filter — *Bug*
-- Photo rendering as rectangle instead of square — *Bug*
+- Reduce load time and fix landing at the footer — *Bug* — ✅ events are served from the DB cache (Luma sync cron), and a height-holding `AgendaSkeleton` was added specifically for the footer-landing (comment cites this feedback)
+- Shorten Upcoming/Past pill — *UX polish* — ✅ (labels dropped their live counts; "N of M" readout carries the number)
+- Bigger search bar — *UX polish* — ✅ (triage branch)
+- Fix jumping pill size as results filter — *Bug* — ✅ (same count-free pills change)
+- Photo rendering as rectangle instead of square — *Bug* — ✅ (`EventTeaser` passes `square` to `MediaFrame`)
 - Clarify what the scroll of photos is pulling from — *Confusing interaction*
 
 **Library**
-- Put Learning Library behind login (with preview navigable to non-logged-in visitors) — *Missing behavior*
+- Put Learning Library behind login (with preview navigable to non-logged-in visitors) — *Missing behavior* — 🧭 currently fully public; needs "preview" defined (recommend: index stays public as the teaser, `[slug]` detail gated) before building the gate
 
 **Problem Statements**
-- Submitting problem statements doesn't work in production — *Bug* (root cause likely environmental — see #224 notes)
-- Re-evaluate what the submission process should look like — *Confusing interaction*
+- Submitting problem statements doesn't work in production — *Bug* — ✅ (triage branch) root cause: the POST insert was the one participant write still going through the RLS user client, whose `WITH CHECK (participant_id = current_participant_id())` rejects in prod; now uses the service client like the agreement/votes writes (the route's own guard chain covers what the policy checked). **Verify end-to-end in prod once deployed**
+- Re-evaluate what the submission process should look like — *Confusing interaction* — 🧭 pairs with the redo below
 - Problem registration form scrolls to the bottom on each advancement — should stay at top — *Bug* — ✅ (#224)
-- Redo the problem registration form — question order / relevance (e.g. impact tracks) — *Confusing interaction*
-- After submitting, offer a "back to dashboard" button (or similar next step) — *Missing behavior* — see table #2
+- Redo the problem registration form — question order / relevance (e.g. impact tracks) — *Confusing interaction* — 🧭 needs an owner walkthrough of the current 6 steps (note: `proposal_data` JSONB keys constrain renames)
+- After submitting, offer a "back to dashboard" button (or similar next step) — *Missing behavior* — ✅ (triage branch, with the submitted-text echo) · see table #2
 
 **Problem Voting**
 - Voting is buggy — vote allocation doesn't match the rules — *Bug* — ✅ (#224)
@@ -215,8 +229,8 @@ Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feed
 
 **Cycle**
 - Cycle explainer page
-- Insights hub linked from the explainer page
-- Graphic on the Cycle page showing where the current Cycle is (phase/position indicator)
+- Insights hub linked from the explainer page — ⏳ the survey/insights work on dev (#270–#272: field surveys tied to cycles, share links, cycle-overview explainer) started this direction
+- Graphic on the Cycle page showing where the current Cycle is (phase/position indicator) — ✅ `CyclePhaseIndicator` is the hero of `/cycles`
 - "What to expect in a Cycle" resource to direct people to
 
 **Profile**
@@ -228,7 +242,7 @@ Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feed
 - Suggested follows based on local lab and pod membership
 
 **Dashboard**
-- Define when the To Do list fully dismisses
+- Define when the To Do list fully dismisses — 🧭 today it collapses to a persistent "Setup · N/M" strip and never disappears (the #228 persistence is working as designed); recommend auto-hiding the strip some days after 100% completion
 - "Learn how the Labs work" resource, prominently linked from dashboard
 
 **Feedback**
