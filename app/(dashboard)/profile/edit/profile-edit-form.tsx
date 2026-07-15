@@ -7,6 +7,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormField, Input, Textarea, Select } from "@/app/components/ui/form";
+import { stateFromZip } from "@/lib/zip-state";
 import { HANDLE_RE } from "@/lib/participants/handle";
 
 // Everything but the names is optional at the form layer: Mode B (forced
@@ -200,8 +201,19 @@ export default function ProfileEditForm({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = form;
+
+  // Zip is enough to know the state (July 2026 feedback, running-list #6) —
+  // a completed 5-digit zip sets the state select, which stays editable as
+  // the manual fallback.
+  const onZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const zip = e.target.value;
+    if (/^\d{5}$/.test(zip)) {
+      setValue("state", stateFromZip(zip), { shouldDirty: true });
+    }
+  };
 
   const toggleRole = (v: string) =>
     setRoleIntents((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
@@ -466,8 +478,8 @@ export default function ProfileEditForm({
               <FormField name="neighborhood" label="Neighborhood" htmlFor="neighborhood">
                 <Input id="neighborhood" type="text" maxLength={255} invalid={!!errors.neighborhood} {...register("neighborhood")} />
               </FormField>
-              <FormField name="zip" label="ZIP code" helper="Sets your local lab." htmlFor="zip">
-                <Input id="zip" type="text" inputMode="numeric" maxLength={5} invalid={!!errors.zip} {...register("zip")} />
+              <FormField name="zip" label="ZIP code" helper="Sets your local lab and fills in your state." htmlFor="zip">
+                <Input id="zip" type="text" inputMode="numeric" maxLength={5} invalid={!!errors.zip} {...register("zip", { onChange: onZipChange })} />
               </FormField>
               <FormField name="dcpl_card" label="DC Public Library card" htmlFor="dcpl_card">
                 <Select id="dcpl_card" invalid={!!errors.dcpl_card} {...register("dcpl_card")}>

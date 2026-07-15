@@ -13,7 +13,8 @@ import ContributorsSection from "./contributors-section";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
 
-type ProjectStatus = "active" | "forming" | "closed" | "inactive";
+// Matches projects_status_check (00037): forming/active/inactive.
+type ProjectStatus = "active" | "forming" | "inactive";
 
 const PROJECT_STATUS_VARIANT: Record<
   ProjectStatus,
@@ -21,7 +22,6 @@ const PROJECT_STATUS_VARIANT: Record<
 > = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
 };
 
@@ -253,6 +253,7 @@ export default async function ProjectDetailPage({
               id={project.id}
               initialFollowing={pageCtx.following}
               size="sm"
+              refreshOnChange
             />
           )}
         </div>

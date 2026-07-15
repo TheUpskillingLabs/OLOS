@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { registrationWindow } from "@/lib/cycles/schedule";
 import { windowOpen, fmtLabDate } from "@/lib/cycles/lab-time";
 import { BookOpen, ArrowRight, ChevronLeft, ClipboardList } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -8,7 +9,8 @@ import { cycleInfoContent } from "@/lib/cycles/info";
 import { getFieldSurveyForCycle } from "@/lib/content/surveys";
 
 type CycleStatus = "active" | "closed" | "draft";
-type PodStatus = "active" | "forming" | "closed" | "inactive";
+// Matches pods_status_check (00063): forming/active/inactive/dissolved.
+type PodStatus = "active" | "forming" | "inactive" | "dissolved";
 
 const CYCLE_STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
   active: "active",
@@ -22,8 +24,8 @@ const POD_STATUS_VARIANT: Record<
 > = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 const WINDOW_ROUTES: {
@@ -49,7 +51,7 @@ export default async function CycleDetailPage({
 
   const { data: cycle } = await supabase
     .from("cycles")
-    .select("id, name, slug, start_date, end_date, status, sector_id")
+    .select("id, name, slug, start_date, end_date, status, sector_id, mode")
     .eq("id", parseInt(cycle_id))
     .single();
 
@@ -94,6 +96,54 @@ export default async function CycleDetailPage({
       ?.theme_description,
   }).themeDescription;
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: me } = user
+    ? await supabase
+        .from("participants")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle()
+    : { data: null };
+
+  // Register CTA (July 2026 feedback, running-list #1): the join flow accepts
+  // active and upcoming cohorts, but this page had no way into it. Shown only
+  // to signed-in members who haven't signed this cycle's agreement, while the
+  // D-10 registration window is open. Org cycles are invite-only — never a
+  // Register CTA.
+  let showRegisterCta = false;
+  if (
+    me &&
+    cycle.mode !== "org" &&
+    (cycle.status === "active" || cycle.status === "upcoming")
+  ) {
+    const { data: agreement } = await serviceClient
+      .from("cycle_agreements")
+      .select("id")
+      .eq("cycle_id", cycle.id)
+      .eq("participant_id", me.id)
+      .maybeSingle();
+    if (!agreement) {
+      showRegisterCta = (await registrationWindow(serviceClient, cycle.id))
+        .open;
+    }
+  }
+
+  // The viewer's own problem statements (July 2026 feedback, running-list #2):
+  // before this, statements were only ever listed on the vote ballot during
+  // the voting phase, so a submitter had no way to see their own submission
+  // back. Deliberately a direct owner-scoped query, not the shared GET route —
+  // that route's per-lab filter shapes the ballot and stays untouched.
+  const { data: myStatements } = me
+    ? await serviceClient
+        .from("problem_statements")
+        .select("id, statement_text, created_at")
+        .eq("cycle_id", cycle.id)
+        .eq("participant_id", me.id)
+        .order("created_at")
+    : { data: null };
+
   const now = new Date();
   const activeWindows: { label: string; route: string; closesAt: string }[] = [];
   if (config) {
@@ -131,6 +181,33 @@ export default async function CycleDetailPage({
           <StatusBadge variant={cycleStatusVariant}>{cycle.status}</StatusBadge>
         </div>
       </div>
+
+      {/* Register CTA — only while the D-10 window is open and the viewer
+          hasn't signed this cycle's agreement yet */}
+      {showRegisterCta && (
+        <Link
+          href={`/cycles/${cycle.id}/join`}
+          className="group mb-8 flex items-center justify-between gap-3 rounded-card border border-teal/30 bg-teal/10 p-5 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        >
+          <div>
+            <span className="font-semibold tracking-tight text-ink">
+              Registration is open
+            </span>
+            <p className="mt-0.5 text-sm text-meta">
+              {cycle.status === "active"
+                ? "This cycle is running — complete the short registration to join it."
+                : "Pre-register now to claim your spot for this cycle."}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
+            Register
+            <ArrowRight
+              className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              aria-hidden
+            />
+          </span>
+        </Link>
+      )}
 
       {/* Cycle theme/explanation copy — below the title/dates, above the tiles */}
       {themeDescription && (
@@ -235,6 +312,29 @@ export default async function CycleDetailPage({
               aria-hidden
             />
           </Link>
+        </div>
+      )}
+
+      {/* The viewer's own submissions — visible in every phase, not just on
+          the voting ballot */}
+      {myStatements && myStatements.length > 0 && (
+        <div className="mb-8">
+          <h2 className="t-h3 mb-4 text-ink">Your problem statements</h2>
+          <div className="space-y-3">
+            {myStatements.map((s) => (
+              <blockquote
+                key={s.id}
+                className="rounded-card border border-ink/10 bg-white p-4 shadow-card"
+              >
+                <p className="text-sm leading-relaxed text-charcoal">
+                  {s.statement_text}
+                </p>
+                <p className="mt-2 text-xs text-meta">
+                  Submitted {new Date(s.created_at).toLocaleDateString()}
+                </p>
+              </blockquote>
+            ))}
+          </div>
         </div>
       )}
 

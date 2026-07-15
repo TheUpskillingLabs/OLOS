@@ -663,20 +663,32 @@ export default async function DashboardPage() {
   // Shown instead of the join card once the member has signed the upcoming
   // cohort's agreement — they're set; nothing to do until it starts.
   const preRegisteredCard = (cycle: CycleCardData) => (
-    <div className="rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card">
-      <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
-      <h2 className="t-h3 text-ink">{cycle.name}</h2>
-      <p className="mt-2 text-sm text-meta">
-        You&apos;re all set for the next cycle
-        {cycle.start_date
-          ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
-              "en-US",
-              { month: "long", day: "numeric" }
-            )}`
-          : ""}
-        . We&apos;ll open your next steps here when it starts.
-      </p>
-    </div>
+    <Link
+      href={`/cycles/${cycle.id}`}
+      className="group flex items-center justify-between rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+    >
+      <div>
+        <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
+        <h2 className="t-h3 text-ink">{cycle.name}</h2>
+        <p className="mt-2 text-sm text-meta">
+          You&apos;re all set for the next cycle
+          {cycle.start_date
+            ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
+                "en-US",
+                { month: "long", day: "numeric" }
+              )}`
+            : ""}
+          . We&apos;ll open your next steps here when it starts.
+        </p>
+      </div>
+      <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
+        View cycle
+        <ArrowRight
+          className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </span>
+    </Link>
   );
 
   // Shown instead of the join card while the D-10 registration window is
