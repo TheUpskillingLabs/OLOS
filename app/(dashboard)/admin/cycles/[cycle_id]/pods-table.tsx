@@ -44,8 +44,8 @@ type ParticipantOption = { participant_id: number; name: string; email?: string 
 const POD_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 export default function PodsTable({

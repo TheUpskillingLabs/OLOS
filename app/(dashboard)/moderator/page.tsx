@@ -257,8 +257,8 @@ export default async function ModeratorPage({
 const POD_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 const TREND_ARROW: Record<Trend, string> = {

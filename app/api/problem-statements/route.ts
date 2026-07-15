@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
+import { createServiceClient } from "@/lib/supabase/server";
 import { isEnrolledParticipant, isActiveParticipant } from "@/lib/auth/roles";
 import { isCurrentlyRevoked } from "@/lib/enrollment/revocation";
 import { checkWindow } from "@/lib/auth/windows";
@@ -72,7 +73,13 @@ export const POST = withAuth(
     };
     if (proposal_data) row.proposal_data = proposal_data;
 
-    const { data, error } = await auth.supabase
+    // Insert via the service client, like the agreement and votes writes:
+    // participant_id comes from the authenticated session and the guard
+    // chain above (window, enrollment, revocation) already enforces
+    // everything the problem_statements_insert RLS policy checked. Going
+    // through the user client left this as the one write path exposed to
+    // current_participant_id() resolution, which rejects the insert in prod.
+    const { data, error } = await createServiceClient()
       .from("problem_statements")
       .insert(row)
       .select("id, created_at")
