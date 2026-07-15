@@ -505,17 +505,9 @@ export default async function DashboardPage() {
           },
         ]
       : []),
-    ...(fieldSurvey
-      ? [
-          {
-            key: "survey",
-            label: "Share your field observations",
-            done: surveyContributed,
-            href: `/survey/${fieldSurvey.share_slug}`,
-            cta: "Open",
-          },
-        ]
-      : []),
+    // The survey deliberately has NO checklist row — it already has the
+    // "Start here" card (contribute) and the Up-next share todo; three
+    // surfaces for one action read as clutter (owner call, 2026-07-14).
     {
       key: "profile",
       // Label names the exact fields that flip profileDone (bio || headline),
