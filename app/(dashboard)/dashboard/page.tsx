@@ -577,7 +577,7 @@ export default async function DashboardPage() {
       <p className="mt-2 max-w-2xl text-sm text-meta">
         Every Build Cycle starts in the field. Add what you&apos;re seeing, then
         share the survey with people close to the problem — your observations
-        shape the problems this cohort takes on.
+        shape the problems this cycle takes on.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Link
@@ -595,7 +595,7 @@ export default async function DashboardPage() {
         href={`/survey/${survey.share_slug}/results`}
         className="mt-3 inline-block text-sm font-semibold text-teal-deep hover:underline"
       >
-        See what the cohort is finding &rarr;
+        See what the cycle is finding &rarr;
       </Link>
     </section>
   );
