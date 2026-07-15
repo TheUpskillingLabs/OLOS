@@ -15,6 +15,10 @@ export interface TodoCard {
   detail: string;
   href: string;
   cta: string;
+  /** Optional lighter second link rendered beside the CTA (e.g. "learn
+      more" / "explore" destinations that support the primary action). */
+  secondaryHref?: string;
+  secondaryCta?: string;
 }
 
 const KEY = "olos.dismissedTodos.v1";
@@ -78,12 +82,22 @@ export default function UpNext({ todos }: { todos: TodoCard[] }) {
             </button>
             <h3 className="t-h4 pr-8 text-ink">{t.title}</h3>
             <p className="mt-1 text-sm text-meta">{t.detail}</p>
-            <Link
-              href={t.href}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep hover:underline"
-            >
-              {t.cta} →
-            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <Link
+                href={t.href}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep hover:underline"
+              >
+                {t.cta} →
+              </Link>
+              {t.secondaryHref && t.secondaryCta && (
+                <Link
+                  href={t.secondaryHref}
+                  className="inline-flex items-center gap-1.5 text-sm text-meta hover:text-teal-deep hover:underline"
+                >
+                  {t.secondaryCta} →
+                </Link>
+              )}
+            </div>
           </div>
         ))}
       </div>

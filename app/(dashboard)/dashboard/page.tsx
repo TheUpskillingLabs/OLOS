@@ -1004,6 +1004,8 @@ export default async function DashboardPage() {
         "More voices from the field keep the cohort pointed at real problems.",
       href: `/survey/${fieldSurvey.share_slug}`,
       cta: "Open survey",
+      secondaryHref: `/survey/${fieldSurvey.share_slug}/results`,
+      secondaryCta: "Explore the answers so far",
     });
   }
 
