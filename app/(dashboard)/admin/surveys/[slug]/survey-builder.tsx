@@ -43,12 +43,21 @@ const AUTHORABLE_TYPES: SurveyQuestionType[] = [
 const hasOptions = (t: SurveyQuestionType) =>
   t === "single_select" || t === "multi_select" || t === "yes_no";
 
+export interface CycleOption {
+  id: number;
+  name: string;
+  status: string;
+  hasSurvey: boolean;
+}
+
 export default function SurveyBuilder({
   survey,
   initialQuestions,
+  cycles,
 }: {
   survey: FieldSurvey;
   initialQuestions: SurveyQuestion[];
+  cycles: CycleOption[];
 }) {
   const router = useRouter();
   const questions = initialQuestions;
@@ -95,7 +104,7 @@ export default function SurveyBuilder({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr]">
-      <SettingsPanel survey={survey} onSaved={() => router.refresh()} />
+      <SettingsPanel survey={survey} cycles={cycles} onSaved={() => router.refresh()} />
 
       <div>
         <div className="mb-4 flex items-center justify-between">
@@ -228,9 +237,11 @@ export default function SurveyBuilder({
 
 function SettingsPanel({
   survey,
+  cycles,
   onSaved,
 }: {
   survey: FieldSurvey;
+  cycles: CycleOption[];
   onSaved: () => void;
 }) {
   const router = useRouter();
@@ -240,6 +251,9 @@ function SettingsPanel({
   const [slug, setSlug] = useState(survey.share_slug);
   const [status, setStatus] = useState(survey.status);
   const [anon, setAnon] = useState(survey.allow_anonymous);
+  const [cycleId, setCycleId] = useState(
+    survey.cycle_id !== null ? String(survey.cycle_id) : ""
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -259,6 +273,10 @@ function SettingsPanel({
         share_slug: slug.trim(),
         status,
         allow_anonymous: anon,
+        // Legacy surveys may predate the cycle link (00089) — an unset select
+        // stays unset (omit, don't null out), but once linked a survey keeps
+        // some cycle.
+        ...(cycleId !== "" ? { cycle_id: Number(cycleId) } : {}),
       }),
     }).catch(() => null);
     setSaving(false);
@@ -317,6 +335,23 @@ function SettingsPanel({
             onChange={(e) => setSlug(e.target.value)}
             className={`${inputCls} font-mono text-sm`}
           />
+        </label>
+        <label className={labelCls}>
+          Cycle (one survey per cycle)
+          <select
+            value={cycleId}
+            onChange={(e) => setCycleId(e.target.value)}
+            className={inputCls}
+          >
+            {survey.cycle_id === null && (
+              <option value="">Not linked to a cycle yet</option>
+            )}
+            {cycles.map((c) => (
+              <option key={c.id} value={c.id} disabled={c.hasSurvey}>
+                {c.name} ({c.status}){c.hasSurvey ? " — has a survey" : ""}
+              </option>
+            ))}
+          </select>
         </label>
         <div className="flex gap-3">
           <label className={`${labelCls} flex-1`}>

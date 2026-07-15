@@ -181,6 +181,7 @@ export default async function LabPage({
                 type="lab"
                 id={m.id}
                 initialFollowing={ctx.following}
+                refreshOnChange
               />
             </div>
           </div>

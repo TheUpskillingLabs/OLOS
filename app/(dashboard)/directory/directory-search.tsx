@@ -161,7 +161,7 @@ export default function DirectorySearch({ data }: { data: DirectoryData }) {
 
   const matchesStatus = (s: string) =>
     !status ||
-    (status === "inactive" ? s === "inactive" || s === "closed" : s === status);
+    (status === "inactive" ? s === "inactive" || s === "dissolved" : s === status);
 
   const filteredPods = useMemo(() => {
     let list = pods.filter((p) => matchesStatus(p.status));
