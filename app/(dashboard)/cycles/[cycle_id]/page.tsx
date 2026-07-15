@@ -96,6 +96,17 @@ export default async function CycleDetailPage({
       ?.theme_description,
   }).themeDescription;
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: me } = user
+    ? await supabase
+        .from("participants")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle()
+    : { data: null };
+
   // Register CTA (July 2026 feedback, running-list #1): the join flow accepts
   // active and upcoming cohorts, but this page had no way into it. Shown only
   // to signed-in members who haven't signed this cycle's agreement, while the
@@ -103,32 +114,35 @@ export default async function CycleDetailPage({
   // Register CTA.
   let showRegisterCta = false;
   if (
+    me &&
     cycle.mode !== "org" &&
     (cycle.status === "active" || cycle.status === "upcoming")
   ) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      const { data: me } = await supabase
-        .from("participants")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .maybeSingle();
-      if (me) {
-        const { data: agreement } = await serviceClient
-          .from("cycle_agreements")
-          .select("id")
-          .eq("cycle_id", cycle.id)
-          .eq("participant_id", me.id)
-          .maybeSingle();
-        if (!agreement) {
-          showRegisterCta = (await registrationWindow(serviceClient, cycle.id))
-            .open;
-        }
-      }
+    const { data: agreement } = await serviceClient
+      .from("cycle_agreements")
+      .select("id")
+      .eq("cycle_id", cycle.id)
+      .eq("participant_id", me.id)
+      .maybeSingle();
+    if (!agreement) {
+      showRegisterCta = (await registrationWindow(serviceClient, cycle.id))
+        .open;
     }
   }
+
+  // The viewer's own problem statements (July 2026 feedback, running-list #2):
+  // before this, statements were only ever listed on the vote ballot during
+  // the voting phase, so a submitter had no way to see their own submission
+  // back. Deliberately a direct owner-scoped query, not the shared GET route —
+  // that route's per-lab filter shapes the ballot and stays untouched.
+  const { data: myStatements } = me
+    ? await serviceClient
+        .from("problem_statements")
+        .select("id, statement_text, created_at")
+        .eq("cycle_id", cycle.id)
+        .eq("participant_id", me.id)
+        .order("created_at")
+    : { data: null };
 
   const now = new Date();
   const activeWindows: { label: string; route: string; closesAt: string }[] = [];
@@ -298,6 +312,29 @@ export default async function CycleDetailPage({
               aria-hidden
             />
           </Link>
+        </div>
+      )}
+
+      {/* The viewer's own submissions — visible in every phase, not just on
+          the voting ballot */}
+      {myStatements && myStatements.length > 0 && (
+        <div className="mb-8">
+          <h2 className="t-h3 mb-4 text-ink">Your problem statements</h2>
+          <div className="space-y-3">
+            {myStatements.map((s) => (
+              <blockquote
+                key={s.id}
+                className="rounded-card border border-ink/10 bg-white p-4 shadow-card"
+              >
+                <p className="text-sm leading-relaxed text-charcoal">
+                  {s.statement_text}
+                </p>
+                <p className="mt-2 text-xs text-meta">
+                  Submitted {new Date(s.created_at).toLocaleDateString()}
+                </p>
+              </blockquote>
+            ))}
+          </div>
         </div>
       )}
 
