@@ -884,8 +884,10 @@ export default async function DashboardPage() {
             {/* Org-only staff lead with their actual work; the cohort join CTA
                 is for the participant pipeline they're not in. */}
             {orgActive && workstreamsSection}
-            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
+            {/* Checklist stays pinned above the survey CTA — it's the member's
+                own setup state; the survey is the cohort's opening activity. */}
             <SetupChecklist items={checklistItems} />
+            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
             {!orgActive &&
               (upcomingCycle
                 ? preRegisteredUpcoming
@@ -929,10 +931,10 @@ export default async function DashboardPage() {
         <div className="dash-12">
           <div className="dash-center">
             {orgActive && workstreamsSection}
-            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
             {checklistItems.length > 0 && (
               <SetupChecklist items={checklistItems} />
             )}
+            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
             {!orgActive &&
               (upcomingCycle ? (
                 preRegisteredUpcoming ? (
@@ -1102,11 +1104,12 @@ export default async function DashboardPage() {
       <div className="dash-12">
         {/* CENTER — what to do now, then the community feed */}
         <div className="dash-center">
-          {/* The field survey is the cohort's opening activity — the first CTA. */}
-          {fieldSurvey && fieldSurveyCard(fieldSurvey)}
-
-          {/* Setup leads for a new member; collapses to a strip once done. */}
+          {/* Setup leads — the checklist stays pinned to the top of the column
+              while it has open items; collapses to a strip once done. */}
           {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
+
+          {/* The field survey is the cohort's opening activity — right below setup. */}
+          {fieldSurvey && fieldSurveyCard(fieldSurvey)}
 
           {/* The Learning Log lives in the feed composer at the bottom of this
               column. When the weekly gate is active the layout bounces the
