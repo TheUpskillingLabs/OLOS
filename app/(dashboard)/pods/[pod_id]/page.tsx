@@ -2,8 +2,14 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
+import {
+  resolveUserRoles,
+  isAdmin,
+  isModeratorForPod,
+  isLabLead,
+} from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import { podNoun } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
 import CharterProjectForm from "./charter-project-form";
@@ -40,7 +46,7 @@ export default async function PodDetailPage({
   const { data: pod } = await supabase
     .from("pods")
     .select(
-      "id, name, status, cycle_id, workstream_id, problem_statement_id, problem_statements(statement_text), cycles(mode)"
+      "id, name, status, cycle_id, lab_id, workstream_id, problem_statement_id, problem_statements(statement_text), cycles(mode)"
     )
     .eq("id", parseInt(pod_id))
     .single();
@@ -79,6 +85,14 @@ export default async function PodDetailPage({
     pod.workstream_id != null &&
     !!userRoles &&
     (isAdmin(userRoles) || isModeratorForPod(userRoles, pod.id));
+
+  // Contact CSV export: admins, the pod's poderator, or the pod's lab lead.
+  // The export route re-checks this same authorization server-side.
+  const canExportContacts =
+    !!userRoles &&
+    (isAdmin(userRoles) ||
+      isModeratorForPod(userRoles, pod.id) ||
+      (pod.lab_id != null && isLabLead(userRoles, pod.lab_id)));
 
   // Pulse-check review (completion, energy, responses) deliberately does NOT
   // render here. This page is the pod's public face — it's linked from the
@@ -133,9 +147,16 @@ export default async function PodDetailPage({
       )}
 
       <div className="mb-8">
-        <h2 className="t-h3 mb-3 text-ink">
-          Members ({members?.length || 0})
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="t-h3 text-ink">
+            Members ({members?.length || 0})
+          </h2>
+          {canExportContacts && (
+            <ContactsDownloadButton
+              href={`/api/pods/${pod.id}/contacts/export`}
+            />
+          )}
+        </div>
         <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">
