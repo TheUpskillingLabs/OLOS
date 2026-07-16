@@ -487,15 +487,13 @@ export default async function AdminCycleDetailPage({
             {isOrg ? "Core contributors" : "Participants"} (
             {participants.length})
           </h2>
-          {participants.length > 0 && (
-            <a
-              href={`/api/cycles/${cycleId}/contacts/export`}
-              download
-              className="inline-flex items-center gap-1.5 rounded-card bg-teal-deep px-4 py-2 text-sm font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-            >
-              Download contacts CSV
-            </a>
-          )}
+          <a
+            href={`/api/cycles/${cycleId}/contacts/export`}
+            download
+            className="inline-flex items-center gap-1.5 rounded-card bg-teal-deep px-4 py-2 text-sm font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+          >
+            Download contacts CSV
+          </a>
         </div>
         <ParticipantsTable
           participants={participants}
