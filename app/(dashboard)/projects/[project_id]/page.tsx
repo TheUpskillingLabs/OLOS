@@ -9,6 +9,7 @@ import { podNoun } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
 import PulseCheckDashboard from "../../pods/[pod_id]/pulse-check-dashboard";
 import FollowButton from "@/app/components/follow-button";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import ContributorsSection from "./contributors-section";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
@@ -78,6 +79,11 @@ export default async function ProjectDetailPage({
     : null;
   const canViewDashboard =
     userRoles &&
+    (isAdmin(userRoles) || isModeratorForPod(userRoles, project.pod_id));
+  // Page-side gate is admin/poderator; the export endpoint additionally allows
+  // the pod's lab lead and re-checks server-side.
+  const canExportContacts =
+    !!userRoles &&
     (isAdmin(userRoles) || isModeratorForPod(userRoles, project.pod_id));
 
   // Fetch pulse check data for project members
@@ -260,9 +266,16 @@ export default async function ProjectDetailPage({
       </div>
 
       <div className="mb-8">
-        <h2 className="t-h3 mb-3 text-ink">
-          {mode === "org" ? "Core team" : "Members"} ({activeMembers.length})
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="t-h3 text-ink">
+            {mode === "org" ? "Core team" : "Members"} ({activeMembers.length})
+          </h2>
+          {canExportContacts && (
+            <ContactsDownloadButton
+              href={`/api/projects/${project.id}/contacts/export`}
+            />
+          )}
+        </div>
         <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-teal/[0.08]">

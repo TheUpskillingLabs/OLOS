@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/guards";
 import { can, isOwner } from "@/lib/auth/roles";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import OwnerLifecycle from "@/app/components/owner-lifecycle";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import CycleStatusForm from "./cycle-status-form";
 import {
   CycleScheduleForm,
@@ -482,9 +483,15 @@ export default async function AdminCycleDetailPage({
   const people = (
     <div className="space-y-10">
       <section>
-        <h2 className="mb-4 t-h3 text-ink">
-          {isOrg ? "Core contributors" : "Participants"} ({participants.length})
-        </h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="t-h3 text-ink">
+            {isOrg ? "Core contributors" : "Participants"} (
+            {participants.length})
+          </h2>
+          <ContactsDownloadButton
+            href={`/api/cycles/${cycleId}/contacts/export`}
+          />
+        </div>
         <ParticipantsTable
           participants={participants}
           cycleId={cycleId}
