@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/guards";
 import { StatusBadge, DataTable } from "@/app/components/ui";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import { cycleStatusVariant } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
 import CreateCycleForm from "../cycles/create-cycle-form";
@@ -302,14 +303,21 @@ export default async function AdminOrgPage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="mb-4 t-h3 text-ink">
-          Core contributors
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="t-h3 text-ink">
+            Core contributors
+            {rosterCycle && (
+              <span className="ml-2 text-sm font-normal text-meta">
+                {rosterCycle.name}
+              </span>
+            )}
+          </h2>
           {rosterCycle && (
-            <span className="ml-2 text-sm font-normal text-meta">
-              {rosterCycle.name}
-            </span>
+            <ContactsDownloadButton
+              href={`/api/cycles/${rosterCycle.id}/contacts/export`}
+            />
           )}
-        </h2>
+        </div>
         {!rosterCycle ? (
           <p className="text-sm text-meta">No current organization cycle.</p>
         ) : contributorRows.length === 0 ? (

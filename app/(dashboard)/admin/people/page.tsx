@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/guards";
 import { can } from "@/lib/auth/roles";
 import { one } from "@/lib/supabase/embed";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import PeopleWorkspace, { type PeopleTab } from "./people-workspace";
 import PeopleTable from "./people-table";
 import InvitationsTable from "./invitations-table";
@@ -132,11 +133,17 @@ export default async function AdminPeoplePage({
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="t-h1 text-ink">People &amp; access</h1>
-        <p className="mt-1 text-sm text-meta tabular-nums">
-          {people.length} participant{people.length !== 1 ? "s" : ""} · permissions, roles, and invitations
-        </p>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="t-h1 text-ink">People &amp; access</h1>
+          <p className="mt-1 text-sm text-meta tabular-nums">
+            {people.length} participant{people.length !== 1 ? "s" : ""} · permissions, roles, and invitations
+          </p>
+        </div>
+        <ContactsDownloadButton
+          href="/api/admin/people/contacts/export"
+          label="Download all contacts CSV"
+        />
       </div>
 
       <PeopleWorkspace
