@@ -353,7 +353,7 @@ export default async function DashboardPage() {
       milestoneCtx = {
         kind,
         label: milestoneLabel(kind),
-        // v2 weekly logs (00087) carry contribution/learned instead of the
+        // v2 weekly logs (00090) carry contribution/learned instead of the
         // v1 prompts — map them across so a member whose record is all-v2
         // still reviews their own words instead of a blank page.
         prefill: last

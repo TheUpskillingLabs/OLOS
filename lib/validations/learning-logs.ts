@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { HOURS_BUCKETS } from "@/lib/cycles/hours";
 
-/* The Learning Log write shape (backend doc §6; migrations 00040 + 00087).
+/* The Learning Log write shape (backend doc §6; migrations 00040 + 00090).
    Two instruments share one strict superset schema, because kind — which
    decides the instrument — is derived server-side AFTER parse (it needs
    body.cycle_id), so a zod discriminated union can't carry it:
 
-   - weekly v2 (kind='weekly' on an open cycle; 00087): stuck check
+   - weekly v2 (kind='weekly' on an open cycle; 00090): stuck check
      (is_blocked + stuck_tried + blocker_context-as-help), hours_bucket,
      collab/progress/capability/energy ratings, contribution, learned,
      optional feeling_word + recognition.
@@ -41,7 +41,7 @@ const text = (field: string, max = 2000) =>
 export const learningLogSchema = z
   .object({
     // Legacy health check — required for v1 saves (legacyError), absent on
-    // weekly v2 (00087 dropped NOT NULL).
+    // weekly v2 (00090 dropped NOT NULL).
     clarity: scale("clarity").optional().nullable(),
     alignment: scale("alignment").optional().nullable(),
     // Shared: v1 "I'm blocked" IS v2's "Are you stuck?" — same column, same
@@ -59,7 +59,7 @@ export const learningLogSchema = z
     work_summary: text("work_summary"),
     work_progress: text("work_progress"),
     work_blockers: text("work_blockers"),
-    // Weekly v2 instrument (00087).
+    // Weekly v2 instrument (00090).
     stuck_tried: text("stuck_tried"),
     hours_bucket: z
       .enum(HOURS_BUCKETS, {

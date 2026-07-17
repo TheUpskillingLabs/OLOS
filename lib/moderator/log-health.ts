@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
    members FIRST with their own words (the "what do you need" / "what kind
    of help would move this forward" text), and the logged/waiting
    compliance split for the current window. Two instruments feed the
-   averages: v1 logs carry clarity/alignment, v2 weekly logs (00087) carry
+   averages: v1 logs carry clarity/alignment, v2 weekly logs (00090) carry
    progress/energy — each average is computed over the rows that have that
    metric, so mixed pods surface both. Shepherd rules hold: signals to
    unblock with, never grades; staff/test and inactive members are outside
@@ -26,7 +26,7 @@ export interface LogHealth {
   /** v1-instrument averages (latest log per member, where present). */
   avg_clarity: number | null;
   avg_alignment: number | null;
-  /** v2-instrument averages (00087; latest log per member, where present). */
+  /** v2-instrument averages (00090; latest log per member, where present). */
   avg_progress: number | null;
   avg_energy: number | null;
   /** Latest log says blocked — surfaced first, in their own words. */

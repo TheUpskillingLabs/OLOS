@@ -3,7 +3,7 @@
 import type { CyclePhase } from "@/lib/cycle/phase";
 import { HOURS_BUCKETS, type HoursBucket } from "@/lib/cycles/hours";
 
-/* The weekly Learning Log's v2 question stack (00087) — the nine-item
+/* The weekly Learning Log's v2 question stack (00090) — the nine-item
    instrument for open-cycle weekly logs. Pure controlled component: the
    card owns save/reset/history; this owns rendering and the phase stems.
    Milestone reviews, journal logs, and org-cycle logs keep the v1 form in

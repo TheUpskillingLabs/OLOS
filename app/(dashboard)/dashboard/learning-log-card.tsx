@@ -13,7 +13,7 @@ import WeeklyV2Fields, {
 /* The Learning Log — the weekly ritual, on the dashboard where the practice
    lives (owner decision: the ritual is Home, not a nav destination).
 
-   The weekly open-cycle log runs the v2 instrument (00087, rendered by
+   The weekly open-cycle log runs the v2 instrument (00090, rendered by
    WeeklyV2Fields): stuck check → hours → collaboration → progress →
    contribution → learned → capability → energy → optional feeling word +
    shout-out, with phase-contextual stems on collaboration/contribution.
@@ -118,7 +118,7 @@ export default function LearningLogCard({
   const [workSummary, setWorkSummary] = useState("");
   const [workProgress, setWorkProgress] = useState("");
   const [workBlockers, setWorkBlockers] = useState("");
-  // The weekly v2 instrument's answers (00087) — one state object, patched
+  // The weekly v2 instrument's answers (00090) — one state object, patched
   // by WeeklyV2Fields.
   const [v2, setV2] = useState<WeeklyV2State>(emptyWeeklyV2State);
   const [share, setShare] = useState(false);
@@ -413,7 +413,7 @@ export default function LearningLogCard({
         </div>
       )}
 
-      {/* The weekly open-cycle log: the v2 instrument (00087). The stuck
+      {/* The weekly open-cycle log: the v2 instrument (00090). The stuck
           check keeps v1's privacy contract, so the note renders above it. */}
       {isWeeklyV2 && (
         <>
