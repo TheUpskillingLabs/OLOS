@@ -541,7 +541,10 @@ export default function LearningLogCard({
       {/* Part 3 — share preview */}
       {preview && (
         <div className="mt-6 rounded-card border border-ink/10 bg-paper p-4">
-          <p className="break-words text-sm text-charcoal">{preview}</p>
+          <p className="text-xs text-meta">
+            If you share, this is what the feed will show:
+          </p>
+          <p className="mt-2 break-words text-sm text-charcoal">{preview}</p>
           <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-ink">
             <input
               type="checkbox"
@@ -549,10 +552,11 @@ export default function LearningLogCard({
               onChange={(e) => setShare(e.target.checked)}
               className="h-4 w-4 accent-[var(--teal-deep)]"
             />
-            Share this with The Labs
+            Post this to the community feed
           </label>
           <p className="mt-1 text-xs text-meta">
-            Members only. Your health check never travels with it.
+            Optional — everyone in The Labs can see it. Nothing else in your
+            log travels with it.
           </p>
         </div>
       )}
