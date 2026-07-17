@@ -555,7 +555,7 @@ export default function LearningLogCard({
             Post this to the community feed
           </label>
           <p className="mt-1 text-xs text-meta">
-            Optional — everyone in The Labs can see it. Nothing else in your
+            Optional. Everyone in The Labs can see it. Nothing else in your
             log travels with it.
           </p>
         </div>
