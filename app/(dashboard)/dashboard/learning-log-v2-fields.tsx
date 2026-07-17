@@ -107,7 +107,7 @@ const COLLAB_STEM: Record<CyclePhase, string> = {
 const CONTRIBUTION_STEM: Record<CyclePhase, string> = {
   1: "What did you explore, read, or learn from this week? Share a link, note, or quote.",
   2: "What did you contribute, draft, or propose this week?",
-  3: "What did you build or ship this week? Share a link or screenshot if you have one.",
+  3: "What did you build or ship this week? Share a link if you have one.",
 };
 
 export default function WeeklyV2Fields({
