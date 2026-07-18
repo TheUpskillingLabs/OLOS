@@ -15,7 +15,7 @@ export default async function SurveyBuilderPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  await requireAdmin();
+  const { serviceClient } = await requireAdmin();
   const { slug } = await params;
 
   const survey = await getFieldSurveyBySlug(slug);
@@ -24,6 +24,28 @@ export default async function SurveyBuilderPage({
   const questions = await getFieldSurveyQuestions(survey.id, {
     includeInactive: true,
   });
+
+  // Cycle affiliation options for the settings panel — one survey per cycle
+  // (00089), so cycles claimed by OTHER surveys render disabled.
+  const [{ data: cycleRows }, { data: takenRows }] = await Promise.all([
+    serviceClient
+      .from("cycles")
+      .select("id, name, status")
+      .order("start_date", { ascending: false }),
+    serviceClient
+      .from("field_surveys")
+      .select("cycle_id")
+      .not("cycle_id", "is", null)
+      .neq("id", survey.id),
+  ]);
+  const taken = new Set(
+    ((takenRows as { cycle_id: number }[] | null) ?? []).map(
+      (r) => r.cycle_id
+    )
+  );
+  const cycles = (
+    (cycleRows as { id: number; name: string; status: string }[] | null) ?? []
+  ).map((c) => ({ ...c, hasSurvey: taken.has(c.id) }));
 
   return (
     <div>
@@ -55,7 +77,7 @@ export default async function SurveyBuilderPage({
         </div>
       </div>
 
-      <SurveyBuilder survey={survey} initialQuestions={questions} />
+      <SurveyBuilder survey={survey} initialQuestions={questions} cycles={cycles} />
     </div>
   );
 }

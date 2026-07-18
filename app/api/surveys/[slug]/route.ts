@@ -28,7 +28,22 @@ export const PATCH = withAdminAuth(async (request, _auth, params) => {
     .eq("id", survey.id)
     .select("share_slug")
     .single();
-  if (error) return dbError(error, "survey-settings-update");
+  if (error) {
+    // One survey per cycle (uq_field_surveys_cycle, 00089) and the slug's
+    // UNIQUE both surface as 23505 — actionable 409, not a sanitized 500.
+    if (error.code === "23505") {
+      const taken = error.message.includes("uq_field_surveys_cycle");
+      return NextResponse.json(
+        {
+          error: taken
+            ? "That cycle already has a survey — each cycle can have only one."
+            : "That share slug is already in use.",
+        },
+        { status: 409 }
+      );
+    }
+    return dbError(error, "survey-settings-update");
+  }
 
   return NextResponse.json({ ok: true, share_slug: data.share_slug });
 });

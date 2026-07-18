@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const STEP_NAMES = [
   "About you",
@@ -190,6 +191,23 @@ export default function ProposeForm({
           that reach the minimum number of registrants officially form and begin
           work. You&rsquo;ll be notified at each stage.
         </p>
+        <blockquote className="mt-5 max-w-lg rounded-card border border-teal/30 bg-white p-4">
+          <div className="lbl mb-2">Your problem statement</div>
+          <p className="text-sm leading-relaxed text-charcoal">
+            {statementText.trim()}
+          </p>
+          {question.trim() && (
+            <p className="mt-2 text-sm italic leading-relaxed text-meta">
+              {question.trim()}
+            </p>
+          )}
+        </blockquote>
+        <Link
+          href="/dashboard"
+          className="mr-3 mt-6 inline-block rounded-card bg-teal-deep px-3 py-2 text-xs font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        >
+          Back to dashboard
+        </Link>
         <button
           onClick={() => {
             setSubmitted(false);

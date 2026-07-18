@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
+import { type BaselineConfig } from "./baseline-section";
 import type { PageRef } from "@/lib/pages/authz";
 import type { CyclePhase } from "@/lib/cycle/phase";
 
@@ -32,6 +33,7 @@ export default function FeedComposer({
   pendingCycleIds = [],
   postAsPages = [],
   phase = 1,
+  baseline = null,
 }: {
   avatarUrl: string | null;
   initials: string;
@@ -45,9 +47,14 @@ export default function FeedComposer({
   /** Current phase of the open cycle — the Learning Log's phase-contextual
       stems (lib/cycle/phase.ts). */
   phase?: CyclePhase;
+  /** When set, the Learning Log tab hosts the one-time Baseline Learning Log
+      for this cycle and opens by default. */
+  baseline?: BaselineConfig | null;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>(gateActive ? "log" : "update");
+  const [tab, setTab] = useState<Tab>(
+    gateActive || !!baseline ? "log" : "update"
+  );
   // "self" or a "type:id" key into postAsPages.
   const [postAs, setPostAs] = useState("self");
   const selectedPage =
@@ -243,6 +250,7 @@ export default function FeedComposer({
               logCycles={logCycles}
               pendingCycleIds={pendingCycleIds}
               phase={phase}
+              baseline={baseline}
             />
           </div>
         )}

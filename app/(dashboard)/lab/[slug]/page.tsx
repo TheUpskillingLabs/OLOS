@@ -14,6 +14,7 @@ import AnnouncementsAdmin, {
   type AdminAnnouncement,
 } from "@/app/(dashboard)/admin/announcements/announcements-admin";
 import CreateCycleForm from "@/app/(dashboard)/admin/cycles/create-cycle-form";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import LabInviteForm from "./lab-invite-form";
 
 /**
@@ -481,9 +482,12 @@ export default async function LabWorkspacePage({
 
       {/* Roster — everyone whose metro is this lab. */}
       <section>
-        <h2 className="mb-4 t-h3 text-ink">
-          Members ({memberRoster.length})
-        </h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="t-h3 text-ink">Members ({memberRoster.length})</h2>
+          <ContactsDownloadButton
+            href={`/api/labs/${lab.id}/contacts/export`}
+          />
+        </div>
         <DataTable
           rows={memberRoster}
           rowKey={(row) => row.participant_id}

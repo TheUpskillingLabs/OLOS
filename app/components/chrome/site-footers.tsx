@@ -20,7 +20,7 @@ export function PgFoot() {
           <Link href="/about">About</Link> ·{" "}
           <Link href="/events">Events</Link> ·{" "}
           <Link href="/get-involved">Get Involved</Link> ·{" "}
-          <Link href="/team">The Team</Link> ·{" "}
+          <Link href="/board">Our Board</Link> ·{" "}
           <Link href="/donate">Donate</Link> ·{" "}
           <Link href="/contact">Contact</Link>
         </span>
@@ -64,7 +64,7 @@ export function OsFooter() {
           <div className="foot-col">
             <div className="lbl">Community</div>
             <Link className="foot-link" href="/about">About</Link>
-            <Link className="foot-link" href="/team">The Team</Link>
+            <Link className="foot-link" href="/board">Our Board</Link>
             <Link className="foot-link" href="/get-involved">Get Involved</Link>
             <Link className="foot-link" href="/contact">Contact</Link>
             <Link className="foot-link" href="/login?intent=join">Become a member</Link>

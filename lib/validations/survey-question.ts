@@ -106,6 +106,8 @@ export const createSurveySchema = z.object({
   share_slug: slugSchema,
   status: z.enum(["draft", "open", "closed"]).optional().default("draft"),
   allow_anonymous: z.boolean().optional().default(true),
-  cycle_id: z.number().int().nullable().optional(),
+  // Every survey belongs to a cycle (one per cycle, 00089) — required at
+  // creation. sector_id stays the optional durable-commons home.
+  cycle_id: z.number().int().positive(),
   sector_id: z.number().int().nullable().optional(),
 });

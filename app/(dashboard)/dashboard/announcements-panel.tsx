@@ -3,6 +3,7 @@ import {
   fetchAnnouncements,
   announcementScopeLabel,
 } from "@/lib/announcements/data";
+import AnnouncementBody from "./announcement-body";
 
 /**
  * The org-news reader (async RSC). Shows published announcements the member can
@@ -73,9 +74,7 @@ export default async function AnnouncementsPanel({
                   </span>
                 )}
               </div>
-              <p className="mt-1 whitespace-pre-line break-words text-xs leading-relaxed text-charcoal line-clamp-5">
-                {a.body}
-              </p>
+              <AnnouncementBody body={a.body} />
               <p className="mt-1.5 text-[11px] text-meta">
                 {a.publishedAt ? formatDate(a.publishedAt) : "Draft"}
                 {" · "}

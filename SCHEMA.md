@@ -92,6 +92,13 @@ erDiagram
         text luma_api_id "nullable — Luma sync hook"
     }
 
+    weekly_messages {
+        int id PK
+        smallint week "UK; 0–12; program-global (00088)"
+        text message
+        timestamptz updated_at
+    }
+
     cycle_config {
         int id PK
         int cycle_id FK
@@ -607,6 +614,23 @@ erDiagram
         timestamptz removed_at "NULL = active"
     }
 
+    baseline_responses {
+        int id PK
+        int learning_log_id FK "→ learning_logs(id), UK (00087)"
+        int participant_id FK
+        int cycle_id FK
+        smallint ai_usage_frequency "1–5"
+        text work_shift_outlook
+        text role_change_outlook
+        smallint skills_readiness "1–5"
+        smallint learning_confidence "1–5"
+        smallint judgment_confidence "1–5"
+        smallint autonomy "1–5 (BPNSF, Chen 2015)"
+        smallint peer_investment "1–5"
+        varchar schema_version "instrument version, default v1"
+        timestamptz created_at
+    }
+
     metros ||--o{ metro_waitlist_signups : "collects"
     metros ||--o{ cycles : "lab stream (00062; NULL = HQ)"
     metros ||--o{ workstreams : "lab workstreams (00062)"
@@ -621,6 +645,7 @@ erDiagram
     participants ||--o{ profile_update_comments : "comments"
     participants ||--o{ follows : "follows (00074)"
     participants ||--o{ page_admins : "admins pages (00076)"
+    participants ||--o{ baseline_responses : "measured (00087)"
     events ||--o{ event_rsvps : "collects"
 ```
 
@@ -638,7 +663,9 @@ erDiagram
 
 **RSVP hardening (migration `00039`):** `event_rsvps.ip_hash` (sha256, never the raw IP) backs the anonymous path's per-IP window cap in `POST /api/events/[event_id]/rsvp` (`lib/api/rate-limit.ts` — the backend doc §8 pre-launch blocker); `participant_id` records member identity on the one-tap path (NULL for anonymous), feeding the Poderator workshop-signups view.
 
-**Learning Log (migrations `00040`, `00041` — roadmap Phase 1):** `learning_logs` is the weekly practice ritual replacing `pulse_checks` for new cycles (pulse history stays, private, untouched). Three parts in one row: health check (`clarity`/`alignment` 1–5 + `is_blocked`/`blocker_context` — visible to the member, their Poderator, and admins; never shared), scaffolded reflection (`accomplished`/`exploring`/`next_focus`), and `share_publicly` — when true the API writes a `profile_updates` row carrying ONLY the concatenated paragraph (provenance via `learning_log_id`; the metrics never travel). `kind` carries the milestone variants (`milestone_7` / `milestone_13`, surfaced as Mid-cycle / End-cycle) — opened on the admin-configurable `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default weeks 6 / 12), server-derived at write time. No per-window unique — unlimited logs. The weekly gate is config-as-data: the Friday cron (`/api/cron/learning-log-window`) stamps `cycle_config.log_due_at`; an active enrollee with no log at/after the stamp is locked to the dashboard (`lib/learning-logs/gate.ts`); `log_gate_paused` is the grace toggle. RLS: self + cycle-staff SELECT, self INSERT, append-only; `profile_updates` is authenticated-SELECT (`visibility='labs'`), self-DELETE, service-role INSERT only. `participants.is_staff`/`is_test` (00041) are roster-visibility flags (hidden by default on Poderator rosters, excluded from health math) — never permissions.
+**Learning Log (migrations `00040`, `00041` — roadmap Phase 1):** `learning_logs` is the weekly practice ritual replacing `pulse_checks` for new cycles (pulse history stays, private, untouched). Three parts in one row: health check (`clarity`/`alignment` 1–5 + `is_blocked`/`blocker_context` — visible to the member, their Poderator, and admins; never shared), scaffolded reflection (`accomplished`/`exploring`/`next_focus`), and `share_publicly` — when true the API writes a `profile_updates` row carrying ONLY the concatenated paragraph (provenance via `learning_log_id`; the metrics never travel). `kind` carries the milestone variants (`milestone_7` / `milestone_13`, surfaced as Mid-cycle / End-cycle) — opened on the admin-configurable `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default weeks 6 / 12), server-derived at write time — plus `baseline` (migration `00087`), the one-time Week-0 measurement whose eight structured answers land in `baseline_responses` (below) while its `learning_logs` row satisfies the weekly gate like any other log. No per-window unique — unlimited logs. The weekly gate is config-as-data: the Friday cron (`/api/cron/learning-log-window`) stamps `cycle_config.log_due_at`; an active enrollee with no log at/after the stamp is locked to the dashboard (`lib/learning-logs/gate.ts`); `log_gate_paused` is the grace toggle. RLS: self + cycle-staff SELECT, self INSERT, append-only; `profile_updates` is authenticated-SELECT (`visibility='labs'`), self-DELETE, service-role INSERT only. `participants.is_staff`/`is_test` (00041) are roster-visibility flags (hidden by default on Poderator rosters, excluded from health math) — never permissions.
+
+**Baseline + weekly messages (migrations `00087`/`00088`):** `baseline_responses` holds the one-time Week-0 baseline measurement — one row per participant per cycle (`UNIQUE(participant_id, cycle_id)`), tied to the `kind='baseline'` `learning_logs` row that opened it (`learning_log_id` UNIQUE). Its eight answers are a fixed instrument (`ai_usage_frequency`, two free-text outlook prompts, and five 1–5 scales — `skills_readiness`/`learning_confidence`/`judgment_confidence`/`autonomy`/`peer_investment`, the `autonomy` item adapted from Chen et al. 2015 BPNSF), deliberately **hardcoded** in `lib/learning-logs/baseline.ts` rather than admin-configurable so the measure stays comparable across cycles; `schema_version` pins the instrument version. RLS mirrors `learning_logs`: self + cycle-staff SELECT, self INSERT, append-only (a baseline is measured once, never edited). `weekly_messages` (00088, replacing 00087's cycle-scoped `cycle_weekly_messages`) is the admin-authored per-week "What's next" copy shown to a participant right after they save that week's log — **program-global**, one row per `week` (0–12) shared by every open cycle; the cycle only supplies which week it is. RLS follows the `cycle_phases`/`cycle_events` pattern (00086): authenticated SELECT, `is_admin_or_owner()` writes.
 
 **Weekly instrument v2 (migration `00091`):** the weekly OPEN-cycle log runs a nine-item instrument, stamped `schema_version='v2'` at write time; milestone reviews, journal (no-cycle) logs, and org-cycle logs stay on the v1 shape above. New columns: `stuck_tried` (what they tried; the stuck check reuses `is_blocked`, and `blocker_context` becomes "what kind of help would move this forward"), `hours_bucket` (byte-identical to the `option_lists('availability')` strings from `00082`, validated app-side against `lib/cycles/hours.ts` — deliberately no FK so history survives a list rebuild), `collab_rating`/`progress_rating`/`capability_rating`/`energy_rating` (SMALLINT 1–5 CHECKs), `contribution`/`learned` (the share paragraph's v2 sources), and optional `feeling_word` (VARCHAR(50), single word)/`recognition`. `clarity`/`alignment` dropped NOT NULL (v2 rows don't carry them; their 1–5 CHECKs pass on NULL) — per-kind requiredness is app-level (`lib/validations/learning-logs.ts`, applied in the route after `kind` is derived). The collaboration/contribution question stems are phase-contextual in the UI only (`lib/cycle/phase.ts` from `cycle_config.phase_2_start`/`phase_3_start`, week-threshold fallback) — nothing phase-specific persists.
 
@@ -664,7 +691,7 @@ The intake bedrock of the Data Sensemaker (`docs/SENSEMAKING_FLOW.md` §3, `docs
 erDiagram
     field_surveys {
         int id PK
-        int cycle_id FK "nullable"
+        int cycle_id FK "nullable; unique when set (00089)"
         int sector_id FK "nullable"
         varchar title
         varchar problem_domain
@@ -734,7 +761,7 @@ erDiagram
     survey_questions ||--o{ survey_response_answers : "answered by"
 ```
 
-**`field_surveys` / `survey_responses` (migration `00053`):** the field-survey intake (`docs/SENSEMAKING_FLOW.md` §3). `field_surveys` is the instrument — one row per sector/cycle problem domain, seeded idempotently for Civics & Elections (`share_slug='civics'`, `status='open'`). The public page `/survey/[slug]` renders it (the survey-specific `about` lede from the row; the "what is the Labs / where do insights go" copy is boilerplate in the page). `survey_responses` is the observation bedrock: `observation` is the required evidence body every future `extract` derives from; `standpoint[]` feeds the coverage/diversity signal (never a credibility weight — `ORTELIUS_NORTHSTAR.md` §6); `salience`, `prior_attempts` (archaeology), and the contact fields are optional. Two distinct consents: `consent_participation` (required, gates submit) and `contactable` (optional). The **nullable `participant_id`** is the load-bearing anonymous public path; `mentor_interest` is a recruiting side-channel. **Ortelius groundwork columns land day one:** `source_url` (the evidence-producer gap, `ORTELIUS §5` gap #6), `consent_version`, `moderation_status`, and `schema_version` (gap #12 — versioned from day one). Every response is retained; curation is a later temporal overlay, never a delete (owner decision 2026-07-05). RLS: `field_surveys` anon-SELECT-`open`-only (mirrors spotlights/events); `survey_responses` has **no public policy** — all writes go through the service-role `POST /api/surveys/[slug]/responses` (member session binds `participant_id`; anonymous path is per-IP throttled via `lib/api/rate-limit.ts`, `moderation_status='pending'`), and reads stay service-role until a consented atlas surface ships.
+**`field_surveys` / `survey_responses` (migration `00053`):** the field-survey intake (`docs/SENSEMAKING_FLOW.md` §3). `field_surveys` is the instrument — one row per sector/cycle problem domain, seeded idempotently for Civics & Elections (`share_slug='civics'`, `status='open'`). Since `00089` every survey is affiliated with a cycle at creation and a cycle carries at most one survey (partial unique index `uq_field_surveys_cycle` on non-NULL `cycle_id`; required-ness enforced in `createSurveySchema` + the admin form so legacy NULL rows stay legal). The public page `/survey/[slug]` renders it (the survey-specific `about` lede from the row; the "what is the Labs / where do insights go" copy is boilerplate in the page). `survey_responses` is the observation bedrock: `observation` is the required evidence body every future `extract` derives from; `standpoint[]` feeds the coverage/diversity signal (never a credibility weight — `ORTELIUS_NORTHSTAR.md` §6); `salience`, `prior_attempts` (archaeology), and the contact fields are optional. Two distinct consents: `consent_participation` (required, gates submit) and `contactable` (optional). The **nullable `participant_id`** is the load-bearing anonymous public path; `mentor_interest` is a recruiting side-channel. **Ortelius groundwork columns land day one:** `source_url` (the evidence-producer gap, `ORTELIUS §5` gap #6), `consent_version`, `moderation_status`, and `schema_version` (gap #12 — versioned from day one). Every response is retained; curation is a later temporal overlay, never a delete (owner decision 2026-07-05). RLS: `field_surveys` anon-SELECT-`open`-only (mirrors spotlights/events); `survey_responses` has **no public policy** — all writes go through the service-role `POST /api/surveys/[slug]/responses` (member session binds `participant_id`; anonymous path is per-IP throttled via `lib/api/rate-limit.ts`, `moderation_status='pending'`), and reads stay service-role until a consented atlas surface ships.
 
 **`survey_questions` / `survey_response_answers` (migration `00061`):** the question builder makes the instrument data-driven. `survey_questions` holds the ordered questions a cycle admin authors (`question_type`, `prompt`, per-type `config` JSONB — options, scale labels, consent agreement, contact fields); the public flow renders them via `questionsToFlowSteps` (`survey-flow.tsx`) instead of a hardcoded list, and the write route resolves answers against them. `survey_responses` stays the **submission envelope** (unchanged): a `response_column` back-pointer on a question routes its answer into the legacy typed column (`observation`, `standpoint`, `salience`, `mentor_interest`, `consent_participation`, and the contact fan-out to `submitter_*`), so the seeded Civics questions keep old rows valid and render identically — `observation` is now nullable (`00061`) only so a survey without an observation question can still insert. Custom (non-`response_column`) questions store one `survey_response_answers` row each (`value` JSONB). `is_system` questions (the seeded 7) are locked in the builder — type, `response_column`, and options can't change, and they can't be deleted — because downstream readers (CSV export, future Ortelius extraction of `observation`) and the coverage signal depend on them. RLS: `survey_questions` anon-SELECT only for an `open` survey; `survey_response_answers` service-role only (mirrors `survey_responses`). CSV export (`GET /api/surveys/[slug]/export`, admin + assigned poderator) pivots one column per question across both storage sources.
 
@@ -855,7 +882,9 @@ erDiagram
 | `metro_waitlist_signups` | Public Content | Participant ↔ metro waitlist joins (unique pair) |
 | `event_rsvps` | Public Content | Email-only public RSVPs (never account-gated) |
 | `announcements` | Public Content | Admin-authored org news for the dashboard rail; `lab_id` NULL = global, else lab-scoped (00070) |
-| `learning_logs` | Practice | The weekly ritual (replaces pulse_checks for new cycles). Weekly open-cycle rows are the v2 nine-item instrument (00091: stuck check, hours bucket, collab/progress/capability/energy ratings, contribution, learned, optionals); milestone/journal/org rows keep the v1 health check + reflection. Share flag on both. For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
+| `learning_logs` | Practice | The weekly ritual (replaces pulse_checks for new cycles). Weekly open-cycle rows are the v2 nine-item instrument (00091: stuck check, hours bucket, collab/progress/capability/energy ratings, contribution, learned, optionals); milestone/journal/org rows keep the v1 health check + reflection; `kind` adds `baseline` (00087) for the one-time Week-0 measurement. Share flag on both. For `mode='org'` cycles also carries `work_summary`/`work_progress`/`work_blockers` (00069) — the member tier of the Leadership Log cascade |
+| `baseline_responses` | Practice | The one-time Week-0 baseline (00087): eight fixed-instrument answers per participant per cycle, tied to the `kind='baseline'` learning_logs row. Append-only, self + cycle-staff read. Questions hardcoded in `lib/learning-logs/baseline.ts` |
+| `weekly_messages` | Core | Admin-authored per-week "What's next" copy shown after a participant saves that week's learning log (00088); program-global — one row per `week` (0–12), shared by every open cycle |
 | `leadership_logs` | Practice | The org leadership cascade (00069): weekly reflections by `workstream_lead` (Thu) and `lab_lead` (Fri) tiers, scoped to a run pod or a lab; non-blocking, written in the context of the tier below |
 | `profile_updates` | Practice | The feed's updates. Polymorphic author: a member (`participant_id`) OR a **page** (`author_page_type`+`author_page_id` = lab/sector/workstream/pod/project, with `posted_by_participant_id` provenance; 00076) — exactly one. `visibility` `labs` (public/members-wide) or `private` (member posts only; page posts are always `labs`). Learning Log shares + freeform member posts (00072) + page updates (00076) |
 | `page_admins` | Practice | Explicit admins of a page (00076) — the "others can be added" list beyond a page's auto-admins (leads; a project's members/maintainers). Polymorphic (`page_type`+`page_id`). A page admin may post as the page and manage its admin list. Active = `removed_at IS NULL` |

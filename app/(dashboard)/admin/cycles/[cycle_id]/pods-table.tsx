@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DataTable, StatusBadge, Sheet } from "@/app/components/ui";
 import AssignModeratorButton from "./assign-moderator-button";
 import OwnerLifecycle from "@/app/components/owner-lifecycle";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 
 /**
@@ -44,8 +45,8 @@ type ParticipantOption = { participant_id: number; name: string; email?: string 
 const POD_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 export default function PodsTable({
@@ -318,7 +319,12 @@ function PodManagePanel({
       )}
 
       <section>
-        <h3 className="lbl mb-3">Members ({pod.members.length})</h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="lbl">Members ({pod.members.length})</h3>
+          <ContactsDownloadButton
+            href={`/api/pods/${pod.id}/contacts/export`}
+          />
+        </div>
         <div className="space-y-1">
           {pod.members.map((m) => (
             <div

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/guards";
 import { isOwner } from "@/lib/auth/roles";
 import { StatusBadge, DataTable, type Column } from "@/app/components/ui";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import { formatDate } from "@/lib/format/date";
 import { one } from "@/lib/supabase/embed";
 import {
@@ -219,16 +220,22 @@ export default async function AccessConsolePage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="t-h1 text-ink">Access</h1>
-        <p className="mt-1 max-w-2xl text-sm text-meta">
-          Every role in the org, rooted at the HQ owner, with the provenance of
-          each grant. Authority resolves from one source of truth
-          (<code className="text-xs">participant_roles</code>) that both the app
-          and the database read. Grant or revoke a global role below; scoped
-          roles (lab leads, poderators, contributors) are managed on their own
-          surfaces, linked from each section.
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="t-h1 text-ink">Access</h1>
+          <p className="mt-1 max-w-2xl text-sm text-meta">
+            Every role in the org, rooted at the HQ owner, with the provenance of
+            each grant. Authority resolves from one source of truth
+            (<code className="text-xs">participant_roles</code>) that both the app
+            and the database read. Grant or revoke a global role below; scoped
+            roles (lab leads, poderators, contributors) are managed on their own
+            surfaces, linked from each section.
+          </p>
+        </div>
+        <ContactsDownloadButton
+          href="/api/admin/access/contacts/export"
+          label="Download role-holders CSV"
+        />
       </div>
 
       <GrantRoleForm participants={participantOptions} canGrantOwner={canGrantOwner} />

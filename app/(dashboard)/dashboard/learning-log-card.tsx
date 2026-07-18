@@ -9,6 +9,12 @@ import WeeklyV2Fields, {
   weeklyV2Complete,
   type WeeklyV2State,
 } from "./learning-log-v2-fields";
+import BaselineSection, {
+  DEFAULT_BASELINE_ANSWERS,
+  missingBaselineKeys,
+  type BaselineConfig,
+} from "./baseline-section";
+import type { BaselineAnswers } from "@/lib/learning-logs/baseline";
 
 /* The Learning Log — the weekly ritual, on the dashboard where the practice
    lives (owner decision: the ritual is Home, not a nav destination).
@@ -75,6 +81,7 @@ export default function LearningLogCard({
   pendingCycleIds = [],
   embedded = false,
   phase = 1,
+  baseline = null,
 }: {
   gateActive: boolean;
   /** When set, this week is a milestone evaluation — same flow, evaluation
@@ -103,6 +110,12 @@ export default function LearningLogCard({
       drives the v2 instrument's collaboration/contribution stems. Server
       computed; defaults to 1 so the stems always render something. */
   phase?: CyclePhase;
+  /** When set, this render is the one-time Baseline Learning Log for the given
+      cycle: the baseline questionnaire appears above the weekly form, the
+      "Log for" picker is hidden (the save is pinned to this cycle), and the
+      save ships a `baseline` payload alongside the weekly fields. Carries the
+      question set from the server (baseline.ts is server-tainted). */
+  baseline?: BaselineConfig | null;
 }) {
   const router = useRouter();
   const pf = milestone?.prefill ?? null;
@@ -127,7 +140,16 @@ export default function LearningLogCard({
   const [justSaved, setJustSaved] = useState<null | {
     cleared: boolean;
     stillDue: string | null;
+    whatsNext: { week: number; message: string } | null;
   }>(null);
+  const [baselineAnswers, setBaselineAnswers] = useState<BaselineAnswers>(
+    DEFAULT_BASELINE_ANSWERS
+  );
+  // Form-wide "you tried to save with these unanswered" set. Today only the
+  // onboarding picks can be missing (weekly fields default or are optional);
+  // the standard questions plug into the same mechanism when they grow
+  // required states.
+  const [missingFields, setMissingFields] = useState<Set<string>>(new Set());
   const [recent, setRecent] = useState<RecentLog[]>([]);
   const [count, setCount] = useState(0);
   const [showAll, setShowAll] = useState(false);
@@ -160,7 +182,7 @@ export default function LearningLogCard({
   // Milestone reviews, journal logs, and org-cycle logs stay on the v1 form,
   // so switching the "Log for" picker to the org cycle live-swaps the form.
   const isWeeklyV2 =
-    !journal && !activeMilestone && selectedCycle?.mode === "open";
+    !journal && !activeMilestone && !baseline && selectedCycle?.mode === "open";
 
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
@@ -247,6 +269,17 @@ export default function LearningLogCard({
         ];
 
   async function save() {
+    // Required-answer check before anything ships: an incomplete form doesn't
+    // submit — it flags exactly which questions still need an answer.
+    const missing = baseline ? missingBaselineKeys(baselineAnswers) : [];
+    if (missing.length > 0) {
+      setMissingFields(new Set(missing));
+      setError(
+        "A few questions still need an answer — they’re highlighted above."
+      );
+      return;
+    }
+    setMissingFields(new Set());
     setBusy(true);
     setError(null);
     try {
@@ -281,7 +314,9 @@ export default function LearningLogCard({
             work_progress: workProgress || null,
             work_blockers: workBlockers || null,
             share_publicly: share,
-            cycle_id: selectedCycleId,
+            ...(baseline
+              ? { baseline: baselineAnswers, cycle_id: baseline.cycleId }
+              : { cycle_id: selectedCycleId }),
           };
       const res = await fetch("/api/learning-logs", {
         method: "POST",
@@ -307,7 +342,11 @@ export default function LearningLogCard({
           ? `${stillDueCycle.name}${stillDueCycle.mode === "org" ? " (org)" : ""}`
           : null
         : null;
-      setJustSaved({ cleared: !!data.gate_cleared, stillDue });
+      setJustSaved({
+        cleared: !!data.gate_cleared,
+        stillDue,
+        whatsNext: data.whats_next ?? null,
+      });
       // The form resets in place — log as often as you like.
       setClarity(3);
       setAlignment(3);
@@ -318,6 +357,9 @@ export default function LearningLogCard({
       setNextFocus("");
       setV2(emptyWeeklyV2State);
       setShare(false);
+      // A filed baseline is one-per-cycle — clear it so a second save (before
+      // the server refresh drops the section) doesn't resubmit it.
+      if (baseline) setBaselineAnswers(DEFAULT_BASELINE_ANSWERS);
       loadRecent();
       // Refresh the server components so anything derived from log state
       // updates in place — notably the setup checklist's "Save your first
@@ -351,14 +393,20 @@ export default function LearningLogCard({
         <div className="flex items-baseline justify-between">
           <div>
             <p className="lbl">
-              {journal
-                ? "Journal"
-                : activeMilestone
-                  ? "Milestone"
-                  : "Weekly ritual"}
+              {baseline
+                ? "Onboarding"
+                : journal
+                  ? "Journal"
+                  : activeMilestone
+                    ? "Milestone"
+                    : "Weekly ritual"}
             </p>
             <h2 className="t-h3 text-ink">
-              {activeMilestone ? activeMilestone.label : "Learning Log"}
+              {baseline
+                ? "Cycle onboarding Learning Log"
+                : activeMilestone
+                  ? activeMilestone.label
+                  : "Learning Log"}
             </h2>
           </div>
           {count > 0 && (
@@ -377,7 +425,7 @@ export default function LearningLogCard({
         </p>
       )}
 
-      {logCycles.length > 1 && (
+      {!baseline && logCycles.length > 1 && (
         <label className="mt-4 block">
           <span className="text-sm font-semibold text-ink">Log for</span>
           <select
@@ -410,7 +458,33 @@ export default function LearningLogCard({
         >
           Logged ✓{justSaved.cleared ? " — you’re back in ✓" : ""}
           {justSaved.stillDue && ` · Still due: ${justSaved.stillDue}`}
+          {justSaved.whatsNext && (
+            <span className="mt-2 block border-t border-teal/20 pt-2 font-normal text-charcoal">
+              <span className="block font-semibold text-teal-deep">
+                What’s next · Week {justSaved.whatsNext.week}
+              </span>
+              {justSaved.whatsNext.message}
+            </span>
+          )}
         </div>
+      )}
+
+      {baseline && (
+        <BaselineSection
+          questions={baseline.questions}
+          aiUsageOptions={baseline.aiUsageOptions}
+          value={baselineAnswers}
+          onChange={setBaselineAnswers}
+          // Only keys still unanswered stay flagged — answering one clears its
+          // highlight live, without waiting for the next save attempt.
+          missingKeys={
+            new Set(
+              missingBaselineKeys(baselineAnswers).filter((k) =>
+                missingFields.has(k)
+              )
+            )
+          }
+        />
       )}
 
       {/* The weekly open-cycle log: the v2 instrument (00091). The stuck

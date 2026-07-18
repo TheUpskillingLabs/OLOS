@@ -22,13 +22,29 @@ export const POST = withAdminAuth(async (request) => {
       share_slug: body.share_slug,
       status: body.status ?? "draft",
       allow_anonymous: body.allow_anonymous ?? true,
-      cycle_id: body.cycle_id ?? null,
+      cycle_id: body.cycle_id,
       sector_id: body.sector_id ?? null,
       consent_version: consentVersion,
     })
     .select("id, share_slug")
     .single();
-  if (error) return dbError(error, "survey-create");
+  if (error) {
+    // One survey per cycle (uq_field_surveys_cycle, 00089) — surface the
+    // conflict as an actionable 409 instead of a sanitized 500. The slug's
+    // own UNIQUE takes the same path.
+    if (error.code === "23505") {
+      const taken = error.message.includes("uq_field_surveys_cycle");
+      return NextResponse.json(
+        {
+          error: taken
+            ? "That cycle already has a survey — each cycle can have only one."
+            : "That share slug is already in use.",
+        },
+        { status: 409 }
+      );
+    }
+    return dbError(error, "survey-create");
+  }
 
   return NextResponse.json(data, { status: 201 });
 });

@@ -18,3 +18,17 @@ export function getCycleWeek(now: Date, start: Date, end: Date): number {
   const week = Math.floor((elapsed / totalMs) * 13);
   return Math.min(week, 12);
 }
+
+/**
+ * The inverse of getCycleWeek's bucketing: the exact instant week `week`
+ * begins on the same wk0→wk12 calendar. getCycleWeek buckets an instant into
+ * 13 equal slices of [start, end], so slice `week` opens at
+ * start + week * (end - start) / 13. Used to select the per-week "What's next"
+ * message and to reason about a week's boundary. Round-trips with
+ * getCycleWeek for weeks 0–12 (an instant just after getCycleWeekStart(w)
+ * lands in week w); week 0 is exactly `start`.
+ */
+export function getCycleWeekStart(week: number, start: Date, end: Date): Date {
+  const totalMs = end.getTime() - start.getTime();
+  return new Date(start.getTime() + (week * totalMs) / 13);
+}

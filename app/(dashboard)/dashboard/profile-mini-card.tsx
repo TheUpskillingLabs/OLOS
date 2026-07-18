@@ -2,9 +2,11 @@ import Link from "next/link";
 
 /**
  * The left-rail identity card — a compact profile summary (avatar, name,
- * headline, lab) with links to the public profile and the edit page. The heavy
- * MemberProfileView (max-w-3xl, owner PII sections) is the wrong fit for a 2/7
- * column, so this is a purpose-built mini card on the same tokens.
+ * headline, lab). The whole card is a single link to your profile (/profile,
+ * the owner view, where editing is started); the "Following" count is a
+ * separate footer link. The heavy MemberProfileView (max-w-3xl, owner PII
+ * sections) is the wrong fit for a 2/7 column, so this is a purpose-built mini
+ * card on the same tokens.
  */
 export default function ProfileMiniCard({
   displayName,
@@ -12,7 +14,6 @@ export default function ProfileMiniCard({
   metroName,
   avatarUrl,
   initials,
-  handle,
   followingCount = null,
 }: {
   displayName: string;
@@ -20,13 +21,16 @@ export default function ProfileMiniCard({
   metroName: string | null;
   avatarUrl: string | null;
   initials: string;
-  handle: string | null;
   /** People + pages followed — links to /network when provided. */
   followingCount?: number | null;
 }) {
   return (
-    <section className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
-      <div className="flex flex-col items-center text-center">
+    <section className="overflow-hidden rounded-card border border-ink/10 bg-white shadow-card">
+      <Link
+        href="/profile"
+        aria-label="View your profile"
+        className="flex flex-col items-center p-5 text-center transition-colors duration-150 hover:bg-ink/[0.03]"
+      >
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -42,32 +46,16 @@ export default function ProfileMiniCard({
         <h2 className="mt-3 t-h4 text-ink">{displayName}</h2>
         {headline && <p className="mt-1 text-sm text-teal-deep">{headline}</p>}
         {metroName && <p className="mt-1 text-xs text-meta">{metroName}</p>}
-        {followingCount != null && (
-          <Link
-            href="/network"
-            className="mt-2 text-xs font-semibold text-teal-deep transition-colors duration-150 hover:text-ink"
-          >
-            Following · {followingCount}
-          </Link>
-        )}
-      </div>
+      </Link>
 
-      <div className="mt-4 flex flex-col gap-2">
-        {handle && (
-          <Link
-            href={`/u/${handle}`}
-            className="btn btn-ghost min-h-11 w-full justify-center px-4 py-2 text-sm"
-          >
-            View profile
-          </Link>
-        )}
+      {followingCount != null && (
         <Link
-          href="/profile/edit"
-          className="btn btn-ghost min-h-11 w-full justify-center px-4 py-2 text-sm"
+          href="/network"
+          className="block border-t border-ink/10 px-5 py-3 text-center text-xs font-semibold text-teal-deep transition-colors duration-150 hover:bg-ink/[0.03] hover:text-ink"
         >
-          Edit profile
+          Following · {followingCount}
         </Link>
-      </div>
+      )}
     </section>
   );
 }

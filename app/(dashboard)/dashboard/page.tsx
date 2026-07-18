@@ -8,7 +8,7 @@ import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import { type MilestoneContext } from "./learning-log-card";
-import { getCycleWeek } from "@/lib/cycle/week";
+import { getCycleWeek, getCycleWeekStart } from "@/lib/cycle/week";
 import { getCyclePhase, type CyclePhase } from "@/lib/cycle/phase";
 import {
   milestoneKindForWeek,
@@ -31,6 +31,12 @@ import { getParticipantMemberships } from "@/lib/participants/memberships";
 import { ensurePageFollowsSeeded } from "@/lib/follows/seed";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
+import {
+  pendingBaselineCycles,
+  BASELINE_QUESTIONS,
+  AI_USAGE_OPTIONS,
+} from "@/lib/learning-logs/baseline";
+import WhatsNextCard from "./whats-next-card";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
 import { resolveUserRoles } from "@/lib/auth/roles";
 import { pagesUserCanPostAs } from "@/lib/pages/authz";
@@ -218,7 +224,14 @@ export default async function DashboardPage() {
   // picker (dual-enrolled staff log against either) and agrees with the
   // gate's own resolution, so a mode='closed' active-cycle enrollment (or
   // any future mode) is never gated here but ungateable there.
-  const logCycles = await eligibleLogCycles(participant.id);
+  // Both derive from the member's enrollments/logs but are independent reads —
+  // resolve them together. baselineCycles is the pending-baseline set (upcoming
+  // OR active open cycles the member is enrolled in and hasn't filed for yet).
+  const [logCycles, baselineCycles] = await Promise.all([
+    eligibleLogCycles(participant.id),
+    pendingBaselineCycles(participant.id),
+  ]);
+  const pendingBaseline = baselineCycles[0] ?? null;
 
   // Has the member already signed the upcoming cohort's Open Cycle Agreement?
   // Drives the "Register" checklist row + the pre-registration confirmation so
@@ -514,17 +527,9 @@ export default async function DashboardPage() {
           },
         ]
       : []),
-    ...(fieldSurvey
-      ? [
-          {
-            key: "survey",
-            label: "Share your field observations",
-            done: surveyContributed,
-            href: `/survey/${fieldSurvey.share_slug}`,
-            cta: "Open",
-          },
-        ]
-      : []),
+    // The survey deliberately has NO checklist row — it already has the
+    // "Start here" card (contribute) and the Up-next share todo; three
+    // surfaces for one action read as clutter (owner call, 2026-07-14).
     {
       key: "profile",
       // Label names the exact fields that flip profileDone (bio || headline),
@@ -556,6 +561,21 @@ export default async function DashboardPage() {
           },
         ]
       : []),
+    // The Baseline Learning Log — a one-time snapshot filed before the weekly
+    // ritual begins; the row is present only while a pending baseline exists
+    // (it drops out the moment the member files it). Same #learning-log anchor
+    // as the first-log row, sitting just above it.
+    ...(pendingBaseline
+      ? [
+          {
+            key: "baseline",
+            label: "Complete your Cycle onboarding Learning Log",
+            done: false,
+            href: "#learning-log",
+            cta: "Log",
+          },
+        ]
+      : []),
     ...(activeCycle
       ? [
           {
@@ -572,23 +592,45 @@ export default async function DashboardPage() {
   // The prominent first-CTA card — the visual lead for the cohort's opening
   // activity. Renders above the setup checklist in every state where the cohort
   // has an open survey; pairs "contribute" with "share" (Stage 1 = Distribute).
-  const fieldSurveyCard = (survey: FieldSurvey) => (
+  // Once the member has contributed, the big pitch has done its job — collapse
+  // to a strip (same shape as the checklist's collapsed state) with the two
+  // follow-on actions. Sharing keeps its own Up-next card.
+  const fieldSurveyCard = (survey: FieldSurvey) =>
+    surveyContributed ? (
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-card border border-ink/10 bg-white px-5 py-3 shadow-card">
+        <span className="text-sm font-semibold text-teal-deep">
+          Field survey · Contributed ✓
+        </span>
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <Link
+            href={`/survey/${survey.share_slug}`}
+            className="font-semibold text-teal-deep hover:underline"
+          >
+            Add another →
+          </Link>
+          <Link
+            href={`/survey/${survey.share_slug}/results`}
+            className="text-meta transition-colors hover:text-teal-deep hover:underline"
+          >
+            See what the cycle is finding →
+          </Link>
+        </span>
+      </div>
+    ) : (
     <section className="mb-6 rounded-card border border-teal/30 bg-white p-6 shadow-card">
       <div className="lbl lbl-teal mb-2">Start here · Field survey</div>
       <h2 className="t-h3 text-ink">{survey.title}</h2>
       <p className="mt-2 max-w-2xl text-sm text-meta">
         Every Build Cycle starts in the field. Add what you&apos;re seeing, then
         share the survey with people close to the problem — your observations
-        shape the problems this cohort takes on.
+        shape the problems this cycle takes on.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Link
           href={`/survey/${survey.share_slug}`}
           className="inline-flex items-center gap-1.5 rounded-card bg-teal-deep px-4 py-2 text-sm font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
-          {surveyContributed
-            ? "Add another observation"
-            : "Contribute an observation"}
+          Contribute an observation
           <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
         <ShareSurveyButton slug={survey.share_slug} title={survey.title} />
@@ -597,7 +639,7 @@ export default async function DashboardPage() {
         href={`/survey/${survey.share_slug}/results`}
         className="mt-3 inline-block text-sm font-semibold text-teal-deep hover:underline"
       >
-        See what the cohort is finding &rarr;
+        See what the cycle is finding &rarr;
       </Link>
     </section>
   );
@@ -643,20 +685,32 @@ export default async function DashboardPage() {
   // Shown instead of the join card once the member has signed the upcoming
   // cohort's agreement — they're set; nothing to do until it starts.
   const preRegisteredCard = (cycle: CycleCardData) => (
-    <div className="rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card">
-      <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
-      <h2 className="t-h3 text-ink">{cycle.name}</h2>
-      <p className="mt-2 text-sm text-meta">
-        You&apos;re all set for the next cycle
-        {cycle.start_date
-          ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
-              "en-US",
-              { month: "long", day: "numeric" }
-            )}`
-          : ""}
-        . We&apos;ll open your next steps here when it starts.
-      </p>
-    </div>
+    <Link
+      href={`/cycles/${cycle.id}`}
+      className="group flex items-center justify-between rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+    >
+      <div>
+        <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
+        <h2 className="t-h3 text-ink">{cycle.name}</h2>
+        <p className="mt-2 text-sm text-meta">
+          You&apos;re all set for the next cycle
+          {cycle.start_date
+            ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
+                "en-US",
+                { month: "long", day: "numeric" }
+              )}`
+            : ""}
+          . We&apos;ll open your next steps here when it starts.
+        </p>
+      </div>
+      <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
+        View cycle
+        <ArrowRight
+          className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </span>
+    </Link>
   );
 
   // Shown instead of the join card while the D-10 registration window is
@@ -756,7 +810,6 @@ export default async function DashboardPage() {
         metroName={labName}
         avatarUrl={avatarUrl}
         initials={initials}
-        handle={participant.handle}
         followingCount={followingTotal ?? 0}
       />
       <MembershipsPanel
@@ -846,6 +899,16 @@ export default async function DashboardPage() {
         pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
         postAsPages={postAsPages}
         phase={weeklyPhase}
+        baseline={
+          pendingBaseline
+            ? {
+                cycleId: pendingBaseline.id,
+                cycleName: pendingBaseline.name,
+                questions: BASELINE_QUESTIONS,
+                aiUsageOptions: AI_USAGE_OPTIONS,
+              }
+            : null
+        }
       />
       <UpdatesFeed viewerParticipantId={participant.id} />
     </section>
@@ -870,8 +933,10 @@ export default async function DashboardPage() {
             {/* Org-only staff lead with their actual work; the cohort join CTA
                 is for the participant pipeline they're not in. */}
             {orgActive && workstreamsSection}
-            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
+            {/* Checklist stays pinned above the survey CTA — it's the member's
+                own setup state; the survey is the cohort's opening activity. */}
             <SetupChecklist items={checklistItems} />
+            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
             {!orgActive &&
               (upcomingCycle
                 ? preRegisteredUpcoming
@@ -915,10 +980,10 @@ export default async function DashboardPage() {
         <div className="dash-12">
           <div className="dash-center">
             {orgActive && workstreamsSection}
-            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
             {checklistItems.length > 0 && (
               <SetupChecklist items={checklistItems} />
             )}
+            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
             {!orgActive &&
               (upcomingCycle ? (
                 preRegisteredUpcoming ? (
@@ -984,6 +1049,59 @@ export default async function DashboardPage() {
         ];
       })
     : [];
+  // Distributing the field survey rides the same list (SENSEMAKING_FLOW §2,
+  // Stage 1 "Distribute") — unlike the window todos it isn't deadline-bound,
+  // just open while the cohort's survey is. getFieldSurveyForCycle only
+  // returns open surveys, so presence is the whole gate.
+  if (fieldSurvey) {
+    upNextTodos.push({
+      id: "share-survey",
+      title: "Share the insights survey with a friend",
+      detail:
+        "More voices from the field keep the cycle pointed at real problems.",
+      href: `/survey/${fieldSurvey.share_slug}`,
+      cta: "Open survey",
+      secondaryHref: `/survey/${fieldSurvey.share_slug}/results`,
+      secondaryCta: "Explore the answers so far",
+    });
+  }
+
+  // The per-week "What's next" nudge (weekly_messages — program-global, the
+  // cycle only supplies which week it is) — surfaced only once the member has
+  // actually logged this cycle week, and only for a live open cycle inside
+  // its wk0→wk12 calendar. Both reads stay behind the guard so non-active
+  // states pay nothing. Mirrors the POST route's selection.
+  let whatsNext: { cycleId: number; week: number; message: string } | null =
+    null;
+  if (
+    state === "active" &&
+    activeCycle &&
+    activeCycle.mode === "open" &&
+    activeCycle.start_date &&
+    activeCycle.end_date
+  ) {
+    const start = new Date(activeCycle.start_date);
+    const end = new Date(activeCycle.end_date);
+    const week = getCycleWeek(new Date(), start, end);
+    if (week >= 0 && week <= 12) {
+      const [{ data: weekMsg }, { count: weekLogCount }] = await Promise.all([
+        serviceClient
+          .from("weekly_messages")
+          .select("message")
+          .eq("week", week)
+          .maybeSingle(),
+        serviceClient
+          .from("learning_logs")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", activeCycle.id)
+          .gte("created_at", getCycleWeekStart(week, start, end).toISOString()),
+      ]);
+      if (weekMsg?.message && (weekLogCount ?? 0) > 0) {
+        whatsNext = { cycleId: activeCycle.id, week, message: weekMsg.message };
+      }
+    }
+  }
 
   // Hero copy + at-a-glance stats — the identity band adapts to the state.
   const heroLede = logGate.active
@@ -1037,11 +1155,12 @@ export default async function DashboardPage() {
       <div className="dash-12">
         {/* CENTER — what to do now, then the community feed */}
         <div className="dash-center">
-          {/* The field survey is the cohort's opening activity — the first CTA. */}
-          {fieldSurvey && fieldSurveyCard(fieldSurvey)}
-
-          {/* Setup leads for a new member; collapses to a strip once done. */}
+          {/* Setup leads — the checklist stays pinned to the top of the column
+              while it has open items; collapses to a strip once done. */}
           {checklistItems.length > 0 && <SetupChecklist items={checklistItems} />}
+
+          {/* The field survey is the cohort's opening activity — right below setup. */}
+          {fieldSurvey && fieldSurveyCard(fieldSurvey)}
 
           {/* The Learning Log lives in the feed composer at the bottom of this
               column. When the weekly gate is active the layout bounces the
@@ -1077,6 +1196,15 @@ export default async function DashboardPage() {
 
           {/* Up next — dismissible action cards for the currently-open windows */}
           {upNextTodos.length > 0 && <UpNext todos={upNextTodos} />}
+
+          {/* This week's "What's next" nudge — shown once they've logged. */}
+          {whatsNext && (
+            <WhatsNextCard
+              cycleId={whatsNext.cycleId}
+              week={whatsNext.week}
+              message={whatsNext.message}
+            />
+          )}
 
           {/* My Pod — the dashboard is optimized for one pod; a single pod
               gets a full-width card, more than one falls back to a grid. */}

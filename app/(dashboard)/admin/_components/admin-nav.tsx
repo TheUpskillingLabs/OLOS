@@ -10,6 +10,7 @@ import {
   KeyRound,
   FileText,
   Megaphone,
+  CalendarDays,
   ClipboardList,
   MessageSquare,
   Database,
@@ -83,6 +84,12 @@ const BASE_ITEMS: NavItem[] = [
     label: "Announcements",
     Icon: Megaphone,
     match: (p) => p.startsWith("/admin/announcements"),
+  },
+  {
+    href: "/admin/weekly-messages",
+    label: "Weekly messages",
+    Icon: CalendarDays,
+    match: (p) => p.startsWith("/admin/weekly-messages"),
   },
   {
     href: "/admin/surveys",

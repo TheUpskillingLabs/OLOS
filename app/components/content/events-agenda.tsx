@@ -227,7 +227,7 @@ export default function EventsAgenda({
           value={qInput}
           onChange={(e) => setQInput(e.target.value)}
           aria-label="Search events"
-          className="h-[38px] w-full rounded-card border border-ink/10 bg-white px-3 text-sm text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150 md:w-80"
+          className="h-11 w-full rounded-card border border-ink/10 bg-white px-4 text-base text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150 md:w-96"
         />
         {LOC_FILTERS.map((f) => {
           const active = loc === f.key;

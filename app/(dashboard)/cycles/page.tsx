@@ -107,6 +107,21 @@ export default async function CyclesPage() {
   for (const c of upcomingCycles) {
     regWindows.set(c.id, await registrationWindow(serviceClient, c.id));
   }
+
+  // The running cohort accepts registrations too (the join flow and the
+  // dashboard both already allow it) — an unregistered member whose D-10
+  // window is open gets a Register card here as well, not just the
+  // read-only quick-link (July 2026 feedback, running-list #1).
+  let activeCycleRegisterable = false;
+  if (activeCycle && !registeredCycleIds.has(activeCycle.id)) {
+    const w = await registrationWindow(serviceClient, activeCycle.id);
+    regWindows.set(activeCycle.id, w);
+    activeCycleRegisterable = w.open;
+  }
+  const registerableCycles = [
+    ...(activeCycle && activeCycleRegisterable ? [activeCycle] : []),
+    ...upcomingCycles,
+  ];
   // Everything else, in the query's original start_date-descending order —
   // a single filter over `otherCycles` rather than two mode-partitioned
   // filters concatenated, so an archived org cycle sorts alongside past
@@ -230,10 +245,10 @@ export default async function CyclesPage() {
           window actually is open (or the member is already registered);
           otherwise it stays state-neutral — a gated cycle under an "open"
           banner contradicts its own "Registration closed" CTA. */}
-      {upcomingCycles.length > 0 && (
+      {registerableCycles.length > 0 && (
         <>
           <h2 className="lbl mb-4">
-            {upcomingCycles.some(
+            {registerableCycles.some(
               (c) =>
                 registeredCycleIds.has(c.id) ||
                 (regWindows.get(c.id)?.open ?? true),
@@ -242,7 +257,7 @@ export default async function CyclesPage() {
               : "Next cohort"}
           </h2>
           <div className="mb-8 autogrid">
-            {upcomingCycles.map((cycle) => {
+            {registerableCycles.map((cycle) => {
               const w = regWindows.get(cycle.id);
               const regClosed =
                 !registeredCycleIds.has(cycle.id) && w && !w.open;
@@ -261,12 +276,19 @@ export default async function CyclesPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="t-h4 text-ink">{cycle.name}</h3>
-                    <StatusBadge variant={STATUS_VARIANT.upcoming}>
+                    <StatusBadge
+                      variant={
+                        STATUS_VARIANT[cycle.status as CycleStatus] ??
+                        STATUS_VARIANT.upcoming
+                      }
+                    >
                       {cycle.status}
                     </StatusBadge>
                   </div>
                   <p className="mt-2 text-sm text-meta">
-                    Starts {new Date(cycle.start_date).toLocaleDateString()}
+                    {cycle.status === "active"
+                      ? `Running now — ends ${new Date(cycle.end_date).toLocaleDateString()}`
+                      : `Starts ${new Date(cycle.start_date).toLocaleDateString()}`}
                   </p>
                   <span
                     className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight ${

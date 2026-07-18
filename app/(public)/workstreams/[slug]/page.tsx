@@ -75,6 +75,7 @@ export default async function WorkstreamPage({
               type="workstream"
               id={workstream.id}
               initialFollowing={ctx.following}
+              refreshOnChange
             />
           </div>
         )}
