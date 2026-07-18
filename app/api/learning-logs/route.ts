@@ -132,7 +132,7 @@ export const POST = withAuth(
     // them just for org cycles so an open-cycle log never carries them.
     const isOrg = chosenCycle?.mode === "org";
 
-    // Which instrument is this save? Weekly v2 (00090) is the open-cycle
+    // Which instrument is this save? Weekly v2 (00091) is the open-cycle
     // weekly log only; milestone reviews, journal logs (no cycle), and
     // org-cycle logs all stay on the v1 shape. kind is server-derived, so
     // requiredness is enforced here, after resolution — the superset schema

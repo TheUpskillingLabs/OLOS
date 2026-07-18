@@ -1,4 +1,4 @@
--- 00090_learning_log_weekly_v2.sql
+-- 00091_learning_log_weekly_v2.sql
 --
 -- The weekly Learning Log's second instrument (owner redesign, branch
 -- claude/weekly-learning-log-questions-wvw91f). The v1 ritual (clarity /

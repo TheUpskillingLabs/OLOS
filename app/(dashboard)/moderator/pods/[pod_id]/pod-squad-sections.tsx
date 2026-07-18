@@ -90,7 +90,7 @@ export default async function PodSquadSections({
           </p>
         ) : (
           <div className="mt-4 flex flex-wrap gap-6">
-            {/* v2 weekly-instrument averages (00090) — the live signals once
+            {/* v2 weekly-instrument averages (00091) — the live signals once
                 the pod is logging on the new questions. */}
             {health.avg_progress != null && (
               <div>
