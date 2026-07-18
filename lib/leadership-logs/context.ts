@@ -11,8 +11,11 @@ import { one } from "@/lib/supabase/embed";
 
 export interface TeamLogEntry {
   participantName: string;
-  clarity: number;
-  alignment: number;
+  // Nullable since 00091 (weekly v2 logs don't carry the health check) —
+  // org-cycle logs, this module's subject, still write both, but the type
+  // follows the column.
+  clarity: number | null;
+  alignment: number | null;
   is_blocked: boolean;
   blocker_context: string | null;
   accomplished: string | null;

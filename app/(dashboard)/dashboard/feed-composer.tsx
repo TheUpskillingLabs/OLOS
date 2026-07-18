@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import LearningLogCard, { type MilestoneContext } from "./learning-log-card";
 import { type BaselineConfig } from "./baseline-section";
 import type { PageRef } from "@/lib/pages/authz";
+import type { CyclePhase } from "@/lib/cycle/phase";
 
 /**
  * The feed composer — one LinkedIn-style card at the top of the community feed
@@ -31,6 +32,7 @@ export default function FeedComposer({
   logCycles = [],
   pendingCycleIds = [],
   postAsPages = [],
+  phase = 1,
   baseline = null,
 }: {
   avatarUrl: string | null;
@@ -42,6 +44,9 @@ export default function FeedComposer({
   pendingCycleIds?: number[];
   /** Pages this member can post AS (they admin them). Empty → just "You". */
   postAsPages?: PageRef[];
+  /** Current phase of the open cycle — the Learning Log's phase-contextual
+      stems (lib/cycle/phase.ts). */
+  phase?: CyclePhase;
   /** When set, the Learning Log tab hosts the one-time Baseline Learning Log
       for this cycle and opens by default. */
   baseline?: BaselineConfig | null;
@@ -244,6 +249,7 @@ export default function FeedComposer({
               journal={journal}
               logCycles={logCycles}
               pendingCycleIds={pendingCycleIds}
+              phase={phase}
               baseline={baseline}
             />
           </div>
