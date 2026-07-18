@@ -509,17 +509,9 @@ export default async function DashboardPage() {
           },
         ]
       : []),
-    ...(fieldSurvey
-      ? [
-          {
-            key: "survey",
-            label: "Share your field observations",
-            done: surveyContributed,
-            href: `/survey/${fieldSurvey.share_slug}`,
-            cta: "Open",
-          },
-        ]
-      : []),
+    // The survey deliberately has NO checklist row — it already has the
+    // "Start here" card (contribute) and the Up-next share todo; three
+    // surfaces for one action read as clutter (owner call, 2026-07-14).
     {
       key: "profile",
       // Label names the exact fields that flip profileDone (bio || headline),
@@ -584,23 +576,45 @@ export default async function DashboardPage() {
   // has an open survey; pairs "contribute" with "share" (Stage 1 = Distribute).
   // Desktop-only: the strip's "Start here" chip replaces it on phones (the
   // survey page itself owns contribute/share/results).
-  const fieldSurveyCard = (survey: FieldSurvey) => (
+  // Once the member has contributed, the big pitch has done its job — collapse
+  // to a strip (same shape as the checklist's collapsed state) with the two
+  // follow-on actions. Sharing keeps its own Up-next card.
+  const fieldSurveyCard = (survey: FieldSurvey) =>
+    surveyContributed ? (
+      <div className="mb-6 hidden md:flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-card border border-ink/10 bg-white px-5 py-3 shadow-card">
+        <span className="text-sm font-semibold text-teal-deep">
+          Field survey · Contributed ✓
+        </span>
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <Link
+            href={`/survey/${survey.share_slug}`}
+            className="font-semibold text-teal-deep hover:underline"
+          >
+            Add another →
+          </Link>
+          <Link
+            href={`/survey/${survey.share_slug}/results`}
+            className="text-meta transition-colors hover:text-teal-deep hover:underline"
+          >
+            See what the cycle is finding →
+          </Link>
+        </span>
+      </div>
+    ) : (
     <section className="mb-6 hidden rounded-card border border-teal/30 bg-white p-6 shadow-card md:block">
       <div className="lbl lbl-teal mb-2">Start here · Field survey</div>
       <h2 className="t-h3 text-ink">{survey.title}</h2>
       <p className="mt-2 max-w-2xl text-sm text-meta">
         Every Build Cycle starts in the field. Add what you&apos;re seeing, then
         share the survey with people close to the problem — your observations
-        shape the problems this cohort takes on.
+        shape the problems this cycle takes on.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Link
           href={`/survey/${survey.share_slug}`}
           className="inline-flex items-center gap-1.5 rounded-card bg-teal-deep px-4 py-2 text-sm font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
-          {surveyContributed
-            ? "Add another observation"
-            : "Contribute an observation"}
+          Contribute an observation
           <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
         <ShareSurveyButton slug={survey.share_slug} title={survey.title} />
@@ -609,7 +623,7 @@ export default async function DashboardPage() {
         href={`/survey/${survey.share_slug}/results`}
         className="mt-3 inline-block text-sm font-semibold text-teal-deep hover:underline"
       >
-        See what the cohort is finding &rarr;
+        See what the cycle is finding &rarr;
       </Link>
     </section>
   );
@@ -655,20 +669,32 @@ export default async function DashboardPage() {
   // Shown instead of the join card once the member has signed the upcoming
   // cohort's agreement — they're set; nothing to do until it starts.
   const preRegisteredCard = (cycle: CycleCardData) => (
-    <div className="rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card">
-      <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
-      <h2 className="t-h3 text-ink">{cycle.name}</h2>
-      <p className="mt-2 text-sm text-meta">
-        You&apos;re all set for the next cycle
-        {cycle.start_date
-          ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
-              "en-US",
-              { month: "long", day: "numeric" }
-            )}`
-          : ""}
-        . We&apos;ll open your next steps here when it starts.
-      </p>
-    </div>
+    <Link
+      href={`/cycles/${cycle.id}`}
+      className="group flex items-center justify-between rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+    >
+      <div>
+        <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
+        <h2 className="t-h3 text-ink">{cycle.name}</h2>
+        <p className="mt-2 text-sm text-meta">
+          You&apos;re all set for the next cycle
+          {cycle.start_date
+            ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
+                "en-US",
+                { month: "long", day: "numeric" }
+              )}`
+            : ""}
+          . We&apos;ll open your next steps here when it starts.
+        </p>
+      </div>
+      <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
+        View cycle
+        <ArrowRight
+          className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </span>
+    </Link>
   );
 
   // Shown instead of the join card while the D-10 registration window is
@@ -770,6 +796,22 @@ export default async function DashboardPage() {
         ];
       })
     : [];
+  // Distributing the field survey rides the same list (SENSEMAKING_FLOW §2,
+  // Stage 1 "Distribute") — unlike the window todos it isn't deadline-bound,
+  // just open while the cohort's survey is. getFieldSurveyForCycle only
+  // returns open surveys, so presence is the whole gate.
+  if (fieldSurvey) {
+    upNextTodos.push({
+      id: "share-survey",
+      title: "Share the insights survey with a friend",
+      detail:
+        "More voices from the field keep the cycle pointed at real problems.",
+      href: `/survey/${fieldSurvey.share_slug}`,
+      cta: "Open survey",
+      secondaryHref: `/survey/${fieldSurvey.share_slug}/results`,
+      secondaryCta: "Explore the answers so far",
+    });
+  }
 
   // The phone "Up next" strip — chips condensing the task cards that lead the
   // desktop center column, ordered by urgency. Data-driven, so onboarding
@@ -1057,10 +1099,12 @@ export default async function DashboardPage() {
               {/* Org-only staff lead with their actual work; the cohort join CTA
                   is for the participant pipeline they're not in. */}
               {orgActive && workstreamsSection}
-              {fieldSurvey && fieldSurveyCard(fieldSurvey)}
+              {/* Checklist stays pinned above the survey CTA — it's the member's
+                  own setup state; the survey is the cohort's opening activity. */}
               <div id="dash-setup" className="scroll-mt-24">
                 <SetupChecklist items={checklistItems} />
               </div>
+              {fieldSurvey && fieldSurveyCard(fieldSurvey)}
               {!orgActive &&
                 (upcomingCycle
                   ? preRegisteredUpcoming
@@ -1106,12 +1150,12 @@ export default async function DashboardPage() {
           {centerColumn(
             <>
               {orgActive && workstreamsSection}
-              {fieldSurvey && fieldSurveyCard(fieldSurvey)}
               {checklistItems.length > 0 && (
                 <div id="dash-setup" className="scroll-mt-24">
                   <SetupChecklist items={checklistItems} />
                 </div>
               )}
+              {fieldSurvey && fieldSurveyCard(fieldSurvey)}
               {!orgActive &&
                 (upcomingCycle ? (
                   preRegisteredUpcoming ? (
@@ -1235,15 +1279,16 @@ export default async function DashboardPage() {
         {/* CENTER — what to do now, then the community feed */}
         {centerColumn(
           <>
-            {/* The field survey is the cohort's opening activity — the first CTA. */}
-            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
-
-            {/* Setup leads for a new member; collapses to a strip once done. */}
+            {/* Setup leads — the checklist stays pinned to the top of the column
+                while it has open items; collapses to a strip once done. */}
             {checklistItems.length > 0 && (
               <div id="dash-setup" className="scroll-mt-24">
                 <SetupChecklist items={checklistItems} />
               </div>
             )}
+
+            {/* The field survey is the cohort's opening activity — right below setup. */}
+            {fieldSurvey && fieldSurveyCard(fieldSurvey)}
 
             {/* The Learning Log lives in the feed composer at the top of the
                 feed. When the weekly gate is active the layout bounces the

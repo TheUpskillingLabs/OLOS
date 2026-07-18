@@ -6,6 +6,7 @@ import { cycleStatusVariant } from "@/lib/cycle/labels";
 import { formatDate } from "@/lib/format/date";
 import { one } from "@/lib/supabase/embed";
 import CreateCycleForm from "../../cycles/create-cycle-form";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import LabLeadsPanel, { type LeadRow, type ParticipantOption } from "./lab-leads-panel";
 import PromoteLabButton from "./promote-lab-button";
 
@@ -189,7 +190,10 @@ export default async function AdminLabDetailPage({
             </div>
           )}
         </div>
-        <CreateCycleForm fixedMode="org" labId={lab.id} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ContactsDownloadButton href={`/api/labs/${lab.id}/contacts/export`} />
+          <CreateCycleForm fixedMode="org" labId={lab.id} />
+        </div>
       </div>
 
       {/* Sub-cohort model (docs/LOCAL_LABS.md, 00067): the participant track

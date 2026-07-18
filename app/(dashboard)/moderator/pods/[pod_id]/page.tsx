@@ -4,6 +4,7 @@ import { AlertTriangle, Users } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import { getPodDetail, type PodDetail, type RosterRow } from "@/lib/moderator/pod-detail";
 import { getPodInsights } from "@/lib/moderator/pod-insights";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
@@ -135,13 +136,21 @@ export default async function ModeratorPodPage({
       {/* Milestone Logs: wk-mid/final evaluation status per member. */}
       <PodMilestoneLogs cycleId={detail.cycle_id} members={detail.members} />
 
-      <PodContentTabs
-        members={detail.members}
-        podId={detail.id}
-        podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
-        initialTab={initialTab}
-        mode={detail.cycle_mode}
-      />
+      <section>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="t-h3 text-ink">Roster</h2>
+          <ContactsDownloadButton
+            href={`/api/pods/${podId}/contacts/export`}
+          />
+        </div>
+        <PodContentTabs
+          members={detail.members}
+          podId={detail.id}
+          podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
+          initialTab={initialTab}
+          mode={detail.cycle_mode}
+        />
+      </section>
     </div>
   );
 }
@@ -166,8 +175,8 @@ function BackLink() {
 const POD_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 const BAND_TEXT: Record<Band, string> = {

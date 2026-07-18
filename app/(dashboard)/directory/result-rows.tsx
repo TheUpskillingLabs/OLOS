@@ -24,8 +24,8 @@ const GRADS = ["m-teal", "m-forest", "m-navy"];
 const STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
   active: "active",
   forming: "forming",
-  closed: "inactive",
   inactive: "inactive",
+  dissolved: "inactive",
 };
 
 function normalizeImageSrc(url: string): string {
