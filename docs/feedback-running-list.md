@@ -29,6 +29,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do ·
 | 12 | 2026-07-14 | Cycles / pods | Closing a cycle doesn't touch its pods — the Energy & Climate pods still showed `active` in prod after the cycle went `closed`. Rule: when a cycle's status flips to `closed`, set its pods `inactive` in the same admin action. | ✅ |
 | 13 | 2026-07-15 | Problem statements | Users should be able to **view and edit** their problem statements after submission — right now there's just a small card/preview of what they submitted. Extends #2. | 🆕 |
 | 14 | 2026-07-17 | Org Cycle | I am very confused about how org cycles are created and staffed. I am not sure what chartered means. | 🆕 |
+| 15 | 2026-07-17 | Learning Log | I opened the learning log from My Cycle and it went back to my dashboard to show it to me. This doesn't feel like the right UX. I would prefer for it to open right there. | 🆕 |
 
 ## Details
 
