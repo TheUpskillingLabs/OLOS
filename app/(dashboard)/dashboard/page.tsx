@@ -10,6 +10,7 @@ import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import { type MilestoneContext } from "./learning-log-card";
 import { getCycleWeek, getCycleWeekStart } from "@/lib/cycle/week";
+import { getCyclePhase, type CyclePhase } from "@/lib/cycle/phase";
 import {
   milestoneKindForWeek,
   milestoneLabel,
@@ -325,6 +326,22 @@ export default async function DashboardPage() {
       }))
   );
 
+  // Which phase the open cycle is in — the weekly Learning Log's v2
+  // collaboration/contribution stems swap wording by phase
+  // (lib/cycle/phase.ts: admin stamps first, week thresholds as fallback).
+  const weeklyPhase: CyclePhase = activeCycle
+    ? getCyclePhase(
+        new Date(),
+        activeCycle,
+        activeCycleConfig
+          ? {
+              phase_2_start: activeCycleConfig.phase_2_start,
+              phase_3_start: activeCycleConfig.phase_3_start,
+            }
+          : null
+      )
+    : 1;
+
   // Milestone weeks reframe the weekly log as an evaluation, prefilled from the
   // member's own record. Weeks are admin-configurable (cycle_config, 00047).
   let milestoneCtx: MilestoneContext | null = null;
@@ -341,7 +358,9 @@ export default async function DashboardPage() {
     if (kind) {
       const { data: last } = await serviceClient
         .from("learning_logs")
-        .select("clarity, alignment, accomplished, exploring, next_focus")
+        .select(
+          "clarity, alignment, accomplished, exploring, next_focus, contribution, learned"
+        )
         .eq("participant_id", participant.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -349,12 +368,15 @@ export default async function DashboardPage() {
       milestoneCtx = {
         kind,
         label: milestoneLabel(kind),
+        // v2 weekly logs (00091) carry contribution/learned instead of the
+        // v1 prompts — map them across so a member whose record is all-v2
+        // still reviews their own words instead of a blank page.
         prefill: last
           ? {
               clarity: last.clarity ?? 3,
               alignment: last.alignment ?? 3,
-              accomplished: last.accomplished ?? "",
-              exploring: last.exploring ?? "",
+              accomplished: last.accomplished ?? last.contribution ?? "",
+              exploring: last.exploring ?? last.learned ?? "",
               next_focus: last.next_focus ?? "",
             }
           : null,
@@ -1064,6 +1086,7 @@ export default async function DashboardPage() {
         logCycles={logCycles}
         pendingCycleIds={logGate.pending.map((p) => p.cycleId)}
         postAsPages={postAsPages}
+        phase={weeklyPhase}
         baseline={
           pendingBaseline
             ? {
