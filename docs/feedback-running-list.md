@@ -31,6 +31,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do ·
 | 14 | 2026-07-17 | Org Cycle | I am very confused about how org cycles are created and staffed. I am not sure what chartered means. | 🆕 |
 | 15 | 2026-07-17 | Learning Log | I opened the learning log from My Cycle and it went back to my dashboard to show it to me. This doesn't feel like the right UX. I would prefer for it to open right there. | 🆕 |
 | 16 | 2026-07-17 | Poderator Learning Log View | This is really confusing as it shows both the Pulse Check and Learning Log - only one should show based on the cycle. | 🆕 |
+| 16 | 2026-07-17 | Testing 265 | I was confused about active / inactive gates I was testing 265 - lets make sure this is the behavior we want - https://drive.google.com/file/d/1vLGC_VE8X5n-PvZYjW5FvzfZhft2BjP_/view?usp=sharing | 🆕 |
 
 ## Details
 
