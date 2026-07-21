@@ -40,6 +40,12 @@ export interface FieldDef {
   required: boolean;
   half?: boolean;
   inputmode?: "numeric";
+  /** Optional format check. A non-empty value must match, or the step can't
+   *  advance and `error` renders inline under the field. Empty values are
+   *  governed by `required`, not this. */
+  pattern?: RegExp;
+  /** Inline message shown when a non-empty value fails `pattern`. */
+  error?: string;
 }
 
 export type FlowStep =
@@ -221,9 +227,12 @@ export function FlowScreen({
           ? true
           : String(answers[step.id] ?? "").trim().length > 0;
       case "fields":
-        return step.fields.every(
-          (f) => !f.required || String(answers[f.id] ?? "").trim().length > 0
-        );
+        return step.fields.every((f) => {
+          const v = String(answers[f.id] ?? "").trim();
+          if (f.required && v.length === 0) return false;
+          if (v.length > 0 && f.pattern && !f.pattern.test(v)) return false;
+          return true;
+        });
       case "choice":
         return typeof answers[step.id] === "string";
       case "multiselect": {
@@ -454,26 +463,41 @@ function FieldsInput({
 
   return (
     <div className="field-grid" ref={wrapRef}>
-      {step.fields.map((f, i) => (
-        <div key={f.id} className={`field${f.half ? " half" : ""}`}>
-          <label htmlFor={`ff-${f.id}`}>{f.label}</label>
-          <input
-            id={`ff-${f.id}`}
-            ref={i === 0 ? firstRef : undefined}
-            type="text"
-            inputMode={f.inputmode}
-            placeholder={f.ph}
-            value={String(answers[f.id] ?? "")}
-            onChange={(e) => setAnswer(f.id, e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && valid) {
-                e.preventDefault();
-                advance();
-              }
-            }}
-          />
-        </div>
-      ))}
+      {step.fields.map((f, i) => {
+        const v = String(answers[f.id] ?? "");
+        const showError =
+          v.trim().length > 0 && !!f.pattern && !f.pattern.test(v.trim());
+        return (
+          <div key={f.id} className={`field${f.half ? " half" : ""}`}>
+            <label htmlFor={`ff-${f.id}`}>{f.label}</label>
+            <input
+              id={`ff-${f.id}`}
+              ref={i === 0 ? firstRef : undefined}
+              type="text"
+              inputMode={f.inputmode}
+              placeholder={f.ph}
+              value={v}
+              aria-invalid={showError || undefined}
+              onChange={(e) => setAnswer(f.id, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && valid) {
+                  e.preventDefault();
+                  advance();
+                }
+              }}
+            />
+            {showError && (
+              <p
+                className="t-small"
+                style={{ color: "var(--red)", marginTop: 4 }}
+                role="alert"
+              >
+                {f.error ?? "Invalid value"}
+              </p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

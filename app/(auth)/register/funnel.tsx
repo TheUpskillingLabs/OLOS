@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   HEAR_ABOUT_SOURCES,
   PARTICIPANT_AGREEMENT_VERSION,
+  ZIP_REGEX,
   type RoleIntent,
   type LabChoice,
 } from "@/lib/validations/funnel-registration";
@@ -97,7 +98,15 @@ function signupSteps(email: string): FlowStep[] {
       fields: [
         { id: "first", label: "First name", ph: "Alex", required: true, half: true },
         { id: "last", label: "Last name", ph: "Rivera", required: true, half: true },
-        { id: "zip", label: "Zip code", ph: "20001", required: true, inputmode: "numeric" },
+        {
+          id: "zip",
+          label: "Zip code",
+          ph: "20001",
+          required: true,
+          inputmode: "numeric",
+          pattern: ZIP_REGEX,
+          error: "Enter a 5-digit zip code",
+        },
       ],
     },
     {
