@@ -45,13 +45,18 @@ export const labChoiceSchema = z.discriminatedUnion("kind", [
 
 export type LabChoice = z.infer<typeof labChoiceSchema>;
 
+// ZIP format shared by the funnel schema (server) and the funnel field
+// validator (client) so the two can never drift. Accepts 5-digit or ZIP+4;
+// the lab suggester only reads the first 3 digits (app/api/labs/suggest).
+export const ZIP_REGEX = /^\d{5}(-\d{4})?$/;
+
 export const funnelRegistrationSchema = z.object({
   auth_user_id: z.string().min(1, "auth_user_id is required"),
   google_id: z.string().min(1, "google_id is required").max(200),
   email: z.string().email("Invalid email").max(320),
   first_name: z.string().min(1, "First name is required").max(100),
   last_name: z.string().min(1, "Last name is required").max(100),
-  zip: z.string().regex(/^\d{5}(-\d{4})?$/, "Enter a 5-digit zip code"),
+  zip: z.string().regex(ZIP_REGEX, "Enter a 5-digit zip code"),
   work_situation: z.enum(WORK_SITUATIONS),
   source: z.enum(HEAR_ABOUT_SOURCES),
   referred_by: z.string().max(255).optional(),
