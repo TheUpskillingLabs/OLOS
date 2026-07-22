@@ -30,17 +30,25 @@ export interface ChecklistItem {
 }
 
 const KEY = "olos.setupChecklistCollapsed.v1";
+// Advisory rows (no server-side completion tracking, issue #189) flip to done
+// client-side once their CTA is clicked - best-effort, member-local.
+const CLICKED_KEY = "olos.setupChecklistClicked.v1";
 
 export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
-  // Advisory rows can never flip to done, so the collapse math skips them:
-  // the list still auto-collapses once every trackable row is done. Counts
-  // stay honest - the strip reads "5 / 6 done" while an advisory row is out.
-  const allDone = items.every((i) => i.done || i.advisory);
-  const doneCount = items.filter((i) => i.done).length;
-
   // null = no stored preference yet → fall back to auto-collapse when done.
   const [stored, setStored] = useState<boolean | null>(null);
+  const [clicked, setClicked] = useState<Record<string, boolean>>({});
   const [ready, setReady] = useState(false);
+
+  // An advisory row counts as done once its CTA has been clicked (member-local
+  // until #189 adds real verification). Unclicked advisory rows are skipped by
+  // the collapse math - the list still auto-collapses once every trackable row
+  // is done - but counts stay honest: "5 / 6 done" while one is outstanding.
+  const resolved = items.map((i) =>
+    i.advisory && clicked[i.key] ? { ...i, done: true } : i
+  );
+  const allDone = resolved.every((i) => i.done || i.advisory);
+  const doneCount = resolved.filter((i) => i.done).length;
 
   useEffect(() => {
     // Deferred past the effect body so the localStorage read + state set
@@ -53,9 +61,25 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
       } catch {
         /* no store — derive from done-ness */
       }
+      try {
+        const raw = localStorage.getItem(CLICKED_KEY);
+        if (raw) setClicked(JSON.parse(raw));
+      } catch {
+        /* no store — advisory rows stay undone */
+      }
       setReady(true);
     });
   }, []);
+
+  const markClicked = (key: string) => {
+    const next = { ...clicked, [key]: true };
+    setClicked(next);
+    try {
+      localStorage.setItem(CLICKED_KEY, JSON.stringify(next));
+    } catch {
+      /* best effort */
+    }
+  };
 
   const setCollapsed = (v: boolean) => {
     setStored(v);
@@ -82,7 +106,7 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
     return (
       <div className="mb-6 flex items-center justify-between rounded-card border border-ink/10 bg-white px-5 py-3 shadow-card">
         <span className="text-sm font-semibold text-teal-deep">
-          {doneCount === items.length ? "Setup · All done ✓" : `Setup · ${doneCount} / ${items.length} done`}
+          {doneCount === resolved.length ? "Setup · All done ✓" : `Setup · ${doneCount} / ${resolved.length} done`}
         </span>
         <button
           type="button"
@@ -101,7 +125,7 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
         <h2 className="t-h3 text-ink">Get set up</h2>
         <span className="flex items-baseline gap-3">
           <span className="text-xs text-meta tabular-nums">
-            {doneCount} / {items.length} done
+            {doneCount} / {resolved.length} done
           </span>
           <button
             type="button"
@@ -113,7 +137,7 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
         </span>
       </div>
       <ul className="mt-4 divide-y divide-ink/10">
-        {items.map((item) => (
+        {resolved.map((item) => (
           <li
             key={item.key}
             className="flex items-center justify-between gap-3 py-3"
@@ -147,6 +171,9 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={
+                    item.advisory ? () => markClicked(item.key) : undefined
+                  }
                   className="flex min-h-11 flex-shrink-0 items-center rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
                 >
                   {item.cta ?? "Start"} →
