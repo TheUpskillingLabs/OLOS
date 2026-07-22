@@ -533,7 +533,7 @@ export default async function DashboardPage() {
       done: false,
       href:
         process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
-        "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-4470ewhsk-~OKlGBXlPuGW6L9oQ8iAOw",
+        "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ",
       cta: "Join",
       external: true,
     },
