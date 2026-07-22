@@ -50,6 +50,17 @@ export default function CycleWorkspaceTabs({
     }
   };
 
+  // Render exactly one panel node. Rendering five `{cond && node}` siblings
+  // makes React treat the RSC-passed panels as a keyless child list and warn
+  // ("Each child in a list should have a unique key prop").
+  const panels: Record<CycleTab, React.ReactNode> = {
+    overview,
+    configuration,
+    formation,
+    people,
+    dev: showDev ? dev : null,
+  };
+
   const items: TabItem[] = [
     { value: "overview", label: labels?.overview ?? "Overview" },
     { value: "configuration", label: labels?.configuration ?? "Configuration" },
@@ -68,11 +79,7 @@ export default function CycleWorkspaceTabs({
         tabIndex={-1}
         className="mt-8"
       >
-        {tab === "overview" && overview}
-        {tab === "configuration" && configuration}
-        {tab === "formation" && formation}
-        {tab === "people" && people}
-        {tab === "dev" && showDev && dev}
+        {panels[tab]}
       </div>
     </div>
   );
