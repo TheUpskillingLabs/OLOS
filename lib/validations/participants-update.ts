@@ -55,6 +55,7 @@ export const participantsUpdateSchema = z
     handle: z
       .string()
       .trim()
+      .toLowerCase()
       .min(1)
       .max(50)
       .regex(HANDLE_RE, "Use lowercase letters, numbers, and dashes"),
