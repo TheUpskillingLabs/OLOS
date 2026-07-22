@@ -71,7 +71,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle, page_follows_seeded").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle, page_follows_seeded, created_at").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
   ]);
 
@@ -514,6 +514,13 @@ export default async function DashboardPage() {
     }
   }
 
+  // The Slack row shipped in PR #287 (deployed 2026-07-21). Members created
+  // before then were onboarded without it - only new signups see the row.
+  const SLACK_ROW_SINCE = Date.parse("2026-07-21T00:00:00Z");
+  const slackRowVisible =
+    !!participant.created_at &&
+    Date.parse(participant.created_at) >= SLACK_ROW_SINCE;
+
   const checklistItems: ChecklistItem[] = [
     // Cycle registration leads the list — it's the reason most members are
     // here, and testers looked for it above the housekeeping rows (July 2026
@@ -550,19 +557,27 @@ export default async function DashboardPage() {
       href: "/directory",
       cta: "Find",
     },
-    // Simple always-on reminder to join the org Slack — no completion
-    // tracking yet (see issue #189 for the full membership-verification
-    // integration), so this row never flips to done.
-    {
-      key: "slack",
-      label: "Join the Slack",
-      done: false,
-      href:
-        process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
-        "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ",
-      cta: "Join",
-      external: true,
-    },
+    // "Join the Slack" is onboarding-only. It has no completion tracking yet
+    // (issue #189), so a permanently-undone row would pin the checklist open
+    // for members who finished setup long ago (regression of the July 2026
+    // "To Do list reopens" feedback). Members created before the row shipped
+    // never see it; for new signups it's advisory (excluded from the all-done
+    // collapse math in SetupChecklist) so it can't block auto-collapse.
+    ...(slackRowVisible
+      ? [
+          {
+            key: "slack",
+            label: "Join the Slack",
+            done: false,
+            advisory: true,
+            href:
+              process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
+              "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ",
+            cta: "Join",
+            external: true,
+          },
+        ]
+      : []),
     // Pod + Learning Log steps belong to the running cohort — an upcoming
     // cohort has no pods yet — so these stay tied to the active cycle. The
     // pod row also waits for its registration window: showing "Choose a pod"

@@ -23,12 +23,19 @@ export interface ChecklistItem {
   href?: string;
   cta?: string;
   external?: boolean;
+  /** Row with no completion tracking (e.g. Slack, issue #189). Shown and
+      counted like any row, but excluded from the all-done collapse math so
+      it can never pin the checklist open. */
+  advisory?: boolean;
 }
 
 const KEY = "olos.setupChecklistCollapsed.v1";
 
 export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
-  const allDone = items.every((i) => i.done);
+  // Advisory rows can never flip to done, so the collapse math skips them:
+  // the list still auto-collapses once every trackable row is done. Counts
+  // stay honest - the strip reads "5 / 6 done" while an advisory row is out.
+  const allDone = items.every((i) => i.done || i.advisory);
   const doneCount = items.filter((i) => i.done).length;
 
   // null = no stored preference yet → fall back to auto-collapse when done.
@@ -75,7 +82,7 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
     return (
       <div className="mb-6 flex items-center justify-between rounded-card border border-ink/10 bg-white px-5 py-3 shadow-card">
         <span className="text-sm font-semibold text-teal-deep">
-          {allDone ? "Setup · All done ✓" : `Setup · ${doneCount} / ${items.length} done`}
+          {doneCount === items.length ? "Setup · All done ✓" : `Setup · ${doneCount} / ${items.length} done`}
         </span>
         <button
           type="button"
