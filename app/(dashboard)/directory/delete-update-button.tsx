@@ -8,7 +8,14 @@ import { useRouter } from "next/navigation";
  * "Delete?", second confirms — no modal. DELETEs /api/updates/[id] (author /
  * page-admin authorized server-side) and refreshes so the row disappears.
  */
-export default function DeleteUpdateButton({ updateId }: { updateId: number }) {
+export default function DeleteUpdateButton({
+  updateId,
+  onDeleted,
+}: {
+  updateId: number;
+  /** Client-paged lists also need to drop the row from their own state. */
+  onDeleted?: (updateId: number) => void;
+}) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -21,6 +28,7 @@ export default function DeleteUpdateButton({ updateId }: { updateId: number }) {
         method: "DELETE",
       });
       if (!res.ok) throw new Error();
+      onDeleted?.(updateId);
       router.refresh();
     } catch {
       setBusy(false);

@@ -407,7 +407,7 @@ Two questions to settle before #46 starts:
 
 ```bash
 supabase start                           # boots Postgres, Auth, Inbucket on :54324
-cp .env.local.example .env.local         # fill in keys; OWNER_EMAILS=you@example.com
+cp .env.local.example .env.local         # fill in keys
 npm run dev
 ```
 
@@ -418,8 +418,9 @@ End-to-end smoke test:
    is `supabase db reset && psql … -c "INSERT INTO participants(email, …)"`.
 3. Click "Sign in with Google" on `/login`. Approve consent.
 4. Confirm callback redirects to `/`. Inspect cookies: `sb-…-auth-token`
-   should be set. The owner role should be in `user_roles` if your email is
-   in `OWNER_EMAILS`.
+   should be set. (Owner is not self-serve — see "Owner is not self-serve"
+   above. For a local owner, insert a `participant_roles` row by hand or run
+   the 00066 seed.)
 5. Hit a guarded endpoint (e.g. `GET /api/cycles`) — should return 200.
 6. Sign out, delete the `participants` row, sign in again — should redirect
    to `/register`.

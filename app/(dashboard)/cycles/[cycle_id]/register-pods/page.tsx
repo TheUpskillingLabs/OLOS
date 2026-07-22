@@ -16,7 +16,10 @@ export default async function RegisterPodsPage({
 
   const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
     supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
-    createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close, pod_limit").eq("cycle_id", cycleId).single(),
+    // maybeSingle: a cycle with no cycle_config row is a real production
+    // state (config is seeded by hand) — .single() errors instead of
+    // reading as a closed window (vibe-scan PP6, matching propose/vote).
+    createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close, pod_limit").eq("cycle_id", cycleId).maybeSingle(),
     supabase.auth.getUser(),
   ]);
 

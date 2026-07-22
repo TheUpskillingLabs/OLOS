@@ -27,6 +27,17 @@ export const POST = withAuth(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    // Mirror the pod register route's allowlist (vibe-scan PP1): an
+    // owner-archived project (status 'inactive') must not accept new
+    // registrations. Withdrawal (DELETE below) stays status-agnostic —
+    // members can always leave.
+    if (!["forming", "active"].includes(project.status)) {
+      return NextResponse.json(
+        { error: "Project is not accepting registrations" },
+        { status: 400 }
+      );
+    }
+
     const orgRejection = await rejectOrgCycle(
       auth.supabase,
       project.cycle_id,
