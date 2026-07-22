@@ -5,6 +5,7 @@ import { can } from "@/lib/auth/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
 import { finalizeProjectsForPod } from "@/lib/projects/finalize";
+import { syncPhasesFromConfig } from "@/lib/cycles/schedule";
 
 const PHASE_SEQUENCE = [
   "problem_statement",
@@ -133,6 +134,12 @@ export const POST = withAdminAuth(
         { status: 500 }
       );
     }
+
+    // checkWindow is phases-first (lib/auth/windows.ts), so a raw
+    // cycle_config write leaves the real gate on stale cycle_phases rows —
+    // the tester "opens" a phase but participants still 403 (vibe-scan C2).
+    // Mirror the config PATCH route: sync phases after every window write.
+    await syncPhasesFromConfig(cycleId);
 
     // Ensure cycle is active. A no-op when already active; when promoting a
     // draft, the ≤1-active invariant (migration 00048) can reject it — surface
