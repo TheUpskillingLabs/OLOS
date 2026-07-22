@@ -25,7 +25,9 @@ export default async function SolutionsPage({
 
   const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
     supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
-    serviceClient.from("cycle_config").select("solution_proposal_open, solution_proposal_close").eq("cycle_id", cycleId).single(),
+    // maybeSingle: a missing cycle_config row is a real production state —
+    // read as closed, not an error (vibe-scan PP6).
+    serviceClient.from("cycle_config").select("solution_proposal_open, solution_proposal_close").eq("cycle_id", cycleId).maybeSingle(),
     supabase.auth.getUser(),
   ]);
 

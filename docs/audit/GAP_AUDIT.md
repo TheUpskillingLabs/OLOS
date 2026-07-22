@@ -21,7 +21,7 @@ paths, OLOS refs are this repo.
 | Public situations strip (cycle accountability, UX F3) + ungated survey CTA | missing | Both landing-section gaps; survey CTA blocked on §1.2/§1.3 backend |
 | `/events`, `/library`, `/local-labs` (+slugs), `/about`, `/build-cycles` | parity | Events diverged-better: live Luma sync (`00035`, cron) vs the prototype's static cache |
 | The Work public layer `/projects` · `/pods` · `/people` | missing | Public-by-artifact pages; need `narrative_revisions` (peer approval) + opt-in portfolio columns first |
-| Cards are teasers w/ real pages; browse free; email-only RSVP | parity | RSVP has **no rate limiting** — spec §8 calls this a pre-launch blocker (see Part B) |
+| Cards are teasers w/ real pages; browse free; email-only RSVP | parity | ~~RSVP has **no rate limiting**~~ **RESOLVED 2026-07** — `ANON_RSVP_LIMIT=5/hr` via `lib/api/rate-limit.ts` (verified by VIBE_SCAN_2026-07) |
 
 ### A2. Funnel + auth
 
@@ -162,7 +162,7 @@ canvas, copy) plus two genuine policy forks: voter eligibility and the unit of f
 | 8 | `/` public landing | `app/page.tsx` | **built** (the doc's highest-risk item) |
 | 8 | public paths for `/stories /projects /pods /people /s/* /u/*` | — | missing |
 | 8 | Delivery Facilitator + Client Sponsor roles, `projects.qa_verified` | — | missing |
-| 8 | **rate limiting / `ip_hash`** | — | **missing — spec calls it a pre-launch blocker** |
+| 8 | **rate limiting / `ip_hash`** | `lib/api/rate-limit.ts` | ~~missing~~ **RESOLVED 2026-07** — anonymous RSVP throttled (`ANON_RSVP_LIMIT=5/hr`) |
 
 **Cross-cutting flag — column-name drift:** `events`/`resources`/`metros` shipped with
 prototype-data.js-shaped names, not the spec's names. The drift is fine (the tables predate
@@ -196,10 +196,11 @@ request/cancel/hide · saved/heart.
 
 - Compliant: reconciler itself; agreement route (insert-inactive-only); registration +
   interest inserts (creation is allowed).
-- **Violation 1:** `app/api/revocations/check/[cycle_id]/route.ts:82` — direct demote to
-  `inactive`, bypassing the reconciler.
-- **Violation 2:** `app/api/revocations/reactivate/[participant_id]/route.ts:20` — direct
-  promote to `active`, bypassing the reconciler.
+- ~~**Violation 1:** `app/api/revocations/check/[cycle_id]/route.ts` — direct demote~~
+  **RESOLVED 2026-07** — both revocations routes now call
+  `reconcileEnrollmentActivation()` (verified by VIBE_SCAN_2026-07).
+- ~~**Violation 2:** `app/api/revocations/reactivate/[participant_id]/route.ts` — direct
+  promote~~ **RESOLVED 2026-07** — same.
 - Soft: `lib/auth/invitations.ts:103` upserts `active` then immediately reconciles
   (self-correcting; documented).
 - Next risk site: the unbuilt step-back route — `stepped_back` must be added to the
@@ -211,8 +212,8 @@ request/cancel/hide · saved/heart.
 |---|---|
 | Tests / CI | **None** — no runner, no `.github/`, scripts are dev/build/start/lint only |
 | `revocation-check` cron | Route exists, **not registered** in `vercel.json` (roadmap §3.7 Phase C awaits staging soak) — the cron that once mis-revoked ~75% of a cohort |
-| Dead code | `POST /api/registrations/short` (UI deleted); `.heart` CSS unused; 5 pre-existing lint errors |
-| `lib/metros.ts` | Still wired into the funnel despite the real `metros` table (`00033`) — plan said retire at C7 |
+| Dead code | `POST /api/registrations/short` route removed; its orphaned `short-registration.ts` schema + the unused `POST /api/registrations` deleted 2026-07 (vibe-scan Tier 1); `.heart` CSS unused; 5 pre-existing lint errors |
+| `lib/metros.ts` | ~~Still wired into the funnel~~ **STALE 2026-07** — reads `metros.zip_prefixes` and only suggests; hardcoded zip map retired (see VIBE_SCAN_2026-07 CT2 for a live bug in the same path) |
 | Placeholder-name debt | `Unknown` rows from the abandoned spreadsheet migration still gated by `lib/participants/placeholder.ts` |
 | Stale docs | `TUL_MVP_Spec.md` + `OLOS-architecture-brief.md` describe a FastAPI/pyjwt backend that never existed; `PROTO_TRANSLATION_PLAN.md` marks shipped stages (C1/C7) deferred and references the deleted `.theme-legacy`; `OLOS-roadmap.md` §6 tracker self-admittedly wrong |
 

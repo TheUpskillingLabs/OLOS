@@ -84,6 +84,11 @@ export async function getLogHealth(
       "participant_id, clarity, alignment, progress_rating, energy_rating, is_blocked, blocker_context, created_at"
     )
     .in("participant_id", ids)
+    // Logs count only toward the cycle they were filed against (vibe-scan
+    // LL2), matching the member gate's attribution rule (gate-logic.ts) —
+    // otherwise a dual-enrolled member shows green here off another
+    // cycle's log while actually locked at their dashboard.
+    .eq("cycle_id", cycleId)
     .gte("created_at", lookback.toISOString())
     .order("created_at", { ascending: false });
 

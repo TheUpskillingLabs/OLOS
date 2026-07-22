@@ -24,6 +24,11 @@ export const updateCycleConfigSchema = z.object({
   project_submitter_votes: z.number().int().min(0).optional(),
   project_vote_threshold: z.number().int().min(0).optional(),
   max_projects: z.number().int().min(1).optional(),
+  // project_min was omitted here, so the config form's "Project min
+  // members" edit was silently stripped and the save 200'd without
+  // writing (vibe-scan C1). project_min is load-bearing: shortlist caps,
+  // project registration minimum, and finalize.
+  project_min: z.number().int().min(1).optional(),
   project_max: z.number().int().min(1).optional(),
   // Milestone evaluation weeks (0–12; migration 00047). Admin-configurable.
   milestone_mid_week: z.number().int().min(0).max(12).optional(),

@@ -15,10 +15,6 @@ export const createInvitationSchema = z.object({
   pod_role: z.enum(["co_lead", "member"]).nullable().optional(),
 });
 
-export const revokeInvitationSchema = z.object({
-  status: z.literal("revoked"),
-});
-
 export const togglePermissionsSchema = z.object({
   participant_id: z.number().int({ message: "participant_id must be a number" }),
   permissions: z.array(z.string().min(1)).min(1, "At least one permission required"),
