@@ -4,6 +4,10 @@ type RegistrationEmailProps = {
   cycleJoinUrl?: string | null;
 };
 
+const SLACK_INVITE_URL =
+  process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
+  "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ";
+
 export function registrationConfirmationHtml({
   firstName,
   cycleName,
@@ -36,6 +40,9 @@ export function registrationConfirmationHtml({
         <a href="${cycleJoinUrl}" style="color:#00b8c8;word-break:break-all;">${cycleJoinUrl}</a>
       </p>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
+        Join us on Slack: <a href="${SLACK_INVITE_URL}" style="color:#00b8c8;">${SLACK_INVITE_URL}</a>
+      </p>
+      <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
         If you have any questions, please write to <a href="mailto:olos-help@theupskillinglabs.org" style="color:#00b8c8;">olos-help@theupskillinglabs.org</a> and we will be glad to help.
       </p>
       <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
@@ -50,6 +57,9 @@ export function registrationConfirmationHtml({
       </p>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:rgba(200,210,230,0.75);">
         There is no Build Cycle currently open for new participants. We will email you when the next cycle opens, and you will be able to join from there.
+      </p>
+      <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
+        Join us on Slack: <a href="${SLACK_INVITE_URL}" style="color:#00b8c8;">${SLACK_INVITE_URL}</a>
       </p>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
         If you have any questions, please write to <a href="mailto:olos-help@theupskillinglabs.org" style="color:#00b8c8;">olos-help@theupskillinglabs.org</a> and we will be glad to help.
@@ -115,6 +125,8 @@ If you would like to join the current cycle, ${cycleName}, please complete the f
 
 Complete the form: ${cycleJoinUrl}
 
+Join us on Slack: ${SLACK_INVITE_URL}
+
 If you have any questions, please write to olos-help@theupskillinglabs.org and we will be glad to help.
 
 Best regards,
@@ -129,6 +141,8 @@ If you didn't register, you can safely ignore this email.`;
 We received your registration to The Upskilling Labs.
 
 There is no Build Cycle currently open for new participants. We will email you when the next cycle opens, and you will be able to join from there.
+
+Join us on Slack: ${SLACK_INVITE_URL}
 
 If you have any questions, please write to olos-help@theupskillinglabs.org and we will be glad to help.
 

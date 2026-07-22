@@ -22,6 +22,7 @@ export interface ChecklistItem {
   done: boolean;
   href?: string;
   cta?: string;
+  external?: boolean;
 }
 
 const KEY = "olos.setupChecklistCollapsed.v1";
@@ -134,7 +135,16 @@ export default function SetupChecklist({ items }: { items: ChecklistItem[] }) {
               // <Link> does a pushState soft-nav that scrolls but never fires
               // `hashchange`, so the feed composer's hash listener wouldn't flip
               // to the Learning Log tab. A native anchor fires it and still scrolls.
-              item.href.startsWith("#") ? (
+              item.external ? (
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 flex-shrink-0 items-center rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+                >
+                  {item.cta ?? "Start"} →
+                </a>
+              ) : item.href.startsWith("#") ? (
                 <a
                   href={item.href}
                   className="flex min-h-11 flex-shrink-0 items-center rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"

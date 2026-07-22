@@ -550,6 +550,19 @@ export default async function DashboardPage() {
       href: "/directory",
       cta: "Find",
     },
+    // Simple always-on reminder to join the org Slack — no completion
+    // tracking yet (see issue #189 for the full membership-verification
+    // integration), so this row never flips to done.
+    {
+      key: "slack",
+      label: "Join the Slack",
+      done: false,
+      href:
+        process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
+        "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ",
+      cta: "Join",
+      external: true,
+    },
     // Pod + Learning Log steps belong to the running cohort — an upcoming
     // cohort has no pods yet — so these stay tied to the active cycle. The
     // pod row also waits for its registration window: showing "Choose a pod"
