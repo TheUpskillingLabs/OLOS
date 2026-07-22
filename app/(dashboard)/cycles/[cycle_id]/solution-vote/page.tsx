@@ -29,7 +29,9 @@ export default async function SolutionVotePage({
       "solution_voting_open, solution_voting_close, project_submitter_votes"
     )
     .eq("cycle_id", cycleId)
-    .single();
+    // maybeSingle: a missing cycle_config row is a real production state —
+    // read as closed, not an error (vibe-scan PP6).
+    .maybeSingle();
 
   // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
   const now = new Date();
