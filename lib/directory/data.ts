@@ -105,6 +105,9 @@ export async function fetchDirectoryData(): Promise<DirectoryData> {
       // else in the app (the Poderator's visibleMembers()); match that here.
       .eq("is_test", false)
       .eq("is_staff", false)
+      // Deactivated members (owner-console archive, 00079) leave the
+      // directory too (vibe-scan CT4) — rosters already close on archive.
+      .is("archived_at", null)
       .order("created_at", { ascending: false }),
     service.from("metros").select("slug, name, st"),
     service

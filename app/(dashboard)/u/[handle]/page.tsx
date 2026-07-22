@@ -34,6 +34,9 @@ export default async function MemberProfilePage({
     .from("participants")
     .select(DISPLAY_COLUMNS)
     .eq("handle", handle.toLowerCase())
+    // Deactivated members 404 like unknown handles (vibe-scan CT4),
+    // matching the directory grid's exclusion.
+    .is("archived_at", null)
     .maybeSingle();
 
   // A failed read (e.g. a drifted column → 400) would otherwise notFound() like
