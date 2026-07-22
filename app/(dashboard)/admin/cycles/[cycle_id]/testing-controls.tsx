@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { parseWindow } from "@/lib/cycles/lab-time";
 
 const PHASE_SEQUENCE = [
   "problem_statement",
@@ -29,13 +30,17 @@ function getPhaseStatuses(
   const statuses: Record<string, PhaseStatus> = {};
 
   for (const phase of PHASE_SEQUENCE) {
-    const openTime = config[`${phase}_open`] as string | null;
-    const closeTime = config[`${phase}_close`] as string | null;
+    // parseWindow, not bare new Date(): the naive cycle_config timestamps
+    // are UTC instants (lib/cycles/lab-time.ts). Parsing them in the
+    // browser's local zone shifted every window by the UTC offset, so a
+    // just-opened phase showed as "No phase currently active".
+    const open = parseWindow(config[`${phase}_open`] as string | null);
+    const close = parseWindow(config[`${phase}_close`] as string | null);
 
-    if (openTime && closeTime) {
-      if (now >= new Date(openTime) && now <= new Date(closeTime)) {
+    if (open && close) {
+      if (now >= open && now <= close) {
         statuses[phase] = "active";
-      } else if (now > new Date(closeTime)) {
+      } else if (now > close) {
         statuses[phase] = "completed";
       } else {
         statuses[phase] = "upcoming";

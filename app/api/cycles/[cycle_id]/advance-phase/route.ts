@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
 import { finalizeProjectsForPod } from "@/lib/projects/finalize";
 import { syncPhasesFromConfig } from "@/lib/cycles/schedule";
+import { parseWindow } from "@/lib/cycles/lab-time";
 
 const PHASE_SEQUENCE = [
   "problem_statement",
@@ -67,16 +68,20 @@ export const POST = withAdminAuth(
     const now = new Date().toISOString();
     const configRecord = config as Record<string, unknown>;
 
-    // Determine the current active phase (open <= now <= close)
+    // Determine the current active phase (open <= now <= close).
+    // parseWindow, not bare new Date(): the naive cycle_config timestamps
+    // are UTC instants by convention (lib/cycles/lab-time.ts). new Date()
+    // reads them in the server's local zone, which diverges between
+    // Vercel (UTC) and a dev laptop — on localhost the just-opened phase
+    // looked 4h in the future and the route re-opened voting forever.
+    const nowDate = new Date(now);
     let currentActivePhase: Phase | null = null;
     for (const phase of PHASE_SEQUENCE) {
-      const openTime = configRecord[`${phase}_open`] as string | null;
-      const closeTime = configRecord[`${phase}_close`] as string | null;
-      if (openTime && closeTime) {
-        if (new Date(openTime) <= new Date(now) && new Date(now) <= new Date(closeTime)) {
-          currentActivePhase = phase;
-          break;
-        }
+      const open = parseWindow(configRecord[`${phase}_open`] as string | null);
+      const close = parseWindow(configRecord[`${phase}_close`] as string | null);
+      if (open && close && open <= nowDate && nowDate <= close) {
+        currentActivePhase = phase;
+        break;
       }
     }
 
@@ -84,8 +89,8 @@ export const POST = withAdminAuth(
     let lastClosedIndex = -1;
     for (let i = PHASE_SEQUENCE.length - 1; i >= 0; i--) {
       const phase = PHASE_SEQUENCE[i];
-      const closeTime = configRecord[`${phase}_close`] as string | null;
-      if (closeTime && new Date(closeTime) <= new Date(now)) {
+      const close = parseWindow(configRecord[`${phase}_close`] as string | null);
+      if (close && close <= nowDate) {
         lastClosedIndex = i;
         break;
       }
