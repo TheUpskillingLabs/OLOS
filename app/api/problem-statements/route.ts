@@ -7,6 +7,7 @@ import { checkWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { problemStatementSchema } from "@/lib/validations/votes";
+import { requireCompleteProfile } from "@/lib/participants/placeholder";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
@@ -20,6 +21,12 @@ export const POST = withAuth(
     if (!participant_id) {
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
+
+    // Placeholder-named accounts must finish their profile before publishing
+    // (vibe-scan PA1) — every other submission endpoint already guards this;
+    // without it a statement renders as "Unknown Unknown" cycle-wide.
+    const guard = await requireCompleteProfile(auth.supabase, participant_id);
+    if (guard) return guard;
 
     const orgRejection = await rejectOrgCycle(
       auth.supabase,
