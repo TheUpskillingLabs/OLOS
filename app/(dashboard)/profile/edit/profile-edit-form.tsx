@@ -375,7 +375,7 @@ export default function ProfileEditForm({
           <p className="rounded-card border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal-deep">
             Saved.{" "}
             <Link href="/profile" className="underline">
-              Back to profile
+              View profile
             </Link>
           </p>
         )}
@@ -592,7 +592,7 @@ export default function ProfileEditForm({
           <p className="rounded-card border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal-deep">
             Saved.{" "}
             <Link href="/profile" className="underline">
-              Back to profile
+              View profile
             </Link>
           </p>
         )}
