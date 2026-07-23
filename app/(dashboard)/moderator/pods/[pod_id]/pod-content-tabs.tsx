@@ -4,7 +4,7 @@ import * as React from "react";
 import type { RosterRow } from "@/lib/moderator/pod-detail";
 import type { PodTab } from "@/lib/moderator/ui-state";
 import { RosterTable } from "./roster-table";
-import { RecentPulsesFeed } from "./recent-pulses-feed";
+import { RecentActivityFeed } from "./recent-activity-feed";
 import { persistUiState } from "../../switcher";
 
 /**
@@ -12,7 +12,7 @@ import { persistUiState } from "../../switcher";
  *
  * Two tabs:
  *   - Members         → the existing RosterTable + pulse-review side panel
- *   - Recent pulses   → cross-member chronological feed (chunk B)
+ *   - Recent activity → Learning Logs feed (default) + pulse checks toggle
  *
  * Initial tab comes from the server (read from moderator_ui_state.last_pod_tab).
  * Every tab change persists via PUT /api/moderator/ui-state so the next
@@ -24,9 +24,12 @@ import { persistUiState } from "../../switcher";
  * cross-cycle read) falls back to the members tab.
  */
 
+// The activity tab keeps its historical `recent_pulses` value so persisted
+// moderator_ui_state.last_pod_tab rows stay valid; the label and body moved
+// on to cover Learning Logs (default) + pulse checks behind a toggle.
 const TABS: { value: PodTab; label: string }[] = [
   { value: "members", label: "Members" },
-  { value: "recent_pulses", label: "Recent pulses" },
+  { value: "recent_pulses", label: "Recent activity" },
 ];
 
 export function PodContentTabs({
@@ -35,12 +38,16 @@ export function PodContentTabs({
   podName,
   initialTab,
   mode,
+  hasLogs = false,
+  hasPulses = false,
 }: {
   members: RosterRow[];
   podId: number;
   podName: string;
   initialTab: PodTab;
   mode?: string | null;
+  hasLogs?: boolean;
+  hasPulses?: boolean;
 }) {
   const isOrg = mode === "org";
   const tabs = isOrg ? TABS.filter((t) => t.value !== "recent_pulses") : TABS;
@@ -78,7 +85,13 @@ export function PodContentTabs({
       {tab === "members" && (
         <RosterTable members={members} podId={podId} podName={podName} />
       )}
-      {tab === "recent_pulses" && !isOrg && <RecentPulsesFeed podId={podId} />}
+      {tab === "recent_pulses" && !isOrg && (
+        <RecentActivityFeed
+          podId={podId}
+          hasLogs={hasLogs}
+          hasPulses={hasPulses}
+        />
+      )}
     </section>
   );
 }

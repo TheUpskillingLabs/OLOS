@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm, FormProvider } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormField, Input, Textarea, Select } from "@/app/components/ui/form";
@@ -31,6 +32,10 @@ const formSchema = z.object({
   handle: z
     .string()
     .max(50)
+    // Normalize case instead of rejecting it: members type their handle the
+    // way they write their name ("Tati") and a casing-only rejection reads as
+    // a silent save failure. Lowercase first, then validate the rest.
+    .transform((v) => v.trim().toLowerCase())
     .refine((s) => !s || HANDLE_RE.test(s), {
       message: "Use lowercase letters, numbers, and dashes",
     })
@@ -279,6 +284,24 @@ export default function ProfileEditForm({
     }
   }
 
+  // A submit blocked by client validation used to be silent: the error text
+  // renders inline at the field, which can be far off-screen, so members
+  // assumed the save went through (reported: preferred name + handle "not
+  // persisting" when a casing error on handle was blocking the whole form).
+  // Surface a banner and bring the first errored field into view.
+  function onInvalid(errors: FieldErrors<FormData>) {
+    setSaved(false);
+    setServerError(
+      "Not saved yet. Fix the highlighted field below and save again."
+    );
+    const first = Object.keys(errors)[0];
+    if (first) {
+      const el = document.querySelector<HTMLElement>(`[name="${first}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.focus?.({ preventScroll: true });
+    }
+  }
+
   async function onSubmit(values: FormData) {
     setServerError("");
 
@@ -344,7 +367,7 @@ export default function ProfileEditForm({
 
   return (
     <FormProvider {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="mt-6 space-y-5">
         {/* Saving scrolls to the top — the confirmation has to be waiting
             where the scroll lands, not only down by the submit bar
             (July 2026 feedback). */}
@@ -352,7 +375,7 @@ export default function ProfileEditForm({
           <p className="rounded-card border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal-deep">
             Saved.{" "}
             <Link href="/profile" className="underline">
-              Back to profile
+              View profile
             </Link>
           </p>
         )}
@@ -569,7 +592,7 @@ export default function ProfileEditForm({
           <p className="rounded-card border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal-deep">
             Saved.{" "}
             <Link href="/profile" className="underline">
-              Back to profile
+              View profile
             </Link>
           </p>
         )}
