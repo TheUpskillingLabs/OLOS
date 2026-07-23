@@ -38,12 +38,16 @@ export function PodContentTabs({
   podName,
   initialTab,
   mode,
+  hasLogs = false,
+  hasPulses = false,
 }: {
   members: RosterRow[];
   podId: number;
   podName: string;
   initialTab: PodTab;
   mode?: string | null;
+  hasLogs?: boolean;
+  hasPulses?: boolean;
 }) {
   const isOrg = mode === "org";
   const tabs = isOrg ? TABS.filter((t) => t.value !== "recent_pulses") : TABS;
@@ -81,7 +85,13 @@ export function PodContentTabs({
       {tab === "members" && (
         <RosterTable members={members} podId={podId} podName={podName} />
       )}
-      {tab === "recent_pulses" && !isOrg && <RecentActivityFeed podId={podId} />}
+      {tab === "recent_pulses" && !isOrg && (
+        <RecentActivityFeed
+          podId={podId}
+          hasLogs={hasLogs}
+          hasPulses={hasPulses}
+        />
+      )}
     </section>
   );
 }
