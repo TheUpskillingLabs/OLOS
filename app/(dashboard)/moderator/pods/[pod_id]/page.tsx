@@ -70,6 +70,31 @@ export default async function ModeratorPodPage({
   // hydrates from /api/moderator/ui-state in the client (see RosterTable).
   const initialTab = uiState.last_pod_tab ?? "members";
 
+  // A pod practices ONE weekly instrument in practice - Learning Logs
+  // (current) or pulse checks (legacy) - so the activity tab auto-selects
+  // whichever has data instead of always offering both (owner decision,
+  // 2026-07-22). Head-only count queries; members are the roster ids.
+  const memberIds = detail.members.map((m) => m.participant_id);
+  const [logCountRes, pulseCountRes] = await Promise.all([
+    memberIds.length
+      ? serviceClient
+          .from("learning_logs")
+          .select("id", { head: true, count: "exact" })
+          .in("participant_id", memberIds)
+          .eq("cycle_id", detail.cycle_id)
+      : Promise.resolve({ count: 0 }),
+    memberIds.length
+      ? serviceClient
+          .from("pulse_checks")
+          .select("id", { head: true, count: "exact" })
+          .in("participant_id", memberIds)
+          .eq("cycle_id", detail.cycle_id)
+          .not("completed_at", "is", null)
+      : Promise.resolve({ count: 0 }),
+  ]);
+  const hasLogs = (logCountRes.count ?? 0) > 0;
+  const hasPulses = (pulseCountRes.count ?? 0) > 0;
+
   // §7.9.2 pod-level insights — pre-compute both ranges so the client
   // toggle doesn't need a round-trip. Plus the AI-summary prompt for
   // §7.10.3. Org runs have no pulse checks, so skip the fetches entirely —
@@ -149,6 +174,8 @@ export default async function ModeratorPodPage({
           podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
           initialTab={initialTab}
           mode={detail.cycle_mode}
+          hasLogs={hasLogs}
+          hasPulses={hasPulses}
         />
       </section>
     </div>
