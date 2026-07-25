@@ -27,7 +27,9 @@ export default async function VotePage({
   const serviceClient = createServiceClient();
   const { data: config } = await serviceClient
     .from("cycle_config")
-    .select("voting_open, voting_close, submitter_votes, non_submitter_votes")
+    .select(
+      "voting_open, voting_close, submitter_votes, non_submitter_votes, pod_registration_open, pod_registration_close"
+    )
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
@@ -80,6 +82,12 @@ export default async function VotePage({
         <p className="mt-1 text-sm text-charcoal">
           Allocate your votes to the problems you want the community to tackle.
         </p>
+        <Link
+          href={`/cycles/${cycle.id}/proposals`}
+          className="mt-2 inline-block text-sm font-semibold text-teal-deep hover:text-teal"
+        >
+          Read the full proposals in the gallery →
+        </Link>
       </div>
 
       {isOpen ? (
@@ -92,9 +100,12 @@ export default async function VotePage({
       ) : (
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
-            {config
-              ? "Voting is not currently open."
-              : "This cycle isn't fully configured yet — the voting window hasn't been scheduled. If you expected it to be open, let an organizer know."}
+            {!config
+              ? "This cycle isn't fully configured yet — the voting window hasn't been scheduled. If you expected it to be open, let an organizer know."
+              : config.voting_close &&
+                  now > (parseWindow(config.voting_close) as Date)
+                ? "Voting has closed. The top-voted statements become the cycle's pods."
+                : "Voting is not currently open."}
           </p>
           {config?.voting_open &&
             now < (parseWindow(config.voting_open) as Date) && (
@@ -102,6 +113,28 @@ export default async function VotePage({
                 Opens {fmtLabDateTime(config.voting_open)}
               </p>
             )}
+          {config?.voting_close &&
+            now > (parseWindow(config.voting_close) as Date) &&
+            (windowOpen(
+              config.pod_registration_open,
+              config.pod_registration_close,
+              now
+            ) ? (
+              <Link
+                href={`/cycles/${cycle.id}/register-pods`}
+                className="mt-3 inline-block text-sm font-semibold text-teal-deep hover:text-teal"
+              >
+                Pod registration is open — join a pod →
+              </Link>
+            ) : (
+              <p className="mt-2 text-sm text-meta">
+                Pod registration opens once the shortlist is finalized
+                {config.pod_registration_open
+                  ? ` — ${fmtLabDateTime(config.pod_registration_open)}`
+                  : ""}
+                .
+              </p>
+            ))}
         </div>
       )}
     </div>

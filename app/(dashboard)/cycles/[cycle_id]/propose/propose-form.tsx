@@ -51,6 +51,7 @@ export default function ProposeForm({
   // Part 3 — Your Problem Statement
   const [statementText, setStatementText] = useState("");
   const [question, setQuestion] = useState("");
+  const [repoUrl, setRepoUrl] = useState("");
 
   // Part 4 — Where This Problem Lives
   const [impactTrack, setImpactTrack] = useState("");
@@ -80,6 +81,25 @@ export default function ProposeForm({
     checkSpecific &&
     checkSamePicture;
 
+  // Accept bare "github.com/org/repo" pastes by prefixing https://. Gating
+  // Continue on parseability here matters: the server's Zod rejection would
+  // otherwise only surface after step 6.
+  const normalizedRepoUrl = (() => {
+    const raw = repoUrl.trim();
+    if (!raw) return "";
+    return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  })();
+  const repoUrlValid = (() => {
+    if (!normalizedRepoUrl) return true;
+    if (normalizedRepoUrl.length > 500) return false;
+    try {
+      new URL(normalizedRepoUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
   function canAdvance(): boolean {
     switch (step) {
       case 1:
@@ -92,7 +112,7 @@ export default function ProposeForm({
           !!success.trim()
         );
       case 3:
-        return !!statementText.trim() && !!question.trim();
+        return !!statementText.trim() && !!question.trim() && repoUrlValid;
       case 4:
         return true; // optional
       case 5:
@@ -140,6 +160,7 @@ export default function ProposeForm({
             statement: {
               text: statementText.trim(),
               question: question.trim(),
+              repo_url: normalizedRepoUrl || undefined,
             },
             context: {
               impact_track: resolvedTrack || undefined,
@@ -203,10 +224,16 @@ export default function ProposeForm({
           )}
         </blockquote>
         <Link
-          href="/dashboard"
+          href={`/cycles/${cycleId}/proposals`}
           className="mr-3 mt-6 inline-block rounded-card bg-teal-deep px-3 py-2 text-xs font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
-          Back to dashboard
+          See it in the gallery
+        </Link>
+        <Link
+          href={`/cycles/${cycleId}`}
+          className="mr-3 mt-6 inline-block rounded-card border border-ink/15 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-colors duration-150 hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        >
+          Back to the cycle
         </Link>
         <button
           onClick={() => {
@@ -220,6 +247,7 @@ export default function ProposeForm({
             setSuccess("");
             setStatementText("");
             setQuestion("");
+            setRepoUrl("");
             setImpactTrack("");
             setImpactTrackOther("");
             setThemeAlignment("none");
@@ -448,6 +476,26 @@ export default function ProposeForm({
               className={textareaClass}
             />
             <CharCount value={question} max={2000} />
+          </Field>
+
+          <Field
+            label="Link to your map"
+            hint="Optional. If you mapped this problem in the Triangulator, paste the GitHub repo where your working folder lives — voters can explore the evidence behind your statement."
+          >
+            <input
+              type="url"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              maxLength={500}
+              placeholder="https://github.com/..."
+              className={inputClass}
+            />
+            {!repoUrlValid && (
+              <p className="mt-1 text-xs text-red">
+                That doesn&rsquo;t look like a URL — fix it or leave the field
+                empty.
+              </p>
+            )}
           </Field>
         </section>
       )}

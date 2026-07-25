@@ -140,7 +140,9 @@ export default function PodRegistration({
     return (
       <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
         <p className="text-sm text-meta">
-          No pods available for registration yet.
+          No pods here yet — the vote is still being finalized into a
+          shortlist. Check back shortly; when the pods are announced, this is
+          where you&apos;ll join one.
         </p>
       </div>
     );

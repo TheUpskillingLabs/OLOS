@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ExternalLink } from "lucide-react";
 
 interface ProposalData {
   about?: { background?: string; experience?: string };
   problem?: { who?: string; need?: string; barrier?: string; success?: string };
-  statement?: { text?: string; question?: string };
+  statement?: { text?: string; question?: string; repo_url?: string };
   voter_context?: {
     tried?: string;
     scale?: string;
@@ -249,6 +250,11 @@ export default function VoteBallot({
           const pd = stmt.proposal_data;
           const isExpanded = expandedId === stmt.id;
           const hasDetails = pd?.problem || pd?.voter_context;
+          // Scheme-checked before rendering as an href — rows written before
+          // the schema restricted repo_url to http(s) are untrusted here.
+          const rawRepo = pd?.statement?.repo_url;
+          const mapUrl =
+            rawRepo && /^https?:\/\//i.test(rawRepo) ? rawRepo : null;
 
           const mine = myVotes[stmt.id] ?? 0;
           // Zero-state cards show the stepper directly so votes can be added;
@@ -275,6 +281,20 @@ export default function VoteBallot({
                   <p className="mt-2 text-sm italic text-slate">
                     {pd.statement.question}
                   </p>
+                )}
+
+                {/* Triangulator map — always visible, not behind the expand:
+                    the evidence trail is what voters are being asked to weigh */}
+                {mapUrl && (
+                  <a
+                    href={mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline"
+                  >
+                    View the map
+                    <ExternalLink className="h-3 w-3" aria-hidden />
+                  </a>
                 )}
 
                 {/* Submitter background */}

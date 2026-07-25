@@ -203,9 +203,9 @@ export default async function SurveyResultsPage({
           sublabel={`toward ${RESPONSE_GOAL.toLocaleString()}`}
         />
         <StatCard
-          label="Shared for the commons"
-          value={agg.observations.length.toLocaleString()}
-          sublabel="approved & visible below"
+          label="Curated for the commons"
+          value={agg.approved.toLocaleString()}
+          sublabel="reviewed & approved"
         />
       </div>
 
@@ -241,18 +241,21 @@ export default async function SurveyResultsPage({
         </div>
         {agg.observations.length === 0 ? (
           <p className="text-sm text-meta">
-            No observations have been published yet — check back as the cohort
-            reviews what&apos;s come in.
+            No observations have come in yet — take the survey and share it
+            with someone close to the problem.
           </p>
         ) : (
           <div className="grid gap-4">
-            {agg.observations.map((o, i) => (
+            {/* id anchors (#r-<response id>) are the citation targets the
+                Triangulator's pre-loaded extract cards deep-link back to. */}
+            {agg.observations.map((o) => (
               <div
-                key={i}
-                className="rounded-card border border-ink/10 bg-white p-5 shadow-card"
+                key={o.id}
+                id={`r-${o.id}`}
+                className="scroll-mt-24 rounded-card border border-ink/10 bg-white p-5 shadow-card target:ring-2 target:ring-teal"
               >
                 <p className="text-sm text-charcoal">{o.observation}</p>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs text-meta">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-meta">
                   {o.standpoint
                     .map((s) => standpointLabels.get(s) ?? s)
                     .map((label) => (
@@ -263,7 +266,14 @@ export default async function SurveyResultsPage({
                         {label}
                       </span>
                     ))}
-                  <span className="ml-auto">{fmtDate(o.created_at)}</span>
+                  {o.pending && (
+                    <span className="rounded-full border border-ink/15 px-2 py-0.5 text-meta">
+                      awaiting review
+                    </span>
+                  )}
+                  <span className="ml-auto">
+                    #{o.id} · {fmtDate(o.created_at)}
+                  </span>
                 </div>
               </div>
             ))}
