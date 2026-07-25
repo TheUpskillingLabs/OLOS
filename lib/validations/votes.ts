@@ -14,6 +14,15 @@ export const proposalDataSchema = z.object({
   statement: z.object({
     text: z.string().min(1).max(2000),
     question: z.string().min(1).max(2000),
+    // Where the submitter's Triangulator working folder lives (usually a
+    // GitHub repo). Scheme-restricted: .url() alone admits javascript:/data:
+    // URLs, and this value is rendered as an href on the ballot and gallery.
+    repo_url: z
+      .string()
+      .url("Must be a valid URL")
+      .max(500)
+      .regex(/^https?:\/\//i, "Must be an http(s) URL")
+      .optional(),
   }),
   context: z.object({
     impact_track: z.string().max(200).optional(),
