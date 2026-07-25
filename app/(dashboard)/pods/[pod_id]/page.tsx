@@ -140,7 +140,7 @@ export default async function PodDetailPage({
       {ps?.statement_text && (
         <div className="mb-6 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card">
           <h3 className="lbl mb-1">
-            Problem statement
+            Problem situation
           </h3>
           <p className="text-charcoal">{ps.statement_text}</p>
         </div>

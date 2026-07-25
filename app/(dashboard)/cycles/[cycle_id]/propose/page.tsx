@@ -42,24 +42,6 @@ export default async function ProposePage({
     now
   );
 
-  // Get user's name for pre-filling
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let participantName = "";
-  if (user) {
-    const { data: participant } = await supabase
-      .from("participants")
-      .select("first_name, last_name, preferred_name")
-      .eq("auth_user_id", user.id)
-      .single();
-    if (participant) {
-      participantName =
-        `${participant.preferred_name || participant.first_name || ""} ${participant.last_name || ""}`.trim();
-    }
-  }
-
   return (
     <div className="max-w-2xl">
       <div className="mb-8">
@@ -71,27 +53,24 @@ export default async function ProposePage({
           {cycle.name}
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
-          Open cycle problem proposal
+          Submit your problem situation
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-charcoal">
-          The Open Cycle accepts problem proposals year-round. At the start of
-          each cycle, active participants vote to shortlist the strongest
-          proposals. Shortlisted proposals open for registration. If a research
-          pod reaches the minimum number of registrants, it officially forms.
-        </p>
-        <p className="mt-2 text-sm font-medium text-charcoal">
-          Take your time with Part 2 — it&rsquo;s the most important section.
-          Everything else supports it.
+          Your map is the submission — this form just points at it. Paste
+          your triad&rsquo;s repo link, name the situation, and distill it to
+          one sentence. Cycle participants vote to shortlist the strongest
+          situations; the shortlist becomes the cycle&rsquo;s pods, and pods
+          that reach the minimum number of registrants officially form.
         </p>
       </div>
 
       {isOpen ? (
-        <ProposeForm cycleId={cycleId} participantName={participantName} />
+        <ProposeForm cycleId={cycleId} />
       ) : (
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             {config
-              ? "Problem statement submission is not currently open."
+              ? "Problem situation submission is not currently open."
               : "This cycle isn't fully configured yet — the submission window hasn't been scheduled. If you expected it to be open, let an organizer know."}
           </p>
           {config?.problem_statement_open &&

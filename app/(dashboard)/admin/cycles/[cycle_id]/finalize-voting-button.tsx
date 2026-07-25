@@ -77,7 +77,7 @@ export default function FinalizeVotingButton({
         >
           {result.pods.length === 0 ? (
             <p className="text-sm text-charcoal">
-              No eligible problem statements met the vote threshold.
+              No eligible problem situations met the vote threshold.
             </p>
           ) : (
             <>

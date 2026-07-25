@@ -52,7 +52,7 @@ function fromLocal(val: string): string | null {
 
 const PHASES = [
   {
-    label: "Problem Statement",
+    label: "Problem Situation",
     open: "problem_statement_open",
     close: "problem_statement_close",
   },

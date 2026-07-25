@@ -1,7 +1,19 @@
 import Link from "next/link";
 import { registrationWindow } from "@/lib/cycles/schedule";
-import { windowOpen, fmtLabDate } from "@/lib/cycles/lab-time";
-import { BookOpen, ArrowRight, ChevronLeft, ClipboardList } from "lucide-react";
+import {
+  windowOpen,
+  fmtLabDate,
+  fmtLabDateTime,
+  parseWindow,
+} from "@/lib/cycles/lab-time";
+import {
+  BookOpen,
+  ArrowRight,
+  ChevronLeft,
+  ClipboardList,
+  ExternalLink,
+  FolderKanban,
+} from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
@@ -33,8 +45,8 @@ const WINDOW_ROUTES: {
   field: string;
   route: string;
 }[] = [
-  { label: "Submit Problem Statements", field: "problem_statement", route: "propose" },
-  { label: "Vote on Problem Statements", field: "voting", route: "vote" },
+  { label: "Submit Problem Situations", field: "problem_statement", route: "propose" },
+  { label: "Vote on Problem Situations", field: "voting", route: "vote" },
   { label: "Register for Pods", field: "pod_registration", route: "register-pods" },
   { label: "Submit Solution Proposals", field: "solution_proposal", route: "solutions" },
   { label: "Vote on Solutions", field: "solution_voting", route: "solution-vote" },
@@ -130,7 +142,7 @@ export default async function CycleDetailPage({
     }
   }
 
-  // The viewer's own problem statements (July 2026 feedback, running-list #2):
+  // The viewer's own problem situations (July 2026 feedback, running-list #2):
   // before this, statements were only ever listed on the vote ballot during
   // the voting phase, so a submitter had no way to see their own submission
   // back. Deliberately a direct owner-scoped query, not the shared GET route —
@@ -138,11 +150,18 @@ export default async function CycleDetailPage({
   const { data: myStatements } = me
     ? await serviceClient
         .from("problem_statements")
-        .select("id, statement_text, created_at")
+        .select("id, statement_text, proposal_data, created_at")
         .eq("cycle_id", cycle.id)
         .eq("participant_id", me.id)
         .order("created_at")
     : { data: null };
+
+  // Door to the proposal gallery — shown as soon as the cycle has any
+  // statements at all (the gallery page itself applies the per-lab filter).
+  const { count: statementCount } = await serviceClient
+    .from("problem_statements")
+    .select("id", { count: "exact", head: true })
+    .eq("cycle_id", cycle.id);
 
   const now = new Date();
   const activeWindows: { label: string; route: string; closesAt: string }[] = [];
@@ -154,6 +173,24 @@ export default async function CycleDetailPage({
       if (openVal && closeVal && windowOpen(openVal, closeVal, now)) {
         activeWindows.push({ label: w.label, route: w.route, closesAt: closeVal });
       }
+    }
+  }
+
+  // The seam between voting and pod registration is the one quiet stretch
+  // where the page would otherwise go silent mid-arc: votes are in, pods
+  // aren't announced. Say what's happening rather than showing nothing.
+  let interlude: string | null = null;
+  if (config && activeWindows.length === 0) {
+    const cfg = config as Record<string, string | null>;
+    const votingClosed =
+      cfg.voting_close && now > (parseWindow(cfg.voting_close) as Date);
+    const podRegStarted =
+      cfg.pod_registration_open &&
+      now > (parseWindow(cfg.pod_registration_open) as Date);
+    if (votingClosed && !podRegStarted) {
+      interlude = cfg.pod_registration_open
+        ? `Voting has closed — the shortlist is being finalized. Pod registration opens ${fmtLabDateTime(cfg.pod_registration_open)}.`
+        : "Voting has closed — the shortlist is being finalized. Pod registration opens next.";
     }
   }
 
@@ -252,36 +289,53 @@ export default async function CycleDetailPage({
         </div>
       )}
 
-      {/* Insights survey — link + a two-line explainer of what it is and why
-          we run one (grounding the cycle in real problems, not assumptions) */}
+      {interlude && (
+        <div className="mb-8 rounded-card border border-ink/10 bg-white p-4 shadow-card">
+          <p className="text-sm text-charcoal">{interlude}</p>
+        </div>
+      )}
+
+      {/* Insights survey — explainer + two doors: contribute an observation,
+          or read what the field has said so far (the results page is every
+          participant's window into the observation bedrock the cycle's
+          sensemaking runs on). */}
       {fieldSurvey && (
-        <div className="mb-8">
-          <Link
-            href={`/survey/${fieldSurvey.share_slug}`}
-            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-          >
-            <div className="flex items-center gap-3">
-              <ClipboardList
-                className="h-5 w-5 flex-shrink-0 text-teal-deep"
-                aria-hidden
-              />
-              <div>
-                <span className="font-semibold tracking-tight text-ink">
-                  Insights survey: {fieldSurvey.title}
-                </span>
-                <p className="mt-0.5 text-sm text-meta">
-                  A short, open survey for anyone close to this cycle&apos;s
-                  theme. First-hand observations are how we make sure pods work
-                  on real problems, not assumptions — take it, then share it
-                  with a friend.
-                </p>
-              </div>
-            </div>
-            <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+        <div className="mb-8 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card">
+          <div className="flex items-center gap-3">
+            <ClipboardList
+              className="h-5 w-5 flex-shrink-0 text-teal-deep"
               aria-hidden
             />
-          </Link>
+            <div>
+              <span className="font-semibold tracking-tight text-ink">
+                Insights survey: {fieldSurvey.title}
+              </span>
+              <p className="mt-0.5 text-sm text-meta">
+                A short, open survey for anyone close to this cycle&apos;s
+                theme. First-hand observations are how we make sure pods work
+                on real problems, not assumptions — take it, then share it
+                with a friend.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-4 pl-8">
+            <Link
+              href={`/survey/${fieldSurvey.share_slug}`}
+              className="group inline-flex items-center gap-1.5 text-sm font-semibold text-teal-deep hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+            >
+              Take the survey
+              <ArrowRight
+                className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+            <Link
+              href={`/survey/${fieldSurvey.share_slug}/results`}
+              className="inline-flex items-center text-sm font-semibold text-teal-deep hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+            >
+              See what the field is saying
+            </Link>
+          </div>
         </div>
       )}
 
@@ -315,25 +369,78 @@ export default async function CycleDetailPage({
         </div>
       )}
 
+      {/* Proposal gallery — browsable in every phase, unlike the ballot,
+          which only renders while the voting window is open */}
+      {(statementCount ?? 0) > 0 && (
+        <div className="mb-8">
+          <Link
+            href={`/cycles/${cycle.id}/proposals`}
+            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+          >
+            <div className="flex items-center gap-3">
+              <FolderKanban
+                className="h-5 w-5 flex-shrink-0 text-teal-deep"
+                aria-hidden
+              />
+              <div>
+                <span className="font-semibold tracking-tight text-ink">
+                  Problem situation gallery
+                </span>
+                <p className="mt-0.5 text-sm text-meta">
+                  Browse what your cohort is proposing this cycle — with links
+                  to the maps behind each statement.
+                </p>
+              </div>
+            </div>
+            <ArrowRight
+              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+              aria-hidden
+            />
+          </Link>
+        </div>
+      )}
+
       {/* The viewer's own submissions — visible in every phase, not just on
           the voting ballot */}
       {myStatements && myStatements.length > 0 && (
         <div className="mb-8">
-          <h2 className="t-h3 mb-4 text-ink">Your problem statements</h2>
+          <h2 className="t-h3 mb-4 text-ink">Your problem situations</h2>
           <div className="space-y-3">
-            {myStatements.map((s) => (
-              <blockquote
-                key={s.id}
-                className="rounded-card border border-ink/10 bg-white p-4 shadow-card"
-              >
-                <p className="text-sm leading-relaxed text-charcoal">
-                  {s.statement_text}
-                </p>
-                <p className="mt-2 text-xs text-meta">
-                  Submitted {new Date(s.created_at).toLocaleDateString()}
-                </p>
-              </blockquote>
-            ))}
+            {myStatements.map((s) => {
+              // Scheme-checked before rendering as an href (rows can predate
+              // the schema's http(s) restriction on repo_url).
+              const rawRepo = (
+                s.proposal_data as {
+                  statement?: { repo_url?: string };
+                } | null
+              )?.statement?.repo_url;
+              const mapUrl =
+                rawRepo && /^https?:\/\//i.test(rawRepo) ? rawRepo : null;
+              return (
+                <blockquote
+                  key={s.id}
+                  className="rounded-card border border-ink/10 bg-white p-4 shadow-card"
+                >
+                  <p className="text-sm leading-relaxed text-charcoal">
+                    {s.statement_text}
+                  </p>
+                  <p className="mt-2 text-xs text-meta">
+                    Submitted {new Date(s.created_at).toLocaleDateString()}
+                  </p>
+                  {mapUrl && (
+                    <a
+                      href={mapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline"
+                    >
+                      View your map
+                      <ExternalLink className="h-3 w-3" aria-hidden />
+                    </a>
+                  )}
+                </blockquote>
+              );
+            })}
           </div>
         </div>
       )}
