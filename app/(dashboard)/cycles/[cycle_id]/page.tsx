@@ -266,36 +266,47 @@ export default async function CycleDetailPage({
         </div>
       )}
 
-      {/* Insights survey — link + a two-line explainer of what it is and why
-          we run one (grounding the cycle in real problems, not assumptions) */}
+      {/* Insights survey — explainer + two doors: contribute an observation,
+          or read what the field has said so far (the results page is every
+          participant's window into the observation bedrock the cycle's
+          sensemaking runs on). */}
       {fieldSurvey && (
-        <div className="mb-8">
-          <Link
-            href={`/survey/${fieldSurvey.share_slug}`}
-            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-          >
-            <div className="flex items-center gap-3">
-              <ClipboardList
-                className="h-5 w-5 flex-shrink-0 text-teal-deep"
-                aria-hidden
-              />
-              <div>
-                <span className="font-semibold tracking-tight text-ink">
-                  Insights survey: {fieldSurvey.title}
-                </span>
-                <p className="mt-0.5 text-sm text-meta">
-                  A short, open survey for anyone close to this cycle&apos;s
-                  theme. First-hand observations are how we make sure pods work
-                  on real problems, not assumptions — take it, then share it
-                  with a friend.
-                </p>
-              </div>
-            </div>
-            <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+        <div className="mb-8 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card">
+          <div className="flex items-center gap-3">
+            <ClipboardList
+              className="h-5 w-5 flex-shrink-0 text-teal-deep"
               aria-hidden
             />
-          </Link>
+            <div>
+              <span className="font-semibold tracking-tight text-ink">
+                Insights survey: {fieldSurvey.title}
+              </span>
+              <p className="mt-0.5 text-sm text-meta">
+                A short, open survey for anyone close to this cycle&apos;s
+                theme. First-hand observations are how we make sure pods work
+                on real problems, not assumptions — take it, then share it
+                with a friend.
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-4 pl-8">
+            <Link
+              href={`/survey/${fieldSurvey.share_slug}`}
+              className="group inline-flex items-center gap-1.5 text-sm font-semibold text-teal-deep hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+            >
+              Take the survey
+              <ArrowRight
+                className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+            <Link
+              href={`/survey/${fieldSurvey.share_slug}/results`}
+              className="inline-flex items-center text-sm font-semibold text-teal-deep hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+            >
+              See what the field is saying
+            </Link>
+          </div>
         </div>
       )}
 

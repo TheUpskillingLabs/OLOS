@@ -127,19 +127,26 @@ export function buildSurveyExportTable(data: SurveyExportData): {
 
 export interface SurveyAggregate {
   total: number; // non-rejected responses
+  approved: number; // curated into the commons
   salience: number[]; // counts indexed 0..4 for values 1..5
   standpointCounts: { key: string; label: string; count: number }[];
   observations: {
+    id: number;
     observation: string;
     standpoint: string[];
     salience: number | null;
     created_at: string;
+    pending: boolean;
   }[];
 }
 
 /**
- * The privacy-safe participant view: distribution signals over non-rejected
- * responses + the approved observations only. Never selects contact fields.
+ * The privacy-safe participant view: distribution signals + observation text
+ * over non-rejected responses. Never selects contact fields. Pending rows are
+ * included (flagged, so the page can mark them "awaiting review") — the cycle
+ * runs on the full field of observations, and the Triangulator's pre-loaded
+ * cards cite them by anchor (#r-<id>); only rejection hides a row. The
+ * moderation overlay keeps its meaning through `approved` (the commons count).
  */
 export async function getSurveyAggregate(
   surveyId: number,
@@ -148,7 +155,9 @@ export async function getSurveyAggregate(
   const supabase = createServiceClient();
   const { data } = await supabase
     .from("survey_responses")
-    .select("observation, standpoint, salience, created_at, moderation_status")
+    .select(
+      "id, observation, standpoint, salience, created_at, moderation_status"
+    )
     .eq("field_survey_id", surveyId)
     .neq("moderation_status", "rejected")
     .order("created_at", { ascending: false });
@@ -174,14 +183,22 @@ export async function getSurveyAggregate(
   }
 
   const observations = rows
-    .filter((r) => r.moderation_status === "approved" && r.observation)
-    .slice(0, 50)
+    .filter((r) => r.observation)
+    .slice(0, 100)
     .map((r) => ({
+      id: r.id as number,
       observation: r.observation as string,
       standpoint: (r.standpoint as string[] | null) ?? [],
       salience: r.salience as number | null,
       created_at: r.created_at as string,
+      pending: r.moderation_status === "pending",
     }));
 
-  return { total: rows.length, salience, standpointCounts, observations };
+  return {
+    total: rows.length,
+    approved: rows.filter((r) => r.moderation_status === "approved").length,
+    salience,
+    standpointCounts,
+    observations,
+  };
 }
