@@ -77,7 +77,7 @@ export default async function VotePage({
           {cycle.name}
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
-          Vote on problem statements
+          Vote on problem situations
         </h1>
         <p className="mt-1 text-sm text-charcoal">
           Allocate your votes to the problems you want the community to tackle.

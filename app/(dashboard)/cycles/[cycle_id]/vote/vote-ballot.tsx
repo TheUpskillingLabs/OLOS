@@ -5,6 +5,16 @@ import { ExternalLink } from "lucide-react";
 
 interface ProposalData {
   about?: { background?: string; experience?: string };
+  // Triangulator-aligned shape (current submissions)…
+  situation?: {
+    title?: string;
+    description?: string;
+    openness?: string;
+    paradox?: string;
+    beneficiaries?: string;
+    problematization?: string;
+  };
+  // …and the legacy who/need/barrier/success block (pre-alignment rows).
   problem?: { who?: string; need?: string; barrier?: string; success?: string };
   statement?: { text?: string; question?: string; repo_url?: string };
   voter_context?: {
@@ -198,7 +208,7 @@ export default function VoteBallot({
     return (
       <div className="rounded-card border border-dashed border-meta-soft bg-white p-12">
         <p className="text-sm text-meta">
-          No problem statements have been submitted yet.
+          No problem situations have been submitted yet.
         </p>
       </div>
     );
@@ -249,7 +259,7 @@ export default function VoteBallot({
         {statements.map((stmt) => {
           const pd = stmt.proposal_data;
           const isExpanded = expandedId === stmt.id;
-          const hasDetails = pd?.problem || pd?.voter_context;
+          const hasDetails = pd?.situation || pd?.problem || pd?.voter_context;
           // Scheme-checked before rendering as an href — rows written before
           // the schema restricted repo_url to http(s) are untrusted here.
           const rawRepo = pd?.statement?.repo_url;
@@ -271,7 +281,10 @@ export default function VoteBallot({
               className="rounded-card border border-ink/10 bg-white shadow-card transition-colors duration-150 hover:border-ink/20"
             >
               <div className="p-4">
-                {/* Problem statement */}
+                {/* The problem situation, distilled */}
+                {pd?.situation?.title && (
+                  <p className="lbl lbl-teal mb-1">{pd.situation.title}</p>
+                )}
                 <p className="font-semibold tracking-tight text-ink">
                   {stmt.statement_text}
                 </p>
@@ -320,6 +333,36 @@ export default function VoteBallot({
                 {/* Expanded details */}
                 {isExpanded && pd && (
                   <div className="mt-4 space-y-3 border-t border-ink/10 pt-4">
+                    {pd.situation?.description && (
+                      <DetailBlock
+                        label="The situation"
+                        text={pd.situation.description}
+                      />
+                    )}
+                    {pd.situation?.openness && (
+                      <DetailBlock
+                        label="What makes it open"
+                        text={pd.situation.openness}
+                      />
+                    )}
+                    {pd.situation?.paradox && (
+                      <DetailBlock
+                        label="The paradox"
+                        text={pd.situation.paradox}
+                      />
+                    )}
+                    {pd.situation?.beneficiaries && (
+                      <DetailBlock
+                        label="Who benefits from its persistence"
+                        text={pd.situation.beneficiaries}
+                      />
+                    )}
+                    {pd.situation?.problematization && (
+                      <DetailBlock
+                        label="Pressure-test"
+                        text={pd.situation.problematization}
+                      />
+                    )}
                     {pd.problem?.who && (
                       <DetailBlock
                         label="Who is struggling"

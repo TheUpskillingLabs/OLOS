@@ -13,7 +13,7 @@ const PHASE_SEQUENCE = [
 ] as const;
 
 const PHASE_LABELS: Record<string, string> = {
-  problem_statement: "Problem Statements",
+  problem_statement: "Problem Situations",
   voting: "Voting",
   pod_registration: "Pod Registration",
   solution_proposal: "Solution Proposals",

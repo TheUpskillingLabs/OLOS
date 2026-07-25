@@ -824,8 +824,8 @@ export default async function DashboardPage() {
     return nowMs >= open.getTime() && nowMs <= close.getTime() ? c : null;
   };
   const WINDOW_TODOS = [
-    { k: "problem_statement", title: "Submit a problem statement", cta: "Propose", sub: "propose" },
-    { k: "voting", title: "Vote on problem statements", cta: "Vote", sub: "vote" },
+    { k: "problem_statement", title: "Submit a problem situation", cta: "Propose", sub: "propose" },
+    { k: "voting", title: "Vote on problem situations", cta: "Vote", sub: "vote" },
     { k: "pod_registration", title: "Register for a pod", cta: "Choose pod", sub: "register-pods" },
     { k: "solution_proposal", title: "Submit your solution proposal", cta: "Propose", sub: "solutions" },
     { k: "solution_voting", title: "Cast your solution ballot", cta: "Vote", sub: "solution-vote" },

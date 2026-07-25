@@ -7,6 +7,16 @@ import { notFound } from "next/navigation";
 
 interface ProposalData {
   about?: { background?: string };
+  // Triangulator-aligned shape (current submissions)…
+  situation?: {
+    title?: string;
+    description?: string;
+    openness?: string;
+    paradox?: string;
+    beneficiaries?: string;
+    problematization?: string;
+  };
+  // …and the legacy who/need/barrier/success block (pre-alignment rows).
   problem?: { who?: string; need?: string; barrier?: string; success?: string };
   statement?: { question?: string; repo_url?: string };
   voter_context?: {
@@ -17,7 +27,7 @@ interface ProposalData {
   };
 }
 
-// Read-only gallery of the cycle's problem statements. Unlike the vote
+// Read-only gallery of the cycle's problem situations. Unlike the vote
 // ballot, this renders in every phase — the ballot only exists while the
 // voting window is open, which left proposals unbrowsable the rest of the
 // cycle. Same per-lab scoping as GET /api/problem-statements/[cycle_id],
@@ -97,10 +107,10 @@ export default async function ProposalsGalleryPage({
           <ChevronLeft className="h-4 w-4" aria-hidden />
           {cycle.name}
         </Link>
-        <h1 className="t-h1 mt-2 text-ink">Problem statement gallery</h1>
+        <h1 className="t-h1 mt-2 text-ink">Problem situation gallery</h1>
         <p className="mt-1 text-sm text-charcoal">
           What your cohort is proposing this cycle. Follow a map link to
-          explore the evidence behind a statement.
+          explore the evidence behind a situation.
         </p>
       </div>
 
@@ -110,7 +120,7 @@ export default async function ProposalsGalleryPage({
           className="group mb-4 flex items-center justify-between gap-3 rounded-card border border-teal/30 bg-teal/10 p-4 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
           <span className="font-semibold tracking-tight text-ink">
-            Submissions are open — propose a problem statement
+            Submissions are open — propose a problem situation
           </span>
           <ArrowRight
             className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
@@ -137,14 +147,18 @@ export default async function ProposalsGalleryPage({
       {!statements || statements.length === 0 ? (
         <div className="mt-4 rounded-card border border-dashed border-meta-soft bg-white p-12">
           <p className="text-sm text-meta">
-            No problem statements have been submitted yet.
+            No problem situations have been submitted yet.
           </p>
         </div>
       ) : (
         <div className="mt-4 space-y-4">
           {statements.map((stmt) => {
             const pd = (stmt.proposal_data ?? null) as ProposalData | null;
-            const hasDetails = !!(pd?.problem || pd?.voter_context);
+            const hasDetails = !!(
+              pd?.situation ||
+              pd?.problem ||
+              pd?.voter_context
+            );
             // Scheme-checked before rendering as an href — rows written
             // before the schema restricted repo_url to http(s) are
             // untrusted here.
@@ -157,6 +171,9 @@ export default async function ProposalsGalleryPage({
                 key={stmt.id}
                 className="rounded-card border border-ink/10 bg-white p-4 shadow-card transition-colors duration-150 hover:border-ink/20"
               >
+                {pd?.situation?.title && (
+                  <p className="lbl lbl-teal mb-1">{pd.situation.title}</p>
+                )}
                 <p className="font-semibold tracking-tight text-ink">
                   {stmt.statement_text}
                 </p>
@@ -196,6 +213,36 @@ export default async function ProposalsGalleryPage({
                       </span>
                     </summary>
                     <div className="mt-4 space-y-3 border-t border-ink/10 pt-4">
+                      {pd?.situation?.description && (
+                        <DetailBlock
+                          label="The situation"
+                          text={pd.situation.description}
+                        />
+                      )}
+                      {pd?.situation?.openness && (
+                        <DetailBlock
+                          label="What makes it open"
+                          text={pd.situation.openness}
+                        />
+                      )}
+                      {pd?.situation?.paradox && (
+                        <DetailBlock
+                          label="The paradox"
+                          text={pd.situation.paradox}
+                        />
+                      )}
+                      {pd?.situation?.beneficiaries && (
+                        <DetailBlock
+                          label="Who benefits from its persistence"
+                          text={pd.situation.beneficiaries}
+                        />
+                      )}
+                      {pd?.situation?.problematization && (
+                        <DetailBlock
+                          label="Pressure-test"
+                          text={pd.situation.problematization}
+                        />
+                      )}
                       {pd?.problem?.who && (
                         <DetailBlock
                           label="Who is struggling"

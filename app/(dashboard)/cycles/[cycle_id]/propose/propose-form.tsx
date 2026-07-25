@@ -3,11 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 
+// The wizard mirrors the Triangulator's Deepen workbook on purpose: steps 2–3
+// ask for the exact fields the workbook made the submitter write (situation
+// name/description/openness, then the paradox and its pressure-test), with the
+// tool's own labels and placeholder grammar, so submitting is a paste — not a
+// re-derivation into someone else's vocabulary. Step 1 leads with the map
+// link because the room's flow arrives here straight from the Git handoff.
 const STEP_NAMES = [
-  "About you",
-  "The problem",
-  "Your problem statement",
-  "Where this problem lives",
+  "Your map & you",
+  "The Problem Situation",
+  "The paradox",
+  "Distill it",
   "Context for voters",
   "Before you submit",
 ] as const;
@@ -35,25 +41,33 @@ export default function ProposeForm({
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  // Part 1 — About You
+  // Part 1 — Your map & you
+  const [repoUrl, setRepoUrl] = useState("");
   const [name, setName] = useState(participantName);
   const [background, setBackground] = useState("");
   const [experience, setExperience] = useState<
     "lived" | "witnessed" | "both" | ""
   >("");
 
-  // Part 2 — The Problem
-  const [who, setWho] = useState("");
-  const [need, setNeed] = useState("");
-  const [barrier, setBarrier] = useState("");
-  const [success, setSuccess] = useState("");
+  // Part 2 — The Problem Situation (Triangulator workbook, Stage 1)
+  const [sitTitle, setSitTitle] = useState("");
+  const [sitDescription, setSitDescription] = useState("");
+  const [sitOpenness, setSitOpenness] = useState("");
 
-  // Part 3 — Your Problem Statement
+  // Part 3 — The paradox (workbook Stage 5)
+  const [paradox, setParadox] = useState("");
+  const [beneficiaries, setBeneficiaries] = useState("");
+  const [problematization, setProblematization] = useState("");
+
+  // Part 4 — The distilled statement + How-Might-We
   const [statementText, setStatementText] = useState("");
   const [question, setQuestion] = useState("");
-  const [repoUrl, setRepoUrl] = useState("");
 
-  // Part 4 — Where This Problem Lives
+  // Part 5 — Context for Voters (+ where this lives)
+  const [tried, setTried] = useState("");
+  const [scale, setScale] = useState("");
+  const [podWork, setPodWork] = useState("");
+  const [skillsNeeded, setSkillsNeeded] = useState("");
   const [impactTrack, setImpactTrack] = useState("");
   const [impactTrackOther, setImpactTrackOther] = useState("");
   const [themeAlignment, setThemeAlignment] = useState<
@@ -61,24 +75,18 @@ export default function ProposeForm({
   >("none");
   const [themeConnection, setThemeConnection] = useState("");
 
-  // Part 5 — Context for Voters
-  const [tried, setTried] = useState("");
-  const [scale, setScale] = useState("");
-  const [podWork, setPodWork] = useState("");
-  const [skillsNeeded, setSkillsNeeded] = useState("");
-
-  // Part 6 — Checklist
-  const [checkRealPerson, setCheckRealPerson] = useState(false);
-  const [checkAction, setCheckAction] = useState(false);
+  // Part 6 — Checklist (the Triangulator's own rules)
+  const [checkGrounded, setCheckGrounded] = useState(false);
+  const [checkActors, setCheckActors] = useState(false);
   const [checkNoSolution, setCheckNoSolution] = useState(false);
-  const [checkSpecific, setCheckSpecific] = useState(false);
+  const [checkParadox, setCheckParadox] = useState(false);
   const [checkSamePicture, setCheckSamePicture] = useState(false);
 
   const allChecked =
-    checkRealPerson &&
-    checkAction &&
+    checkGrounded &&
+    checkActors &&
     checkNoSolution &&
-    checkSpecific &&
+    checkParadox &&
     checkSamePicture;
 
   // Accept bare "github.com/org/repo" pastes by prefixing https://. Gating
@@ -103,18 +111,15 @@ export default function ProposeForm({
   function canAdvance(): boolean {
     switch (step) {
       case 1:
-        return !!name.trim();
+        return !!name.trim() && repoUrlValid;
       case 2:
         return (
-          !!who.trim() &&
-          !!need.trim() &&
-          !!barrier.trim() &&
-          !!success.trim()
+          !!sitTitle.trim() && !!sitDescription.trim() && !!sitOpenness.trim()
         );
       case 3:
-        return !!statementText.trim() && !!question.trim() && repoUrlValid;
+        return !!paradox.trim();
       case 4:
-        return true; // optional
+        return !!statementText.trim() && !!question.trim();
       case 5:
         return true; // optional but valuable
       case 6:
@@ -151,11 +156,13 @@ export default function ProposeForm({
               background: background.trim() || undefined,
               experience: experience || undefined,
             },
-            problem: {
-              who: who.trim(),
-              need: need.trim(),
-              barrier: barrier.trim(),
-              success: success.trim(),
+            situation: {
+              title: sitTitle.trim(),
+              description: sitDescription.trim(),
+              openness: sitOpenness.trim(),
+              paradox: paradox.trim(),
+              beneficiaries: beneficiaries.trim() || undefined,
+              problematization: problematization.trim() || undefined,
             },
             statement: {
               text: statementText.trim(),
@@ -175,10 +182,10 @@ export default function ProposeForm({
               skills_needed: skillsNeeded.trim() || undefined,
             },
             checklist: {
-              real_person: checkRealPerson,
-              action_not_thing: checkAction,
+              grounded_in_evidence: checkGrounded,
+              real_actors: checkActors,
               no_solution: checkNoSolution,
-              specific_outcome: checkSpecific,
+              paradox_self_undoing: checkParadox,
               same_picture: checkSamePicture,
             },
           },
@@ -203,17 +210,22 @@ export default function ProposeForm({
     return (
       <div className="rounded-card border border-teal/30 bg-teal/10 p-8">
         <h2 className="t-h3 text-ink">
-          Proposal submitted
+          Problem situation submitted
         </h2>
         <p className="mt-3 max-w-lg text-sm leading-relaxed text-charcoal">
-          Your proposal enters the Open Cycle queue. At the start of each cycle,
-          active participants vote during Phase 1 to build a shortlist. If your
-          proposal makes the shortlist, it opens for registration. Research pods
-          that reach the minimum number of registrants officially form and begin
-          work. You&rsquo;ll be notified at each stage.
+          Your problem situation is in. During the voting window, cycle
+          participants read the gallery and allocate their votes; the
+          top-voted situations become the cycle&rsquo;s pods, and pod
+          registration opens after the shortlist is finalized. You&rsquo;ll be
+          notified at each stage.
         </p>
         <blockquote className="mt-5 max-w-lg rounded-card border border-teal/30 bg-white p-4">
-          <div className="lbl mb-2">Your problem statement</div>
+          <div className="lbl mb-2">Your problem situation</div>
+          {sitTitle.trim() && (
+            <p className="mb-1 text-sm font-semibold text-ink">
+              {sitTitle.trim()}
+            </p>
+          )}
           <p className="text-sm leading-relaxed text-charcoal">
             {statementText.trim()}
           </p>
@@ -239,15 +251,17 @@ export default function ProposeForm({
           onClick={() => {
             setSubmitted(false);
             setStep(1);
+            setRepoUrl("");
             setBackground("");
             setExperience("");
-            setWho("");
-            setNeed("");
-            setBarrier("");
-            setSuccess("");
+            setSitTitle("");
+            setSitDescription("");
+            setSitOpenness("");
+            setParadox("");
+            setBeneficiaries("");
+            setProblematization("");
             setStatementText("");
             setQuestion("");
-            setRepoUrl("");
             setImpactTrack("");
             setImpactTrackOther("");
             setThemeAlignment("none");
@@ -256,15 +270,15 @@ export default function ProposeForm({
             setScale("");
             setPodWork("");
             setSkillsNeeded("");
-            setCheckRealPerson(false);
-            setCheckAction(false);
+            setCheckGrounded(false);
+            setCheckActors(false);
             setCheckNoSolution(false);
-            setCheckSpecific(false);
+            setCheckParadox(false);
             setCheckSamePicture(false);
           }}
           className="mt-6 rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
-          Submit another proposal
+          Submit another problem situation
         </button>
       </div>
     );
@@ -288,14 +302,39 @@ export default function ProposeForm({
         </div>
       </div>
 
-      {/* PART 1 */}
+      {/* PART 1 — the map link leads: the room arrives here from the Git
+          handoff with the repo URL on their clipboard. */}
       {step === 1 && (
         <section className="space-y-6">
           <div>
             <h2 className="t-h3 text-ink">
-              Part 1 — About You
+              Part 1 — Your Map &amp; You
             </h2>
+            <p className="mt-1 text-sm text-meta">
+              Start with the map you just published — everything you submit
+              here should be readable off it.
+            </p>
           </div>
+
+          <Field
+            label="Link to your map"
+            hint="The GitHub repo your triad shares (or a link straight to your folder in it). Voters open this to see the evidence behind your situation."
+          >
+            <input
+              type="url"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              maxLength={500}
+              placeholder="https://github.com/..."
+              className={inputClass}
+            />
+            {!repoUrlValid && (
+              <p className="mt-1 text-xs text-red">
+                That doesn&rsquo;t look like a URL — fix it or leave the field
+                empty.
+              </p>
+            )}
+          </Field>
 
           <Field label="Your name" required>
             <input
@@ -306,7 +345,7 @@ export default function ProposeForm({
             />
           </Field>
 
-          <Field label="Your background in one sentence" hint="What you do or have done — helps voters understand where this problem comes from.">
+          <Field label="Your background in one sentence" hint="What you do or have done — helps voters understand where this situation comes from.">
             <input
               type="text"
               value={background}
@@ -316,7 +355,7 @@ export default function ProposeForm({
             />
           </Field>
 
-          <Field label="Have you personally experienced this problem, or are you bringing it on behalf of others you know?">
+          <Field label="Have you personally experienced this situation, or are you bringing it on behalf of others you know?">
             <div className="space-y-2">
               {(
                 [
@@ -345,106 +384,149 @@ export default function ProposeForm({
         </section>
       )}
 
-      {/* PART 2 */}
+      {/* PART 2 — the workbook's Stage 1 fields, same labels and grammar */}
       {step === 2 && (
         <section className="space-y-6">
           <div>
             <h2 className="t-h3 text-ink">
-              Part 2 — The Problem
+              Part 2 — The Problem Situation
             </h2>
             <p className="mt-1 text-sm text-meta">
-              This is the core of your proposal. Answer all four prompts
-              carefully.
+              These are the same three fields you filled in the
+              Triangulator&rsquo;s workbook (Stage 1) — bring them over in
+              your own words.
             </p>
           </div>
 
           <Field
-            label="2a. Who is struggling with this problem?"
-            hint={"Describe the person \u2014 not a category or institution. Include what they\u2019re doing, what they\u2019re up against, or how they\u2019re feeling."}
-            example={"Not: \u201Csmall business owners.\u201D Better: \u201Ca food truck operator in Southeast DC who built her business without a formal financial background and is now trying to figure out whether she qualifies for a city contract.\u201D"}
+            label="Name the problem situation"
+            hint="A short name for this open condition — the title on your situation box."
             required
           >
-            <textarea
-              value={who}
-              onChange={(e) => setWho(e.target.value)}
-              maxLength={2000}
-              rows={4}
-              className={textareaClass}
+            <input
+              type="text"
+              value={sitTitle}
+              onChange={(e) => setSitTitle(e.target.value)}
+              maxLength={200}
+              placeholder="A short name for this open condition"
+              className={inputClass}
             />
-            <CharCount value={who} max={2000} />
           </Field>
 
           <Field
-            label="2b. What do they need to be able to do?"
-            hint={"Express this as an action \u2014 something they\u2019re trying to accomplish, not something they\u2019re trying to acquire."}
-            example={"Not: \u201Cthey need better resources.\u201D Better: \u201Cthey need to navigate the city\u2019s procurement process without having to hire someone to explain it to them.\u201D"}
+            label="Describe it — the open, complex, networked condition"
             required
           >
             <textarea
-              value={need}
-              onChange={(e) => setNeed(e.target.value)}
+              value={sitDescription}
+              onChange={(e) => setSitDescription(e.target.value)}
               maxLength={2000}
               rows={4}
+              placeholder="This is an open condition, not a bounded problem, because ___"
               className={textareaClass}
             />
-            <CharCount value={need} max={2000} />
+            <CharCount value={sitDescription} max={2000} />
           </Field>
 
           <Field
-            label={"2c. Why can\u2019t they do it right now?"}
-            hint={"This is your insight. What\u2019s actually in the way \u2014 not the obvious answer, but the real one?"}
-            example={"Not: \u201Cbecause the process is complicated.\u201D Better: \u201Cbecause the application assumes you already have a DUNS number and a registered business entity, and no one explains that until after you\u2019ve spent three hours filling out the form.\u201D"}
+            label="What makes it open?"
+            hint="Why this is a situation, not a task: the network of actors, the moving parts, the absence of a known path."
             required
           >
             <textarea
-              value={barrier}
-              onChange={(e) => setBarrier(e.target.value)}
+              value={sitOpenness}
+              onChange={(e) => setSitOpenness(e.target.value)}
               maxLength={2000}
               rows={4}
+              placeholder="What makes this open: the network of actors, the moving parts, the absence of a known path…"
               className={textareaClass}
             />
-            <CharCount value={barrier} max={2000} />
-          </Field>
-
-          <Field
-            label="2d. What does success actually look like for this person?"
-            hint={"Describe the specific outcome \u2014 what changes in their life or work when this problem is solved. Avoid vague words like \u201Cbetter\u201D or \u201Cimproved.\u201D"}
-            example={"Not: \u201Cthey feel more empowered.\u201D Better: \u201Cshe submits a complete procurement application on her own and makes it to the review stage for the first time.\u201D"}
-            required
-          >
-            <textarea
-              value={success}
-              onChange={(e) => setSuccess(e.target.value)}
-              maxLength={2000}
-              rows={4}
-              className={textareaClass}
-            />
-            <CharCount value={success} max={2000} />
+            <CharCount value={sitOpenness} max={2000} />
           </Field>
         </section>
       )}
 
-      {/* PART 3 */}
+      {/* PART 3 — the workbook's Stage 5: the paradox is what the pod forms around */}
       {step === 3 && (
         <section className="space-y-6">
           <div>
             <h2 className="t-h3 text-ink">
-              Part 3 — Your Problem Statement
+              Part 3 — The Paradox
             </h2>
             <p className="mt-1 text-sm text-meta">
-              Using your answers above, assemble your statement in one sentence.
+              Stage 5 of the workbook. The paradox is the self-undoing
+              deadlock your pod forms around — X requires not-X, not a mere
+              trade-off.
+            </p>
+          </div>
+
+          <Field
+            label="The paradox"
+            required
+          >
+            <textarea
+              value={paradox}
+              onChange={(e) => setParadox(e.target.value)}
+              maxLength={2000}
+              rows={4}
+              placeholder="The situation demands ___, but the same conditions that create the need also prevent ___ from working."
+              className={textareaClass}
+            />
+            <CharCount value={paradox} max={2000} />
+          </Field>
+
+          <Field
+            label="Who benefits from its persistence?"
+            hint="Name the actor and the mechanism — a paradox that benefits no one usually isn't one."
+          >
+            <textarea
+              value={beneficiaries}
+              onChange={(e) => setBeneficiaries(e.target.value)}
+              maxLength={2000}
+              rows={3}
+              placeholder="Actor: ___. Mechanism: ___."
+              className={textareaClass}
+            />
+          </Field>
+
+          <Field
+            label="Pressure-test"
+            hint="The workbook's problematization pass — carry it over."
+          >
+            <textarea
+              value={problematization}
+              onChange={(e) => setProblematization(e.target.value)}
+              maxLength={2000}
+              rows={3}
+              placeholder="What's assumed, what would break this, what you've chosen not to see. Your words."
+              className={textareaClass}
+            />
+          </Field>
+        </section>
+      )}
+
+      {/* PART 4 — the one-sentence distillation OLOS asks for */}
+      {step === 4 && (
+        <section className="space-y-6">
+          <div>
+            <h2 className="t-h3 text-ink">
+              Part 4 — Distill It
+            </h2>
+            <p className="mt-1 text-sm text-meta">
+              The gallery and the ballot lead with one sentence. Distill the
+              situation so a stranger pictures it — the map holds the depth.
             </p>
           </div>
 
           <div className="rounded-card border border-ink/10 bg-white p-4 text-sm text-slate">
             <p className="font-semibold text-charcoal">Template:</p>
             <p className="mt-1 italic">
-              [Who is struggling] needs to [what they need to do] because [why
-              they can&rsquo;t right now].
+              [Who, specifically] needs to [do what] because [what&rsquo;s
+              actually in the way].
             </p>
           </div>
 
-          <Field label="Your problem statement" required>
+          <Field label="Your problem situation, in one sentence" required>
             <textarea
               value={statementText}
               onChange={(e) => setStatementText(e.target.value)}
@@ -458,11 +540,11 @@ export default function ProposeForm({
 
           <div className="rounded-card border border-ink/10 bg-white p-4 text-sm text-slate">
             <p className="font-semibold text-charcoal">
-              Now reframe it as a question your Research Pod would work to
+              Now reframe it as the question your Research Pod would work to
               answer:
             </p>
             <p className="mt-1 italic">
-              How might we [action] for [who] so that [the outcome from 2d]?
+              How might we [action] for [who] so that [what changes]?
             </p>
           </div>
 
@@ -477,44 +559,77 @@ export default function ProposeForm({
             />
             <CharCount value={question} max={2000} />
           </Field>
-
-          <Field
-            label="Link to your map"
-            hint="Optional. If you mapped this problem in the Triangulator, paste the GitHub repo where your working folder lives — voters can explore the evidence behind your statement."
-          >
-            <input
-              type="url"
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              maxLength={500}
-              placeholder="https://github.com/..."
-              className={inputClass}
-            />
-            {!repoUrlValid && (
-              <p className="mt-1 text-xs text-red">
-                That doesn&rsquo;t look like a URL — fix it or leave the field
-                empty.
-              </p>
-            )}
-          </Field>
         </section>
       )}
 
-      {/* PART 4 */}
-      {step === 4 && (
+      {/* PART 5 */}
+      {step === 5 && (
         <section className="space-y-6">
           <div>
             <h2 className="t-h3 text-ink">
-              Part 4 — Where This Problem Lives
+              Part 5 — Context for Voters
             </h2>
             <p className="mt-1 text-sm text-meta">
-              These fields help us connect your Pod to the right mentors and
-              advisors. Skip this section if your problem doesn&rsquo;t fit
-              neatly — it won&rsquo;t affect your proposal.
+              This section is read by active Cycle participants during the
+              voting window. Give them enough to make a real decision — about
+              whether the situation matters and whether they want to work on
+              it. Everything here is optional.
             </p>
           </div>
 
-          <Field label="Impact Track" hint="If your problem maps to one of these, select it. If it cuts across more than one, pick the primary.">
+          <Field
+            label="What has already been tried?"
+            hint={"Programs, tools, workarounds — even if they partially work. “Nothing I know of” is a valid answer."}
+          >
+            <textarea
+              value={tried}
+              onChange={(e) => setTried(e.target.value)}
+              maxLength={2000}
+              rows={3}
+              className={textareaClass}
+            />
+          </Field>
+
+          <Field
+            label="Why does this matter beyond the individual?"
+            hint={"Who else is affected — a neighborhood, a sector, a workforce? What’s the scale?"}
+          >
+            <textarea
+              value={scale}
+              onChange={(e) => setScale(e.target.value)}
+              maxLength={2000}
+              rows={3}
+              className={textareaClass}
+            />
+          </Field>
+
+          <Field
+            label="What would this Research Pod actually do together?"
+            hint="A pilot, a toolkit, a guide, a mapped process, a prototype — give voters a picture of the work, even a rough one."
+          >
+            <textarea
+              value={podWork}
+              onChange={(e) => setPodWork(e.target.value)}
+              maxLength={2000}
+              rows={3}
+              className={textareaClass}
+            />
+          </Field>
+
+          <Field
+            label="What kinds of people or skills would make this Research Pod stronger?"
+            hint={"Be specific — “someone who has worked in city government,” “a designer,” “someone who has used this system themselves.”"}
+          >
+            <textarea
+              value={skillsNeeded}
+              onChange={(e) => setSkillsNeeded(e.target.value)}
+              maxLength={2000}
+              rows={3}
+              className={textareaClass}
+            />
+          </Field>
+
+          <Field label="Impact Track" hint="Optional — helps us connect your Pod to the right mentors and advisors. If it cuts across more than one, pick the primary.">
             <div className="space-y-2">
               {IMPACT_TRACKS.map((track) => (
                 <label
@@ -555,7 +670,7 @@ export default function ProposeForm({
             </div>
           </Field>
 
-          <Field label="Cycle Theme Alignment" hint="Each Cycle recruits mentors and advisors around a specific industry theme. If your problem connects to the current theme, note it here.">
+          <Field label="Cycle Theme Alignment" hint="Each Cycle recruits mentors and advisors around a specific industry theme. If your situation connects to the current theme, note it here.">
             <div className="space-y-2">
               <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink">
                 <input
@@ -575,7 +690,7 @@ export default function ProposeForm({
                   onChange={() => setThemeAlignment("direct")}
                   className="accent-teal"
                 />
-                My problem sits directly inside this theme
+                My situation sits directly inside this theme
               </label>
               <label className="flex cursor-pointer items-center gap-2 text-sm text-charcoal transition-colors duration-150 hover:text-ink">
                 <input
@@ -585,7 +700,7 @@ export default function ProposeForm({
                   onChange={() => setThemeAlignment("adjacent")}
                   className="accent-teal"
                 />
-                My problem touches this theme from an adjacent angle
+                My situation touches this theme from an adjacent angle
               </label>
             </div>
             {themeAlignment !== "none" && (
@@ -602,75 +717,7 @@ export default function ProposeForm({
         </section>
       )}
 
-      {/* PART 5 */}
-      {step === 5 && (
-        <section className="space-y-6">
-          <div>
-            <h2 className="t-h3 text-ink">
-              Part 5 — Context for Voters
-            </h2>
-            <p className="mt-1 text-sm text-meta">
-              This section is read by active Cycle participants during the
-              voting window. Give them enough to make a real decision — about
-              whether the problem matters and whether they want to work on it.
-            </p>
-          </div>
-
-          <Field
-            label="What has already been tried?"
-            hint={"Programs, tools, workarounds \u2014 even if they partially work. \u201CNothing I know of\u201D is a valid answer."}
-          >
-            <textarea
-              value={tried}
-              onChange={(e) => setTried(e.target.value)}
-              maxLength={2000}
-              rows={3}
-              className={textareaClass}
-            />
-          </Field>
-
-          <Field
-            label="Why does this problem matter beyond the individual?"
-            hint={"Who else is affected \u2014 a neighborhood, a sector, a workforce? What\u2019s the scale?"}
-          >
-            <textarea
-              value={scale}
-              onChange={(e) => setScale(e.target.value)}
-              maxLength={2000}
-              rows={3}
-              className={textareaClass}
-            />
-          </Field>
-
-          <Field
-            label="What would this Research Pod actually do together?"
-            hint="A pilot, a toolkit, a guide, a mapped process, a prototype — give voters a picture of the work, even a rough one."
-          >
-            <textarea
-              value={podWork}
-              onChange={(e) => setPodWork(e.target.value)}
-              maxLength={2000}
-              rows={3}
-              className={textareaClass}
-            />
-          </Field>
-
-          <Field
-            label="What kinds of people or skills would make this Research Pod stronger?"
-            hint={"Be specific \u2014 \u201Csomeone who has worked in city government,\u201D \u201Ca designer,\u201D \u201Csomeone who has used this system themselves.\u201D"}
-          >
-            <textarea
-              value={skillsNeeded}
-              onChange={(e) => setSkillsNeeded(e.target.value)}
-              maxLength={2000}
-              rows={3}
-              className={textareaClass}
-            />
-          </Field>
-        </section>
-      )}
-
-      {/* PART 6 */}
+      {/* PART 6 — the tool's own rules, as a self-check */}
       {step === 6 && (
         <section className="space-y-6">
           <div>
@@ -678,12 +725,17 @@ export default function ProposeForm({
               Part 6 — Before You Submit
             </h2>
             <p className="mt-1 text-sm text-meta">
-              Read your problem statement one more time. Check each box
-              honestly.
+              Read your distilled situation one more time. These are the same
+              rules the Triangulator held you to — check each box honestly.
             </p>
           </div>
 
           <div className="rounded-card border border-ink/10 bg-white p-4">
+            {sitTitle.trim() && (
+              <p className="mb-1 text-sm font-semibold text-ink">
+                {sitTitle.trim()}
+              </p>
+            )}
             <p className="text-sm italic text-charcoal">
               &ldquo;{statementText}&rdquo;
             </p>
@@ -691,24 +743,24 @@ export default function ProposeForm({
 
           <div className="space-y-3">
             <CheckItem
-              checked={checkRealPerson}
-              onChange={setCheckRealPerson}
-              label="The problem describes a real person, not an institution or a system"
+              checked={checkGrounded}
+              onChange={setCheckGrounded}
+              label="Every claim traces back to extracts on my map — evidence, not vibes"
             />
             <CheckItem
-              checked={checkAction}
-              onChange={setCheckAction}
-              label="The need is something to do, not something to have"
+              checked={checkActors}
+              onChange={setCheckActors}
+              label={"It points at real, specific actors — people I could name or find, not “society”"}
             />
             <CheckItem
               checked={checkNoSolution}
               onChange={setCheckNoSolution}
-              label="The statement contains no solution — just the problem"
+              label="It proposes no solution — the situation stays open for the pod to frame"
             />
             <CheckItem
-              checked={checkSpecific}
-              onChange={setCheckSpecific}
-              label={"The outcome in 2d is specific enough that you\u2019d know when you\u2019d reached it"}
+              checked={checkParadox}
+              onChange={setCheckParadox}
+              label={"The paradox is self-undoing (X requires not-X) — not a mere trade-off or “it's complicated”"}
             />
             <CheckItem
               checked={checkSamePicture}
@@ -719,8 +771,8 @@ export default function ProposeForm({
 
           {!allChecked && (
             <p className="text-sm text-meta">
-              If any box is unchecked, revise before submitting. A sharper
-              proposal earns more votes.
+              If any box is unchecked, revise before submitting — the workbook
+              is one tab away. A sharper situation earns more votes.
             </p>
           )}
         </section>
@@ -763,7 +815,7 @@ export default function ProposeForm({
               disabled={submitting || !allChecked}
               className="btn btn-teal btn-sm"
             >
-              {submitting ? "Submitting..." : "Submit proposal"}
+              {submitting ? "Submitting..." : "Submit problem situation"}
             </button>
           )}
         </div>

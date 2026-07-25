@@ -71,17 +71,20 @@ export default async function ProposePage({
           {cycle.name}
         </Link>
         <h1 className="t-h1 mt-2 text-ink">
-          Open cycle problem proposal
+          Submit your problem situation
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-charcoal">
-          The Open Cycle accepts problem proposals year-round. At the start of
-          each cycle, active participants vote to shortlist the strongest
-          proposals. Shortlisted proposals open for registration. If a research
-          pod reaches the minimum number of registrants, it officially forms.
+          Bring over what your Triangulator map already holds: the situation
+          you named in the workbook, the paradox at its core, and one
+          distilled sentence for the ballot. Cycle participants vote to
+          shortlist the strongest situations; the shortlist becomes the
+          cycle&rsquo;s pods, and pods that reach the minimum number of
+          registrants officially form.
         </p>
         <p className="mt-2 text-sm font-medium text-charcoal">
-          Take your time with Part 2 — it&rsquo;s the most important section.
-          Everything else supports it.
+          Parts 2 and 3 are a paste from your workbook — if a field feels
+          hard to fill, that&rsquo;s the workbook telling you it isn&rsquo;t
+          done yet.
         </p>
       </div>
 
@@ -91,7 +94,7 @@ export default async function ProposePage({
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
             {config
-              ? "Problem statement submission is not currently open."
+              ? "Problem situation submission is not currently open."
               : "This cycle isn't fully configured yet — the submission window hasn't been scheduled. If you expected it to be open, let an organizer know."}
           </p>
           {config?.problem_statement_open &&

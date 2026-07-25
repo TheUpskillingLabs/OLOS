@@ -45,8 +45,8 @@ const WINDOW_ROUTES: {
   field: string;
   route: string;
 }[] = [
-  { label: "Submit Problem Statements", field: "problem_statement", route: "propose" },
-  { label: "Vote on Problem Statements", field: "voting", route: "vote" },
+  { label: "Submit Problem Situations", field: "problem_statement", route: "propose" },
+  { label: "Vote on Problem Situations", field: "voting", route: "vote" },
   { label: "Register for Pods", field: "pod_registration", route: "register-pods" },
   { label: "Submit Solution Proposals", field: "solution_proposal", route: "solutions" },
   { label: "Vote on Solutions", field: "solution_voting", route: "solution-vote" },
@@ -142,7 +142,7 @@ export default async function CycleDetailPage({
     }
   }
 
-  // The viewer's own problem statements (July 2026 feedback, running-list #2):
+  // The viewer's own problem situations (July 2026 feedback, running-list #2):
   // before this, statements were only ever listed on the vote ballot during
   // the voting phase, so a submitter had no way to see their own submission
   // back. Deliberately a direct owner-scoped query, not the shared GET route —
@@ -384,7 +384,7 @@ export default async function CycleDetailPage({
               />
               <div>
                 <span className="font-semibold tracking-tight text-ink">
-                  Problem statement gallery
+                  Problem situation gallery
                 </span>
                 <p className="mt-0.5 text-sm text-meta">
                   Browse what your cohort is proposing this cycle — with links
@@ -404,7 +404,7 @@ export default async function CycleDetailPage({
           the voting ballot */}
       {myStatements && myStatements.length > 0 && (
         <div className="mb-8">
-          <h2 className="t-h3 mb-4 text-ink">Your problem statements</h2>
+          <h2 className="t-h3 mb-4 text-ink">Your problem situations</h2>
           <div className="space-y-3">
             {myStatements.map((s) => {
               // Scheme-checked before rendering as an href (rows can predate
