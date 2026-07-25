@@ -60,7 +60,7 @@ const PHASES = [
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
 const OPERATIONAL_WINDOWS = [
-  { label: "Problem Statements", field: "problem_statement", route: "propose" },
+  { label: "Problem Situations", field: "problem_statement", route: "propose" },
   { label: "Voting", field: "voting", route: "vote" },
   { label: "Pod Registration", field: "pod_registration", route: "register-pods" },
   { label: "Solution Proposals", field: "solution_proposal", route: "solutions" },

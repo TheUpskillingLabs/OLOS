@@ -10,11 +10,14 @@ const base = {
   cycle_id: 3,
   statement_text: "A food truck operator needs to navigate procurement.",
   proposal_data: {
-    problem: {
-      who: "a food truck operator",
-      need: "navigate procurement",
-      barrier: "the form assumes a registered entity",
-      success: "she reaches the review stage",
+    situation: {
+      title: "Procurement locks out the informal economy",
+      description:
+        "An open, networked condition: city contracts assume a formal back office.",
+      openness:
+        "Many actors (agencies, operators, banks), no single owner, no known path.",
+      paradox:
+        "Winning a contract requires the formal infrastructure that only contract revenue would fund.",
     },
     statement: {
       text: "A food truck operator needs to navigate procurement.",
@@ -32,6 +35,52 @@ function withRepoUrl(repo_url?: string) {
     },
   };
 }
+
+describe("problemStatementSchema situation block", () => {
+  it("requires the Triangulator workbook fields (title/description/openness/paradox)", () => {
+    const missingParadox = {
+      ...base,
+      proposal_data: {
+        ...base.proposal_data,
+        situation: { ...base.proposal_data.situation, paradox: "" },
+      },
+    };
+    expect(problemStatementSchema.safeParse(missingParadox).success).toBe(
+      false
+    );
+  });
+
+  it("accepts the optional pressure-test and beneficiaries fields", () => {
+    const full = {
+      ...base,
+      proposal_data: {
+        ...base.proposal_data,
+        situation: {
+          ...base.proposal_data.situation,
+          beneficiaries: "Incumbent vendors; the compliance industry.",
+          problematization: "Assumes operators want city contracts at all.",
+        },
+      },
+    };
+    expect(problemStatementSchema.safeParse(full).success).toBe(true);
+  });
+
+  it("still accepts the legacy problem block on old rows (read-only compat)", () => {
+    const legacy = {
+      ...base,
+      proposal_data: {
+        ...base.proposal_data,
+        problem: {
+          who: "a food truck operator",
+          need: "navigate procurement",
+          barrier: "the form assumes a registered entity",
+          success: "she reaches the review stage",
+        },
+      },
+    };
+    expect(problemStatementSchema.safeParse(legacy).success).toBe(true);
+  });
+});
 
 describe("problemStatementSchema repo_url", () => {
   it("accepts a submission without repo_url", () => {
