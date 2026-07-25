@@ -5,17 +5,17 @@ export const proposalDataSchema = z.object({
     background: z.string().max(500).optional(),
     experience: z.enum(["lived", "witnessed", "both"]).optional(),
   }).optional(),
-  // The Problem Situation, in the Triangulator workbook's own fields — the
-  // wizard asks for exactly what the Deepen stages made the submitter write
-  // (title/description/openness from Stage 1, paradox + pressure-test from
-  // Stage 5), so submission is a paste, not a re-derivation. The legacy
-  // `problem` block (who/need/barrier/success) is accepted read-only for old
-  // rows but no longer collected.
+  // The Problem Situation, named in the Triangulator's own grammar. The form
+  // leans on the map link for depth — openness, paradox, and evidence live in
+  // the linked working folder, so only the name is required here; everything
+  // else is optional context for voters who won't open the repo. The fields
+  // keep the workbook's names so a fuller submission (or an older row) still
+  // renders under the same labels.
   situation: z.object({
     title: z.string().min(1).max(200),
-    description: z.string().min(1).max(2000),
-    openness: z.string().min(1).max(2000),
-    paradox: z.string().min(1).max(2000),
+    description: z.string().max(2000).optional(),
+    openness: z.string().max(2000).optional(),
+    paradox: z.string().max(2000).optional(),
     beneficiaries: z.string().max(2000).optional(),
     problematization: z.string().max(2000).optional(),
   }),

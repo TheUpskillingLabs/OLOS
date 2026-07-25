@@ -42,24 +42,6 @@ export default async function ProposePage({
     now
   );
 
-  // Get user's name for pre-filling
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let participantName = "";
-  if (user) {
-    const { data: participant } = await supabase
-      .from("participants")
-      .select("first_name, last_name, preferred_name")
-      .eq("auth_user_id", user.id)
-      .single();
-    if (participant) {
-      participantName =
-        `${participant.preferred_name || participant.first_name || ""} ${participant.last_name || ""}`.trim();
-    }
-  }
-
   return (
     <div className="max-w-2xl">
       <div className="mb-8">
@@ -74,22 +56,16 @@ export default async function ProposePage({
           Submit your problem situation
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-charcoal">
-          Bring over what your Triangulator map already holds: the situation
-          you named in the workbook, the paradox at its core, and one
-          distilled sentence for the ballot. Cycle participants vote to
-          shortlist the strongest situations; the shortlist becomes the
-          cycle&rsquo;s pods, and pods that reach the minimum number of
-          registrants officially form.
-        </p>
-        <p className="mt-2 text-sm font-medium text-charcoal">
-          Parts 2 and 3 are a paste from your workbook — if a field feels
-          hard to fill, that&rsquo;s the workbook telling you it isn&rsquo;t
-          done yet.
+          Your map is the submission — this form just points at it. Paste
+          your triad&rsquo;s repo link, name the situation, and distill it to
+          one sentence. Cycle participants vote to shortlist the strongest
+          situations; the shortlist becomes the cycle&rsquo;s pods, and pods
+          that reach the minimum number of registrants officially form.
         </p>
       </div>
 
       {isOpen ? (
-        <ProposeForm cycleId={cycleId} participantName={participantName} />
+        <ProposeForm cycleId={cycleId} />
       ) : (
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
