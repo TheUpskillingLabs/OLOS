@@ -37,17 +37,26 @@ function withRepoUrl(repo_url?: string) {
 }
 
 describe("problemStatementSchema situation block", () => {
-  it("requires the Triangulator workbook fields (title/description/openness/paradox)", () => {
-    const missingParadox = {
+  it("requires a situation title, the one field the lean form collects", () => {
+    const missingTitle = {
       ...base,
       proposal_data: {
         ...base.proposal_data,
-        situation: { ...base.proposal_data.situation, paradox: "" },
+        situation: { ...base.proposal_data.situation, title: "" },
       },
     };
-    expect(problemStatementSchema.safeParse(missingParadox).success).toBe(
-      false
-    );
+    expect(problemStatementSchema.safeParse(missingTitle).success).toBe(false);
+  });
+
+  it("accepts a lean submission — title only, depth lives in the map", () => {
+    const lean = {
+      ...base,
+      proposal_data: {
+        ...base.proposal_data,
+        situation: { title: "Procurement locks out the informal economy" },
+      },
+    };
+    expect(problemStatementSchema.safeParse(lean).success).toBe(true);
   });
 
   it("accepts the optional pressure-test and beneficiaries fields", () => {
