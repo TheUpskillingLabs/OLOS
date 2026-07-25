@@ -125,6 +125,19 @@ export function buildSurveyExportTable(data: SurveyExportData): {
   return { columns, records };
 }
 
+/**
+ * Strip email addresses and phone-number-shaped sequences from free text
+ * before it reaches the participant aggregate. The envelope's contact columns
+ * are never selected there, but respondents sometimes type contact details
+ * into the observation itself — the participant surface must not carry them.
+ * (The admin/poderator table intentionally keeps the raw text.)
+ */
+export function redactContactInfo(text: string): string {
+  return text
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "[contact removed]")
+    .replace(/(\+?1[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}\b/g, "[contact removed]");
+}
+
 export interface SurveyAggregate {
   total: number; // non-rejected responses
   approved: number; // curated into the commons
@@ -187,7 +200,7 @@ export async function getSurveyAggregate(
     .slice(0, 100)
     .map((r) => ({
       id: r.id as number,
-      observation: r.observation as string,
+      observation: redactContactInfo(r.observation as string),
       standpoint: (r.standpoint as string[] | null) ?? [],
       salience: r.salience as number | null,
       created_at: r.created_at as string,

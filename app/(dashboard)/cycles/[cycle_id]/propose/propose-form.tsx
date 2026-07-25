@@ -224,10 +224,16 @@ export default function ProposeForm({
           )}
         </blockquote>
         <Link
-          href="/dashboard"
+          href={`/cycles/${cycleId}/proposals`}
           className="mr-3 mt-6 inline-block rounded-card bg-teal-deep px-3 py-2 text-xs font-semibold tracking-tight text-white transition-colors duration-150 hover:bg-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
-          Back to dashboard
+          See it in the gallery
+        </Link>
+        <Link
+          href={`/cycles/${cycleId}`}
+          className="mr-3 mt-6 inline-block rounded-card border border-ink/15 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-colors duration-150 hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+        >
+          Back to the cycle
         </Link>
         <button
           onClick={() => {

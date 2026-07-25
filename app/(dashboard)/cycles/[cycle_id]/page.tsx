@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { registrationWindow } from "@/lib/cycles/schedule";
-import { windowOpen, fmtLabDate } from "@/lib/cycles/lab-time";
+import {
+  windowOpen,
+  fmtLabDate,
+  fmtLabDateTime,
+  parseWindow,
+} from "@/lib/cycles/lab-time";
 import {
   BookOpen,
   ArrowRight,
@@ -171,6 +176,24 @@ export default async function CycleDetailPage({
     }
   }
 
+  // The seam between voting and pod registration is the one quiet stretch
+  // where the page would otherwise go silent mid-arc: votes are in, pods
+  // aren't announced. Say what's happening rather than showing nothing.
+  let interlude: string | null = null;
+  if (config && activeWindows.length === 0) {
+    const cfg = config as Record<string, string | null>;
+    const votingClosed =
+      cfg.voting_close && now > (parseWindow(cfg.voting_close) as Date);
+    const podRegStarted =
+      cfg.pod_registration_open &&
+      now > (parseWindow(cfg.pod_registration_open) as Date);
+    if (votingClosed && !podRegStarted) {
+      interlude = cfg.pod_registration_open
+        ? `Voting has closed — the shortlist is being finalized. Pod registration opens ${fmtLabDateTime(cfg.pod_registration_open)}.`
+        : "Voting has closed — the shortlist is being finalized. Pod registration opens next.";
+    }
+  }
+
   const cycleStatusVariant =
     CYCLE_STATUS_VARIANT[cycle.status as CycleStatus] ?? "inactive";
 
@@ -263,6 +286,12 @@ export default async function CycleDetailPage({
               </div>
             </Link>
           ))}
+        </div>
+      )}
+
+      {interlude && (
+        <div className="mb-8 rounded-card border border-ink/10 bg-white p-4 shadow-card">
+          <p className="text-sm text-charcoal">{interlude}</p>
         </div>
       )}
 
