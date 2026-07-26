@@ -23,7 +23,35 @@ buildable, graduate it: app-scoped fixes go to
 | Event | Last run | Next run | Shape |
 |---|---|---|---|
 | **Sensemaking Sprint** | 2026-07-25, 10:30–17:30, I4DI (1834 Connecticut Ave NW, DC) — hosted by Brendan Whitaker, Ann Marie Guzzi, Sandra Moscoso ([Luma](https://luma.com/the-bcr0)) | TBD | One day: collect observations, map stakeholders, surface patterns, uncover paradoxes. "The hardest part isn't solving the problem — it's figuring out what the problem actually is." |
-| **Hackathon** ("Idea to Prototype") | 2026-05-16, St Mark's Capitol Hill, DC ([Luma](https://luma.com/c02-podsprint)) | ~mid-Aug 2026 — **a few weeks out, not yet on the calendar** | One day: idea → working prototype, with real teammates, real tools, and a plan to test what you build. No prior AI experience required. |
+| **Hackathon** ("Idea to Prototype") | 2026-05-16, St Mark's Capitol Hill, DC ([Luma](https://luma.com/c02-podsprint)) | **2026-08-13, 09:00–18:00, Main branch** — per `anchor-events.ts` ("Hackathon — the Frame Sprint"). **Not on the hosts' Google Calendar.** | One day: idea → working prototype, with real teammates, real tools, and a plan to test what you build. No prior AI experience required. |
+
+### Where the days sit in the cycle calendar
+
+From [`lib/cycles/anchor-events.ts`](../lib/cycles/anchor-events.ts) — the six
+anchor events, currently a **hardcoded interim constant** until the Luma events
+cache serves them from the DB:
+
+| Date | Event | Relevance |
+|---|---|---|
+| Jul 14 | Kickoff Summit | |
+| **Jul 25** | **"Problem Sprint"** | The day just run — but see the drift note below |
+| **Aug 11** | **Meet the Pods** (18:00–20:30) | `phase_2_start` — also opens `pod_active_join` |
+| **Aug 13** | **Hackathon — the Frame Sprint** (09:00–18:00) | **Two days after Meet the Pods** (#17) |
+| Sep 8 | Meet the Projects | `phase_3_start` |
+| Oct 13 | Showcase Summit | |
+
+**Two drifts worth fixing.** (1) The Jul 25 anchor event is named **"Problem
+Sprint"** and runs **09:00–13:00**, with a code comment describing "problem
+statements 9am–12pm, voting 12–1pm, pod forming opens 1pm." The event we actually
+ran was the **Sensemaking Sprint, 10:30–17:30**. The app and reality disagree on
+both the name and four hours of the day. (2) The **Aug 13 hackathon isn't on the
+hosts' Google Calendar** — given anchor events are a hardcoded constant, it's
+worth confirming the room and the Luma page actually exist.
+
+Note the upside of (1): the Cycle 3 schedule **already assumed voting opens the
+same day as the sprint**. #11 isn't a new idea, it's a plan that already existed
+in [`requirements/cycle-timeline.md`](requirements/cycle-timeline.md) and didn't
+survive contact with the day.
 
 ## Cycle gates — what each day has to land
 
@@ -113,6 +141,7 @@ Status legend: 🆕 new · 🧭 needs a decision · ✅ adopted for next run · 
 | 14 | 2026-07-26 | Hackathon | **Hackathon gates:** close pod registration, open solution proposals — but don't push for same-day submission, proposals need time to bake. | **yes** | 🆕 |
 | 15 | 2026-07-26 | Hackathon | **Shape the day around play, prototyping, and getting feedback** — not around a single end-of-day showcase. | partly | 🆕 |
 | 16 | 2026-07-26 | Hackathon | **Newcomers need to saturate in the problem space** before they build anything. | **yes** | 🆕 |
+| 17 | 2026-07-26 | Hackathon | **Pod briefs as lightning talks, reusing the Meet the Pods presentations.** Meet the Pods is Aug 11 and the hackathon is Aug 13 — the material is two days old. | **yes** | ✅ |
 
 ## Details
 
@@ -408,9 +437,21 @@ and make the other follow, because the automatic activation threshold and the
 manual cull standard being different numbers is how you end up with pods that
 activated themselves and then get killed a week later.
 
-**Scheduling implication:** this week lives inside the `pod_forming` window, so
-`pod_registration_close` should be ~1 week after `voting_close`, with the cull
-happening at that boundary.
+**Scheduling implication — and the cull has no gate.** The week lives inside the
+`pod_forming` window, but the cull is **not** `pod_registration_close`: #14 puts
+that at the hackathon, weeks later. So "close pods to the viable ones" is a
+moment with **no phase boundary behind it** — it's an operational action someone
+has to remember to do. Either calendar it as an ops task or give it a marker.
+
+**Where it should land, per the anchor calendar:** *before* **Meet the Pods**
+(Aug 11). Meet the Pods is a public presentation, and those presentations become
+the hackathon's lightning talks (#17) — so you don't want non-viable pods
+presenting, and you don't want to cull a pod two days after it presented itself
+to the cohort. That gives the chain:
+
+`voting_close` → **1 week** of pod forming → **cull to viable** → Meet the Pods
+(viable pods present) → hackathon (talks reuse those presentations,
+`pod_registration_close`).
 
 ### 14 — Hackathon gates (2026-07-26)
 
@@ -431,14 +472,19 @@ flag if that's wrong, since it changes the day's shape.
 makes the hackathon the **last call to join a pod**, which is a real reason to
 show up — worth saying so in the Luma copy.
 
-**But check the overlay first:** `pod_active_join` is a separate window derived
-from `phase_2_start` → `project_registration_close`
-([`lib/cycles/schedule.ts`](../lib/cycles/schedule.ts)), and it exists precisely
-so joining doesn't die when initial registration closes
-([`requirements/pod-registration.md`](requirements/pod-registration.md)). So
-decide which you mean: **hard last call** (both windows shut) or **soft**
-(`pod_forming` closes, active-join stays open). "Last call" in the marketing
-copy is only honest if it's the hard version.
+**As currently scheduled, though, it isn't a last call at all.**
+`pod_active_join` is a separate overlay window derived from `phase_2_start` →
+`project_registration_close` ([`lib/cycles/schedule.ts`](../lib/cycles/schedule.ts)),
+and it exists precisely so joining doesn't die when initial registration closes
+([`requirements/pod-registration.md`](requirements/pod-registration.md)).
+`phase_2_start` is **Meet the Pods, Aug 11** — so active-join opens **two days
+before the hackathon** and runs on until project registration closes. Closing
+`pod_forming` on Aug 13 shuts a window that active-join has already superseded.
+
+So decide which you mean: **hard last call** (shut both) or **soft** (the current
+schedule — `pod_forming` closes, active-join carries on). Either is defensible,
+but **"last call" in the Luma copy is only honest in the hard version**, and the
+soft version means the hackathon gate is close to symbolic.
 
 ### 15 — Rough shape of the hackathon: play, prototype, feedback (2026-07-26)
 
@@ -479,6 +525,42 @@ OLOS already holds — it's a view, not new capture.
 Pre-work reaches only the people who do pre-work, and newcomers are the least
 likely to. Probably both, with the in-room version assumed to be the real one.
 
+**Delivery mechanism decided — see #17.**
+
+### 17 — Pod briefs as lightning talks (2026-07-26)
+
+**Adopted.** The pod briefs from #16 run as **lightning talks**, built on each
+pod's **Meet the Pods presentation**.
+
+The calendar makes this better than it first looks: **Meet the Pods is Aug 11 and
+the hackathon is Aug 13** ([`lib/cycles/anchor-events.ts`](../lib/cycles/anchor-events.ts)).
+The presentations are **two days old** — already made, already rehearsed in front
+of an audience, still fresh. The marginal cost to a pod is close to zero, which
+is what makes this stick where "please brief the newcomers" wouldn't.
+
+Second-order benefits worth naming, because they're the real payoff:
+
+- **It gives Meet the Pods a second job.** Right now that presentation is
+  consumed once and discarded. Knowing it gets reused 48 hours later as the
+  onboarding material for people joining your pod raises the incentive to make
+  it good.
+- **Lightning format forces compression.** A pod that can't explain its paradox
+  in three minutes doesn't understand it yet — so the talks double as a
+  diagnostic for the hosts on which pods are actually clear.
+- **It's the same muscle as #11's happy-hour marketing** — pitching your problem
+  to someone who hasn't heard it, now with the pod as the unit instead of the
+  individual.
+
+**Product implication:** if the presentation is the reusable artifact, OLOS
+should hold it. There's nowhere to attach a pod's Meet the Pods deck today, so
+the participant view (#3) can't surface "get up to speed on your pod" without it.
+Small ask — a link or file on the pod — but it's the thing that turns a one-off
+event into the durable saturation path #16 wants.
+
+**Open:** do all pods talk, or only the ones taking newcomers? All pods is better
+for cross-pollination and gives the diagnostic above; only-recruiting-pods is
+faster and keeps the newcomers' attention on real choices.
+
 ## Sketch: shape of the next sensemaking day
 
 Derived from the entries above — **a proposal to react to, not a decision.**
@@ -514,7 +596,7 @@ needs your read most.
 
 | Block | What happens | Gate | From |
 |---|---|---|---|
-| **Saturate** | Veterans brief newcomers on their pod's paradox: the statement, the evidence, what's been decided. Newcomers ask the naive questions. | | #16 |
+| **Saturate** | **Pod lightning talks**, built on the Meet the Pods decks from two days earlier. Newcomers ask the naive questions. | | #16, #17 |
 | **Last call** | Pod registration closes — anyone not in a pod picks one now. | `pod_registration_close` | #14 |
 | **Set the norm** | *Make something bad, quickly.* Explicit permission to prototype badly. | | #15 |
 | **Build** | Play and prototype. Volunteers on stuck-points. | | #15, #10 |
