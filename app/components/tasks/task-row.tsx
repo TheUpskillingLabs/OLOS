@@ -2,6 +2,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { fmtLabDate, fmtLabDateTime } from "@/lib/cycles/lab-time";
+import {
+  deadlineUrgency,
+  timeLeftLabel,
+  urgencyTextClass,
+} from "@/lib/tasks/urgency";
 
 /* The cycle-page task grammar — a full-width status row (app/components/
    tasks/CLAUDE.md). Cycle pages describe the CYCLE's state, not the
@@ -50,9 +55,19 @@ export default function TaskRow({
         ? "border-ink/10 bg-white shadow-card"
         : "border-ink/10 border-l-4 border-l-teal bg-white shadow-card hover:bg-ink/[0.02]";
 
+  // Open rows escalate as the close approaches (lib/tasks/urgency.ts —
+  // same tiers as the dashboard's TaskCard): within 3 days the timing gains
+  // a relative suffix and teal-deep semibold; within 24 h it goes red and
+  // shows the closing time, not just the date.
+  const now = new Date();
+  const urgency = state === "open" ? deadlineUrgency(closesAt, now) : null;
+  const left = state === "open" ? timeLeftLabel(closesAt, now) : null;
+  const timingClass = urgencyTextClass(urgency);
   const timing =
     state === "open" && closesAt
-      ? `closes ${fmtLabDate(closesAt)}`
+      ? `closes ${
+          urgency === "imminent" ? fmtLabDateTime(closesAt) : fmtLabDate(closesAt)
+        }${left ? ` · ${left}` : ""}`
       : state === "upcoming" && opensAt
         ? `opens ${fmtLabDateTime(opensAt)}`
         : null;
@@ -105,7 +120,9 @@ export default function TaskRow({
           </div>
         </div>
         {timing && (
-          <span className="flex-shrink-0 text-sm text-meta tabular-nums">
+          <span
+            className={`flex-shrink-0 text-sm tabular-nums ${timingClass || "text-meta"}`}
+          >
             {timing}
           </span>
         )}
@@ -124,7 +141,9 @@ export default function TaskRow({
         </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-2 text-sm text-meta">
-        {timing && <span className="tabular-nums">{timing}</span>}
+        {timing && (
+          <span className={`tabular-nums ${timingClass}`}>{timing}</span>
+        )}
         {href && (
           <ArrowRight
             className="h-4 w-4 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"

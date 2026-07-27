@@ -48,6 +48,13 @@ one action read as clutter" (2026-07-14).
    cosmetic view prefs (checklist collapse).
 5. **Tone from kind**, never per-callsite: red = the blocking gate only;
    teal border = start-here/feature; plain white elsewhere.
+   **Deadline proximity** is the one sanctioned escalation, and only on the
+   deadline/timing TEXT (never the card/row shell): within 3 days it goes
+   teal-deep semibold with a relative "N days left" suffix; within 24 h it
+   goes red and (on rows) shows the closing time. One derivation —
+   `lib/tasks/urgency.ts` — used by both TaskCard and TaskRow; never
+   hand-roll a countdown. The relative suffix accompanies the absolute
+   lab-time instant, never replaces it.
 6. **One tree, two layouts.** `TaskList` is the same DOM on phones (snap
    strip) and desktop (2-col grid) — never fork a separate mobile task
    list; that's the drift this system replaced.

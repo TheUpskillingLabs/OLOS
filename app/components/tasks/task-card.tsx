@@ -4,6 +4,11 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { Task } from "@/lib/tasks/types";
 import { fmtLabDateTime } from "@/lib/cycles/lab-time";
+import {
+  deadlineUrgency,
+  timeLeftLabel,
+  urgencyTextClass,
+} from "@/lib/tasks/urgency";
 
 /* One task card — the single rendering of a queue task on every breakpoint
    (app/components/tasks/CLAUDE.md). Tone/variant derive from the task's
@@ -83,13 +88,22 @@ export default function TaskCard({
   const variant = variantFor(task);
   // The deadline line — phrased by kind (a window "closes"; an authored
   // task is "due"), formatted here so callers never format instants. When
-  // the task also carries a detail, both render.
+  // the task also carries a detail, both render. Within 3 days the line
+  // escalates (lib/tasks/urgency.ts): teal-deep semibold + "N days left",
+  // red inside 24 h — same tiers TaskRow uses on the cycle pages.
+  const now = new Date();
+  const urgency = deadlineUrgency(task.deadline, now);
+  const left = timeLeftLabel(task.deadline, now);
   const deadlineLine = task.deadline
-    ? task.kind === "custom"
-      ? `Due ${fmtLabDateTime(task.deadline)}`
-      : `Open now — closes ${fmtLabDateTime(task.deadline)}`
+    ? `${
+        task.kind === "custom"
+          ? `Due ${fmtLabDateTime(task.deadline)}`
+          : `Open now — closes ${fmtLabDateTime(task.deadline)}`
+      }${left ? ` · ${left}` : ""}`
     : null;
+  const deadlineClass = urgencyTextClass(urgency);
   const detail = task.detail ?? deadlineLine;
+  const detailIsDeadline = !task.detail && !!deadlineLine;
   const extraDeadline = task.detail && deadlineLine ? deadlineLine : null;
   const dismissable = task.dismissible && !task.blocking && !!onDismiss;
 
@@ -129,12 +143,20 @@ export default function TaskCard({
         </TaskLink>
       </h3>
       {detail && (
-        <p className="mt-1 text-xs text-meta max-md:line-clamp-2 md:text-sm">
+        <p
+          className={`mt-1 text-xs max-md:line-clamp-2 md:text-sm ${
+            detailIsDeadline && deadlineClass ? deadlineClass : "text-meta"
+          }`}
+        >
           {detail}
         </p>
       )}
       {extraDeadline && (
-        <p className="mt-1 text-xs font-semibold text-teal-deep tabular-nums">
+        <p
+          className={`mt-1 text-xs tabular-nums ${
+            deadlineClass || "font-semibold text-teal-deep"
+          }`}
+        >
           {extraDeadline}
         </p>
       )}
