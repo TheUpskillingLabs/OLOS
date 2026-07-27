@@ -1,18 +1,17 @@
 /**
  * Warning email sent by the two-stage revocation cron (#110 Phase C)
- * three days before any actual revocation. Mirrors the structure of
- * pulse-check-reminder-template.ts so subject/HTML/text are consumed
- * the same way by the cron's Resend integration.
+ * three days before any actual revocation. Mirrors the structure of the
+ * learning-log-reminder template so subject/HTML/text are consumed the same
+ * way by the cron's Resend integration.
  *
- * Variants distinguishing the WHY behind the warning:
+ * One reason under the registered/active model (migration 00092):
  *
- *   - 'missed_logs'   — participant (in a pod) has the configured number of
- *                       consecutive missed weekly Learning Log windows. This
- *                       is the live reason under the registered/active model.
- *   - 'missed_pulses' — legacy: consecutive missed pulse checks (kept for
- *                       historical audit rows / the manual admin sweep).
- *   - 'not_in_pod'    — legacy: pod_registration_close passed with no pod.
- *                       No longer written (being pod-less is 'registered').
+ *   - 'missed_logs' — an in-pod ('active') member has the configured number
+ *                     of consecutive missed weekly Learning Log windows.
+ *
+ * (The earlier 'missed_pulses' / 'not_in_pod' reasons are retired: the weekly
+ * Learning Log replaced the pulse cadence, and being pod-less is now the
+ * 'registered' resting state rather than a revocation.)
  *
  * Tone is firm but recoverable. The deadline language is intentionally
  * concrete: "your access will be paused in 3 days" rather than "your
@@ -21,10 +20,7 @@
  * inactive participant can be reactivated by re-engagement.
  */
 
-export type RevocationWarningReason =
-  | "missed_logs"
-  | "missed_pulses"
-  | "not_in_pod";
+export type RevocationWarningReason = "missed_logs";
 
 type WarningProps = {
   reason: RevocationWarningReason;
@@ -49,22 +45,6 @@ function variantCopy(reason: RevocationWarningReason): {
           "You've missed your last few weekly Learning Logs. To stay active in the cohort, please save a Learning Log from your dashboard in the next <strong style=\"color:#ffffff;\">3 days</strong>. After that your cohort access will be paused — but you can rejoin anytime by logging.",
         cta: "Open your dashboard →",
       };
-    case "not_in_pod":
-      return {
-        subject: "Your Upskilling Labs cohort access pauses in 3 days",
-        heading: "You haven't joined a pod yet",
-        lede:
-          "Pod registration for this cycle has closed and you haven't joined a pod. To stay active in the cohort, please reach out to your cycle organizer or accept a pod invitation in the next <strong style=\"color:#ffffff;\">3 days</strong>. After that your cohort access will be paused.",
-        cta: "Open your dashboard →",
-      };
-    case "missed_pulses":
-      return {
-        subject: "Your Upskilling Labs cohort access pauses in 3 days",
-        heading: "We haven't heard from you in a while",
-        lede:
-          "You've missed your last two pulse checks. To stay active in the cohort, please submit a pulse check in the next <strong style=\"color:#ffffff;\">3 days</strong>. After that your cohort access will be paused — but you can rejoin anytime.",
-        cta: "Submit pulse check →",
-      };
   }
 }
 
@@ -72,10 +52,6 @@ function variantTextLede(reason: RevocationWarningReason): string {
   switch (reason) {
     case "missed_logs":
       return "You've missed your last few weekly Learning Logs. To stay active in the cohort, please save a Learning Log from your dashboard in the next 3 days. After that your cohort access will be paused — but you can rejoin anytime by logging.";
-    case "not_in_pod":
-      return "Pod registration for this cycle has closed and you haven't joined a pod. To stay active in the cohort, please reach out to your cycle organizer or accept a pod invitation in the next 3 days. After that your cohort access will be paused.";
-    case "missed_pulses":
-      return "You've missed your last two pulse checks. To stay active in the cohort, please submit a pulse check in the next 3 days. After that your cohort access will be paused — but you can rejoin anytime.";
   }
 }
 

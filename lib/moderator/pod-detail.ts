@@ -20,8 +20,60 @@ import {
   type PulseHealthCfg,
 } from "./pulse-health";
 import { atRiskNudgeKey, deriveAtRiskRun, loadDismissedKeys, isDismissed } from "./nudges";
+import { getCycleWeek, getCycleWeekStart } from "@/lib/cycle/week";
 
 const DEFAULT_AT_RISK_MISSES = 2;
+
+// A member's weekly cadence, expressed as pulse-shaped rows so the whole
+// status/streak/miss/bucket engine below works unchanged regardless of source.
+// Legacy pods feed real pulse_checks rows; log-based (current) cycles feed
+// rows SYNTHESIZED from the weekly Learning Log windows — one row per
+// completed cycle-week, completed_at set iff a log was filed that week.
+type CadenceRow = {
+  participant_id: number;
+  scheduled_date: string;
+  completed_at: string | null;
+};
+
+/**
+ * Synthesize a member's weekly cadence from their Learning Logs: for each
+ * completed cycle-week (getCycleWeek buckets [start,end] into weeks 0–12), a
+ * row keyed by that week's start, marked completed iff any cycle-attributed
+ * log lands in it. The in-progress current week is not emitted (can't be
+ * "missed" yet). Mirrors the pulse stream shape consumed downstream.
+ */
+function synthesizeLogCadence(
+  participantId: number,
+  now: Date,
+  cycleStart: Date,
+  cycleEnd: Date,
+  logCreatedAts: Date[]
+): CadenceRow[] {
+  const currentWeek = getCycleWeek(now, cycleStart, cycleEnd);
+  const lastCompleted = Math.min(currentWeek, 13) - 1;
+  if (lastCompleted < 0) return [];
+
+  const latestLogByWeek = new Map<number, string>();
+  for (const d of logCreatedAts) {
+    const w = getCycleWeek(d, cycleStart, cycleEnd);
+    const iso = d.toISOString();
+    const prev = latestLogByWeek.get(w);
+    if (!prev || iso > prev) latestLogByWeek.set(w, iso);
+  }
+
+  const rows: CadenceRow[] = [];
+  for (let w = 0; w <= lastCompleted; w++) {
+    const weekKey = getCycleWeekStart(w, cycleStart, cycleEnd)
+      .toISOString()
+      .slice(0, 10);
+    rows.push({
+      participant_id: participantId,
+      scheduled_date: weekKey,
+      completed_at: latestLogByWeek.get(w) ?? null,
+    });
+  }
+  return rows;
+}
 
 export type PulseStatus = "current" | "pending" | "late" | "at_risk";
 
@@ -103,7 +155,7 @@ export async function getPodDetail(
     .select(`
       id, name, status, cycle_id,
       slack_channel_id, drive_folder_id, github_repo_url,
-      cycles (id, name, mode)
+      cycles (id, name, mode, start_date, end_date)
     `)
     .eq("id", podId)
     .single();
@@ -152,12 +204,7 @@ export async function getPodDetail(
   const fourWeeksAgo = new Date();
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
 
-  type PulseRow = {
-    participant_id: number;
-    scheduled_date: string;
-    completed_at: string | null;
-  };
-  let pulseRows: PulseRow[] = [];
+  let pulseRows: CadenceRow[] = [];
   if (memberIds.length > 0) {
     const { data } = await supabase
       .from("pulse_checks")
@@ -166,14 +213,62 @@ export async function getPodDetail(
       .eq("cycle_id", pod.cycle_id as number)
       .gte("scheduled_date", fourWeeksAgo.toISOString().slice(0, 10))
       .order("scheduled_date");
-    pulseRows = (data ?? []) as PulseRow[];
+    pulseRows = (data ?? []) as CadenceRow[];
   }
 
-  const pulsesByMember = new Map<number, PulseRow[]>();
-  for (const p of pulseRows) {
-    const arr = pulsesByMember.get(p.participant_id) ?? [];
-    arr.push(p);
-    pulsesByMember.set(p.participant_id, arr);
+  // The engagement signal is now the weekly Learning Log. A pod with real
+  // pulse_checks rows is a LEGACY pod (old cycle) and keeps its pulse-based
+  // health, deterministically — matching the Recent-activity tab's split
+  // (app/(dashboard)/moderator/pods/[pod_id]/recent-activity-feed.tsx). Every
+  // other pod's cadence is synthesized from Learning Log windows.
+  const now = new Date();
+  const cycleInfo = pod.cycles as unknown as {
+    start_date: string | null;
+    end_date: string | null;
+  } | null;
+  const isLegacyPulsePod = pulseRows.length > 0;
+
+  let logCreatedAtsByMember = new Map<number, Date[]>();
+  if (!isLegacyPulsePod && memberIds.length > 0) {
+    const { data: logRows } = await supabase
+      .from("learning_logs")
+      .select("participant_id, created_at")
+      .in("participant_id", memberIds)
+      .eq("cycle_id", pod.cycle_id as number);
+    logCreatedAtsByMember = new Map();
+    for (const r of logRows ?? []) {
+      const arr = logCreatedAtsByMember.get(r.participant_id as number) ?? [];
+      arr.push(new Date(r.created_at as string));
+      logCreatedAtsByMember.set(r.participant_id as number, arr);
+    }
+  }
+
+  // cadenceByMember drives the roster status/streak/miss/nudge and the
+  // pod-level health below — pulses for legacy pods, synthesized weekly log
+  // windows otherwise. Empty for a log-based pod whose cycle has no calendar
+  // (no start/end) — there are no weeks to reconstruct, so no one is flagged.
+  const cadenceByMember = new Map<number, CadenceRow[]>();
+  if (isLegacyPulsePod) {
+    for (const p of pulseRows) {
+      const arr = cadenceByMember.get(p.participant_id) ?? [];
+      arr.push(p);
+      cadenceByMember.set(p.participant_id, arr);
+    }
+  } else if (cycleInfo?.start_date && cycleInfo?.end_date) {
+    const cycleStart = new Date(cycleInfo.start_date);
+    const cycleEnd = new Date(cycleInfo.end_date);
+    for (const id of memberIds) {
+      cadenceByMember.set(
+        id,
+        synthesizeLogCadence(
+          id,
+          now,
+          cycleStart,
+          cycleEnd,
+          logCreatedAtsByMember.get(id) ?? []
+        )
+      );
+    }
   }
 
   // Load this poderator's nudge dismissals for this pod.
@@ -197,7 +292,7 @@ export async function getPodDetail(
     const display = lastInitial ? `${first} ${lastInitial}.` : first;
     const initials = `${first[0] ?? "?"}${lastInitial}`.toUpperCase();
 
-    const memberPulses = pulsesByMember.get(m.participant_id as number) ?? [];
+    const memberPulses = cadenceByMember.get(m.participant_id as number) ?? [];
     const status = computePulseStatus(memberPulses, atRiskThreshold);
     const streak = computeStreak(memberPulses);
     const consecutiveMisses = countConsecutiveMisses(memberPulses);
@@ -255,11 +350,12 @@ export async function getPodDetail(
     .filter((m) => m.inactive_at === null)
     .map((m) => m.participant_id as number)
     .filter((id) => !staffTestIds.has(id));
-  const activeMemberIdSet = new Set(activeMemberIds);
-  const activePulses = pulseRows.filter((p) => activeMemberIdSet.has(p.participant_id));
+  const activeCadence = activeMemberIds.flatMap(
+    (id) => cadenceByMember.get(id) ?? []
+  );
 
   const { missingThisWeek, weeklyRates } = bucketPulses(
-    activePulses,
+    activeCadence,
     activeMemberIds.length
   );
 

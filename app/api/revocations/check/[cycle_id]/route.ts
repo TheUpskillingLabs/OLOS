@@ -2,13 +2,18 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
+import { consecutiveMissedLogWeeks } from "@/lib/learning-logs/at-risk";
 
 // Manual (admin-triggered) mirror of the engagement-revocation cron
 // (app/api/cron/revocation-check). Under the registered/active model
-// (migration 00092) the ONE revocation reason is the missed weekly cadence
-// for an in-pod ('active') member. Being pod-less is no longer a revocation —
-// that member is 'registered', a resting state this active-only sweep never
-// sees — so the old "not_in_pod" check was removed.
+// (migration 00092) the ONE revocation reason is the missed weekly Learning
+// Log cadence for an in-pod ('active') member. Being pod-less is no longer a
+// revocation — that member is 'registered', a resting state this active-only
+// sweep never sees — so the old "not_in_pod" check was removed.
+//
+// The signal is missed weekly Learning Log windows (consecutiveMissedLogWeeks,
+// reconstructed from the cycle calendar) — identical to the cron, not the
+// legacy pulse-check count.
 //
 // The reconciler no longer writes exits (it only manages registered <->
 // active), so this route sets status='inactive' + inactive_date directly and
@@ -20,7 +25,28 @@ export const POST = withAdminAuth(
   async (_request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const cycleId = parseIntParam(params.cycle_id, "cycle_id");
     if (cycleId instanceof NextResponse) return cycleId;
-    const now = new Date().toISOString();
+    const nowDate = new Date();
+    const now = nowDate.toISOString();
+
+    // Cycle calendar (for weekly-window reconstruction) + gate-pause holiday
+    // toggle + miss threshold. Without both date bounds there's no cadence to
+    // measure; a paused gate exempts the whole cohort.
+    const { data: cycle } = await auth.supabase
+      .from("cycles")
+      .select(
+        "start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused)"
+      )
+      .eq("id", cycleId)
+      .maybeSingle();
+    const config = Array.isArray(cycle?.cycle_config)
+      ? cycle?.cycle_config[0]
+      : cycle?.cycle_config;
+    if (!cycle?.start_date || !cycle?.end_date || config?.log_gate_paused) {
+      return NextResponse.json({ transitioned_to_inactive: [] });
+    }
+    const cycleStart = new Date(cycle.start_date);
+    const cycleEnd = new Date(cycle.end_date);
+    const missThreshold = config?.at_risk_consecutive_misses ?? 2;
 
     // Get all active enrollees
     const { data: enrollments } = await auth.supabase
@@ -38,21 +64,22 @@ export const POST = withAdminAuth(
     for (const enrollment of enrollments) {
       const pid = enrollment.participant_id;
 
-      // Cadence check: missed 2+ consecutive pulse checks.
-      const { data: checks } = await auth.supabase
-        .from("pulse_checks")
-        .select("completed_at")
+      // Cadence check: consecutive missed weekly Learning Log windows.
+      const { data: logRows } = await auth.supabase
+        .from("learning_logs")
+        .select("created_at")
         .eq("cycle_id", cycleId)
-        .eq("participant_id", pid)
-        .order("scheduled_date", { ascending: false })
-        .limit(2);
-
-      const missedConsecutive =
-        !!checks && checks.length >= 2 && checks.every((c) => !c.completed_at);
-      if (!missedConsecutive) continue;
+        .eq("participant_id", pid);
+      const missedWeeks = consecutiveMissedLogWeeks(
+        nowDate,
+        cycleStart,
+        cycleEnd,
+        (logRows ?? []).map((r) => new Date(r.created_at))
+      );
+      if (missedWeeks < missThreshold) continue;
 
       // Flag the enrollment 'inactive' directly and record the audit row.
-      const reason = "missed_pulse_checks";
+      const reason = "missed_logs";
       await auth.supabase
         .from("cycle_enrollments")
         .update({ status: "inactive", inactive_date: now })
