@@ -217,32 +217,34 @@ export default function CustomTasksManager({
               ))}
             </Select>
           </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field
-              label="Shows from"
-              helper="Lab time (ET). Blank = now."
-              htmlFor="ct-starts"
-            >
-              <Input
-                id="ct-starts"
-                type="datetime-local"
-                value={form.startsAt}
-                onChange={(e) => set("startsAt", e.target.value)}
-              />
-            </Field>
-            <Field
-              label="Due / hides at"
-              helper="Shown as the deadline; the task disappears after."
-              htmlFor="ct-ends"
-            >
-              <Input
-                id="ct-ends"
-                type="datetime-local"
-                value={form.endsAt}
-                onChange={(e) => set("endsAt", e.target.value)}
-              />
-            </Field>
-          </div>
+          {/* datetime-local inputs have a hard intrinsic min-width — they
+              must stack on phones or the right one overlaps its neighbor. */}
+          <Field
+            label="Shows from"
+            helper="Lab time (ET). Blank = now."
+            htmlFor="ct-starts"
+          >
+            <Input
+              id="ct-starts"
+              type="datetime-local"
+              className="min-w-0"
+              value={form.startsAt}
+              onChange={(e) => set("startsAt", e.target.value)}
+            />
+          </Field>
+          <Field
+            label="Due / hides at"
+            helper="Shown as the deadline; the task disappears after."
+            htmlFor="ct-ends"
+          >
+            <Input
+              id="ct-ends"
+              type="datetime-local"
+              className="min-w-0"
+              value={form.endsAt}
+              onChange={(e) => set("endsAt", e.target.value)}
+            />
+          </Field>
           <div className="flex flex-wrap items-center gap-x-8 gap-y-3 sm:col-span-2">
             <label className="flex items-center gap-3 text-sm text-charcoal">
               <ToggleSwitch

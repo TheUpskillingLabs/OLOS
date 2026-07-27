@@ -639,15 +639,30 @@ export default async function DashboardPage() {
     </div>
   );
 
+  // While the checklist has unfinished trackable rows it stays PINNED to
+  // the top of the center column — above the queue, above the feed, on
+  // every breakpoint (the original "checklist first" owner decision). Once
+  // everything is done it moves down into the deferred task group as the
+  // collapsed strip.
+  const checklistIncomplete = taskData.checklist.some(
+    (t) => !t.done && !t.advisory
+  );
+  const checklistBlock = (
+    <div id="dash-setup" className="scroll-mt-24">
+      <ChecklistCard items={taskData.checklist} />
+    </div>
+  );
+
   // The center column's shared scaffold. The Up-next queue (TaskList — the
   // same component on every breakpoint: snap strip on phones, 2-col grid on
-  // md+) leads the column everywhere. DOM order (= desktop and tablet visual
-  // order) keeps the rest of the task group above the feed; on phones a
-  // mobile-only flex on .dash-center (globals.css) sends .dash-defer below
-  // the feed, so the queue and the composer lead — the LinkedIn feed-first
-  // posture.
+  // md+) leads the column everywhere, behind only an unfinished checklist.
+  // DOM order (= desktop and tablet visual order) keeps the rest of the
+  // task group above the feed; on phones a mobile-only flex on .dash-center
+  // (globals.css) sends .dash-defer below the feed, so the pinned blocks
+  // and the composer lead — the LinkedIn feed-first posture.
   const centerColumn = (tasks: ReactNode, feed: ReactNode) => (
     <div className="dash-center">
+      {checklistIncomplete && checklistBlock}
       <TaskList
         tasks={taskData.queue}
         activeCycleId={activeCycle?.id ?? null}
@@ -819,13 +834,11 @@ export default async function DashboardPage() {
               {/* Org-only staff lead with their actual work; the cohort join CTA
                   is for the participant pipeline they're not in. */}
               {orgActive && workstreamsSection}
-              {/* The queue leads (in centerColumn); the checklist is the
-                  member's own setup state. The actionable register path is a
-                  queue task — only the pre-registered / closed confirmations
-                  render as cards. */}
-              <div id="dash-setup" className="scroll-mt-24">
-                <ChecklistCard items={taskData.checklist} />
-              </div>
+              {/* An unfinished checklist is pinned above the queue (in
+                  centerColumn); once complete its collapsed strip settles
+                  here. The actionable register path is a queue task — only
+                  the pre-registered / closed confirmations render as cards. */}
+              {!checklistIncomplete && checklistBlock}
               {!orgActive && registerCycle && registerStateCard(registerCycle)}
               {leadershipSection}
             </>,
@@ -861,9 +874,7 @@ export default async function DashboardPage() {
           {centerColumn(
             <>
               {orgActive && workstreamsSection}
-              <div id="dash-setup" className="scroll-mt-24">
-                <ChecklistCard items={taskData.checklist} />
-              </div>
+              {!checklistIncomplete && checklistBlock}
               {!orgActive &&
                 (upcomingCycle ? (
                   registerStateCard(upcomingCycle)
@@ -937,13 +948,12 @@ export default async function DashboardPage() {
         {/* CENTER — what to do now, then the community feed */}
         {centerColumn(
           <>
-            {/* The queue leads (in centerColumn); the checklist is the
-                member's own setup state, right below it. The survey hero,
-                the gate banner, the window cards, and the weekly nudge all
-                live in the queue now — one surface per fact. */}
-            <div id="dash-setup" className="scroll-mt-24">
-              <ChecklistCard items={taskData.checklist} />
-            </div>
+            {/* An unfinished checklist is pinned above the queue (in
+                centerColumn); once complete its collapsed strip settles
+                here. The survey hero, the gate banner, the window cards,
+                and the weekly nudge all live in the queue — one surface
+                per fact. */}
+            {!checklistIncomplete && checklistBlock}
             {leadershipSection}
 
             {/* Interest submitted, pod window not yet open */}
