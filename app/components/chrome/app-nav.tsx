@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { derivePersona, type Persona } from "@/lib/ui/persona";
 import NavSearch from "./nav-search";
 
 /* Destination icons for the mobile top strip (< 768px), ported from the retired
@@ -66,8 +67,8 @@ export interface AppNavProps {
   isTest: boolean;
   /** The label for the Poderator persona — "Co-lead" when every pod this
       member moderates is an org workstream run, "Poderator" otherwise
-      (B-2). Persona derivation from the pathname is unchanged; this only
-      swaps the copy. */
+      (B-2). Persona derivation (lib/ui/persona.ts) picks the persona;
+      this only swaps the copy. */
   moderatorPersonaLabel?: string;
   /** Local Labs (docs/LOCAL_LABS.md): the /lab/[slug] workspace of the
       first lab this member leads; null when they lead none. Adds a "Lab
@@ -89,13 +90,12 @@ export default function AppNav({
   labLeadHref = null,
 }: AppNavProps) {
   const pathname = usePathname() || "";
-  const persona = pathname.startsWith("/admin")
-    ? "admin"
-    : pathname.startsWith("/moderator")
-      ? "poderator"
-      : pathname.startsWith("/lab/")
-        ? "lablead"
-        : null;
+  const persona = derivePersona(pathname, {
+    isAdmin,
+    isModerator,
+    showPods,
+    labLeadHref,
+  });
 
   return (
     <header className="sitenav appnav" id="site-nav">
@@ -253,7 +253,7 @@ function AvatarMenu({
   isAdmin: boolean;
   isModerator: boolean;
   showPods: boolean;
-  persona: "admin" | "poderator" | "lablead" | null;
+  persona: Persona;
   isTest: boolean;
   moderatorPersonaLabel: string;
   labLeadHref: string | null;
