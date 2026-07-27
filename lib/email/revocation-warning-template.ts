@@ -4,12 +4,15 @@
  * pulse-check-reminder-template.ts so subject/HTML/text are consumed
  * the same way by the cron's Resend integration.
  *
- * Two variants today, distinguishing the WHY behind the warning:
+ * Variants distinguishing the WHY behind the warning:
  *
- *   - 'not_in_pod'    — pod_registration_close has passed and the
- *                       participant still has no active pod
- *   - 'missed_pulses' — participant has the configured number of
- *                       consecutive missed pulses
+ *   - 'missed_logs'   — participant (in a pod) has the configured number of
+ *                       consecutive missed weekly Learning Log windows. This
+ *                       is the live reason under the registered/active model.
+ *   - 'missed_pulses' — legacy: consecutive missed pulse checks (kept for
+ *                       historical audit rows / the manual admin sweep).
+ *   - 'not_in_pod'    — legacy: pod_registration_close passed with no pod.
+ *                       No longer written (being pod-less is 'registered').
  *
  * Tone is firm but recoverable. The deadline language is intentionally
  * concrete: "your access will be paused in 3 days" rather than "your
@@ -18,7 +21,10 @@
  * inactive participant can be reactivated by re-engagement.
  */
 
-export type RevocationWarningReason = "not_in_pod" | "missed_pulses";
+export type RevocationWarningReason =
+  | "missed_logs"
+  | "missed_pulses"
+  | "not_in_pod";
 
 type WarningProps = {
   reason: RevocationWarningReason;
@@ -35,6 +41,14 @@ function variantCopy(reason: RevocationWarningReason): {
   cta: string;
 } {
   switch (reason) {
+    case "missed_logs":
+      return {
+        subject: "Your Upskilling Labs cohort access pauses in 3 days",
+        heading: "We haven't heard from you in a while",
+        lede:
+          "You've missed your last few weekly Learning Logs. To stay active in the cohort, please save a Learning Log from your dashboard in the next <strong style=\"color:#ffffff;\">3 days</strong>. After that your cohort access will be paused — but you can rejoin anytime by logging.",
+        cta: "Open your dashboard →",
+      };
     case "not_in_pod":
       return {
         subject: "Your Upskilling Labs cohort access pauses in 3 days",
@@ -56,6 +70,8 @@ function variantCopy(reason: RevocationWarningReason): {
 
 function variantTextLede(reason: RevocationWarningReason): string {
   switch (reason) {
+    case "missed_logs":
+      return "You've missed your last few weekly Learning Logs. To stay active in the cohort, please save a Learning Log from your dashboard in the next 3 days. After that your cohort access will be paused — but you can rejoin anytime by logging.";
     case "not_in_pod":
       return "Pod registration for this cycle has closed and you haven't joined a pod. To stay active in the cohort, please reach out to your cycle organizer or accept a pod invitation in the next 3 days. After that your cohort access will be paused.";
     case "missed_pulses":

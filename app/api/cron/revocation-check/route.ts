@@ -7,13 +7,11 @@ import {
   revocationWarningSubject,
   type RevocationWarningReason,
 } from "@/lib/email/revocation-warning-template";
-// Intentional cross-module import: the at-risk predicate is canonical in
-// lib/moderator/nudges.ts (it powers the poderator dashboard's nudge
-// surface). Reusing it here means the cron's revocation-candidate
-// identification matches what the moderator already sees flagged. If a
-// third caller emerges, extract to lib/engagement/at-risk.ts; YAGNI for
-// now. See roadmap §3.7 (Phase C design decisions).
-import { deriveAtRiskRun } from "@/lib/moderator/nudges";
+// The engagement signal is missed weekly Learning Log windows — the cadence
+// with teeth under the registered/active model. consecutiveMissedLogWeeks
+// reconstructs the weekly windows from the cycle calendar (the Learning Log
+// has no per-window schedule table like pulse_checks).
+import { consecutiveMissedLogWeeks } from "@/lib/learning-logs/at-risk";
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const SEND_DELAY_MS = 200;
@@ -45,15 +43,16 @@ type Outcome = {
  *
  * What's different from the old route
  * -----------------------------------
- *   1. Cycle-scoped queries. The old route's pod check counted
- *      pod_memberships across ALL cycles; this one joins to
- *      pods.cycle_id = current_cycle.id (broken edge #1).
- *   2. deriveAtRiskRun-driven missed-cadence detection. Uses the canonical
- *      predicate from lib/moderator/nudges.ts compared against
- *      cycle_config.at_risk_consecutive_misses (default 2). (Signal
- *      follow-up: this still measures missed PULSE windows; the cadence
- *      with teeth is now the weekly Learning Log — moving the detector
- *      onto missed log windows is tracked separately.)
+ *   1. Cycle-scoped queries. All per-participant reads join to
+ *      cycle_id = current_cycle.id (broken edge #1).
+ *   2. Missed-weekly-Learning-Log detection. consecutiveMissedLogWeeks
+ *      (lib/learning-logs/at-risk.ts) reconstructs the weekly windows from
+ *      the cycle calendar (getCycleWeek) and counts completed weeks with no
+ *      cycle-attributed learning_logs row, compared against
+ *      cycle_config.at_risk_consecutive_misses (default 2). A cycle whose
+ *      log gate is paused (log_gate_paused) is skipped — the whole cohort is
+ *      on holiday. This is the cadence with teeth under the log-gate model,
+ *      replacing the earlier pulse-check signal.
  *   3. Two-stage warn → revoke with 3-day grace. The cron sends a
  *      warning email and stamps warned_at on the first hit; subsequent
  *      ticks check whether warned_at + 3 days has passed before revoking.
@@ -110,18 +109,19 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const nowIso = now.toISOString();
   const dashboardUrl = `${appUrl}/dashboard`;
-  const pulseUrl = `${appUrl}/pulse-check`;
   const resend = getResendClient();
 
   const outcomes: Outcome[] = [];
 
-  // Active cycles with their config (cadence-miss threshold). mode='open'
-  // only — org cycles have no pulse rows, so the ladder below is structurally
-  // inert for them, but scoping here means the warning/revocation emails can
-  // never reach staff.
+  // Active cycles with their calendar (for weekly-window reconstruction) and
+  // config (miss threshold + gate-pause holiday toggle). mode='open' only —
+  // org cycles run the Leadership Log cadence, not this one, so scoping here
+  // means the warning/revocation emails can never reach staff.
   const { data: cycles } = await supabase
     .from("cycles")
-    .select("id, cycle_config(at_risk_consecutive_misses)")
+    .select(
+      "id, start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused)"
+    )
     .eq("status", "active")
     .eq("mode", "open");
 
@@ -136,6 +136,14 @@ export async function GET(request: NextRequest) {
       );
       continue;
     }
+    // A cycle whose Learning Log gate is paused is on holiday — no missed-log
+    // revocations while the whole cohort is exempt.
+    if (config.log_gate_paused) continue;
+    // Weekly windows are reconstructed from the cycle calendar; without both
+    // bounds there's no cadence to measure, so skip.
+    if (!cycle.start_date || !cycle.end_date) continue;
+    const cycleStart = new Date(cycle.start_date);
+    const cycleEnd = new Date(cycle.end_date);
     const missThreshold = config.at_risk_consecutive_misses ?? 2;
 
     // Active enrollments in this cycle, with the participant's identity,
@@ -182,44 +190,31 @@ export async function GET(request: NextRequest) {
 
       // === Reason determination ===
 
-      // Cycle-scoped active pod memberships (fixes architecture review
-      // broken edge #1 — old route counted across all cycles)
-      const { data: membershipRows } = await supabase
-        .from("pod_memberships")
-        .select("id, pods!inner(cycle_id)")
-        .eq("participant_id", pid)
-        .eq("pods.cycle_id", cycleId)
-        .is("inactive_at", null);
-      const activePodCount = (membershipRows ?? []).length;
-
-      // Pulse history for at-risk run derivation
-      const { data: pulseRows } = await supabase
-        .from("pulse_checks")
-        .select("scheduled_date, completed_at")
+      // The one revocation reason under the registered/active model: an in-pod
+      // ('active') member who fell behind the weekly Learning Log cadence.
+      // Being pod-less is no longer a revocation — that member is 'registered'
+      // (the reconciler settles them there) and never enters this loop, which
+      // only iterates status='active' enrollments. So the old "not_in_pod"
+      // ladder is gone.
+      //
+      // consecutiveMissedLogWeeks reconstructs the weekly windows from the
+      // cycle calendar and counts completed weeks with no cycle-attributed
+      // learning_logs row, back from the most recently completed week.
+      const { data: logRows } = await supabase
+        .from("learning_logs")
+        .select("created_at")
         .eq("participant_id", pid)
         .eq("cycle_id", cycleId);
+      const missedWeeks = consecutiveMissedLogWeeks(
+        now,
+        cycleStart,
+        cycleEnd,
+        (logRows ?? []).map((r) => new Date(r.created_at))
+      );
 
       let reason: RevocationWarningReason | null = null;
-
-      // The one revocation reason under the registered/active model: an
-      // in-pod ('active') member who fell behind the weekly cadence. Being
-      // pod-less is no longer a revocation — that member is 'registered'
-      // (the reconciler settles them there) and never enters this loop, which
-      // only iterates status='active' enrollments. So the old window-aware
-      // "not_in_pod" ladder is gone; a member here always has a pod, hence
-      // the activePodCount > 0 guard is now merely defensive against drift.
-      //
-      // NOTE (signal): deriveAtRiskRun still measures missed PULSE windows.
-      // The cadence with teeth is now the weekly Learning Log
-      // (lib/learning-logs/gate.ts); moving this detector onto missed
-      // learning-log windows is the tracked follow-up. The cron is currently
-      // UNSCHEDULED, so this dormant path swaps signal without risk when it
-      // lands.
-      if (!reason && activePodCount > 0) {
-        const run = deriveAtRiskRun(pid, pulseRows ?? []);
-        if (run && run.consecutiveMisses >= missThreshold) {
-          reason = "missed_pulses";
-        }
+      if (missedWeeks >= missThreshold) {
+        reason = "missed_logs";
       }
 
       // === Recovery: clear warned_at if no reason applies but warning was set
@@ -247,7 +242,9 @@ export async function GET(request: NextRequest) {
         // Stage 1: send warning + stamp warned_at
         const firstName =
           participant.preferred_name || participant.first_name || "there";
-        const actionUrl = reason === "missed_pulses" ? pulseUrl : dashboardUrl;
+        // The Learning Log composer lives on the dashboard, so every warning
+        // now points there.
+        const actionUrl = dashboardUrl;
         if (!participant.email) {
           outcomes.push({
             participant_id: pid,
@@ -366,17 +363,11 @@ export async function GET(request: NextRequest) {
     recovered_count: recoveredCount,
     skipped_count: skippedCount,
     breakdown: {
-      not_in_pod_warned: outcomes.filter(
-        (o) => o.action === "warned" && o.reason === "not_in_pod"
+      missed_logs_warned: outcomes.filter(
+        (o) => o.action === "warned" && o.reason === "missed_logs"
       ).length,
-      missed_pulses_warned: outcomes.filter(
-        (o) => o.action === "warned" && o.reason === "missed_pulses"
-      ).length,
-      not_in_pod_revoked: outcomes.filter(
-        (o) => o.action === "revoked" && o.reason === "not_in_pod"
-      ).length,
-      missed_pulses_revoked: outcomes.filter(
-        (o) => o.action === "revoked" && o.reason === "missed_pulses"
+      missed_logs_revoked: outcomes.filter(
+        (o) => o.action === "revoked" && o.reason === "missed_logs"
       ).length,
     },
     outcomes,
