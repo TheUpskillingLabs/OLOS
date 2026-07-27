@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { windowOpen, fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { windowOpen, fmtLabDateTime, fmtDateOnly } from "@/lib/cycles/lab-time";
 import { registrationWindow } from "@/lib/cycles/schedule";
 import { redirect } from "next/navigation";
 import { Calendar } from "lucide-react";
@@ -727,8 +727,8 @@ export default async function DashboardPage() {
                       {cycle.name}
                     </span>
                     <span className="mt-0.5 block text-xs text-meta">
-                      {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                      {new Date(cycle.end_date).toLocaleDateString()}
+                      {fmtDateOnly(cycle.start_date)} &ndash;{" "}
+                      {fmtDateOnly(cycle.end_date)}
                     </span>
                   </span>
                   <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
