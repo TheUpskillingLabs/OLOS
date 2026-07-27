@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 /* The phone-only "Up next" strip — a horizontally-swipeable row of compact
    chips condensing the task cards that lead the desktop center column (log
-   due, field survey, register, open cycle windows, setup, leadership log).
+   due, register, open cycle windows, setup, leadership log).
    On <768px the feed follows immediately after this strip (feed-first,
    LinkedIn posture); the full task cards land below the feed instead.
 
