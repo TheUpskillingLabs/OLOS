@@ -6,6 +6,13 @@ metadata from `lib/cycles/windows.ts`. Read this before adding any
 task-shaped UI anywhere — new task renderings belong here, not inline in a
 page.
 
+Before writing code to push a one-off ask onto members' dashboards, check
+whether `/admin/tasks` covers it: admins author `custom_tasks` rows (00093)
+that the assembler merges into the queue as kind `custom` — title, link,
+optional cycle scope, visibility window/deadline, pinned + dismissible
+flags. The same page previews any member's live queue (`?preview=email`,
+`lib/tasks/preview.ts`).
+
 ## The one rule a member learns
 
 - **Dashboard = my queue.** `TaskList` ("Up next") — actionable, personal,

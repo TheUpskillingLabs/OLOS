@@ -22,6 +22,7 @@ import {
   surveyShareTaskKey,
   whatsNextTaskKey,
   leadershipLogTaskKey,
+  customTaskKey,
 } from "./keys";
 
 export interface TaskInputs {
@@ -69,6 +70,20 @@ export interface TaskInputs {
   /** Present only when the member has logged this cycle week and an admin
       message exists for it (the wrapper mirrors the page's guard). */
   whatsNext: { cycleId: number; week: number; message: string } | null;
+
+  /** Admin-authored tasks (custom_tasks, 00093) — already filtered by the
+      wrapper to live rows within their visibility window and audience. */
+  customTasks: {
+    id: number;
+    title: string;
+    detail: string | null;
+    href: string;
+    cta: string | null;
+    /** ends_at, doubling as the displayed deadline. */
+    deadline: string | null;
+    pinned: boolean;
+    dismissible: boolean;
+  }[];
 
   /** The member's task_dismissals keys. */
   dismissedKeys: ReadonlySet<string>;
@@ -247,6 +262,28 @@ export function assembleTasks(input: TaskInputs): Task[] {
       tone: "default",
       blocking: false,
       dismissible: false,
+      done: false,
+      surface: "queue",
+    });
+  }
+
+  /* ── Admin-authored tasks (custom_tasks) ────────────────────────────── */
+  for (const c of input.customTasks) {
+    tasks.push({
+      defId: `custom:${c.id}`,
+      kind: "custom",
+      instanceKey: customTaskKey(c.id),
+      title: c.title,
+      detail: c.detail ?? undefined,
+      href: c.href,
+      external: /^https?:\/\//i.test(c.href),
+      hashLink: c.href.startsWith("#"),
+      cta: c.cta ?? undefined,
+      deadline: c.deadline,
+      priority: c.pinned ? PRIORITY.pinned : PRIORITY.custom,
+      tone: c.pinned ? "teal" : "default",
+      blocking: false,
+      dismissible: c.dismissible,
       done: false,
       surface: "queue",
     });

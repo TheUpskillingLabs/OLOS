@@ -76,6 +76,12 @@ export function whatsNextTaskKey(cycleId: number, week: number): string {
   return `whats_next:c${cycleId}:w${week}`;
 }
 
+/** An admin-authored task (custom_tasks) — the row id IS the occurrence:
+    a re-announcement is a new row, so dismissals never bleed across. */
+export function customTaskKey(customTaskId: number): string {
+  return `custom:${customTaskId}`;
+}
+
 /** A leadership-log scope's weekly duty — per (tier, cycle, pod|lab). Not
     dismissible (submitting resolves it). */
 export function leadershipLogTaskKey(

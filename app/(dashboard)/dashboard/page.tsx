@@ -18,6 +18,7 @@ import {
 } from "@/lib/cycle/milestones";
 import { selectMemberCycles } from "@/lib/cycle/active";
 import { dashboardTasks } from "@/lib/tasks/tasks";
+import { SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
 import {
   TaskList,
   ChecklistCard,
@@ -476,10 +477,9 @@ export default async function DashboardPage() {
 
   // The Slack row shipped in PR #287 (deployed 2026-07-21). Members created
   // before then were onboarded without it - only new signups see the row.
-  const SLACK_ROW_SINCE = Date.parse("2026-07-21T00:00:00Z");
   const slackRowVisible =
     !!participant.created_at &&
-    Date.parse(participant.created_at) >= SLACK_ROW_SINCE;
+    Date.parse(participant.created_at) >= Date.parse(SLACK_ROW_SINCE_ISO);
 
   // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
   // default 1). The dashboard is optimized for the one-pod case but honors a

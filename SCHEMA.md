@@ -277,6 +277,21 @@ erDiagram
         timestamptz dismissed_at
     }
 
+    custom_tasks {
+        int id PK
+        text title
+        text detail
+        text href
+        text cta
+        int cycle_id FK
+        timestamptz starts_at
+        timestamptz ends_at
+        boolean pinned
+        boolean dismissible
+        int created_by FK
+        timestamptz archived_at
+    }
+
     participants ||--o{ cycle_enrollments : "joins"
     cycles ||--o{ cycle_enrollments : "contains"
     participants ||--o{ cycle_agreements : "signs"
@@ -287,6 +302,8 @@ erDiagram
     participants ||--o{ pulse_checks : "completes"
     cycles ||--o{ pulse_checks : "schedules"
     participants ||--o{ task_dismissals : "dismisses"
+    cycles ||--o{ custom_tasks : "scopes"
+    participants ||--o{ custom_tasks : "authors"
 ```
 
 ---
@@ -906,6 +923,7 @@ erDiagram
 | `survey_questions` | Data Sensemaker | Builder-defined survey questions (data-driven flow); system questions back-point to legacy response columns |
 | `survey_response_answers` | Data Sensemaker | Generic per-question answers for custom (non-system) questions |
 | `task_dismissals` | Practice | Per-member dismissals of dismissible dashboard task instances (00092). The `task_key` encodes the occurrence (`lib/tasks/keys.ts`), so recurring tasks re-fire under a new key — modeled on `nudge_dismissals` (00023), member-global instead of per-pod. Replaces the localStorage dismissal stores |
+| `custom_tasks` | Practice | Admin-authored member tasks (00093, `/admin/tasks`): title/detail/link/CTA, optional cycle scope (NULL = program-global), optional visibility window (`ends_at` doubles as the displayed deadline), `pinned` (sorts under the gate) and `dismissible` flags. Merged into the queue by `lib/tasks/assemble.ts` as kind `custom`; retired via `archived_at`, never deleted |
 | `testers` | Testing | Email-keyed tester grant — survives the tester's full self-reset |
 | `workstreams` | Org Cycles | Durable, cross-cycle unit of internal org work; runs are `pods` rows (`workstream_id`) |
 | `project_roles` | Org Cycles | Promoted IC role on a project (`dri`/`contributor`), one active per person per project |

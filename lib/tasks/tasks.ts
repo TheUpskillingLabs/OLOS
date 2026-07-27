@@ -78,16 +78,18 @@ export async function dashboardTasks(
   const supabase = createServiceClient();
   const now = ctx.now ?? new Date();
 
-  const [phasesResult, dismissedKeys, whatsNext] = await Promise.all([
-    ctx.activeCycle
-      ? supabase
-          .from("cycle_phases")
-          .select("phase_key, starts_at, ends_at")
-          .eq("cycle_id", ctx.activeCycle.id)
-      : Promise.resolve({ data: null }),
-    dismissedTaskKeys(ctx.participantId),
-    resolveWhatsNext(ctx, now),
-  ]);
+  const [phasesResult, dismissedKeys, whatsNext, customTasks] =
+    await Promise.all([
+      ctx.activeCycle
+        ? supabase
+            .from("cycle_phases")
+            .select("phase_key, starts_at, ends_at")
+            .eq("cycle_id", ctx.activeCycle.id)
+        : Promise.resolve({ data: null }),
+      dismissedTaskKeys(ctx.participantId),
+      resolveWhatsNext(ctx, now),
+      resolveCustomTasks(ctx, now),
+    ]);
 
   const phases = phasesResult.data;
   const windowStates = ctx.activeCycle
@@ -119,6 +121,7 @@ export async function dashboardTasks(
     fieldSurvey: ctx.fieldSurvey,
     surveyContributed: ctx.surveyContributed,
     whatsNext,
+    customTasks,
     dismissedKeys,
   });
 
@@ -129,6 +132,42 @@ export async function dashboardTasks(
     windowStates,
     dismissedKeys,
   };
+}
+
+/* Admin-authored tasks (custom_tasks, 00093): live rows inside their
+   visibility window, audience-filtered — program-global rows go to
+   everyone; cycle-scoped rows only to members engaged in that cycle. */
+async function resolveCustomTasks(
+  ctx: DashboardTaskContext,
+  now: Date
+): Promise<TaskInputs["customTasks"]> {
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("custom_tasks")
+    .select("id, title, detail, href, cta, cycle_id, starts_at, ends_at, pinned, dismissible")
+    .is("archived_at", null)
+    .order("created_at", { ascending: true });
+
+  const nowMs = now.getTime();
+  return (data ?? [])
+    .filter((t) => {
+      if (t.cycle_id != null) {
+        if (!ctx.engaged || t.cycle_id !== ctx.activeCycle?.id) return false;
+      }
+      if (t.starts_at && Date.parse(t.starts_at) > nowMs) return false;
+      if (t.ends_at && Date.parse(t.ends_at) <= nowMs) return false;
+      return true;
+    })
+    .map((t) => ({
+      id: t.id,
+      title: t.title,
+      detail: t.detail,
+      href: t.href,
+      cta: t.cta,
+      deadline: t.ends_at,
+      pinned: t.pinned,
+      dismissible: t.dismissible,
+    }));
 }
 
 /* The per-week "what's next" nudge (weekly_messages — program-global, the

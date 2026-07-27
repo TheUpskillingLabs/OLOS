@@ -12,6 +12,7 @@ import {
   Megaphone,
   CalendarDays,
   ClipboardList,
+  ListTodo,
   MessageSquare,
   Database,
   ShieldAlert,
@@ -90,6 +91,12 @@ const BASE_ITEMS: NavItem[] = [
     label: "Weekly messages",
     Icon: CalendarDays,
     match: (p) => p.startsWith("/admin/weekly-messages"),
+  },
+  {
+    href: "/admin/tasks",
+    label: "Member tasks",
+    Icon: ListTodo,
+    match: (p) => p.startsWith("/admin/tasks"),
   },
   {
     href: "/admin/surveys",

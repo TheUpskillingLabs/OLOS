@@ -30,6 +30,8 @@ export type TaskKind =
   | "whats_next"
   /** The org lead tiers' weekly Leadership Log (non-blocking). */
   | "leadership_log"
+  /** An admin-authored task (custom_tasks, 00093 — /admin/tasks). */
+  | "custom"
   /** Account housekeeping checklist rows (profile, follow, Slack). */
   | "setup";
 

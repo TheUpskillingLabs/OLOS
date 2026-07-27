@@ -23,6 +23,9 @@ export const PRIORITY = {
   windowBase: 40,
   leadership: 50,
   surveyShare: 52,
+  /** Admin-authored tasks (custom_tasks) — unless pinned, which sorts at
+      the `pinned` band above. */
+  custom: 55,
   whatsNext: 60,
   /** Checklist rows — ordered among themselves, never in the queue. */
   setupBase: 90,
@@ -78,6 +81,11 @@ export const TASK_COPY = {
   },
   windowDetailPrefix: "Open now — closes",
 } as const;
+
+/** The Slack checklist row shipped in PR #287 (deployed 2026-07-21) —
+    members created before then were onboarded without it; only newer
+    signups see the row. */
+export const SLACK_ROW_SINCE_ISO = "2026-07-21T00:00:00Z";
 
 export const SLACK_INVITE_FALLBACK =
   "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ";

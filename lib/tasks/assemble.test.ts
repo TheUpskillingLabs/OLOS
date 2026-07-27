@@ -32,6 +32,7 @@ const baseInputs = (overrides: Partial<TaskInputs> = {}): TaskInputs => ({
   fieldSurvey: null,
   surveyContributed: false,
   whatsNext: null,
+  customTasks: [],
   dismissedKeys: new Set<string>(),
   ...overrides,
 });
@@ -256,6 +257,63 @@ describe("assembleTasks — checklist", () => {
       baseInputs({ dismissedKeys: new Set([CHECKLIST_HIDE_KEY]) })
     ).filter((t) => t.surface === "checklist");
     expect(rows).toEqual([]);
+  });
+});
+
+describe("assembleTasks — custom (admin-authored) tasks", () => {
+  const custom = (overrides: Partial<TaskInputs["customTasks"][number]> = {}) => ({
+    id: 7,
+    title: "RSVP for the Summit",
+    detail: "Seats are limited.",
+    href: "https://lu.ma/summit",
+    cta: "RSVP",
+    deadline: "2026-08-01T17:00:00+00:00",
+    pinned: false,
+    dismissible: true,
+    ...overrides,
+  });
+
+  it("emits an authored task with its row id as the occurrence key", () => {
+    const tasks = assembleTasks(baseInputs({ customTasks: [custom()] }));
+    const t = tasks.find((x) => x.defId === "custom:7");
+    expect(t?.instanceKey).toBe("custom:7");
+    expect(t?.kind).toBe("custom");
+    expect(t?.external).toBe(true);
+    expect(t?.deadline).toBe("2026-08-01T17:00:00+00:00");
+  });
+
+  it("pinned sorts into the reserved band right under the gate", () => {
+    const input = baseInputs({
+      customTasks: [custom({ pinned: true, dismissible: false })],
+      registerCycle: { id: 14, name: "Cycle 14", upcoming: false },
+      registerOpen: true,
+      registerDone: false,
+    });
+    const queue = assembleTasks(input).filter((t) => t.surface === "queue");
+    expect(queue.map((t) => t.defId)).toEqual(["custom:7", "register"]);
+  });
+
+  it("a dismissed custom task stays hidden; a new row re-fires", () => {
+    const dismissed = new Set(["custom:7"]);
+    expect(
+      queueIds(baseInputs({ customTasks: [custom()], dismissedKeys: dismissed }))
+    ).not.toContain("custom:7");
+    expect(
+      queueIds(
+        baseInputs({
+          customTasks: [custom({ id: 8 })],
+          dismissedKeys: dismissed,
+        })
+      )
+    ).toContain("custom:8");
+  });
+
+  it("a non-dismissible custom task ignores dismissals", () => {
+    const input = baseInputs({
+      customTasks: [custom({ dismissible: false })],
+      dismissedKeys: new Set(["custom:7"]),
+    });
+    expect(queueIds(input)).toContain("custom:7");
   });
 });
 

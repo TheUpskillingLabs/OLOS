@@ -81,11 +81,16 @@ export default function TaskCard({
   onDismiss?: (task: Task) => void;
 }) {
   const variant = variantFor(task);
-  const detail =
-    task.detail ??
-    (task.deadline
-      ? `Open now — closes ${fmtLabDateTime(task.deadline)}`
-      : undefined);
+  // The deadline line — phrased by kind (a window "closes"; an authored
+  // task is "due"), formatted here so callers never format instants. When
+  // the task also carries a detail, both render.
+  const deadlineLine = task.deadline
+    ? task.kind === "custom"
+      ? `Due ${fmtLabDateTime(task.deadline)}`
+      : `Open now — closes ${fmtLabDateTime(task.deadline)}`
+    : null;
+  const detail = task.detail ?? deadlineLine;
+  const extraDeadline = task.detail && deadlineLine ? deadlineLine : null;
   const dismissable = task.dismissible && !task.blocking && !!onDismiss;
 
   // On phones the title is the whole-card tap target (the strip contract);
@@ -126,6 +131,11 @@ export default function TaskCard({
       {detail && (
         <p className="mt-1 text-xs text-meta max-md:line-clamp-2 md:text-sm">
           {detail}
+        </p>
+      )}
+      {extraDeadline && (
+        <p className="mt-1 text-xs font-semibold text-teal-deep tabular-nums">
+          {extraDeadline}
         </p>
       )}
       {(task.cta || task.secondaryHref) && (
