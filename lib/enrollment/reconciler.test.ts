@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-/* The reconciler is THE single write path for the enrollment lifecycle
-   (§3.7). These tests pin its contract with a hand-rolled Supabase mock:
+/* The reconciler is THE single write path for the registered <-> active
+   enrollment lifecycle. These tests pin its contract with a hand-rolled
+   Supabase mock:
    - no enrollment row → no mutation
-   - membership reality decides the target status
+   - membership reality decides the target ('active' vs 'registered')
    - already-correct status → no write
-   - demotion with logRevocation → audit row */
+   - it NEVER writes 'inactive'; a demote from active lands at 'registered'
+   - exits ('inactive'/'revoked') are sticky unless opts.recover re-derives */
 
 const state: {
   enrollment: { id: number; status: string } | null;
@@ -128,20 +130,20 @@ describe("reconcileEnrollmentActivation", () => {
     expect(state.updates).toHaveLength(0);
   });
 
-  it("promotes to active when an active-pod membership exists", async () => {
-    state.enrollment = { id: 10, status: "inactive" };
+  it("promotes registered → active when an active-pod membership exists", async () => {
+    state.enrollment = { id: 10, status: "registered" };
     state.memberships = [activePod];
     const result = await reconcileEnrollmentActivation(7, 1);
-    expect(result).toMatchObject({ before: "inactive", after: "active", mutated: true });
+    expect(result).toMatchObject({ before: "registered", after: "active", mutated: true });
     expect(state.updates[0]).toMatchObject({ status: "active", inactive_date: null });
   });
 
-  it("a forming pod is not enough to activate", async () => {
-    state.enrollment = { id: 10, status: "inactive" };
+  it("a forming pod is not enough to activate — stays registered", async () => {
+    state.enrollment = { id: 10, status: "registered" };
     state.memberships = [formingPod];
     const result = await reconcileEnrollmentActivation(7, 1);
     expect(result.mutated).toBe(false);
-    expect(result.after).toBe("inactive");
+    expect(result.after).toBe("registered");
   });
 
   it("is idempotent when status already matches reality", async () => {
@@ -152,27 +154,43 @@ describe("reconcileEnrollmentActivation", () => {
     expect(state.updates).toHaveLength(0);
   });
 
-  it("demotes and audits when asked (the cron path)", async () => {
-    state.enrollment = { id: 10, status: "active" };
-    state.memberships = [];
-    const result = await reconcileEnrollmentActivation(7, 1, {
-      logRevocation: true,
-      reason: "test",
-    });
-    expect(result).toMatchObject({ after: "inactive", mutated: true, audited: true });
-    expect(state.inserts[0].row).toMatchObject({
-      participant_id: 7,
-      cycle_id: 1,
-      reason: "test",
-    });
-  });
-
-  it("demotes silently without logRevocation (mechanical after-leave path)", async () => {
+  it("demotes active → registered when the last active pod is gone (never inactive, no audit)", async () => {
     state.enrollment = { id: 10, status: "active" };
     state.memberships = [];
     const result = await reconcileEnrollmentActivation(7, 1);
-    expect(result.audited).toBe(false);
-    expect(state.inserts).toHaveLength(0);
+    expect(result).toMatchObject({ before: "active", after: "registered", mutated: true });
+    expect(state.updates[0]).toMatchObject({ status: "registered", inactive_date: null });
+    expect(state.inserts).toHaveLength(0); // reconciler never writes access_revocations
+  });
+
+  it("leaves an inactive exit sticky — does not undo a revocation", async () => {
+    state.enrollment = { id: 10, status: "inactive" };
+    state.memberships = [activePod];
+    const result = await reconcileEnrollmentActivation(7, 1);
+    expect(result.mutated).toBe(false);
+    expect(result.after).toBe("inactive");
+    expect(state.updates).toHaveLength(0);
+  });
+
+  it("recover re-derives an inactive row from pod reality and clears the exit bookkeeping", async () => {
+    state.enrollment = { id: 10, status: "inactive" };
+    state.memberships = [activePod];
+    const result = await reconcileEnrollmentActivation(7, 1, { recover: true });
+    expect(result).toMatchObject({ before: "inactive", after: "active", mutated: true });
+    expect(state.updates[0]).toMatchObject({
+      status: "active",
+      inactive_date: null,
+      warned_at: null,
+      warning_reason: null,
+    });
+  });
+
+  it("recover with no active pod lands the member at registered", async () => {
+    state.enrollment = { id: 10, status: "inactive" };
+    state.memberships = [];
+    const result = await reconcileEnrollmentActivation(7, 1, { recover: true });
+    expect(result).toMatchObject({ after: "registered", mutated: true });
+    expect(state.updates[0]).toMatchObject({ status: "registered", warned_at: null });
   });
 });
 
@@ -184,7 +202,7 @@ describe("ensureActivePodMembership", () => {
 
   it("inserts a new pod_memberships row, seeds cycle_enrollments, and reconciles", async () => {
     state.membershipRow = null;
-    state.enrollment = { id: 20, status: "inactive" };
+    state.enrollment = { id: 20, status: "registered" };
     state.memberships = [activePod];
 
     await ensureActivePodMembership(7, 6, 2);
@@ -218,7 +236,7 @@ describe("ensureActivePodMembership", () => {
     // this helper for org runs — the helper must tolerate the row it didn't
     // create and still seed + reconcile the enrollment.
     state.membershipRow = { id: 99, inactive_at: null };
-    state.enrollment = { id: 20, status: "inactive" };
+    state.enrollment = { id: 20, status: "registered" };
     state.memberships = [activePod];
 
     await ensureActivePodMembership(7, 6, 2);

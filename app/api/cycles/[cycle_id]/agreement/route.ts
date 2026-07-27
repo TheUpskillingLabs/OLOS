@@ -163,8 +163,8 @@ export const POST = withAuth(
       return dbError(aError, "cycle-agreement");
     }
 
-    // Ensure the interest enrollment exists (status='inactive' — the same
-    // row the interest endpoint creates; never an activation).
+    // Ensure the interest enrollment exists (status='registered' — the same
+    // row the interest endpoint creates; never an activation — pods do that).
     const { data: existingEnrollment } = await supabase
       .from("cycle_enrollments")
       .select("id")
@@ -176,7 +176,7 @@ export const POST = withAuth(
       const { error: enError } = await supabase.from("cycle_enrollments").insert({
         participant_id: participantId,
         cycle_id: cycleId,
-        status: "inactive",
+        status: "registered",
       });
       if (enError) {
         return dbError(enError, "cycle-agreement-enrollment");

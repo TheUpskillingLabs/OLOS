@@ -11,26 +11,27 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  *
  * Operator-driven trigger for the Phase A reconciler. Used by the
  * "Run reconciler" button on the admin participants-table filter for
- * "stuck inactive" enrollments — participants whose cycle_enrollments
- * row is 'inactive' AND who have no access_revocations entry, meaning
- * they were never legitimately revoked, just never activated in the
- * first place (architecture review broken edge #15).
+ * "stuck registered" enrollments — participants whose cycle_enrollments
+ * row is 'registered' despite already holding an active pod membership,
+ * meaning the reconciler never fired for them (architecture review broken
+ * edge #15).
  *
  * Body: { cycle_id: number }
  * Auth: withAdminAuth
- * Returns: { participantId, cycleId, before, after, mutated, audited }
+ * Returns: { participantId, cycleId, before, after, mutated }
  *          (the full ReconcileResult so the UI can show what changed)
  *
  * Behavior
  * --------
- * Calls reconcileEnrollmentActivation with no logRevocation flag. The
+ * Calls reconcileEnrollmentActivation with no recover flag. The
  * reconciler is idempotent:
  *   - If the participant has at least one active pod_membership in an
  *     active pod, status flips to 'active' and the result reports
  *     mutated=true, after='active'
- *   - If they have no active memberships, the reconciler leaves status
- *     as-is (also no-op) OR demotes to 'inactive' depending on current
- *     state. Either way it's safe to call.
+ *   - If they have no active memberships, the reconciler settles them at
+ *     'registered' (never 'inactive' — that is an engagement exit owned by
+ *     the revocation cron). An 'inactive'/'revoked' row is left untouched
+ *     (exits are sticky; use the reactivate route to recover). Safe to call.
  *
  * Architecture alignment
  * ----------------------
@@ -40,8 +41,9 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
  *     active, downstream resource provisioning would fire if/when that
  *     code lands. Same gap as B.7's pod-status override; not coded
  *     anywhere yet.
- *   - Brief invariant #5 (audit): reconciler writes access_revocations
- *     only on demotion + opts.logRevocation. Admin-triggered activation
+ *   - Brief invariant #5 (audit): the reconciler no longer writes
+ *     access_revocations at all — engagement exits (and their audit rows)
+ *     are owned by the cron / admin sweep. Admin-triggered activation
  *     doesn't need a revocation row; the StatusBadge in the UI is
  *     itself the visible record.
  *

@@ -18,6 +18,8 @@ import {
   type EligibleLogCycle,
 } from "@/lib/learning-logs/eligible";
 import { pendingBaselineCycles } from "@/lib/learning-logs/baseline";
+import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
+import type { ParticipantStatus } from "@/lib/auth/roles";
 import { getCycleWeek } from "@/lib/cycle/week";
 import {
   milestoneKindForWeek,
@@ -83,6 +85,11 @@ export const POST = withAuth(
     let chosenCycleId: number | null = null;
     let chosenCycleMode: string | null = null;
     let chosenCycleStatus: string | null = null;
+    // The member's ENROLLMENT status in the chosen cycle (distinct from
+    // chosenCycleStatus, which is the cycle's own liveness). Only set on the
+    // non-baseline path, where the cycle comes from eligibleLogCycles (which
+    // carries it). Drives the recover-on-log promotion below.
+    let chosenEnrollmentStatus: ParticipantStatus | null = null;
     let cycleStart: Date | null = null;
     let cycleEnd: Date | null = null;
     let kind: "weekly" | "baseline" | MilestoneKind = "weekly";
@@ -183,8 +190,10 @@ export const POST = withAuth(
 
       chosenCycleId = chosenCycle?.id ?? null;
       chosenCycleMode = chosenCycle?.mode ?? null;
-      // eligibleLogCycles only ever returns status='active' cycles.
+      // eligibleLogCycles only ever returns cycles whose own status='active'.
       chosenCycleStatus = chosenCycle ? "active" : null;
+      // …but the member's ENROLLMENT in it may be registered/active/inactive.
+      chosenEnrollmentStatus = chosenCycle?.status ?? null;
     }
 
     // Work-log fields (00069) belong to the org member tier only — persist
@@ -269,6 +278,18 @@ export const POST = withAuth(
       .select("id, created_at")
       .single();
     if (error || !log) return dbError(error, "learning-log");
+
+    // Recover-on-log: filing a qualifying log against a cycle the member was
+    // flagged 'inactive' in (missed the cadence) clears the engagement exit.
+    // recover:true re-derives from pod reality — they're still in their pod,
+    // so they land back at 'active' (else 'registered'); it also clears
+    // inactive_date / warned_at. Standalone/baseline logs (no cycle) can't
+    // recover anything, so this only fires for a real cycle attribution.
+    if (chosenEnrollmentStatus === "inactive" && chosenCycleId != null) {
+      await reconcileEnrollmentActivation(participantId, chosenCycleId, {
+        recover: true,
+      });
+    }
 
     // Baseline companion row (the eight answers), mapped 1:1 from
     // body.baseline. If this insert fails after the learning_logs row landed,
