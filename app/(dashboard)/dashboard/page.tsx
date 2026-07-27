@@ -49,6 +49,7 @@ import LeadershipLogCard, {
   type LeadershipCardScope,
 } from "./leadership-log-card";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -60,9 +61,7 @@ const STATUS_VARIANT: Record<CycleStatus, "active" | "inactive" | "draft"> = {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   if (!user) redirect("/login");
 

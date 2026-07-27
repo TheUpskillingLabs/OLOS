@@ -4,6 +4,7 @@ import { ArrowRight, ChevronLeft, ExternalLink } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { notFound } from "next/navigation";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 interface ProposalData {
   about?: { background?: string };
@@ -66,9 +67,7 @@ export default async function ProposalsGalleryPage({
   );
   const votingOpen = windowOpen(config?.voting_open, config?.voting_close, now);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   const { data: me } = user
     ? await supabase

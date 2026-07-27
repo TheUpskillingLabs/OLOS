@@ -16,6 +16,7 @@ import CharterProjectForm from "./charter-project-form";
 import FollowButton from "@/app/components/follow-button";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 // Matches pods_status_check (00063): forming/active/inactive/dissolved.
 type PodStatus = "active" | "forming" | "inactive" | "dissolved";
@@ -39,9 +40,7 @@ export default async function PodDetailPage({
   const supabase = await createClient();
   const serviceClient = createServiceClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   const { data: pod } = await supabase
     .from("pods")

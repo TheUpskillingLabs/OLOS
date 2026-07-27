@@ -193,6 +193,65 @@ Maps 1:1 onto the spec's required JWT claim set:
 
 ---
 
+## Member-view simulation — "View as" (July 2026)
+
+[`lib/auth/simulation.ts`](./simulation.ts) lets an admin render the **member**
+surfaces as a chosen participant, **read-only**, to debug what that person
+actually sees. Entry point: `/admin/people` → open a member → **View as**.
+
+Do not confuse it with the avatar menu's older *View as* control
+(`app/components/chrome/app-nav.tsx`), which is a navigation lens — a set of
+`<Link>`s to `/dashboard` · `/moderator` · `/lab/…` · `/admin`. That one never
+changes identity. This one does.
+
+**Pieces**
+
+| File | Role |
+|---|---|
+| [`simulation.ts`](./simulation.ts) | `signSimulation`/`verifySimulation` (HMAC over the cookie, keyed on `SUPABASE_SERVICE_ROLE_KEY`), `simulationContext()` (the authoritative per-request check), `effectiveUser()` (the identity member pages render for), `loadSimulationTarget()` (who is a legal target) |
+| [`simulation-cookie.ts`](./simulation-cookie.ts) | Just the cookie name, so the edge proxy can import it without `node:crypto` |
+| `app/api/admin/simulate/route.ts` | `POST` starts, `DELETE` stops |
+| `app/api/admin/simulate/exit/route.ts` | `GET` — the banner's Exit link |
+| `app/components/chrome/simulation-banner.tsx` | The always-visible marker + escape hatch |
+| `supabase/migrations/00092_simulation_sessions.sql` | Audit trail |
+
+**Four invariants**
+
+1. **Read-only.** Every non-GET is blocked while the cookie is set — coarsely in
+   [`proxy.ts`](../../proxy.ts) (presence check, edge, no crypto) and
+   authoritatively in [`withAuth`](./middleware.ts) (signature-verified).
+   `/api/admin/simulate` is exempt so exiting always works. The repo has **no
+   Server Actions**, so every mutation is an `/api/*` request and passes through
+   both layers — if that ever changes, this block needs a third layer.
+2. **Never an escalation.** Targets must hold no `owner`/`admin`/`developer` row
+   in `participant_roles`, and the actor's admin status is re-resolved from
+   Postgres on **every** request — revoking an admin kills their in-flight
+   simulations. On the prod project (`lib/env/project.ts`) the actor must be an
+   owner; any admin elsewhere.
+3. **Not an authority change.** `requireAdmin`/`requireOwner`/`requireLabLead`
+   in [`guards.ts`](./guards.ts) and every `/api/*` handler keep reading the
+   **real** user. Simulation swaps who the member *pages* render for, never who
+   a request is authorized as. (This is also why `/admin` stays reachable while
+   simulating — you can always get back out.)
+4. **Bound to the actor's session.** The cookie carries the actor's auth id and
+   is rejected in anyone else's session, so a copied cookie is inert.
+
+**Targets must have signed in.** Every member page resolves identity with
+`.eq("auth_user_id", user.id)`, so a participant with `auth_user_id IS NULL`
+(seeded or imported, never signed in) would render an empty app rather than
+their view. `loadSimulationTarget` rejects them and the People sheet disables
+the button.
+
+**Known divergence — app vs. RLS.** `createClient()` still carries the *actor's*
+JWT, so Postgres RLS (`auth.uid()`, `is_admin()`) still sees the admin. Member
+pages read almost exclusively through `createServiceClient()` (RLS bypassed), so
+this is invisible in practice; where it isn't, the admin's access is a superset,
+so a simulated view can show slightly **more** than the member sees, never less.
+Consistent with the design-intent note in `docs/audit/DESIGN_INTENT.md` — "View-as
+is a lens, gating is server-side."
+
+---
+
 ## Invitation flow (admin → invitee)
 
 This is the custom-token flow that powers Wave 1 onboarding. It is **not**

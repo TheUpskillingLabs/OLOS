@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { isModeratorForCycle } from "@/lib/auth/moderator";
 import { StatCard } from "@/app/components/ui";
+import { effectiveUser } from "@/lib/auth/simulation";
 import {
   getFieldSurveyBySlug,
   getFieldSurveyQuestions,
@@ -53,10 +54,7 @@ export default async function SurveyResultsPage({
 }) {
   const { slug } = await params;
 
-  const authClient = await createClient();
-  const {
-    data: { user },
-  } = await authClient.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect(`/login`);
 
   const survey = await getFieldSurveyBySlug(slug);

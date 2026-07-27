@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AlertTriangle, Users } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
 import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
@@ -19,6 +19,7 @@ import { PodContentTabs } from "./pod-content-tabs";
 import PodSquadSections from "./pod-squad-sections";
 import PodMilestoneLogs from "./pod-milestone-logs";
 import { podNoun } from "@/lib/cycle/labels";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 export const dynamic = "force-dynamic";
 
@@ -45,10 +46,7 @@ export default async function ModeratorPodPage({
   const podId = Number.parseInt(pod_id, 10);
   if (Number.isNaN(podId)) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect("/login");
 
   const serviceClient = createServiceClient();

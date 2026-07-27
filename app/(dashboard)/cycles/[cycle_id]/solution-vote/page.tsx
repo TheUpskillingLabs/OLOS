@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import SolutionBallot from "./solution-ballot";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 export default async function SolutionVotePage({
   params,
@@ -39,9 +40,7 @@ export default async function SolutionVotePage({
   const closeAt = parseWindow(config?.solution_voting_close);
   const isOpen = openAt !== null && closeAt !== null && now >= openAt && now <= closeAt;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   let myPods: { id: number; name: string | null }[] = [];
   let hasSubmitted = false;

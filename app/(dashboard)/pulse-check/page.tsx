@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles } from "@/lib/auth/roles";
 import PulseCheckForm from "./pulse-check-form";
 import PulseCheckLocked from "./pulse-check-locked";
 import { copy } from "./copy";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -20,10 +21,7 @@ function computeStatus(deadlineMs: number, now: number): EnforcementStatus {
 }
 
 export default async function PulseCheckPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect("/login");
 
   const service = createServiceClient();

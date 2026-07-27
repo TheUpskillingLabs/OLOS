@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getEvents, getResources } from "@/lib/content/queries";
 import { getSavedSlugs } from "@/lib/content/saved";
 import { EventTeaser, ResourceTeaser } from "@/app/components/content/teasers";
 import EventsAgenda from "@/app/components/content/events-agenda";
 import SaveButton from "./save-button";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 /* Learning — the signed-in catalog (onboarding-proto's panel-learning): the
    full Events + Library grids plus a "Saved" vertical from the member's hearts.
@@ -22,10 +23,7 @@ export const metadata = {
 };
 
 export default async function LearningPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect("/login");
 
   const service = createServiceClient();

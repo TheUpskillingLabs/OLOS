@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { windowOpen, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { registrationWindow } from "@/lib/cycles/schedule";
 import CycleCeremony from "./ceremony";
 import { cycleInfoContent } from "@/lib/cycles/info";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
 // FLOWS('cycle') → the Open Cycle Agreement signature → view-cycle-signed).
@@ -23,10 +24,7 @@ export default async function JoinCyclePage({
   const cycleId = parseInt(cycle_id, 10);
   if (isNaN(cycleId)) redirect("/cycles");
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   if (!user) redirect("/login");
 
