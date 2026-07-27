@@ -270,6 +270,13 @@ erDiagram
         timestamp created_at
     }
 
+    task_dismissals {
+        int id PK
+        int participant_id FK
+        text task_key
+        timestamptz dismissed_at
+    }
+
     participants ||--o{ cycle_enrollments : "joins"
     cycles ||--o{ cycle_enrollments : "contains"
     participants ||--o{ cycle_agreements : "signs"
@@ -279,6 +286,7 @@ erDiagram
     cycles ||--o{ access_revocations : "logs"
     participants ||--o{ pulse_checks : "completes"
     cycles ||--o{ pulse_checks : "schedules"
+    participants ||--o{ task_dismissals : "dismisses"
 ```
 
 ---
@@ -897,6 +905,7 @@ erDiagram
 | `survey_responses` | Data Sensemaker | Field observations — the evidence bedrock; anon-capable, the first Ortelius provenance node |
 | `survey_questions` | Data Sensemaker | Builder-defined survey questions (data-driven flow); system questions back-point to legacy response columns |
 | `survey_response_answers` | Data Sensemaker | Generic per-question answers for custom (non-system) questions |
+| `task_dismissals` | Practice | Per-member dismissals of dismissible dashboard task instances (00092). The `task_key` encodes the occurrence (`lib/tasks/keys.ts`), so recurring tasks re-fire under a new key — modeled on `nudge_dismissals` (00023), member-global instead of per-pod. Replaces the localStorage dismissal stores |
 | `testers` | Testing | Email-keyed tester grant — survives the tester's full self-reset |
 | `workstreams` | Org Cycles | Durable, cross-cycle unit of internal org work; runs are `pods` rows (`workstream_id`) |
 | `project_roles` | Org Cycles | Promoted IC role on a project (`dri`/`contributor`), one active per person per project |
