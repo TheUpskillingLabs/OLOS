@@ -89,8 +89,8 @@ export function ResourceTeaser({
   corner?: ReactNode;
 }) {
   const typeLabel = CONTENT_TYPE_LABEL[r.content_type] || "Guide";
-  return (
-    <Link className="card tappable" href={`/library/${r.slug}`}>
+  const body = (
+    <>
       <MediaFrame img={r.img} grad={r.grad} tag={typeLabel} square corner={corner} />
       <div className="card-body">
         <div className="lbl lbl-teal">{r.meta || ""}</div>
@@ -99,6 +99,24 @@ export function ResourceTeaser({
         </div>
         <p className="t-small">{r.summary || ""}</p>
       </div>
+    </>
+  );
+  // Owner decision: a library card links straight out to its resource (e.g. a
+  // view-only Google Doc) in a new tab. When a row has no url yet, fall back to
+  // the in-app detail page so the card still leads somewhere. An interactive
+  // `corner` (the /learning heart) stops its own click from navigating.
+  return r.url ? (
+    <a
+      className="card tappable"
+      href={r.url}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {body}
+    </a>
+  ) : (
+    <Link className="card tappable" href={`/library/${r.slug}`}>
+      {body}
     </Link>
   );
 }
