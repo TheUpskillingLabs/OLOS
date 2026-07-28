@@ -30,7 +30,9 @@ export const GET = withAuth(
 
     return NextResponse.json({
       ...pod,
-      problem_statement_title: ((pod.problem_statements as unknown) as Record<string, string>)?.statement_text?.slice(0, 100),
+      // Full statement text — see the cycle pods route: the 100-char slice
+      // truncated descriptions mid-word wherever they were rendered.
+      problem_statement_title: ((pod.problem_statements as unknown) as Record<string, string>)?.statement_text,
       registrant_count: count || 0,
     });
   }

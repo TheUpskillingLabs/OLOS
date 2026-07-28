@@ -1,31 +1,15 @@
 import Link from "next/link";
 import { windowOpen } from "@/lib/cycles/lab-time";
-import { ArrowRight, ChevronLeft, ExternalLink } from "lucide-react";
+import { ArrowRight, ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin } from "@/lib/auth/roles";
 import { notFound } from "next/navigation";
-
-interface ProposalData {
-  about?: { background?: string };
-  // Triangulator-aligned shape (current submissions)…
-  situation?: {
-    title?: string;
-    description?: string;
-    openness?: string;
-    paradox?: string;
-    beneficiaries?: string;
-    problematization?: string;
-  };
-  // …and the legacy who/need/barrier/success block (pre-alignment rows).
-  problem?: { who?: string; need?: string; barrier?: string; success?: string };
-  statement?: { question?: string; repo_url?: string };
-  voter_context?: {
-    tried?: string;
-    scale?: string;
-    pod_work?: string;
-    skills_needed?: string;
-  };
-}
+import {
+  ProposalDetails,
+  ProposalMapLink,
+  proposalMapUrl,
+  type ProposalData,
+} from "@/app/components/proposal-details";
 
 // Read-only gallery of the cycle's problem situations. Unlike the vote
 // ballot, this renders in every phase — the ballot only exists while the
@@ -154,17 +138,6 @@ export default async function ProposalsGalleryPage({
         <div className="mt-4 space-y-4">
           {statements.map((stmt) => {
             const pd = (stmt.proposal_data ?? null) as ProposalData | null;
-            const hasDetails = !!(
-              pd?.situation ||
-              pd?.problem ||
-              pd?.voter_context
-            );
-            // Scheme-checked before rendering as an href — rows written
-            // before the schema restricted repo_url to http(s) are
-            // untrusted here.
-            const rawRepo = pd?.statement?.repo_url;
-            const mapUrl =
-              rawRepo && /^https?:\/\//i.test(rawRepo) ? rawRepo : null;
 
             return (
               <div
@@ -184,17 +157,7 @@ export default async function ProposalsGalleryPage({
                   </p>
                 )}
 
-                {mapUrl && (
-                  <a
-                    href={mapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline"
-                  >
-                    View the map
-                    <ExternalLink className="h-3 w-3" aria-hidden />
-                  </a>
-                )}
+                <ProposalMapLink href={proposalMapUrl(pd)} />
 
                 {pd?.about?.background && (
                   <p className="mt-2 text-xs text-meta">
@@ -202,112 +165,12 @@ export default async function ProposalsGalleryPage({
                   </p>
                 )}
 
-                {hasDetails && (
-                  <details className="group mt-2">
-                    <summary className="inline-flex cursor-pointer list-none items-center text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline [&::-webkit-details-marker]:hidden">
-                      <span className="group-open:hidden">
-                        Read full proposal
-                      </span>
-                      <span className="hidden group-open:inline">
-                        Show less
-                      </span>
-                    </summary>
-                    <div className="mt-4 space-y-3 border-t border-ink/10 pt-4">
-                      {pd?.situation?.description && (
-                        <DetailBlock
-                          label="The situation"
-                          text={pd.situation.description}
-                        />
-                      )}
-                      {pd?.situation?.openness && (
-                        <DetailBlock
-                          label="What makes it open"
-                          text={pd.situation.openness}
-                        />
-                      )}
-                      {pd?.situation?.paradox && (
-                        <DetailBlock
-                          label="The paradox"
-                          text={pd.situation.paradox}
-                        />
-                      )}
-                      {pd?.situation?.beneficiaries && (
-                        <DetailBlock
-                          label="Who benefits from its persistence"
-                          text={pd.situation.beneficiaries}
-                        />
-                      )}
-                      {pd?.situation?.problematization && (
-                        <DetailBlock
-                          label="Pressure-test"
-                          text={pd.situation.problematization}
-                        />
-                      )}
-                      {pd?.problem?.who && (
-                        <DetailBlock
-                          label="Who is struggling"
-                          text={pd.problem.who}
-                        />
-                      )}
-                      {pd?.problem?.need && (
-                        <DetailBlock
-                          label="What they need to do"
-                          text={pd.problem.need}
-                        />
-                      )}
-                      {pd?.problem?.barrier && (
-                        <DetailBlock
-                          label="Why they can't do it now"
-                          text={pd.problem.barrier}
-                        />
-                      )}
-                      {pd?.problem?.success && (
-                        <DetailBlock
-                          label="What success looks like"
-                          text={pd.problem.success}
-                        />
-                      )}
-                      {pd?.voter_context?.tried && (
-                        <DetailBlock
-                          label="What has been tried"
-                          text={pd.voter_context.tried}
-                        />
-                      )}
-                      {pd?.voter_context?.scale && (
-                        <DetailBlock
-                          label="Why it matters beyond the individual"
-                          text={pd.voter_context.scale}
-                        />
-                      )}
-                      {pd?.voter_context?.pod_work && (
-                        <DetailBlock
-                          label="What the Research Pod would do"
-                          text={pd.voter_context.pod_work}
-                        />
-                      )}
-                      {pd?.voter_context?.skills_needed && (
-                        <DetailBlock
-                          label="Skills & people needed"
-                          text={pd.voter_context.skills_needed}
-                        />
-                      )}
-                    </div>
-                  </details>
-                )}
+                <ProposalDetails data={pd} />
               </div>
             );
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function DetailBlock({ label, text }: { label: string; text: string }) {
-  return (
-    <div>
-      <p className="lbl">{label}</p>
-      <p className="mt-0.5 text-sm text-charcoal">{text}</p>
     </div>
   );
 }

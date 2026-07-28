@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ChevronLeft,
   ExternalLink,
-  FolderKanban,
 } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -146,13 +145,6 @@ export default async function CycleDetailPage({
         .eq("participant_id", me.id)
         .order("created_at")
     : { data: null };
-
-  // Door to the proposal gallery — shown as soon as the cycle has any
-  // statements at all (the gallery page itself applies the per-lab filter).
-  const { count: statementCount } = await serviceClient
-    .from("problem_statements")
-    .select("id", { count: "exact", head: true })
-    .eq("cycle_id", cycle.id);
 
   const now = new Date();
   const activeWindows: { label: string; route: string; closesAt: string }[] = [];
@@ -305,37 +297,6 @@ export default async function CycleDetailPage({
                 <p className="mt-0.5 text-sm text-meta">
                   A few lines each week on what you&apos;re figuring out. That&apos;s
                   the check-in that keeps you in the cycle.
-                </p>
-              </div>
-            </div>
-            <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </Link>
-        </div>
-      )}
-
-      {/* Proposal gallery — browsable in every phase, unlike the ballot,
-          which only renders while the voting window is open */}
-      {(statementCount ?? 0) > 0 && (
-        <div className="mb-8">
-          <Link
-            href={`/cycles/${cycle.id}/proposals`}
-            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-          >
-            <div className="flex items-center gap-3">
-              <FolderKanban
-                className="h-5 w-5 flex-shrink-0 text-teal-deep"
-                aria-hidden
-              />
-              <div>
-                <span className="font-semibold tracking-tight text-ink">
-                  Problem situation gallery
-                </span>
-                <p className="mt-0.5 text-sm text-meta">
-                  Browse what your cohort is proposing this cycle — with links
-                  to the maps behind each statement.
                 </p>
               </div>
             </div>
