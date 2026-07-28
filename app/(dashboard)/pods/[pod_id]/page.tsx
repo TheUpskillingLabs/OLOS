@@ -16,6 +16,12 @@ import CharterProjectForm from "./charter-project-form";
 import FollowButton from "@/app/components/follow-button";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
+import {
+  ProposalDetails,
+  ProposalMapLink,
+  proposalMapUrl,
+  type ProposalData,
+} from "@/app/components/proposal-details";
 
 // Matches pods_status_check (00063): forming/active/inactive/dissolved.
 type PodStatus = "active" | "forming" | "inactive" | "dissolved";
@@ -46,7 +52,7 @@ export default async function PodDetailPage({
   const { data: pod } = await supabase
     .from("pods")
     .select(
-      "id, name, status, cycle_id, lab_id, workstream_id, problem_statement_id, problem_statements(statement_text), cycles(mode)"
+      "id, name, status, cycle_id, lab_id, workstream_id, problem_statement_id, problem_statements(statement_text, proposal_data), cycles(mode)"
     )
     .eq("id", parseInt(pod_id))
     .single();
@@ -71,7 +77,14 @@ export default async function PodDetailPage({
     .eq("pod_id", pod.id)
     .order("created_at");
 
-  const ps = (pod.problem_statements as unknown) as Record<string, string> | null;
+  const ps = (pod.problem_statements as unknown) as {
+    statement_text?: string;
+    proposal_data?: ProposalData | null;
+  } | null;
+  // The submission this pod came out of, so the pod's own page carries the
+  // same map link and "Read full proposal" detail as the gallery and the
+  // registration cards — previously it showed the bare statement text.
+  const proposal = ps?.proposal_data ?? null;
 
   // Viewer roles are only needed for the org charter affordance below.
   const userRoles = user
@@ -142,7 +155,19 @@ export default async function PodDetailPage({
           <h3 className="lbl mb-1">
             Problem situation
           </h3>
+          {proposal?.situation?.title && (
+            <p className="mb-1 font-semibold tracking-tight text-ink">
+              {proposal.situation.title}
+            </p>
+          )}
           <p className="text-charcoal">{ps.statement_text}</p>
+          {proposal?.statement?.question && (
+            <p className="mt-2 text-sm italic leading-relaxed text-slate">
+              {proposal.statement.question}
+            </p>
+          )}
+          <ProposalMapLink href={proposalMapUrl(proposal)} />
+          <ProposalDetails data={proposal} />
         </div>
       )}
 
