@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  ProposalDetails,
+  ProposalMapLink,
+  proposalMapUrl,
+  type ProposalData,
+} from "@/app/components/proposal-details";
 
 interface Pod {
   id: number;
@@ -8,6 +14,8 @@ interface Pod {
   status: string;
   registrantCount: number;
   problemStatement: string | null;
+  /** The pod's originating submission — same payload the gallery renders. */
+  proposal: ProposalData | null;
   registered: boolean;
 }
 
@@ -40,12 +48,14 @@ export default function PodRegistration({
                 status: string;
                 registrant_count: number;
                 problem_statement_title: string | null;
+                proposal_data: ProposalData | null;
               }) => ({
                 id: p.id,
                 name: p.name,
                 status: p.status,
                 registrantCount: p.registrant_count,
                 problemStatement: p.problem_statement_title,
+                proposal: p.proposal_data ?? null,
                 registered: initialMyPodIds.includes(p.id),
               })
             )
@@ -174,7 +184,7 @@ export default function PodRegistration({
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
         {pods.map((pod) => (
           <div
             key={pod.id}
@@ -185,7 +195,7 @@ export default function PodRegistration({
             }`}
           >
             <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold tracking-tight text-ink">
                   {pod.name || `Pod ${pod.id}`}
                 </p>
@@ -198,7 +208,7 @@ export default function PodRegistration({
                 <button
                   onClick={() => unregisterFromPod(pod.id)}
                   disabled={actionPodId !== null}
-                  className="rounded-card ring-1 ring-ink/10 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                  className="flex-shrink-0 rounded-card ring-1 ring-ink/10 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   {actionPodId === pod.id ? "..." : "Leave"}
                 </button>
@@ -206,15 +216,30 @@ export default function PodRegistration({
                 <button
                   onClick={() => registerForPod(pod.id)}
                   disabled={actionPodId !== null || registeredCount >= podLimit}
-                  className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                  className="flex-shrink-0 rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   {actionPodId === pod.id ? "..." : "Join"}
                 </button>
               )}
             </div>
-            {pod.problemStatement && (
-              <p className="text-xs text-slate">{pod.problemStatement}</p>
+            {/* The submission this pod came out of: the same situation title,
+                map link and "Read full proposal" block the gallery shows, so a
+                member can size up a pod without leaving the join page. */}
+            {pod.proposal?.situation?.title && (
+              <p className="lbl lbl-teal mb-1">{pod.proposal.situation.title}</p>
             )}
+            {pod.problemStatement && (
+              <p className="text-xs leading-relaxed text-slate">
+                {pod.problemStatement}
+              </p>
+            )}
+            {pod.proposal?.statement?.question && (
+              <p className="mt-2 text-xs italic leading-relaxed text-slate">
+                {pod.proposal.statement.question}
+              </p>
+            )}
+            <ProposalMapLink href={proposalMapUrl(pod.proposal)} />
+            <ProposalDetails data={pod.proposal} />
           </div>
         ))}
       </div>
