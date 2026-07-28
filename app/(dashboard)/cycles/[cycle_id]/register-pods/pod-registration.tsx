@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  ProposalDetails,
+  ProposalMapLink,
+  proposalMapUrl,
+  type ProposalData,
+} from "@/app/components/proposal-details";
 
 interface Pod {
   id: number;
@@ -8,6 +14,8 @@ interface Pod {
   status: string;
   registrantCount: number;
   problemStatement: string | null;
+  /** The pod's originating submission — same payload the gallery renders. */
+  proposal: ProposalData | null;
   registered: boolean;
 }
 
@@ -40,12 +48,14 @@ export default function PodRegistration({
                 status: string;
                 registrant_count: number;
                 problem_statement_title: string | null;
+                proposal_data: ProposalData | null;
               }) => ({
                 id: p.id,
                 name: p.name,
                 status: p.status,
                 registrantCount: p.registrant_count,
                 problemStatement: p.problem_statement_title,
+                proposal: p.proposal_data ?? null,
                 registered: initialMyPodIds.includes(p.id),
               })
             )
@@ -174,7 +184,7 @@ export default function PodRegistration({
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
         {pods.map((pod) => (
           <div
             key={pod.id}
@@ -212,11 +222,24 @@ export default function PodRegistration({
                 </button>
               )}
             </div>
+            {/* The submission this pod came out of: the same situation title,
+                map link and "Read full proposal" block the gallery shows, so a
+                member can size up a pod without leaving the join page. */}
+            {pod.proposal?.situation?.title && (
+              <p className="lbl lbl-teal mb-1">{pod.proposal.situation.title}</p>
+            )}
             {pod.problemStatement && (
               <p className="text-xs leading-relaxed text-slate">
                 {pod.problemStatement}
               </p>
             )}
+            {pod.proposal?.statement?.question && (
+              <p className="mt-2 text-xs italic leading-relaxed text-slate">
+                {pod.proposal.statement.question}
+              </p>
+            )}
+            <ProposalMapLink href={proposalMapUrl(pod.proposal)} />
+            <ProposalDetails data={pod.proposal} />
           </div>
         ))}
       </div>
