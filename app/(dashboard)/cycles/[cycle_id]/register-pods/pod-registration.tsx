@@ -185,7 +185,7 @@ export default function PodRegistration({
             }`}
           >
             <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold tracking-tight text-ink">
                   {pod.name || `Pod ${pod.id}`}
                 </p>
@@ -198,7 +198,7 @@ export default function PodRegistration({
                 <button
                   onClick={() => unregisterFromPod(pod.id)}
                   disabled={actionPodId !== null}
-                  className="rounded-card ring-1 ring-ink/10 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                  className="flex-shrink-0 rounded-card ring-1 ring-ink/10 px-3 py-2 text-xs font-semibold tracking-tight text-charcoal transition-all duration-150 ease-spring hover:bg-ink/[0.04] hover:text-ink hover:ring-ink/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   {actionPodId === pod.id ? "..." : "Leave"}
                 </button>
@@ -206,14 +206,16 @@ export default function PodRegistration({
                 <button
                   onClick={() => registerForPod(pod.id)}
                   disabled={actionPodId !== null || registeredCount >= podLimit}
-                  className="rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+                  className="flex-shrink-0 rounded-card bg-teal/10 px-3 py-2 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
                 >
                   {actionPodId === pod.id ? "..." : "Join"}
                 </button>
               )}
             </div>
             {pod.problemStatement && (
-              <p className="text-xs text-slate">{pod.problemStatement}</p>
+              <p className="text-xs leading-relaxed text-slate">
+                {pod.problemStatement}
+              </p>
             )}
           </div>
         ))}

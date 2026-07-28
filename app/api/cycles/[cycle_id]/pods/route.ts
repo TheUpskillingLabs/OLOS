@@ -57,7 +57,9 @@ export const GET = withAuth(
       id: p.id,
       name: p.name,
       problem_statement_id: p.problem_statement_id,
-      problem_statement_title: ((p.problem_statements as unknown) as Record<string, string>)?.statement_text?.slice(0, 100),
+      // Full statement text — a 100-char slice used to cut every description
+      // off mid-word on the pod registration cards (statements run ~400).
+      problem_statement_title: ((p.problem_statements as unknown) as Record<string, string>)?.statement_text,
       status: p.status,
       registrant_count: countMap[p.id] || 0,
       slack_channel_id: p.slack_channel_id,
