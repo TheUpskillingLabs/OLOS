@@ -1,11 +1,7 @@
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  EditorialHeader,
-  EdSection,
-  EdRow,
-} from "@/app/components/chrome/editorial";
+import { EdSection, EdRow } from "@/app/components/chrome/editorial";
 import { EventTeaser } from "@/app/components/content/teasers";
 import { MemberRegister } from "../[slug]/rsvp";
 import { fmtDay, fmtTime } from "@/lib/content/format";
@@ -27,8 +23,15 @@ import { createServiceClient } from "@/lib/supabase/server";
    the same one /build-cycles uses, not the .section + .section-head browse
    vocabulary: app/page.tsx states the split — the heavy-ruled section head is
    for browse sections whose content runs full-width, the column grid is for
-   content pages, and this is a content page. Content sits in editorial columns
-   rather than card boxes for the same reason.
+   content pages, and this is a content page.
+
+   The hero is the owner's July 2026 full-page mock, translated: light and
+   ruled on the warm paper (no dark cover band), title + lede + Register +
+   a "See the schedule" jump link on the left, the when/where/host facts as a
+   ruled rail on the right (repeated lg:hidden in the main column, since
+   .detail-aside is display:none below 1024px). The mock's reds become the
+   house teal; the closing band keeps the ink cover. The audience and track
+   columns sit in .lcard boxes per the mock's bordered panels.
 
    Registration is the same rule as /events/[slug] — members one-tap with their
    account, everyone else goes to Luma where its questions and photo release
@@ -184,15 +187,20 @@ const STATS = [
 
 /* ── Pieces ─────────────────────────────────────────────────────────────── */
 
-function HeroMeta({ k, v }: { k: string; v: string }) {
+/* One ruled row of the facts rail — the mock's WHEN / WHERE / HOSTED BY. */
+function FactRow({
+  k,
+  children,
+}: {
+  k: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div style={{ minWidth: 0 }}>
-      <div className="t-body" style={{ color: "var(--od1)", fontWeight: 600 }}>
-        {v}
-      </div>
-      <div className="lbl" style={{ color: "var(--od3)", marginTop: 2 }}>
+    <div style={{ borderTop: "1px solid var(--rule)", padding: "14px 0" }}>
+      <div className="lbl" style={{ marginBottom: 4 }}>
         {k}
       </div>
+      <div className="t-body">{children}</div>
     </div>
   );
 }
@@ -309,33 +317,59 @@ export default async function CivicsElectionsHackathonPage() {
       </a>
     );
 
+  const facts = (
+    <div>
+      <FactRow k="When">
+        {when}
+        <br />
+        {timeRange}
+      </FactRow>
+      <FactRow k="Where">{venue}</FactRow>
+      <FactRow k="Hosted by">
+        {event?.host || "American University & The Upskilling Labs"}
+      </FactRow>
+    </div>
+  );
+
   return (
     <>
-      <EditorialHeader
-        eyebrow="Civics & Elections · August 15"
-        title="Idea to Prototype: A Civics & Elections Hackathon"
-        standfirst="A free, one-day event where you go from idea to working prototype, with real teammates, real tools, and a real plan to test what you build."
-      >
-        <div className="ed-cols">
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "24px 40px",
-            }}
-          >
-            <HeroMeta k="Date" v={when} />
-            <HeroMeta k="Time" v={timeRange} />
-            <HeroMeta k="Venue" v={venue} />
-            <HeroMeta k="Cost" v={event?.cost || "Free"} />
-            <HeroMeta
-              k="Hosted by"
-              v={event?.host || "American University & The Upskilling Labs"}
-            />
+      {/* ── Hero: light and ruled, facts in the rail ── */}
+      <div className="container">
+        <p className="t-small" style={{ marginTop: 20 }}>
+          <Link className="see" href="/events">
+            ← All events
+          </Link>
+        </p>
+        <div className="detail" style={{ marginTop: 20 }}>
+          <div className="detail-main">
+            <div className="lbl lbl-teal">
+              Anchor event · Civics &amp; Elections · {event?.cost || "Free"}
+            </div>
+            <h1 className="t-h1" style={{ marginTop: 10 }}>
+              Idea to Prototype: A Civics &amp; Elections Hackathon
+            </h1>
+            <p className="t-lede ed-text" style={{ marginTop: 14 }}>
+              A free, one-day event where you go from idea to working
+              prototype, with real teammates, real tools, and a real plan to
+              test what you build.
+            </p>
+            <div
+              className="flex flex-wrap items-center gap-3"
+              style={{ marginTop: 24 }}
+            >
+              {registerBtn("btn btn-teal")}
+              <a className="btn btn-ghost" href="#schedule">
+                See the schedule
+              </a>
+            </div>
+            {/* Facts for viewports where the rail is hidden. */}
+            <div className="lg:hidden" style={{ marginTop: 28 }}>
+              {facts}
+            </div>
           </div>
+          <aside className="detail-aside">{facts}</aside>
         </div>
-        <div className="ed-cols">{registerBtn("btn btn-teal")}</div>
-      </EditorialHeader>
+      </div>
 
       {/* ── Body: the editorial document ── */}
       <div className="container" style={{ paddingTop: 88, paddingBottom: 56 }}>
@@ -355,7 +389,7 @@ export default async function CivicsElectionsHackathonPage() {
             </div>
             <div className="ed-cols" style={THREE_COLS}>
               {AUDIENCE.map((a) => (
-                <div key={a.lbl}>
+                <div key={a.lbl} className="lcard" style={{ padding: 24 }}>
                   <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
                     {a.lbl}
                   </div>
@@ -381,7 +415,7 @@ export default async function CivicsElectionsHackathonPage() {
           >
             <EdRow cols={2}>
               {TRACKS.map((t) => (
-                <div key={t.h}>
+                <div key={t.h} className="lcard" style={{ padding: 28 }}>
                   <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
                     {t.label}
                   </div>
@@ -412,6 +446,9 @@ export default async function CivicsElectionsHackathonPage() {
             </EdRow>
           </EdSection>
 
+          {/* The hero's "See the schedule" jump target; scroll-margin keeps
+              the ruled header clear of the sticky nav. */}
+          <div id="schedule" style={{ scrollMarginTop: 96 }}>
           <EdSection eyebrow="Schedule" heading="The day, hour by hour.">
             <div className="ed-cols">
               <div>
@@ -454,6 +491,7 @@ export default async function CivicsElectionsHackathonPage() {
               </div>
             </div>
           </EdSection>
+          </div>
 
           <EdSection
             eyebrow="The Build Cycle"

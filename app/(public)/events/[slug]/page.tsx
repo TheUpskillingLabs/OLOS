@@ -1,15 +1,26 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventTeaser } from "@/app/components/content/teasers";
 import { getEvent, getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay, fmtTime } from "@/lib/content/format";
+import { eventIcsHref } from "@/lib/content/event-ics";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import Gallery from "./gallery";
 import RsvpButton, { MemberRegister } from "./rsvp";
 
-/* The event detail page — the generator's eventPage(): gallery, date/type
-   row, name, lede, body paragraphs, kv rows, the sticky RSVP aside, and the
-   "More sessions like this" recirculation. Copy ported byte-for-byte.
+/* The event detail page — the "ruled detail + registration rail" redesign
+   (owner mock 3A, July 2026): title, facts and the register CTA all in the
+   first screen; the photo demoted below the fold in grayscale (same treatment
+   as the landing .hero-photo); body content under ruled, labelled sections.
+   Translated into the house system — the mock's red numerals and buttons are
+   teal (.ed-num, .btn-teal); type, rules and the 14px radius are the ported
+   component layer.
+
+   The rail is the registration surface: cost, the when/where facts, Register,
+   and Add to calendar (a floating-wall-time .ics, lib/content/event-ics.ts).
+   Below 1024px the rail is display:none (globals.css), so the facts repeat in
+   the main column lg:hidden and the sticky .detail-bottom carries the CTA.
 
    Registration parity (owner decision): members one-tap register with
    their account (forwarded to Luma's guest list); anonymous visitors on
@@ -36,11 +47,30 @@ export async function generateMetadata({
   };
 }
 
-function Kv({ k, v }: { k: string; v: string }) {
+function Kv({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div className="kv">
       <span className="k lbl">{k}</span>
       <span className="t-body">{v}</span>
+    </div>
+  );
+}
+
+/* A ruled, labelled section — the mock's horizontal rule + small-caps header. */
+function Ruled({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ marginTop: 36 }}>
+      <hr className="rule" />
+      <div className="lbl lbl-teal" style={{ margin: "18px 0 14px" }}>
+        {label}
+      </div>
+      {children}
     </div>
   );
 }
@@ -107,74 +137,137 @@ export default async function EventPage({
     : events.filter((x) => x.slug !== e.slug).slice(-3);
 
   const endTime = e.end_at ? `–${fmtTime(e.end_at)}` : "";
+  const whenLine = `${fmtDay(e.start_at)} · ${fmtTime(e.start_at)}${endTime}`;
+  const whereLine =
+    e.location_type === "virtual"
+      ? "Online — we'll send the link"
+      : (e.location_name ?? "");
+  const metaRow = [
+    e.kind,
+    e.location_type === "virtual" ? "Virtual" : "In person",
+    e.cost || "Free",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const body = e.body ?? [];
+  const hasMedia = Boolean(e.img || (e.gallery && e.gallery.length > 0));
+  const statusCopy = session.signedIn
+    ? going
+      ? "You're on the list. Luma has your confirmation and calendar invite."
+      : "One tap — you're registered with your Labs account. The confirmation and calendar invite come from Luma."
+    : isLumaManaged
+      ? "Registration takes a minute on Luma — a few quick questions, then the confirmation and calendar invite land in your inbox."
+      : e.location_type === "virtual"
+        ? "Online — we'll send the link."
+        : "Free & public — we'll send the room details.";
 
   return (
     <>
       <div className="container">
-        <div className="detail" style={{ marginTop: 16 }}>
+        <p className="t-small" style={{ marginTop: 20 }}>
+          <Link className="see" href="/events">
+            ← All events
+          </Link>
+        </p>
+
+        <div className="detail" style={{ marginTop: 20 }}>
+          {/* ── Main column: title + lede first, ruled sections beneath ── */}
           <div className="detail-main">
-            <Gallery img={e.img} gallery={e.gallery} />
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-                marginTop: 20,
-              }}
-            >
-              <span className="lbl lbl-teal">{fmtDate(e.start_at)}</span>
-              <span className="lbl">
-                {e.location_type === "virtual" ? "Virtual" : "In person"}
-                {e.kind ? ` · ${e.kind}` : ""}
-              </span>
-            </div>
-            <h1 className="t-h1">{e.name}</h1>
-            <p className="t-lede" style={{ marginBottom: 20 }}>
-              {e.description}
-            </p>
-            {(e.body ?? []).map((p, i) => (
-              <p key={i} className="t-body" style={{ marginBottom: 14 }}>
-                {p}
+            <div className="lbl lbl-teal">{metaRow}</div>
+            <h1 className="t-h1" style={{ marginTop: 10 }}>
+              {e.name}
+            </h1>
+            {e.description && (
+              <p className="t-lede ed-text" style={{ marginTop: 14 }}>
+                {e.description}
               </p>
-            ))}
-            <div style={{ marginTop: 24 }}>
-              <Kv k="Where" v={e.location_name ?? ""} />
-              <Kv
-                k="When"
-                v={`${fmtDay(e.start_at)} · ${fmtTime(e.start_at)}${endTime}`}
-              />
+            )}
+
+            {/* Facts + CTA for viewports where the rail is hidden. */}
+            <div className="lg:hidden" style={{ marginTop: 24 }}>
+              <Kv k="When" v={whenLine} />
+              <Kv k="Where" v={whereLine} />
               <Kv k="Cost" v={e.cost || "Free"} />
-              <Kv k="Host" v={e.host || "The Upskilling Labs"} />
               {e.bring && <Kv k="Bring" v={e.bring} />}
             </div>
+
+            {body.length > 0 && (
+              <Ruled label="What we'll cover">
+                <div className="grid gap-6 md:grid-cols-3">
+                  {body.map((p, i) => (
+                    <div key={i}>
+                      <span className="ed-num">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <p className="t-body" style={{ color: "var(--slate)" }}>
+                        {p}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Ruled>
+            )}
+
+            <Ruled label="Host">
+              <div className="t-h4">{e.host || "The Upskilling Labs"}</div>
+            </Ruled>
+
+            {e.bring && (
+              <Ruled label="Bring">
+                <p className="t-body">{e.bring}</p>
+              </Ruled>
+            )}
+
+            {/* The photo, demoted below the content in grayscale (mock 3A) —
+                the words sell the session; the image is texture. Orb-gradient
+                placeholders stay put: grayscaling brand art helps nobody. */}
+            {hasMedia && (
+              <Ruled label="Photos">
+                <div style={{ filter: "grayscale(1)" }}>
+                  <Gallery img={e.img} gallery={e.gallery} />
+                </div>
+              </Ruled>
+            )}
+
             <div className="detail-bottom">
-              {registerCta("btn btn-red btn-block")}
+              {registerCta("btn btn-teal btn-block")}
             </div>
           </div>
+
+          {/* ── The registration rail ── */}
           <aside className="detail-aside">
             <div className="lcard" style={{ padding: 24 }}>
               <div className="t-h3" style={{ marginBottom: 4 }}>
                 {e.cost || "Free"}
               </div>
-              <p className="t-small" style={{ marginBottom: 16 }}>
+              <p className="t-small" style={{ marginBottom: 12 }}>
                 per person · first come, first served
               </p>
-              <p className="t-body" style={{ marginBottom: 16 }}>
-                {fmtDay(e.start_at)}
-                <br />
-                {`${fmtTime(e.start_at)}${endTime} · ${e.location_name ?? ""}`}
-              </p>
-              {registerCta("btn btn-red btn-block")}
+              <Kv
+                k="When"
+                v={
+                  <>
+                    {fmtDay(e.start_at)}
+                    <br />
+                    {`${fmtTime(e.start_at)}${endTime}`}
+                  </>
+                }
+              />
+              <Kv k="Where" v={whereLine} />
+              <div style={{ marginTop: 18 }}>
+                {registerCta("btn btn-teal btn-block")}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <a
+                  className="btn btn-ghost btn-block"
+                  href={eventIcsHref(e)}
+                  download={`${e.slug}.ics`}
+                >
+                  Add to calendar
+                </a>
+              </div>
               <p className="t-small" style={{ marginTop: 12 }}>
-                {session.signedIn
-                  ? going
-                    ? "You're on the list. Luma has your confirmation and calendar invite."
-                    : "One tap — you're registered with your Labs account. The confirmation and calendar invite come from Luma."
-                  : isLumaManaged
-                    ? "Registration takes a minute on Luma — a few quick questions, then the confirmation and calendar invite land in your inbox."
-                    : e.location_type === "virtual"
-                      ? "Online — we'll send the link."
-                      : "Free & public — we'll send the room details."}
+                {statusCopy}
               </p>
               {e.luma_url && (
                 <p className="t-small" style={{ marginTop: 8 }}>
@@ -189,9 +282,19 @@ export default async function EventPage({
                 </p>
               )}
             </div>
+            {e.anchor && (
+              <p className="t-small" style={{ marginTop: 12 }}>
+                An anchor event of the current{" "}
+                <Link className="see" href="/build-cycles">
+                  Build Cycle
+                </Link>
+                .
+              </p>
+            )}
           </aside>
         </div>
       </div>
+
       {related.length > 0 && (
         <section className="section">
           <div className="container">
