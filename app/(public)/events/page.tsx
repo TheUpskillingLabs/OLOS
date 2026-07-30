@@ -1,15 +1,13 @@
 import { Suspense } from "react";
 import EventsAgenda from "@/app/components/content/events-agenda";
-import FeaturedEvents from "@/app/components/content/featured-events";
-import { EditorialHeader } from "@/app/components/chrome/editorial";
-import { featuredEvents } from "@/lib/content/featured";
+import EventsHero from "@/app/components/content/featured-events";
 import { getEvents } from "@/lib/content/queries";
 
-/* The public events directory — the generator's directoryPage('events'),
-   recomposed on the editorial "standards-manual" grid: the dark header
-   (eyebrow + headline own the head row, standfirst beneath), then the three
-   featured anchor events, then the shared EventsAgenda island (month-grouped
-   upcoming first, past in its own tab, filters + search, URL-synced). */
+/* The public events directory: the red hero band (headline + the next two
+   anchor events with direct registration — the owner's July 2026 design,
+   translated into the house system in featured-events.tsx), then the shared
+   EventsAgenda island (month-grouped upcoming first, past in its own tab,
+   filters + search, URL-synced). */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -30,22 +28,10 @@ export default async function EventsPage() {
   // agree with the island's in-progress rule (end_at fallback start_at).
   const nowMs = new Date().getTime();
 
-  // The strip up top: the cycle's next anchor events, at most three.
-  const featured = featuredEvents(events, nowMs);
-
   return (
     <>
-      {/* ── Header: eyebrow + headline (head row), standfirst (beneath) ──
-          No event count in the eyebrow: it churned with every Luma sync and
-          read as a claim about how much is on rather than a label. */}
-      <EditorialHeader
-        eyebrow="Events & workshops"
-        title="Drop into a session"
-        standfirst="Free and public, every one."
-      />
-
-      {/* ── Featured: the cycle's next anchor events ── */}
-      <FeaturedEvents events={featured} />
+      {/* ── Hero: headline + the next two anchor events, one red band ── */}
+      <EventsHero events={events} nowMs={nowMs} />
 
       {/* ── Browse: the month-grouped agenda island, full-width ── */}
       <section className="section">
