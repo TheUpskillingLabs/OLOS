@@ -3,7 +3,7 @@ import EventsAgenda from "@/app/components/content/events-agenda";
 import EventsHero from "@/app/components/content/featured-events";
 import { getEvents } from "@/lib/content/queries";
 
-/* The public events directory: the red hero band (headline + the next two
+/* The public events directory: the cover-band hero (headline + the next two
    anchor events with direct registration — the owner's July 2026 design,
    translated into the house system in featured-events.tsx), then the shared
    EventsAgenda island (month-grouped upcoming first, past in its own tab,
@@ -30,7 +30,7 @@ export default async function EventsPage() {
 
   return (
     <>
-      {/* ── Hero: headline + the next two anchor events, one red band ── */}
+      {/* ── Hero: headline + the next two anchor events, one cover band ── */}
       <EventsHero events={events} nowMs={nowMs} />
 
       {/* ── Browse: the month-grouped agenda island, full-width ── */}

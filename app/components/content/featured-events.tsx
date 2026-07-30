@@ -7,11 +7,12 @@ import { createServiceClient } from "@/lib/supabase/server";
 import type { EventRow } from "@/lib/content/queries";
 
 /* The /events hero — the page headline and the next two anchor events in one
-   red cover band (owner design, July 2026), replacing the dark EditorialHeader
-   + separate featured strip. Translated into the house system rather than
-   ported: --red is the band (the one red cover on the site — everywhere else
-   red stays an accent), Geologica type on the .t-* scale, .btn-white /
-   .btn-ghost from the component layer, one 14px radius, no pills.
+   cover band (owner design, July 2026), replacing the dark EditorialHeader +
+   separate featured strip. Translated into the house system rather than
+   ported: the mock's flat red becomes the Labs cover gradient (.s-cover, the
+   same band as the landing hero — owner call, red stays an accent), Geologica
+   type on the .t-* scale, .btn-white / .btn-ghost from the component layer,
+   one 14px radius, no pills.
 
    Two events, not three: the band gives each a half-width column with an
    oversized day numeral, and a third would shrink them back into cards —
@@ -58,7 +59,7 @@ export default async function EventsHero({
   }
 
   return (
-    <section className="grain on-dark" style={{ background: "var(--red)" }}>
+    <section className="s-cover grain on-dark">
       <div className="container" style={{ paddingTop: 72, paddingBottom: 64 }}>
         {/* ── Head row: headline left, the standing facts right ── */}
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">

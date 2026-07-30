@@ -63,7 +63,11 @@ export function EventTeaser({
       className={`card tappable event-card${corner ? " has-save" : ""}`}
       href={`/events/${e.slug}`}
     >
-      <MediaFrame img={e.img} grad={e.grad} tag={e.kind} square />
+      {/* No kind tag on the thumbnail (owner call, July 2026): with only two
+          kinds the badge repeated the filter without informing, and the
+          agenda's compact layout was already hiding it on mobile. MediaFrame
+          keeps `tag` for resource cards, whose content types vary. */}
+      <MediaFrame img={e.img} grad={e.grad} square />
       {/* Save button lives at the card level (not inside the thumbnail) so it can
           pin to the card's top-right on mobile, where the thumbnail is only 1/4 wide. */}
       {corner}
