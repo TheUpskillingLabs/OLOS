@@ -69,8 +69,9 @@ export function EventTeaser({
       {corner}
       <div className="card-body">
         <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
+        {/* No ✦ glyph: anchor events now earn their prominence from the
+            featured strip at the top of /events, not a marker on the card. */}
         <div className="t-h4 card-title" style={{ margin: "6px 0 4px" }}>
-          {e.anchor ? "✦ " : ""}
           {e.name}
         </div>
         <p className="t-small">

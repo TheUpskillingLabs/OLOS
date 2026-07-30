@@ -1,13 +1,15 @@
 import { Suspense } from "react";
 import EventsAgenda from "@/app/components/content/events-agenda";
+import FeaturedEvents from "@/app/components/content/featured-events";
 import { EditorialHeader } from "@/app/components/chrome/editorial";
+import { featuredEvents } from "@/lib/content/featured";
 import { getEvents } from "@/lib/content/queries";
 
 /* The public events directory — the generator's directoryPage('events'),
-   recomposed on the editorial "standards-manual" grid: the dark header (count
-   eyebrow + headline own the head row, standfirst beneath), then the shared
-   EventsAgenda island (month-grouped upcoming first, past in its own tab,
-   filters + search, URL-synced). */
+   recomposed on the editorial "standards-manual" grid: the dark header
+   (eyebrow + headline own the head row, standfirst beneath), then the three
+   featured anchor events, then the shared EventsAgenda island (month-grouped
+   upcoming first, past in its own tab, filters + search, URL-synced). */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -17,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Events & workshops · The Upskilling Labs",
   description:
-    "Free, public, hands-on. Drop into a session — or into the cycle’s six anchor events.",
+    "Free, public, hands-on. Drop into a workshop, or into one of the anchor events that shape each twelve-week Build Cycle. Everything here is open to everyone.",
 };
 
 export default async function EventsPage() {
@@ -28,14 +30,22 @@ export default async function EventsPage() {
   // agree with the island's in-progress rule (end_at fallback start_at).
   const nowMs = new Date().getTime();
 
+  // The strip up top: the cycle's next anchor events, at most three.
+  const featured = featuredEvents(events, nowMs);
+
   return (
     <>
-      {/* ── Header: count eyebrow + headline (head row), standfirst (beneath) ── */}
+      {/* ── Header: eyebrow + headline (head row), standfirst (beneath) ──
+          No event count in the eyebrow: it churned with every Luma sync and
+          read as a claim about how much is on rather than a label. */}
       <EditorialHeader
-        eyebrow={`Events & workshops · ${events.length}`}
+        eyebrow="Events & workshops"
         title="Drop into a session"
-        standfirst="Free and public, every one. ✦ marks the cycle’s anchor events."
+        standfirst="Free and public, every one."
       />
+
+      {/* ── Featured: the cycle's next anchor events ── */}
+      <FeaturedEvents events={featured} />
 
       {/* ── Browse: the month-grouped agenda island, full-width ── */}
       <section className="section">
