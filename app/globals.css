@@ -389,7 +389,12 @@ dialog::backdrop {
   .onboard .sheet { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--white); }
 
   /* ── segmented progress ── */
-  .seg { display: flex; gap: 5px; flex: 1; align-items: center; }
+  /* The onboarding progress track (the row of .seg-bar fills). Named apart
+     from .seg, the segmented control above: this one is flex: 1 by design,
+     and sharing the bare class name made every segmented control in a flex
+     toolbar stretch to swallow the row's leftover space (events page, July
+     2026). One consumer: flow-screen.tsx. */
+  .seg-track { display: flex; gap: 5px; flex: 1; align-items: center; }
   .seg-bar { height: 3px; flex: 1; border-radius: 3px; background: rgba(255, 255, 255, 0.22); overflow: hidden; }
   .seg-fill { display: block; height: 100%; width: 0; background: #fff; transition: width 0.35s ease; }
   .seg-bar.done .seg-fill, .seg-bar.active .seg-fill { width: 100%; }

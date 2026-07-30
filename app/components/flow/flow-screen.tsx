@@ -278,7 +278,7 @@ export function FlowScreen({
           <button className="icon-btn" aria-label="Back" onClick={back}>
             <BackIcon />
           </button>
-          <div className="seg">
+          <div className="seg-track">
             {steps.map((s, i) => (
               <div
                 key={s.id}
