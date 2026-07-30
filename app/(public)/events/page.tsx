@@ -33,8 +33,9 @@ export default async function EventsPage() {
       {/* ── Hero: headline + the next two anchor events, one cover band ── */}
       <EventsHero events={events} nowMs={nowMs} />
 
-      {/* ── Browse: the month-grouped agenda island, full-width ── */}
-      <section className="section">
+      {/* ── Browse: the month-grouped agenda island, full-width ──
+          id: the mobile hero's "Browse all sessions" jump target. */}
+      <section className="section" id="agenda" style={{ scrollMarginTop: 72 }}>
         <div className="container">
           {/* The island reads useSearchParams — Suspense keeps Next happy.
               The fallback holds the agenda's rough height so the page doesn't

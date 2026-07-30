@@ -71,6 +71,27 @@ export default async function EventsHero({
           </div>
         </div>
 
+        {/* Mobile companion (the 390px mock): a standfirst and two CTAs the
+            desktop band doesn't need — its featured columns are the pitch. */}
+        <p
+          className="t-lede md:hidden"
+          style={{ color: "rgba(255,255,255,0.85)", marginTop: 14 }}
+        >
+          Free and public, every one. Show up once — or ride the build cycle
+          from first idea to summit stage.
+        </p>
+        <div
+          className="flex flex-col gap-3 md:hidden"
+          style={{ marginTop: 20 }}
+        >
+          <a className="btn btn-white btn-block" href="#agenda">
+            Browse all sessions
+          </a>
+          <Link className="btn btn-ghost btn-block" href="/get-involved">
+            Get the monthly email
+          </Link>
+        </div>
+
         <hr
           className="rule"
           style={{

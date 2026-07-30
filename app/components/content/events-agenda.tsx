@@ -7,10 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CalendarX2, SearchX } from "lucide-react";
 import { EmptyState } from "@/app/components/ui";
-import { fmtMonth, monthKey } from "@/lib/content/format";
+import { cityOf, fmtDate, fmtMonth, monthKey } from "@/lib/content/format";
 import type { EventRow } from "@/lib/content/queries";
 import { EventTeaser } from "./teasers";
 
@@ -33,6 +34,12 @@ import { EventTeaser } from "./teasers";
  * `corners` maps slug → a save-button node (serializable across the RSC
  * boundary, unlike a render prop); /learning passes it, the public page
  * doesn't.
+ *
+ * Mobile (public page only): the cards give way to bare agenda rows — date ·
+ * time, title, city — per the owner's 390px mock (July 2026). A phone screen
+ * fits three thumbnail cards; the row list puts a whole month in the same
+ * space, which is the point of an agenda. /learning keeps cards at every
+ * width because its save hearts live on the card corner.
  */
 
 type View = "upcoming" | "past";
@@ -333,17 +340,65 @@ export default function EventsAgenda({
       ) : (
         groups.map((g) => (
           <section key={g.key}>
+            {/* No session count beside the month (owner call — same as the
+                hero): the list under it is its own answer. */}
             <h2 className="month-head">{g.label}</h2>
             {/* `.all` is load-bearing: without it .cards.dense hides cards 7+
                 on desktop (globals.css nth-child cap). */}
-            <div className="cards dense all">
+            <div className={`cards dense all${syncUrl ? " max-md:hidden" : ""}`}>
               {g.events.map((e) => (
                 <EventTeaser key={e.slug} event={e} corner={corners?.[e.slug]} />
               ))}
             </div>
+            {syncUrl && (
+              <div className="md:hidden">
+                {g.events.map((e) => (
+                  <AgendaRow key={e.slug} event={e} />
+                ))}
+              </div>
+            )}
           </section>
         ))
       )}
     </div>
+  );
+}
+
+/* One mobile agenda row — the 390px mock's list item: date · time and title
+   on the left, the city (or Virtual) trailing right, anchors on a tint so the
+   spine reads at a glance without a ✦. The whole row is the link. */
+function AgendaRow({ event: e }: { event: EventRow }) {
+  const isAnchor = e.kind === "Anchor";
+  return (
+    <Link
+      href={`/events/${e.slug}`}
+      className="flex items-baseline justify-between gap-3"
+      style={{
+        borderTop: "1px solid var(--rule)",
+        padding: "12px 10px",
+        background: isAnchor ? "var(--tint)" : undefined,
+        borderRadius: isAnchor ? "var(--r)" : undefined,
+        color: "inherit",
+        textDecoration: "none",
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
+        <div
+          className="t-h4"
+          style={{
+            marginTop: 2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {e.name}
+        </div>
+      </div>
+      <span className="lbl" style={{ flexShrink: 0 }}>
+        {e.location_type === "virtual" ? "Virtual" : cityOf(e.location_name)}
+      </span>
+    </Link>
   );
 }
