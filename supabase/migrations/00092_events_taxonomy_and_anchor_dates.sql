@@ -134,6 +134,13 @@ UPDATE events
 SET img = 'assets/meet-the-pods.webp'
 WHERE slug = 'meet-the-pods' AND img IS DISTINCT FROM 'assets/meet-the-pods.webp';
 
+-- The hackathon's cover is its live Luma card (the event page's own square
+-- crop). Guarded on img IS NULL so a later Luma sync -- which owns `img` once
+-- it adopts the row by luma_url -- is never fought by a migration re-run.
+UPDATE events
+SET img = 'https://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,background=white,quality=75,width=400,height=400/uploads/ks/b17bf7be-3d74-4751-8f31-d71661b795ce.png'
+WHERE slug = 'civics-elections-hackathon' AND img IS NULL;
+
 -- ── 3. The cycle read model keeps up ──────────────────────────────────────
 -- cycle_events (00086) is the tz-aware read model for the same calendar. It
 -- has no reader in app code yet, but leaving it on the old date would recreate
