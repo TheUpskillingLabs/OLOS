@@ -584,6 +584,48 @@ const LUMA_TIGHT = [
   "11:50 — **All:** Lunch",
 ].join("\n");
 
+describe("escaped characters", () => {
+  /* Luma escapes a literal asterisk when an author types one, so a footnote
+     marker inside bold arrives as `**\*Note:**`. The escape used to read as an
+     italic delimiter and the page showed `*\Note:**` (owner flag, 2026-07-31). */
+  it("keeps an escaped asterisk as content and still closes the bold", () => {
+    const [block] = parseMarkdown("**\\*Note:** This is a non-partisan event.");
+    expect(block.kind).toBe("para");
+    expect(block.kind === "para" && block.text).toBe(
+      "**\\*Note:** This is a non-partisan event."
+    );
+  });
+
+  it("does not count a backslash as visible text for the thresholds", () => {
+    // visibleText drives the heading/card/panel length guards.
+    const long = `**${"a".repeat(78)}\\***`;
+    expect(kinds(parseMarkdown(long))).toEqual(["para"]);
+  });
+});
+
+describe("the Labs boilerplate", () => {
+  /* Owner call 2026-07-31: on Luma the standing "About The Upskilling Labs"
+     paragraph introduces us to a stranger; on our own event page it is filler. */
+  it("drops a trailing About-the-Labs section, and the rule above it", () => {
+    const blocks = parseMarkdown(LUMA_ABOUT);
+    expect(JSON.stringify(blocks)).not.toContain("An open, project-based");
+    expect(blocks[blocks.length - 1].kind).not.toBe("rule");
+  });
+
+  it("keeps the same words mid-document, where they are content", () => {
+    const slots = firstSchedule(parseMarkdown(LUMA_ABOUT));
+    expect(JSON.stringify(slots)).toContain(
+      "About The Upskilling Labs and what to expect"
+    );
+  });
+
+  it("leaves other About sections alone", () => {
+    const blocks = parseMarkdown(SHORT_ABOUT);
+    expect(JSON.stringify(blocks)).toContain("About the Instructor");
+    expect(JSON.stringify(blocks)).toContain("About the Workshop");
+  });
+});
+
 describe("parseMarkdown — Luma's tight export", () => {
   const blocks = parseMarkdown(LUMA_TIGHT);
 
@@ -680,10 +722,15 @@ describe("parseMarkdown — the real Luma About text", () => {
   });
 
   it("renders the dividers as rules rather than literal dashes", () => {
-    expect(blocks.some((b) => b.kind === "rule")).toBe(true);
     expect(
       blocks.some((b) => b.kind === "para" && b.text.trim() === "---")
     ).toBe(false);
+    /* Neither of this fixture's two dividers survives as a rule, and both for
+       good reasons: one sits above "**Schedule:**" and loses to the heading's own
+       rule, and the other introduced the Labs boilerplate, which is dropped with
+       its divider. That rules render at all is covered in "Luma
+       accommodations". */
+    expect(blocks.some((b) => b.kind === "rule")).toBe(false);
   });
 
   it("keeps the intro prose as paragraphs, not schedule rows", () => {

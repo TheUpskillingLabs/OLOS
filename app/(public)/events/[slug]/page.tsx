@@ -5,7 +5,7 @@ import { EventTeaser, MediaFrame } from "@/app/components/content/teasers";
 import { getEvent, getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay, fmtTime } from "@/lib/content/format";
 import { eventIcsHref } from "@/lib/content/event-ics";
-import { renderMarkdown, markdownToc } from "@/lib/content/markdown";
+import { renderMarkdown } from "@/lib/content/markdown";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import RsvpButton, { MemberRegister } from "./rsvp";
@@ -251,8 +251,13 @@ export default async function EventPage({
     .filter(Boolean)
     .join(" · ");
   const body = e.body ?? [];
-  // Jump links for the Luma copy, only when it is long enough to need them.
-  const toc = e.about && body.length === 0 ? markdownToc(e.about) : [];
+  /* No "On this page" jump nav. It was here for long Luma copy, but the headings
+     it lists are whole sentences ("Come with an open and curious mind. Choose
+     your Track"), so the nav wrapped into two ragged lines of underlined prose
+     and read as a mess rather than as navigation (owner call, 2026-07-31). A
+     table of contents needs short, parallel headings, and we do not control the
+     headings — the author does, in Luma. `markdownToc` stays exported and tested
+     for whenever that changes. */
   // Real photos only. The seeded gallery arrays hold orb-gradient names
   // ("m-teal", "m-forest"...) as placeholders, and grayscaling a full-width
   // gradient placeholder produced a page-height black box (July 2026). A
@@ -326,28 +331,6 @@ export default async function EventPage({
             {e.about && body.length === 0 && (
               <div style={{ marginTop: 36 }}>
                 <hr className="rule" />
-                {toc.length >= 3 && (
-                  <nav
-                    aria-label="On this page"
-                    style={{ margin: "18px 0 22px" }}
-                  >
-                    <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
-                      On this page
-                    </div>
-                    <div className="flex flex-wrap" style={{ gap: "6px 18px" }}>
-                      {toc.map((h) => (
-                        <a
-                          key={h.id}
-                          className="see t-small"
-                          href={`#${h.id}`}
-                          style={{ textDecoration: "underline" }}
-                        >
-                          {h.text.replace(/:$/, "")}
-                        </a>
-                      ))}
-                    </div>
-                  </nav>
-                )}
                 <div className="ed-text" style={{ marginTop: 18 }}>
                   {renderMarkdown(e.about)}
                 </div>
