@@ -7,10 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CalendarX2, SearchX } from "lucide-react";
-import { EmptyState, FilterDropdown } from "@/app/components/ui";
-import { fmtMonth, monthKey } from "@/lib/content/format";
+import { EmptyState } from "@/app/components/ui";
+import { cityOf, fmtDate, fmtMonth, monthKey } from "@/lib/content/format";
 import type { EventRow } from "@/lib/content/queries";
 import { EventTeaser } from "./teasers";
 
@@ -18,9 +19,13 @@ import { EventTeaser } from "./teasers";
  * The month-grouped events agenda — shared by the public /events page and the
  * /learning events section. Upcoming events render first under month headers
  * (soonest month first); past events live in a separate tab (newest first).
- * Filters: Online / In person, the ✦ anchor toggle, a Kind dropdown (built
- * from kinds actually present — most Luma imports have none), and a debounced
- * search over name/venue/host.
+ * Filters: a segmented All / Workshops / Anchor events control, and In person
+ * / Virtual chips, plus a debounced search over name/venue/host. The first is
+ * segmented rather than chips so "All" has somewhere to live and the three
+ * read as one exclusive choice; the location pair are chips because either can
+ * be off. The word "kind" appears nowhere a reader can see it — it is the
+ * database column (00092: NOT NULL DEFAULT 'Workshop', so a daily Luma import
+ * is filterable the moment it lands), not a label.
  *
  * All filtering is client-side over the server-fetched list (~90 rows).
  * `nowMs` comes from the server page so the upcoming/past split is identical
@@ -29,6 +34,12 @@ import { EventTeaser } from "./teasers";
  * `corners` maps slug → a save-button node (serializable across the RSC
  * boundary, unlike a render prop); /learning passes it, the public page
  * doesn't.
+ *
+ * Mobile (public page only): the cards give way to bare agenda rows — date ·
+ * time, title, city — per the owner's 390px mock (July 2026). A phone screen
+ * fits three thumbnail cards; the row list puts a whole month in the same
+ * space, which is the point of an agenda. /learning keeps cards at every
+ * width because its save hearts live on the card corner.
  */
 
 type View = "upcoming" | "past";
@@ -37,7 +48,6 @@ interface AgendaState {
   view: View;
   q: string;
   loc: "virtual" | "in_person" | null;
-  anchor: boolean;
   kind: string | null;
 }
 
@@ -45,23 +55,42 @@ const DEFAULTS: AgendaState = {
   view: "upcoming",
   q: "",
   loc: null,
-  anchor: false,
   kind: null,
 };
 
 const LOC_FILTERS: { key: AgendaState["loc"] & string; label: string }[] = [
-  { key: "virtual", label: "Online" },
   { key: "in_person", label: "In person" },
+  { key: "virtual", label: "Virtual" },
 ];
+
+/* The type segments. `value` is the stored `events.kind` exactly as the CHECK
+   in 00092 spells it (null = All); `label` is what the page shows. Fixed
+   rather than derived from the data so the control doesn't reflow, and so a
+   bucket with nothing in it this month still reads as a category that exists —
+   landing on the "no matching sessions" empty state rather than vanishing.
+
+   This is not the old ✦ toggle returning. That chip was the only way to find
+   the cycle spine, which is why it went; anchors now lead the page in the
+   featured strip, and this just narrows the list below them. */
+const TYPE_SEGMENTS: { value: string | null; label: string }[] = [
+  { value: null, label: "All" },
+  { value: "Workshop", label: "Workshops" },
+  { value: "Anchor", label: "Anchor events" },
+];
+const TYPE_VALUES = new Set(
+  TYPE_SEGMENTS.map((t) => t.value).filter((v): v is string => v !== null)
+);
 
 function parseParams(params: URLSearchParams): AgendaState {
   const loc = params.get("loc");
+  const type = params.get("type");
   return {
     view: params.get("view") === "past" ? "past" : "upcoming",
     q: params.get("q") ?? "",
     loc: loc === "virtual" || loc === "in_person" ? loc : null,
-    anchor: params.get("anchor") === "1",
-    kind: params.get("kind"),
+    // An unknown ?type= (a hand-edited or stale link) falls back to All rather
+    // than filtering the page down to nothing.
+    kind: type && TYPE_VALUES.has(type) ? type : null,
   };
 }
 
@@ -70,8 +99,7 @@ function serialize(state: AgendaState): string {
   if (state.view !== "upcoming") params.set("view", state.view);
   if (state.q) params.set("q", state.q);
   if (state.loc) params.set("loc", state.loc);
-  if (state.anchor) params.set("anchor", "1");
-  if (state.kind) params.set("kind", state.kind);
+  if (state.kind) params.set("type", state.kind);
   return params.toString();
 }
 
@@ -129,7 +157,7 @@ export default function EventsAgenda({
     setQInput(next.q);
   }, [searchParams, syncUrl]);
 
-  const { view, q, loc, anchor, kind } = state;
+  const { view, q, loc, kind } = state;
 
   // Upcoming keeps in-progress events (end_at not yet passed) rather than
   // dropping a live session into Past the minute it starts.
@@ -142,23 +170,16 @@ export default function EventsAgenda({
     };
   }, [events, nowMs]);
 
-  const kinds = useMemo(
-    () =>
-      [...new Set(events.map((e) => e.kind).filter((k): k is string => !!k))].sort(),
-    [events]
-  );
-
   const matches = useMemo(() => {
     const needle = q.toLowerCase();
     return (e: EventRow) =>
       (!loc || e.location_type === loc) &&
-      (!anchor || e.anchor) &&
       (!kind || e.kind === kind) &&
       (!needle ||
         [e.name, e.location_name, e.host].some((f) =>
           f?.toLowerCase().includes(needle)
         ));
-  }, [q, loc, anchor, kind]);
+  }, [q, loc, kind]);
 
   const filteredUpcoming = useMemo(
     () => upcoming.filter(matches),
@@ -185,20 +206,21 @@ export default function EventsAgenda({
     return out;
   }, [shown]);
 
-  const activeFilterCount = [loc, anchor || null, kind].filter(Boolean).length;
+  const activeFilterCount = [loc, kind].filter(Boolean).length;
   const set = (patch: Partial<AgendaState>) =>
     setState((s) => ({ ...s, ...patch }));
   const resetAll = () => {
     setQInput("");
-    set({ q: "", loc: null, anchor: false, kind: null });
+    set({ q: "", loc: null, kind: null });
   };
 
   const isFiltered = !!q || activeFilterCount > 0;
 
   return (
     <div className="agenda">
-      {/* One slim toolbar — segmented view toggle, compact search, filter
-          chips, kind dropdown, reset — so the cards start near the fold. */}
+      {/* One slim toolbar — upcoming/past toggle, compact search, the
+          All/Workshops/Anchor segments, the location chips, reset — so the
+          cards start near the fold. */}
       <div className="flex flex-wrap items-center gap-2">
         {/* No live counts in the segment labels — a changing digit resized
             the pill as filters narrowed the list (July 2026 feedback); the
@@ -229,6 +251,22 @@ export default function EventsAgenda({
           aria-label="Search events"
           className="h-11 w-full rounded-card border border-ink/10 bg-white px-4 text-base text-ink placeholder:text-meta-soft focus:border-teal focus:outline-none focus:ring-[3px] focus:ring-teal/15 transition-[border-color,box-shadow] duration-150 md:w-96"
         />
+        <div className="seg" role="group" aria-label="Filter by event type">
+          {TYPE_SEGMENTS.map((t) => {
+            const active = kind === t.value;
+            return (
+              <button
+                key={t.label}
+                type="button"
+                className={active ? "active" : undefined}
+                aria-pressed={active}
+                onClick={() => set({ kind: t.value })}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
         {LOC_FILTERS.map((f) => {
           const active = loc === f.key;
           return (
@@ -243,24 +281,6 @@ export default function EventsAgenda({
             </button>
           );
         })}
-        <button
-          type="button"
-          className={`chip${anchor ? " active" : ""}`}
-          aria-pressed={anchor}
-          title="The cycle's anchor events"
-          onClick={() => set({ anchor: !anchor })}
-        >
-          ✦ Anchor events
-        </button>
-        {kinds.length >= 2 && (
-          <FilterDropdown
-            label="Kind"
-            anyLabel="Any kind"
-            value={kind}
-            options={kinds.map((k) => ({ value: k, label: k }))}
-            onChange={(v) => set({ kind: v })}
-          />
-        )}
         {activeFilterCount > 0 && (
           <button
             type="button"
@@ -320,17 +340,67 @@ export default function EventsAgenda({
       ) : (
         groups.map((g) => (
           <section key={g.key}>
+            {/* No session count beside the month (owner call — same as the
+                hero): the list under it is its own answer. */}
             <h2 className="month-head">{g.label}</h2>
             {/* `.all` is load-bearing: without it .cards.dense hides cards 7+
                 on desktop (globals.css nth-child cap). */}
-            <div className="cards dense all">
+            <div className={`cards dense all${syncUrl ? " max-md:hidden" : ""}`}>
               {g.events.map((e) => (
                 <EventTeaser key={e.slug} event={e} corner={corners?.[e.slug]} />
               ))}
             </div>
+            {syncUrl && (
+              <div className="md:hidden">
+                {g.events.map((e) => (
+                  <AgendaRow key={e.slug} event={e} />
+                ))}
+              </div>
+            )}
           </section>
         ))
       )}
     </div>
+  );
+}
+
+/* One mobile agenda row — the 390px mock's list item: date · time and title
+   on the left, the city (or Virtual) trailing right, anchors on a tint so the
+   spine reads at a glance without a ✦. The whole row is the link. */
+function AgendaRow({ event: e }: { event: EventRow }) {
+  const isAnchor = e.kind === "Anchor";
+  return (
+    <Link
+      href={`/events/${e.slug}`}
+      className="flex items-baseline justify-between gap-3"
+      style={{
+        borderTop: "1px solid var(--rule)",
+        padding: "12px 10px",
+        // 4% ink, not var(--tint): the tint token is a cool blue-grey that
+        // clashes on the warm paper (owner flag on the hackathon schedule).
+        background: isAnchor ? "rgba(0, 20, 27, 0.04)" : undefined,
+        borderRadius: isAnchor ? "var(--r)" : undefined,
+        color: "inherit",
+        textDecoration: "none",
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
+        <div
+          className="t-h4"
+          style={{
+            marginTop: 2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {e.name}
+        </div>
+      </div>
+      <span className="lbl" style={{ flexShrink: 0 }}>
+        {e.location_type === "virtual" ? "Virtual" : cityOf(e.location_name)}
+      </span>
+    </Link>
   );
 }

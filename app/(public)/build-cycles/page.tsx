@@ -25,16 +25,9 @@ export const metadata = {
 };
 
 // The current cycle's public shape, inlined from the prototype's
-// cycles/data.js (CYCLE_PUBLIC). These constants move to the
-// `cycles` table when the public cycle API lands
-// (docs/OLOS_BACKEND_CHANGES.md §2/§8).
-const CYCLE = {
-  name: "Summer 2026",
-  theme: "Civic & Elections",
-  city: "Washington, DC",
-  kickoff: "2026-07-14T18:00",
-  weeks: 12,
-};
+// cycles/data.js (CYCLE_PUBLIC) — now shared with the /events hero from
+// lib/cycles/public-cycle.ts so the two pages can't drift.
+import { CYCLE_PUBLIC as CYCLE } from "@/lib/cycles/public-cycle";
 
 
 const PROMISES: [string, string][] = [

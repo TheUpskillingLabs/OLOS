@@ -196,12 +196,12 @@ the `.ics` download, so it must always match this table.
 
 | Anchor | Relative rule (default) | Cycle 3 (all America/New_York) |
 |---|---|---|
-| Cycle **start** = **Kickoff Summit** | input — a Tuesday + timezone | Tue Jul 14, 6:00–9:00 PM |
+| Cycle **start** = **Kickoff Summit** | input — a Tuesday + timezone | Tue Jul 14, 4:30–8:30 PM |
 | **Problem Sprint** (event) | start + 11 days (Sat, wk 2) | **Sat Jul 25**, 9:00 AM–1:00 PM |
-| **Meet the Pods** (event) | start + 4 weeks (Tue) | **Tue Aug 11**, evening |
-| **Hackathon** (event) | start + 30 days (Thu, wk 5) | **Thu Aug 13** |
+| **Meet the Pods** (event) | start + 4 weeks (Tue) | **Tue Aug 11**, 4:30–7:15 PM |
+| **Hackathon** (event) | start + 32 days (Sat, wk 5) | **Sat Aug 15**, 9:00 AM–4:30 PM |
 | **Meet the Projects** (event) | start + 8 weeks (Tue) | **Tue Sep 8**, evening |
-| **Summit** (event) = cycle **end** | start + 13 weeks (Tue) | Tue Oct 13, 6:00–9:00 PM |
+| **Summit** (event) = cycle **end** | start + 13 weeks (Tue) | Tue Oct 13, 4:30–8:30 PM |
 
 Software-action windows (decided; "**\<Weekday\> after X**" = first such
 weekday strictly after X; project-stage transitions at midnight, end-of-day):
@@ -212,7 +212,7 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
 | Pod voting | Sprint, 12:00 PM | Sprint, 1:00 PM | Jul 25 |
 | Pod forming | Sprint, 1:00 PM | Tuesday after Sprint, midnight | Jul 25 → Jul 28 EOD |
 | Pod active-join | Meet the Pods | = Project registration close | Aug 11 → Aug 25 |
-| Project proposal | Hackathon (Thu) | Tuesday after Hackathon | Aug 13 → Aug 18 |
+| Project proposal | Hackathon (Sat) | Tuesday after Hackathon | Aug 15 → Aug 18 |
 | Project voting | Tuesday after Hackathon | Thursday after Hackathon | Aug 18 → Aug 20 |
 | Project registration | Thursday after Hackathon | 2nd Tuesday after Hackathon | Aug 20 → Aug 25 |
 | Cycle registration (D-10, [`pod-registration.md`](./pod-registration.md)) | cycle opens (`upcoming`) | Pod forming close; **reopens** with Pod active-join | open → Jul 28 EOD · closed Jul 29–Aug 10 · Aug 11 → Aug 25 |
@@ -354,6 +354,25 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
   absorbs it; retirement may slip to late Cycle 3. Prod's `cycle_config`
   windows, `phase_2/3_start`, and the Luma events must be audited against
   the same calendar (testing plan S3.6).
+- **2026-07-30 (owner)** — **The hackathon moves to Sat Aug 15** and becomes
+  the public, AU co-hosted "Idea to Prototype: A Civics and Elections
+  Hackathon" (9:00 AM–4:30 PM, American University Constitution Hall), with
+  its own page at `/events/civics-elections-hackathon`. Migration `00092`
+  writes it to `events` and `cycle_events` and, in the same pass, finally
+  corrects the four anchor rows in `events` that still carried the prototype
+  dates this entry's 2026-07-12 note fixed everywhere *except* the public
+  content table (`scripts/ops/anchor-date-drift-2026-07-29.md`). The derived
+  software-action windows are unchanged: Thu Aug 13 and Sat Aug 15 fall in the
+  same week, so "Tuesday after" / "Thursday after" / "2nd Tuesday after" still
+  resolve to Aug 18 / Aug 20 / Aug 25.
+- **2026-07-30 (owner)** — **Luma's facts win for public events, titles
+  included.** The seeded anchor rows and their Luma twins had coexisted as
+  duplicates on /events, disagreeing on times (6 PM seeded vs 4:30 PM live).
+  Merged on dev by hand and on prod via
+  `scripts/ops/anchor-luma-merge-2026-07-30.sql` (promotion day, after 00092);
+  `anchor-events.ts` updated to match. Kickoff / Meet the Pods / Summit now
+  start 4:30 PM at MLK Library. To change a public event fact, change it on
+  Luma — the sync owns the merged rows.
 
 ## Open decisions
 

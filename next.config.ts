@@ -14,6 +14,13 @@ const nextConfig: NextConfig = {
       // The team page was trimmed to the board and moved /team → /board
       // (July 2026); old links follow permanently.
       { source: "/team", destination: "/board", permanent: true },
+      // The Frame Sprint became the public AU co-hosted hackathon and took a
+      // new slug with it (migration 00092); shared links keep working.
+      {
+        source: "/events/hackathon-frame-sprint",
+        destination: "/events/civics-elections-hackathon",
+        permanent: true,
+      },
     ];
   },
   async headers() {

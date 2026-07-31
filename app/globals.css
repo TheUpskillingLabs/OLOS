@@ -354,7 +354,10 @@ dialog::backdrop {
   /* ── modal shell ── */
   .gate-modal { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0, 20, 27, 0.58); backdrop-filter: blur(4px); padding: var(--pad); align-items: flex-end; justify-content: center; }
   .gate-modal.open { display: flex; animation: gateFade 0.2s ease; }
-  .gate-sheet { position: relative; width: 100%; max-width: 420px; padding: 32px 24px 24px; border-radius: var(--r) var(--r) 0 0; background: var(--paper); box-shadow: var(--shadow-lg); animation: gateUp 0.24s cubic-bezier(0.2, 0.8, 0.25, 1); }
+  /* color is pinned, not inherited: the sheet is always paper, but it can be
+     summoned from inside an .on-dark cover (the /events hero's RSVP modal),
+     where inherited white-on-paper rendered it "empty" (July 2026). */
+  .gate-sheet { position: relative; width: 100%; max-width: 420px; padding: 32px 24px 24px; border-radius: var(--r) var(--r) 0 0; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-lg); animation: gateUp 0.24s cubic-bezier(0.2, 0.8, 0.25, 1); }
   .gate-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: var(--meta); border-radius: 50%; }
   .gate-close:hover { background: rgba(0, 20, 27, 0.06); color: var(--ink); }
   @media (min-width: 1024px) {
@@ -389,7 +392,12 @@ dialog::backdrop {
   .onboard .sheet { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--white); }
 
   /* ── segmented progress ── */
-  .seg { display: flex; gap: 5px; flex: 1; align-items: center; }
+  /* The onboarding progress track (the row of .seg-bar fills). Named apart
+     from .seg, the segmented control above: this one is flex: 1 by design,
+     and sharing the bare class name made every segmented control in a flex
+     toolbar stretch to swallow the row's leftover space (events page, July
+     2026). One consumer: flow-screen.tsx. */
+  .seg-track { display: flex; gap: 5px; flex: 1; align-items: center; }
   .seg-bar { height: 3px; flex: 1; border-radius: 3px; background: rgba(255, 255, 255, 0.22); overflow: hidden; }
   .seg-fill { display: block; height: 100%; width: 0; background: #fff; transition: width 0.35s ease; }
   .seg-bar.done .seg-fill, .seg-bar.active .seg-fill { width: 100%; }
