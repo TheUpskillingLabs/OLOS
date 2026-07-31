@@ -337,14 +337,71 @@ export default async function EventPage({
               </div>
             )}
 
-            {/* Location gets a section of its own, not just the rail's Kv row.
+            {/* Editorial numerals (00095). Absent on short events, where a stat
+                row would be four numbers about nothing. */}
+            {stats.length > 0 && (
+              <Ruled label="By the numbers">
+                <div className="stat-row">
+                  {stats.map((s, i) => (
+                    <div className="stat-cell" key={i}>
+                      <div
+                        className="stat-num"
+                        style={{ color: "var(--teal-deep)" }}
+                      >
+                        {s.n}
+                      </div>
+                      <div className="stat-lbl">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </Ruled>
+            )}
+
+            {/* Sponsors are editorial (00095): Luma shows logos on its own page
+                but does not expose them through the API, so they cannot be
+                synced and live on the row instead. */}
+            {sponsors.length > 0 && (
+              <Ruled label="With thanks to our sponsors">
+                <div className="flex flex-wrap" style={{ gap: 16 }}>
+                  {sponsors.map((s, i) => (
+                    <SponsorTile key={i} sponsor={s} />
+                  ))}
+                </div>
+              </Ruled>
+            )}
+
+            {body.length > 0 && (
+              <Ruled label="What we'll cover">
+                <div className="grid gap-6 md:grid-cols-3">
+                  {body.map((p, i) => (
+                    <div key={i}>
+                      <span className="ed-num">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <p className="t-body" style={{ color: "var(--slate)" }}>
+                        {p}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Ruled>
+            )}
+
+            {/* ── Practicalities: where, who, what to bring ──
+                Location gets a section of its own, not just the rail's Kv row.
                 The rail sits in .detail-aside, which is display:none below
                 1024px, so on a narrow window the address was only in the
                 lg:hidden facts block — and on a wide one it was a small line in
                 a sidebar card. "Where is this?" deserves better than that
-                (owner call, 2026-07-31). An embedded map is deliberately not
-                here: it needs a paid Google Embed API key, and the link does
-                the job. */}
+                (owner call, 2026-07-31).
+
+                It sits at the END of the column, next to Host and Bring, rather
+                than between the copy and the editorial sections: a map is a
+                300px object, and dropping one into the middle of the prose cut
+                the reading in half (owner call, 2026-07-31). The facts a reader
+                needs BEFORE deciding are already in the rail and in the
+                lg:hidden block up top; this section is for after they have
+                decided to come. */}
             {e.location_type === "in_person" && whereQuery && (
               <Ruled label="Location">
                 {e.location_name && (
@@ -406,56 +463,6 @@ export default async function EventPage({
                     </a>
                   </div>
                 )}
-              </Ruled>
-            )}
-
-            {/* Editorial numerals (00095). Absent on short events, where a stat
-                row would be four numbers about nothing. */}
-            {stats.length > 0 && (
-              <Ruled label="By the numbers">
-                <div className="stat-row">
-                  {stats.map((s, i) => (
-                    <div className="stat-cell" key={i}>
-                      <div
-                        className="stat-num"
-                        style={{ color: "var(--teal-deep)" }}
-                      >
-                        {s.n}
-                      </div>
-                      <div className="stat-lbl">{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-              </Ruled>
-            )}
-
-            {/* Sponsors are editorial (00095): Luma shows logos on its own page
-                but does not expose them through the API, so they cannot be
-                synced and live on the row instead. */}
-            {sponsors.length > 0 && (
-              <Ruled label="With thanks to our sponsors">
-                <div className="flex flex-wrap" style={{ gap: 16 }}>
-                  {sponsors.map((s, i) => (
-                    <SponsorTile key={i} sponsor={s} />
-                  ))}
-                </div>
-              </Ruled>
-            )}
-
-            {body.length > 0 && (
-              <Ruled label="What we'll cover">
-                <div className="grid gap-6 md:grid-cols-3">
-                  {body.map((p, i) => (
-                    <div key={i}>
-                      <span className="ed-num">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <p className="t-body" style={{ color: "var(--slate)" }}>
-                        {p}
-                      </p>
-                    </div>
-                  ))}
-                </div>
               </Ruled>
             )}
 
