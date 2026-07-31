@@ -196,12 +196,12 @@ the `.ics` download, so it must always match this table.
 
 | Anchor | Relative rule (default) | Cycle 3 (all America/New_York) |
 |---|---|---|
-| Cycle **start** = **Kickoff Summit** | input — a Tuesday + timezone | Tue Jul 14, 6:00–9:00 PM |
+| Cycle **start** = **Kickoff Summit** | input — a Tuesday + timezone | Tue Jul 14, 4:30–8:30 PM |
 | **Problem Sprint** (event) | start + 11 days (Sat, wk 2) | **Sat Jul 25**, 9:00 AM–1:00 PM |
-| **Meet the Pods** (event) | start + 4 weeks (Tue) | **Tue Aug 11**, evening |
+| **Meet the Pods** (event) | start + 4 weeks (Tue) | **Tue Aug 11**, 4:30–7:15 PM |
 | **Hackathon** (event) | start + 32 days (Sat, wk 5) | **Sat Aug 15**, 9:00 AM–4:30 PM |
 | **Meet the Projects** (event) | start + 8 weeks (Tue) | **Tue Sep 8**, evening |
-| **Summit** (event) = cycle **end** | start + 13 weeks (Tue) | Tue Oct 13, 6:00–9:00 PM |
+| **Summit** (event) = cycle **end** | start + 13 weeks (Tue) | Tue Oct 13, 4:30–8:30 PM |
 
 Software-action windows (decided; "**\<Weekday\> after X**" = first such
 weekday strictly after X; project-stage transitions at midnight, end-of-day):
@@ -365,6 +365,14 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
   software-action windows are unchanged: Thu Aug 13 and Sat Aug 15 fall in the
   same week, so "Tuesday after" / "Thursday after" / "2nd Tuesday after" still
   resolve to Aug 18 / Aug 20 / Aug 25.
+- **2026-07-30 (owner)** — **Luma's facts win for public events, titles
+  included.** The seeded anchor rows and their Luma twins had coexisted as
+  duplicates on /events, disagreeing on times (6 PM seeded vs 4:30 PM live).
+  Merged on dev by hand and on prod via
+  `scripts/ops/anchor-luma-merge-2026-07-30.sql` (promotion day, after 00092);
+  `anchor-events.ts` updated to match. Kickoff / Meet the Pods / Summit now
+  start 4:30 PM at MLK Library. To change a public event fact, change it on
+  Luma — the sync owns the merged rows.
 
 ## Open decisions
 
