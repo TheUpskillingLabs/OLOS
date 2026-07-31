@@ -105,6 +105,29 @@ export async function fetchLumaEvents(): Promise<LumaEvent[]> {
   return events;
 }
 
+/* The calendar listing omits event descriptions entirely — every row the
+   sync ever created has description NULL while its Luma page carries
+   paragraphs (diagnosed 2026-07-31; this is also why ledeOf never had
+   anything to cut). The full event object, description included, lives on
+   the per-event endpoint. Fetched one event at a time, upcoming events
+   only: bounded work per tick (a few dozen calls against Luma's 200/min
+   limit), and past pages can live with what they already have. A failed
+   detail fetch never fails the sync — the event just stays undescribed
+   until the next tick. */
+async function fetchLumaEventDetail(api_id: string): Promise<LumaEvent | null> {
+  try {
+    const data = asRecord(
+      await lumaGet(`/event/get?api_id=${encodeURIComponent(api_id)}`)
+    );
+    const ev = asRecord(data?.event) ?? data;
+    return ev && typeof ev.name === "string"
+      ? (ev as unknown as LumaEvent)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /* The events table stores local wall time rendered as written (00033);
    Luma sends UTC instants plus the event's IANA timezone. */
 export function toWallTime(iso: string, timezone?: string | null): string {
@@ -300,6 +323,17 @@ export async function syncLumaEvents(
 
   for (const [i, ev] of lumaEvents.entries()) {
     try {
+      // The listing has no description; pull the full event for upcoming
+      // ones so `about` (00094) and the lede backfill have real text.
+      let description =
+        typeof ev.description === "string" && ev.description.trim()
+          ? ev.description
+          : null;
+      if (!description && new Date(ev.start_at).getTime() > Date.now()) {
+        description =
+          (await fetchLumaEventDetail(ev.api_id))?.description ?? null;
+      }
+
       const lumaFields = {
         name: ev.name,
         start_at: toWallTime(ev.start_at, ev.timezone),
@@ -307,9 +341,11 @@ export async function syncLumaEvents(
         ...locationOf(ev),
         img: ev.cover_url || null,
         luma_url: ev.url || null,
-        // The full About text, Luma-owned (00094): overwritten every tick,
-        // unlike `description` (a fill-only lede) and the editorial fields.
-        about: ev.description?.trim() || null,
+        // The full About text, Luma-owned (00094): overwritten every tick
+        // for upcoming events, unlike `description` (a fill-only lede) and
+        // the editorial fields. Never null over an existing value: a failed
+        // detail fetch must not erase last tick's text.
+        ...(description ? { about: description.trim() } : {}),
         // Visibility is Luma-owned (00093): private events reach members on
         // /learning but never the public /events page. Written only when
         // Luma sends the field — absent means "leave as is", never "expose".
@@ -327,7 +363,7 @@ export async function syncLumaEvents(
         // helps nobody, and Luma's own copy beats emptiness. Fill-only:
         // a non-null description is editorial (the /admin/content editor)
         // and is never overwritten.
-        const lede = ledeOf(ev.description);
+        const lede = ledeOf(description);
         const { error } = await supabase
           .from("events")
           // Stamping api_id on an adopted row makes the next sync a plain
@@ -352,7 +388,7 @@ export async function syncLumaEvents(
           api_id: ev.api_id,
           slug,
           ...lumaFields,
-          description: ledeOf(ev.description),
+          description: ledeOf(description),
           grad: GRAD_ROTATION[i % GRAD_ROTATION.length],
           status: "published",
           anchor: false,
