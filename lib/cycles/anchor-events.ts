@@ -62,10 +62,12 @@ export const ANCHOR_EVENTS: AnchorEvent[] = [
   {
     api_id: "anchor-04",
     slug: "meet-the-projects",
-    name: "Meet the Projects",
-    start_at: "2026-09-08T18:00",
-    end_at: "2026-09-08T20:30",
-    location_name: "Main branch",
+    name: "Meet the Projects: Civics & Elections",
+    start_at: "2026-09-08T16:45",
+    // End per the recurring MLK evening slot (16:45–19:30, as the prior
+    // cycles' Meet the X events ran); confirm against the Luma row.
+    end_at: "2026-09-08T19:30",
+    location_name: "Martin Luther King Jr. Memorial Library, Washington, DC",
   },
   {
     api_id: "anchor-05",
@@ -96,7 +98,9 @@ export function fmtEvt(e: AnchorEvent): string {
   return `${mo} ${d.getDate()} · ${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`;
 }
 
-/** The anchor events as a downloadable .ics (the prototype's cycleICS). */
+/** The anchor events as a downloadable .ics (the prototype's cycleICS).
+    DTEND included — it never was, so every import landed as a zero-length
+    "4:30 PM – 4:30 PM" event (spotted in Apple Calendar, July 2026). */
 export function cycleICS(): string {
   const dt = (s: string) => s.replace(/[-:]/g, "") + "00";
   return (
@@ -107,6 +111,8 @@ export function cycleICS(): string {
         e.api_id +
         "@theupskillinglabs\r\nDTSTART:" +
         dt(e.start_at) +
+        "\r\nDTEND:" +
+        dt(e.end_at) +
         "\r\nSUMMARY:" +
         e.name.replace(/,/g, "\\,") +
         "\r\nLOCATION:" +

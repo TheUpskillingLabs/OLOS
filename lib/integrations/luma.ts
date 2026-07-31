@@ -30,6 +30,7 @@ const LUMA_API_BASE =
 interface LumaEvent {
   api_id: string;
   name: string;
+  visibility?: string | null; // "public" | "private" — absent on old payloads
   description?: string | null;
   start_at: string; // ISO 8601 UTC instant
   end_at?: string | null;
@@ -264,7 +265,7 @@ export async function syncLumaEvents(
 
   const { data: existingRows, error: readError } = await supabase
     .from("events")
-    .select("id, api_id, slug, status, start_at, anchor, luma_url");
+    .select("id, api_id, slug, status, start_at, anchor, luma_url, description");
   if (readError) throw new Error(`events read failed: ${readError.message}`);
 
   const byApiId = new Map(
@@ -285,10 +286,10 @@ export async function syncLumaEvents(
   // hackathon row in migration 00092 in the first place.
   const normUrl = (u: string | null | undefined) =>
     u ? u.trim().replace(/\/+$/, "").toLowerCase() : null;
-  const byLumaUrl = new Map<string, { id: number }>();
+  const byLumaUrl = new Map<string, (typeof existingRows extends (infer T)[] | null ? T : never)>();
   for (const r of existingRows ?? []) {
     const key = normUrl(r.luma_url as string | null);
-    if (key && !byLumaUrl.has(key)) byLumaUrl.set(key, { id: r.id as number });
+    if (key && !byLumaUrl.has(key)) byLumaUrl.set(key, r);
   }
   const syncedAt = new Date().toISOString();
   // Rows this run matched or adopted, by id. `existingRows` is a snapshot read
@@ -306,6 +307,12 @@ export async function syncLumaEvents(
         ...locationOf(ev),
         img: ev.cover_url || null,
         luma_url: ev.url || null,
+        // Visibility is Luma-owned (00093): private events reach members on
+        // /learning but never the public /events page. Written only when
+        // Luma sends the field — absent means "leave as is", never "expose".
+        ...(typeof ev.visibility === "string"
+          ? { visibility: ev.visibility === "public" ? "public" : "members" }
+          : {}),
         synced_at: syncedAt,
         updated_at: syncedAt,
       };
@@ -313,11 +320,22 @@ export async function syncLumaEvents(
       const adopted = byLumaUrl.get(normUrl(ev.url) ?? "\u0000");
       const existing = byApiId.get(ev.api_id) ?? adopted;
       if (existing) {
+        // Backfill the lede when the row still has none — a bare detail page
+        // helps nobody, and Luma's own copy beats emptiness. Fill-only:
+        // a non-null description is editorial (the /admin/content editor)
+        // and is never overwritten.
+        const lede = ledeOf(ev.description);
         const { error } = await supabase
           .from("events")
           // Stamping api_id on an adopted row makes the next sync a plain
           // api_id match; on an already-matched row it is a no-op write.
-          .update({ ...lumaFields, api_id: ev.api_id })
+          .update({
+            ...lumaFields,
+            api_id: ev.api_id,
+            ...(existing.description == null && lede
+              ? { description: lede }
+              : {}),
+          })
           .eq("id", existing.id);
         if (error) throw new Error(error.message);
         touchedIds.add(existing.id as number);

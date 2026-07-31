@@ -34,7 +34,9 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const e = await getEvent(slug);
-  if (!e) return {};
+  // No public metadata for members-only events — crawlers and unfurlers
+  // are, by definition, signed out.
+  if (!e || e.visibility === "members") return {};
   return {
     title: `${e.name} · The Upskilling Labs`,
     description: e.description ?? undefined,
@@ -85,7 +87,10 @@ export default async function EventPage({
     getEvents(),
     publicSession(),
   ]);
-  if (!e) notFound();
+  // A members-only event's page exists for members (/learning links here)
+  // and is a 404 for everyone else — same face a wrong slug shows, so the
+  // URL doesn't confirm the event exists.
+  if (!e || (e.visibility === "members" && !session.signedIn)) notFound();
 
   // "You're going ✓" reflects both in-app RSVPs and, via the guest mirror,
   // registrations made directly on Luma.
