@@ -4,6 +4,7 @@ import { EventTeaser, MediaFrame } from "@/app/components/content/teasers";
 import { getEvent, getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay, fmtTime } from "@/lib/content/format";
 import { eventIcsHref } from "@/lib/content/event-ics";
+import { renderMarkdown } from "@/lib/content/markdown";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import RsvpButton, { MemberRegister } from "./rsvp";
@@ -210,20 +211,7 @@ export default async function EventPage({
                 styled page. */}
             {e.about && body.length === 0 && (
               <Ruled label="About this session">
-                <div className="ed-text">
-                  {e.about.split(/\n\s*\n/).map(
-                    (p, i) =>
-                      p.trim() && (
-                        <p
-                          key={i}
-                          className="t-body"
-                          style={{ color: "var(--slate)", marginBottom: 14 }}
-                        >
-                          {p.trim()}
-                        </p>
-                      )
-                  )}
-                </div>
+                <div className="ed-text">{renderMarkdown(e.about)}</div>
               </Ruled>
             )}
 

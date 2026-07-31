@@ -6,7 +6,7 @@ import path from "node:path";
 // Supabase client gets a hand-rolled mock (see reconciler.test.ts).
 export default defineConfig({
   test: {
-    include: ["lib/**/*.test.ts"],
+    include: ["lib/**/*.test.{ts,tsx}"],
     environment: "node",
   },
   resolve: {

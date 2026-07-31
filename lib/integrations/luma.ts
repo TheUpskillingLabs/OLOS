@@ -338,11 +338,18 @@ export async function syncLumaEvents(
         typeof ev.description === "string" && ev.description.trim()
           ? ev.description
           : null;
+      // `about` prefers the MARKDOWN body: Luma's plain-text variant
+      // flattens paragraphs, emphasis and links into a blob (owner report,
+      // 2026-07-31 — the site rendered one wall of text while Luma showed
+      // structured copy). The lede keeps preferring plain text, where
+      // markdown syntax characters would just be noise.
+      let aboutText: string | null = null;
       if (!description && new Date(ev.start_at).getTime() > Date.now()) {
         const detail = await fetchLumaEventDetail(ev.api_id);
-        // The detail payload may carry plain text, markdown, or both.
-        description =
-          detail?.description?.trim() || detail?.description_md?.trim() || null;
+        const md = detail?.description_md?.trim() || null;
+        const plain = detail?.description?.trim() || null;
+        aboutText = md || plain;
+        description = plain || md;
         if (description) summary.details_ok++;
         else summary.details_failed++;
       }
@@ -358,7 +365,9 @@ export async function syncLumaEvents(
         // for upcoming events, unlike `description` (a fill-only lede) and
         // the editorial fields. Never null over an existing value: a failed
         // detail fetch must not erase last tick's text.
-        ...(description ? { about: description.trim() } : {}),
+        ...(aboutText || description
+          ? { about: (aboutText || description) as string }
+          : {}),
         // Visibility is Luma-owned (00093): private events reach members on
         // /learning but never the public /events page. Written only when
         // Luma sends the field — absent means "leave as is", never "expose".
