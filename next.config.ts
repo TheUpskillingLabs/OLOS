@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
         destination: "/events/civics-elections-hackathon",
         permanent: true,
       },
+      // The Luma-synced twin was prod's public hackathon URL for weeks
+      // before it was merged into the anchor row (2026-07-30 repair);
+      // shared links keep working.
+      {
+        source: "/events/idea-to-prototype-a-civics-and-elections-hackathon",
+        destination: "/events/civics-elections-hackathon",
+        permanent: true,
+      },
     ];
   },
   async headers() {

@@ -62,10 +62,12 @@ export const ANCHOR_EVENTS: AnchorEvent[] = [
   {
     api_id: "anchor-04",
     slug: "meet-the-projects",
-    name: "Meet the Projects",
-    start_at: "2026-09-08T18:00",
-    end_at: "2026-09-08T20:30",
-    location_name: "Main branch",
+    name: "Meet the Projects: Civics & Elections",
+    start_at: "2026-09-08T16:45",
+    // End per the recurring MLK evening slot (16:45–19:30, as the prior
+    // cycles' Meet the X events ran); confirm against the Luma row.
+    end_at: "2026-09-08T19:30",
+    location_name: "Martin Luther King Jr. Memorial Library, Washington, DC",
   },
   {
     api_id: "anchor-05",
