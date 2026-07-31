@@ -2,9 +2,8 @@
  * Phase resolver for the poderator dashboard (PRD §7.1).
  *
  * Maps the current timestamp to one of the cycle's operational phases
- * using cycle_config window pairs. Six phases total — matches the
- * canonical OPERATIONAL_WINDOWS in
- * app/(dashboard)/cycles/cycle-phase-indicator.tsx:58-65.
+ * using cycle_config window pairs. Six phases total — derived from the
+ * canonical window registry (lib/cycles/windows.ts).
  *
  * The PRD glossary §5 mentions seven phases ("project shortlist" as a
  * seventh) but the schema and existing code recognize six operational
@@ -17,6 +16,7 @@
  */
 
 import { parseWindow } from "@/lib/cycles/lab-time";
+import { CYCLE_WINDOWS } from "@/lib/cycles/windows";
 
 export type PhaseNum = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -56,14 +56,23 @@ interface PhaseSpec {
   closeKey: keyof CycleConfigPhaseColumns;
 }
 
-const PHASES: PhaseSpec[] = [
-  { num: 1, shortName: "Problem Statements", openKey: "problem_statement_open", closeKey: "problem_statement_close" },
-  { num: 2, shortName: "Problem Voting", openKey: "voting_open", closeKey: "voting_close" },
-  { num: 3, shortName: "Pod Registration", openKey: "pod_registration_open", closeKey: "pod_registration_close" },
-  { num: 4, shortName: "Solution Proposals", openKey: "solution_proposal_open", closeKey: "solution_proposal_close" },
-  { num: 5, shortName: "Solution Voting", openKey: "solution_voting_open", closeKey: "solution_voting_close" },
-  { num: 6, shortName: "Project Registration", openKey: "project_registration_open", closeKey: "project_registration_close" },
-];
+// Keys/positions come from the canonical window registry
+// (lib/cycles/windows.ts). Two shortNames deliberately diverge from the
+// registry's `labels.short` so the rendered Poderator header stays
+// byte-identical to what shipped ("Problem Statements" / "Problem Voting"
+// vs the member surfaces' "Problem Situations" / "Voting") — unifying that
+// copy is a product call, not a refactor side effect.
+const PODERATOR_SHORT_NAMES: Partial<Record<string, string>> = {
+  problem_statement: "Problem Statements",
+  voting: "Problem Voting",
+};
+
+const PHASES: PhaseSpec[] = CYCLE_WINDOWS.map((w) => ({
+  num: w.position as PhaseNum,
+  shortName: PODERATOR_SHORT_NAMES[w.key] ?? w.labels.short,
+  openKey: w.openField as keyof CycleConfigPhaseColumns,
+  closeKey: w.closeField as keyof CycleConfigPhaseColumns,
+}));
 
 function toResolved(spec: PhaseSpec, openAt: string | null, closeAt: string | null, isActive: boolean): ResolvedPhase {
   return {
