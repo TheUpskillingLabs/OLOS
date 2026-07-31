@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EventTeaser } from "@/app/components/content/teasers";
+import { EventTeaser, MediaFrame } from "@/app/components/content/teasers";
 import { getEvent, getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay, fmtTime } from "@/lib/content/format";
 import { eventIcsHref } from "@/lib/content/event-ics";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
-import Gallery from "./gallery";
 import RsvpButton, { MemberRegister } from "./rsvp";
 
 /* The event detail page — the "ruled detail + registration rail" redesign
@@ -150,7 +149,12 @@ export default async function EventPage({
     .filter(Boolean)
     .join(" · ");
   const body = e.body ?? [];
-  const hasMedia = Boolean(e.img || (e.gallery && e.gallery.length > 0));
+  // Real photos only. The seeded gallery arrays hold orb-gradient names
+  // ("m-teal", "m-forest"...) as placeholders, and grayscaling a full-width
+  // gradient placeholder produced a page-height black box (July 2026). A
+  // Luma-synced row's cover lands in `img` and shows here automatically.
+  const photo =
+    [e.img, ...(e.gallery ?? [])].find((p) => p && !/^m-/.test(p)) ?? null;
   const statusCopy = session.signedIn
     ? going
       ? "You're on the list. Luma has your confirmation and calendar invite."
@@ -208,24 +212,25 @@ export default async function EventPage({
               </Ruled>
             )}
 
+            {/* The photo is demoted (mock 3A) but not banished: small, in
+                grayscale, beside the host it depicts — the words above sell
+                the session, the face makes it human. */}
             <Ruled label="Host">
-              <div className="t-h4">{e.host || "The Upskilling Labs"}</div>
+              <div className="flex items-start gap-5">
+                {photo && (
+                  <div
+                    style={{ width: 168, flexShrink: 0, filter: "grayscale(1)" }}
+                  >
+                    <MediaFrame img={photo} square />
+                  </div>
+                )}
+                <div className="t-h4">{e.host || "The Upskilling Labs"}</div>
+              </div>
             </Ruled>
 
             {e.bring && (
               <Ruled label="Bring">
                 <p className="t-body">{e.bring}</p>
-              </Ruled>
-            )}
-
-            {/* The photo, demoted below the content in grayscale (mock 3A) —
-                the words sell the session; the image is texture. Orb-gradient
-                placeholders stay put: grayscaling brand art helps nobody. */}
-            {hasMedia && (
-              <Ruled label="Photos">
-                <div style={{ filter: "grayscale(1)" }}>
-                  <Gallery img={e.img} gallery={e.gallery} />
-                </div>
               </Ruled>
             )}
 
