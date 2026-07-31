@@ -395,7 +395,12 @@ export default async function EventPage({
                       title={`Map of ${e.location_name ?? whereQuery}`}
                       src={`https://www.google.com/maps/embed/v1/place?key=${mapsEmbedKey}&q=${encodeURIComponent(whereQuery)}`}
                       loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
+                      /* Google's documented value. Sends only the origin, not
+                         the full path, so which event page someone is reading
+                         is not handed to Google — and an origin is all a
+                         referrer-restricted key needs. */
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
                       style={{ border: 0, width: "100%", height: "100%" }}
                     />
                   </div>
