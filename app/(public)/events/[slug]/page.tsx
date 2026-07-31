@@ -255,10 +255,12 @@ export default async function EventPage({
 
           {/* ── The registration rail ── */}
           {/* The Luma card tops the rail (owner call, July 2026 — "the
-              thumbnail at the top", the way Luma leads with it). */}
+              thumbnail at the top", the way Luma leads with it) — but small:
+              at the rail's full 360px it shoved the register button below
+              the fold, and the card is a teaser, not the point. */}
           <aside className="detail-aside">
             {photo && (
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 16, width: 180 }}>
                 <MediaFrame img={photo} square />
               </div>
             )}
