@@ -532,7 +532,12 @@ export default async function CivicsElectionsHackathonPage() {
               </div>
             </div>
             <div className="ed-cols">
-              <Link className="see" href="/build-cycles">
+              <Link
+                className="see"
+                href="/build-cycles"
+                target="_blank"
+                rel="noopener"
+              >
                 How a Build Cycle works →
               </Link>
             </div>

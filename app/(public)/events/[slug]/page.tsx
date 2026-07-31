@@ -289,7 +289,12 @@ export default async function EventPage({
             {e.anchor && (
               <p className="t-small" style={{ marginTop: 12 }}>
                 An anchor event of the current{" "}
-                <Link className="see" href="/build-cycles">
+                <Link
+                  className="see"
+                  href="/build-cycles"
+                  target="_blank"
+                  rel="noopener"
+                >
                   Build Cycle
                 </Link>
                 .
