@@ -25,8 +25,17 @@ export function eventICS(e: EventRow): string {
     (e.end_at ? "\r\nDTEND:" + dt(e.end_at) : "") +
     "\r\nSUMMARY:" +
     esc(e.name) +
+    /* Prefer the full postal address (00095) — a calendar app can turn
+       "4400 Massachusetts Ave NW…" into directions, where a venue label like
+       "American University" only sometimes resolves. Virtual events put the
+       join link here for the same reason: "Online" alone tells the calendar
+       nothing. Both fall back to what earlier rows already had. */
     "\r\nLOCATION:" +
-    esc(e.location_type === "virtual" ? "Online" : (e.location_name ?? "")) +
+    esc(
+      e.location_type === "virtual"
+        ? (e.meeting_url ?? "Online")
+        : (e.location_address ?? e.location_name ?? "")
+    ) +
     "\r\nEND:VEVENT\r\nEND:VCALENDAR"
   );
 }
