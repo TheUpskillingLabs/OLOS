@@ -388,16 +388,24 @@ export default async function EventPage({
                     />
                   </div>
                 )}
-                <div style={{ marginTop: 14 }}>
-                  <a
-                    className="btn btn-ghost"
-                    href={mapsHref(whereQuery)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open in Maps
-                  </a>
-                </div>
+                {/* The button is the FALLBACK, not a companion to the embed:
+                    Google's own frame carries an "Open in Maps" chip in its top
+                    corner, so with a key configured this was the same action
+                    twice, six inches apart (owner flag, 2026-07-31). Without a
+                    key — local dev, or a preview that has none — it is the only
+                    way to see where the event is, so it stays. */}
+                {!mapsEmbedKey && (
+                  <div style={{ marginTop: 14 }}>
+                    <a
+                      className="btn btn-ghost"
+                      href={mapsHref(whereQuery)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open in Maps
+                    </a>
+                  </div>
+                )}
               </Ruled>
             )}
 
