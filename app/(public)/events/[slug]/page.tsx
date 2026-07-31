@@ -200,6 +200,33 @@ export default async function EventPage({
               {e.bring && <Kv k="Bring" v={e.bring} />}
             </div>
 
+            {/* The full Luma "About Event" text (00094, Luma-owned) as plain
+                prose paragraphs — a FALLBACK, not a co-tenant: once the Labs
+                write their own "what we'll cover" (the editorial body), the
+                curated framing takes precedence and Luma's prose steps aside
+                (owner call, July 2026). Plain on purpose: Luma's markdown
+                emphasis and links are dropped rather than half-rendered —
+                the rail's "View on Luma" link carries anyone who wants the
+                styled page. */}
+            {e.about && body.length === 0 && (
+              <Ruled label="About this session">
+                <div className="ed-text">
+                  {e.about.split(/\n\s*\n/).map(
+                    (p, i) =>
+                      p.trim() && (
+                        <p
+                          key={i}
+                          className="t-body"
+                          style={{ color: "var(--slate)", marginBottom: 14 }}
+                        >
+                          {p.trim()}
+                        </p>
+                      )
+                  )}
+                </div>
+              </Ruled>
+            )}
+
             {body.length > 0 && (
               <Ruled label="What we'll cover">
                 <div className="grid gap-6 md:grid-cols-3">
