@@ -449,6 +449,17 @@ function Anchor({ href, children }: { href: string; children: ReactNode }) {
   );
 }
 
+/* Inline markup nests, so each match's content goes back through renderInline
+   rather than out as literal text. Luma authors bold a whole sentence that
+   happens to contain a link ("**Please [sign up here](url) if you can.**"), and
+   because the `**` comes first in the string the bold alternative wins the
+   match — rendering the link as raw markdown for the reader to squint at
+   (owner flag, 2026-07-31, Volunteer Orientation).
+
+   The recursion terminates by construction: every capture group excludes its
+   own delimiter (`[^*\n]` for bold and italic, `[^\]]` for a link label), so an
+   inner pass cannot re-match the marker it just consumed. Depth is bounded at
+   link-inside-emphasis-inside-emphasis. */
 function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
@@ -459,13 +470,13 @@ function renderInline(text: string): ReactNode[] {
     if (m[1] && m[2]) {
       out.push(
         <Anchor key={key++} href={m[2]}>
-          {m[1]}
+          {renderInline(m[1])}
         </Anchor>
       );
     } else if (m[3]) {
-      out.push(<strong key={key++}>{m[3]}</strong>);
+      out.push(<strong key={key++}>{renderInline(m[3])}</strong>);
     } else if (m[4] || m[5]) {
-      out.push(<em key={key++}>{m[4] || m[5]}</em>);
+      out.push(<em key={key++}>{renderInline(m[4] || m[5])}</em>);
     } else if (m[6]) {
       out.push(
         <Anchor key={key++} href={m[6]}>
