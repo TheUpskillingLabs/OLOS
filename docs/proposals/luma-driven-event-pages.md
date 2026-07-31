@@ -1,7 +1,10 @@
 # Plan: Luma-driven event pages
 
-**Status:** phases 1 to 3 built and tested on dev, 2026-07-31. Phase 4 (deleting
-the bespoke route) is written up but not done, and is gated on the Luma copy.
+**Status:** phases 1 to 3 merged to dev 2026-07-31 (#335, which landed the first
+two commits only — the nested-link fix rides along with Phase 4). Phase 4
+(deleting the bespoke route) is the branch `chore/retire-hackathon-shadow-route`:
+the copy was migrated to Luma via `docs/hackathon-luma-about.md` and the route is
+gone.
 **Date:** 2026-07-31
 
 > **Scope grew during testing.** Four things were added after seeing the real
@@ -274,6 +277,46 @@ operations:
 If waiting on the Luma edit becomes a problem, split commit 6 into its own
 follow-up PR. Commits 1 to 5 are purely additive, improve every event page, and
 regress nothing while the bespoke route is still in place.
+
+### Splitting Phase 4 out (decided 2026-07-31)
+
+Taken. The Luma About text still carries the wrong Build Cycle theme, and
+holding four working phases behind a copy edit in someone else's tool helps
+nobody. So:
+
+- **This PR = phases 1 to 3.** Additive only. `/events/civics-elections-hackathon`
+  keeps being served by the bespoke route, unchanged, because that route still
+  shadows `[slug]`. Every OTHER event page gets the new renderer.
+- **Follow-up PR = Phase 4**, unchanged in substance: copy `AUDIENCE`, `TRACKS`
+  and `SCHEDULE` into Luma, correct the theme, run the manual sync, confirm the
+  dev preview, then delete `app/(public)/events/civics-elections-hackathon/`.
+  The gate above still applies to that PR, and only to it.
+
+  Done on `chore/retire-hackathon-shadow-route`. The copy was converted to
+  Luma-editor markdown in `docs/hackathon-luma-about.md`, which is both the paste
+  source and the record of what the deleted file held. The stat row and the
+  sponsor logo, which Luma cannot express, move to the row's editorial `stats`
+  and `sponsors` columns via `scripts/ops/hackathon-editorial-fields.sql` — so
+  the "losing the tracks, numbered cards, stat row and sponsor logo" risk in the
+  table below did not have to be accepted after all.
+
+Consequence worth stating plainly: until the follow-up merges, the hackathon page
+looks exactly as it does today. Nothing in this PR changes it.
+
+**Migration gate for THIS PR.** `00095` must be applied to the dev database
+before the merged code runs a Luma sync: `lib/integrations/luma.ts` now writes
+`location_address` and `meeting_url`, and a write to a column that does not exist
+fails the whole upsert. Reads are safe either way — `queries.ts` uses
+`select("*")` and every new field is nullish-guarded at the call site — so page
+rendering degrades to today's behaviour rather than breaking. Prod gets the same
+treatment at promotion time, before the `dev` → `main` merge, per
+`docs/environments.md` §Applying to prod.
+
+**What actually landed on the branch**, since the commit list above is the plan
+rather than the history: commits 1 to 5 were authored as one `feat:` commit plus
+two follow-ups — the map iframe referrer policy (`chore:`), and a `fix:` for
+links nested inside bold, which Luma authors produce constantly
+("**Please [sign up here](url)…**") and the first pass rendered as raw markdown.
 
 ---
 

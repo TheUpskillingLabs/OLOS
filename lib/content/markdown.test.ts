@@ -564,6 +564,81 @@ describe("parseMarkdown — schedule detection", () => {
   });
 });
 
+/* What `events.about` ACTUALLY held after a real sync (read from the dev
+   database, 2026-07-31), which is materially different from the shape the
+   fixture above was written from: no blank lines between blocks, ATX headings,
+   "*   " bullets, and the track tags bolded with the colon on either side of the
+   markers. All three defeated the first version of the parser — the whole thing
+   collapsed into one paragraph and the schedule never formed. */
+const LUMA_TIGHT = [
+  "## **Schedule:**",
+  "9:00am — **All:** Light Breakfast",
+  "9:30",
+  "*   **All:** Welcome (AU Hosts)",
+  "9:45",
+  "*   **Newcomer Track**: About The Upskilling Labs and what to expect",
+  "*   **Pod Sprint Track**: Frame and orient problem statements",
+  "10:00",
+  "*   **Newcomer Track**: Workshop — Design Thinking with Emily Modde",
+  "*   **Pod Sprint Track**: Lightning Talks, How Might We statements",
+  "11:50 — **All:** Lunch",
+].join("\n");
+
+describe("parseMarkdown — Luma's tight export", () => {
+  const blocks = parseMarkdown(LUMA_TIGHT);
+
+  it("treats an ATX heading as a heading, without the markers", () => {
+    expect(blocks[0]).toEqual({
+      kind: "heading",
+      text: "Schedule:",
+      id: "schedule",
+    });
+  });
+
+  it("forms the schedule despite single newlines between blocks", () => {
+    expect(firstSchedule(blocks).map((s) => s.time)).toEqual([
+      "9:00am",
+      "9:30",
+      "9:45",
+      "10:00",
+      "11:50",
+    ]);
+  });
+
+  it("reads a bolded track tag, colon inside or outside the markers", () => {
+    const slots = firstSchedule(blocks);
+    expect(slots[0].entries).toEqual([{ label: "All", text: "Light Breakfast" }]);
+    expect(slots[2].entries.map((e) => e.label)).toEqual([
+      "Newcomer Track",
+      "Pod Sprint Track",
+    ]);
+    // The markers are consumed, not left in the text for the reader to see.
+    expect(JSON.stringify(slots)).not.toContain("**");
+  });
+
+  it("still pivots to two columns", () => {
+    expect(scheduleColumns(firstSchedule(blocks))).toEqual([
+      "Newcomer Track",
+      "Pod Sprint Track",
+    ]);
+  });
+
+  it("does not read a bolded sentence as a track tag", () => {
+    const [block] = parseMarkdown("**Note: this matters** and more follows.");
+    expect(block.kind).toBe("para");
+  });
+
+  it("keeps a single newline inside prose as a line break, not a block split", () => {
+    const blocks = parseMarkdown("First para.\n\nBio:\nAda Lovelace");
+    expect(blocks).toHaveLength(2);
+    expect(blocks[1]).toEqual({
+      kind: "para",
+      text: "Bio:\nAda Lovelace",
+      lede: false,
+    });
+  });
+});
+
 describe("parseMarkdown — the real Luma About text", () => {
   const blocks = parseMarkdown(LUMA_ABOUT);
 

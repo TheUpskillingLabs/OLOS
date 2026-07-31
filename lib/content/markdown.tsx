@@ -93,6 +93,10 @@ const RULE_RE = /^(?:-{3,}|\*{3,}|_{3,})$/;
 const BULLET_RE = /^[-*]\s+/;
 /** A bold-only line, with an optional trailing colon inside or outside. */
 const HEADING_RE = /^\*\*\s*([^*]+?)\s*\*\*:?$/;
+/** An ATX heading. Luma's editor does emit these ("## **Schedule:**"), despite
+    offering no heading control in its toolbar, so the level is ignored and the
+    text is treated the same as the bold-line convention. */
+const ATX_RE = /^#{1,6}\s+(.+?)\s*$/;
 
 /* Authors who don't reach for bold write a bare label line ending in a colon
    instead ("What to bring:", "Bio:"). Same intent, so same treatment. Guarded
@@ -128,6 +132,17 @@ const TIME_RE =
    mid-sentence colon can't be mistaken for a tag. */
 const LABEL_RE = /^([A-Z][A-Za-z0-9 &'’()/-]{0,28}?):\s*(.+)$/;
 
+/* The same tag, bolded — which is how Luma's editor actually writes it, with the
+   colon landing either inside the bold ("**All:** Lunch") or outside
+   ("**Newcomer Track**: …"). Both are one optional colon in the pattern.
+
+   The label class excludes `:` `.` `!` `?`, which is what keeps a bolded
+   SENTENCE from being read as a tag: "**Note: this matters** and more" cannot
+   match, because the label would have to swallow a colon to reach the closing
+   `**`. */
+const BOLD_LABEL_RE =
+  /^\*\*\s*([A-Z][^*\n.:!?]{0,28}?)\s*:?\s*\*\*\s*:?\s*(.+)$/;
+
 function parseTime(block: string): { time: string; text: string | null } | null {
   const lines = block.split("\n");
   if (lines.length !== 1) return null;
@@ -153,7 +168,7 @@ function parseList(block: string): MdListItem[] | null {
 }
 
 function labelSplit(text: string): MdEntry {
-  const m = LABEL_RE.exec(text);
+  const m = BOLD_LABEL_RE.exec(text) ?? LABEL_RE.exec(text);
   return m
     ? { label: m[1].trim(), text: m[2].trim() }
     : { label: null, text };
@@ -196,9 +211,46 @@ function allBullets(block: string): boolean {
   return lines.length > 0 && lines.every((l) => BULLET_RE.test(l.trim()));
 }
 
+/* Luma's markdown is TIGHT: structural lines are separated by single newlines,
+   not blank ones. What its API actually returns for the hackathon looks like
+
+     ## **Schedule:**
+     9:00am — **All:** Light Breakfast
+     9:30
+     *   **All:** Welcome (AU Hosts)
+
+   Splitting on blank lines alone turns all of that into ONE paragraph, so the
+   heading stays literal "## " text and the schedule never forms — the bug behind
+   "the schedule didn't render as a table" (owner flag, 2026-07-31).
+
+   So a blank line is inserted before any line that *starts* a block of its own:
+   an ATX heading, a bullet, a horizontal rule, or a time row. Prose is untouched,
+   which matters: a single newline inside a paragraph is meaningful in Luma copy
+   ("Bio:" over a name) and still renders as a <br>.
+
+   Bullets being split from each other is harmless — the loose-list pass below
+   stitches adjacent bullet-only blocks back into one list, indentation intact. */
+function loosen(text: string): string {
+  const starts = (line: string): boolean => {
+    const t = line.trim();
+    return (
+      ATX_RE.test(t) || BULLET_RE.test(t) || RULE_RE.test(t) || TIME_RE.test(t)
+    );
+  };
+  const out: string[] = [];
+  for (const line of text.split("\n")) {
+    const prev = out[out.length - 1];
+    if (prev !== undefined && prev.trim() && line.trim() && starts(line)) {
+      out.push("");
+    }
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
 /** Split into blocks, then group any run of time rows into one schedule. */
 export function parseMarkdown(text: string): MdBlock[] {
-  const split = clean(text)
+  const split = loosen(clean(text))
     .split(/\n\s*\n/)
     .map((b) => b.replace(/\s+$/, ""))
     .filter((b) => b.trim());
@@ -260,6 +312,16 @@ export function parseMarkdown(text: string): MdBlock[] {
       continue;
     }
     if (single) {
+      /* An ATX heading is explicit, so it needs none of the length and
+         punctuation guards the inferred forms below carry. Its text often has
+         bold wrapped round it as well ("## **Schedule:**"); the markers are
+         syntax twice over, so they come off. */
+      const atx = ATX_RE.exec(single);
+      if (atx) {
+        const text = atx[1].replace(/^\*\*\s*|\s*\*\*$/g, "").trim();
+        out.push({ kind: "heading", text, id: "" });
+        continue;
+      }
       const bold = HEADING_RE.exec(single);
       /* A bare "Label:" line is only a heading when there is a block after it
          to head. At the end of the copy it is just a dangling sentence. */
@@ -449,6 +511,17 @@ function Anchor({ href, children }: { href: string; children: ReactNode }) {
   );
 }
 
+/* Inline markup nests, so each match's content goes back through renderInline
+   rather than out as literal text. Luma authors bold a whole sentence that
+   happens to contain a link ("**Please [sign up here](url) if you can.**"), and
+   because the `**` comes first in the string the bold alternative wins the
+   match — rendering the link as raw markdown for the reader to squint at
+   (owner flag, 2026-07-31, Volunteer Orientation).
+
+   The recursion terminates by construction: every capture group excludes its
+   own delimiter (`[^*\n]` for bold and italic, `[^\]]` for a link label), so an
+   inner pass cannot re-match the marker it just consumed. Depth is bounded at
+   link-inside-emphasis-inside-emphasis. */
 function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
@@ -459,13 +532,13 @@ function renderInline(text: string): ReactNode[] {
     if (m[1] && m[2]) {
       out.push(
         <Anchor key={key++} href={m[2]}>
-          {m[1]}
+          {renderInline(m[1])}
         </Anchor>
       );
     } else if (m[3]) {
-      out.push(<strong key={key++}>{m[3]}</strong>);
+      out.push(<strong key={key++}>{renderInline(m[3])}</strong>);
     } else if (m[4] || m[5]) {
-      out.push(<em key={key++}>{m[4] || m[5]}</em>);
+      out.push(<em key={key++}>{renderInline(m[4] || m[5])}</em>);
     } else if (m[6]) {
       out.push(
         <Anchor key={key++} href={m[6]}>
