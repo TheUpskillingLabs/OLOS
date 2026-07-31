@@ -12,7 +12,17 @@ export interface EventRow {
   start_at: string;
   end_at: string | null;
   location_type: "in_person" | "virtual";
-  location_name: string | null;
+  location_name: string | null; // short display label ("American University")
+  location_address: string | null; // full postal address, for maps (00095)
+  meeting_url: string | null; // virtual join link (00095)
+  /* Editorial, never synced: Luma shows sponsor logos but its API omits them.
+     `bg: "dark"` marks knockout art (white-on-transparent), which would be
+     invisible on the warm paper — only a human knows which file they were sent,
+     so it is a hint rather than something detected. 00095. */
+  sponsors: { src: string; alt: string; bg?: "light" | "dark" }[] | null;
+  /* Editorial framing, never synced: the anchor-page numeral row. Optional, so
+     a short workshop simply has none and the section is omitted. 00095. */
+  stats: { n: string; label: string }[] | null;
   img: string | null;
   grad: string | null;
   cost: string;

@@ -55,4 +55,24 @@ describe("eventICS", () => {
     const ics = eventICS(evt({ location_type: "virtual" }));
     expect(ics).toContain("LOCATION:Online");
   });
+
+  // 00095: a calendar app can route to an address, not to a venue label.
+  it("prefers the full postal address over the display label", () => {
+    const ics = eventICS(
+      evt({
+        location_name: "American University",
+        location_address: "4400 Massachusetts Ave NW, Washington, DC 20016",
+      })
+    );
+    expect(ics).toContain(
+      "LOCATION:4400 Massachusetts Ave NW\\, Washington\\, DC 20016"
+    );
+  });
+
+  it("gives a virtual event's join link to the calendar when there is one", () => {
+    const ics = eventICS(
+      evt({ location_type: "virtual", meeting_url: "https://meet.example/abc" })
+    );
+    expect(ics).toContain("LOCATION:https://meet.example/abc");
+  });
 });

@@ -6,8 +6,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
    Luma is the source of truth for ALL events (owner decision, July 2026):
    the events table is a cache of the Luma calendar, and the site never
    invents events Luma doesn't have. Concretely:
-   - Luma owns existence + the fields it knows: name, times, location,
-     cover image, event URL, and the initial description.
+   - Luma owns existence + the fields it knows: name, times, location
+     (type, display name, full address and virtual join link — 00095),
+     cover image, event URL, the About text (00094), visibility (00093),
+     and the initial description.
    - OLOS keeps local presentation annotations layered on Luma rows — slug
      (the URL), kind/anchor tagging, grad, cost/host display, editorial
      body/gallery. The sync NEVER overwrites those, so ✦ anchors and edited
@@ -160,17 +162,37 @@ function slugify(name: string): string {
   );
 }
 
+/* Two distinct jobs, so two columns (00095): `location_name` is the short label
+   a card can show ("American University"), `location_address` is the full
+   postal address a map link or a calendar app can resolve. Collapsing both into
+   one field meant you got whichever Luma happened to send. */
 function locationOf(ev: LumaEvent): {
   location_type: "in_person" | "virtual";
   location_name: string;
+  location_address: string | null;
+  meeting_url: string | null;
 } {
   const geo = ev.geo_address_json;
   if (geo) {
     const name =
       geo.name || geo.place_name || geo.full_address || geo.address || geo.city;
-    if (name) return { location_type: "in_person", location_name: name };
+    if (name) {
+      const address = geo.full_address || geo.address || null;
+      return {
+        location_type: "in_person",
+        location_name: name,
+        // Only worth storing when it says more than the label already does.
+        location_address: address && address !== name ? address : null,
+        meeting_url: null,
+      };
+    }
   }
-  return { location_type: "virtual", location_name: "Online" };
+  return {
+    location_type: "virtual",
+    location_name: "Online",
+    location_address: null,
+    meeting_url: ev.meeting_url || null,
+  };
 }
 
 // A short plain lede for rows the sync creates (the detail page's t-lede);
