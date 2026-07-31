@@ -1,10 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventTeaser, MediaFrame } from "@/app/components/content/teasers";
 import { getEvent, getEvents } from "@/lib/content/queries";
 import { fmtDate, fmtDay, fmtTime } from "@/lib/content/format";
 import { eventIcsHref } from "@/lib/content/event-ics";
-import { renderMarkdown } from "@/lib/content/markdown";
+import { renderMarkdown, markdownToc } from "@/lib/content/markdown";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import RsvpButton, { MemberRegister } from "./rsvp";
@@ -54,6 +55,58 @@ function Kv({ k, v }: { k: string; v: React.ReactNode }) {
     <div className="kv">
       <span className="k lbl">{k}</span>
       <span className="t-body">{v}</span>
+    </div>
+  );
+}
+
+/* A keyless Google Maps search, the same URL shape Luma's own event page uses.
+   An embed would need a paid Maps Embed API key. */
+function mapsHref(query: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/* One sponsor logo in a fixed tile (00095).
+
+   Two reasons it is a tile rather than a bare image. Sponsors send whatever art
+   they have — squares, wide lockups, tall crests — and a row of bare images at
+   one height lands ragged; a fixed box with object-fit: contain centres any
+   ratio and gives the wall a rhythm. It also avoids next/image needing real
+   intrinsic dimensions we do not know: `fill` inside a sized box means no ratio
+   guessing and no layout shift.
+
+   `bg: "dark"` is for knockout art (white-on-transparent), invisible on the
+   warm paper otherwise. A hint, not a detection: only the person who received
+   the file knows what they have, and sampling pixels server-side to guess would
+   be both slow and fragile. */
+function SponsorTile({
+  sponsor,
+}: {
+  sponsor: { src: string; alt: string; bg?: "light" | "dark" };
+}) {
+  const dark = sponsor.bg === "dark";
+  return (
+    <div
+      className="lcard"
+      style={{
+        position: "relative",
+        width: 180,
+        height: 96,
+        /* .lcard already gives the white fill and hairline rule; only the
+           knockout case needs an override. */
+        ...(dark
+          ? { background: "var(--ink)", borderColor: "var(--ink)" }
+          : {}),
+      }}
+    >
+      {/* Padding lives on the image, not the tile: `fill` resolves inset: 0
+          against the padding box, so putting it in both places insets twice. */}
+      <Image
+        src={sponsor.src}
+        alt={sponsor.alt}
+        fill
+        sizes="180px"
+        style={{ objectFit: "contain", padding: 18 }}
+      />
     </div>
   );
 }
@@ -143,10 +196,53 @@ export default async function EventPage({
 
   const endTime = e.end_at ? `–${fmtTime(e.end_at)}` : "";
   const whenLine = `${fmtDay(e.start_at)} · ${fmtTime(e.start_at)}${endTime}`;
+  /* "Where" is a link wherever there is something to link to: a keyless Google
+     Maps search for in-person events (the same maps.google.com/search URL
+     Luma's own page uses — an embed would need a paid API key), or the Luma
+     meeting URL for virtual ones. `location_address` is the full postal
+     address (00095); older rows have none until their next sync, so the short
+     display label is the fallback query. */
+  const whereQuery = e.location_address ?? e.location_name;
+  const sponsors = e.sponsors ?? [];
+  const stats = e.stats ?? [];
+  /* "Free · per person · first come, first served" reads as nonsense (owner
+     flag, 2026-07-31): "per person" is the unit of a price, so it only belongs
+     when there is one. `cost` is free text, so allow the ways someone might
+     write zero rather than only an empty column. */
+  const isFree = !e.cost || /^\s*(free|no charge|\$?0(?:\.00)?)\s*$/i.test(e.cost);
+  /* Optional by design: no key means no embed, and the "Open in Maps" link
+     still answers the question. Public because the iframe renders client-side;
+     Embed API keys are meant to be referrer-restricted, not secret. */
+  const mapsEmbedKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
   const whereLine =
-    e.location_type === "virtual"
-      ? "Online — we'll send the link"
-      : (e.location_name ?? "");
+    e.location_type === "virtual" ? (
+      e.meeting_url ? (
+        <a
+          className="see"
+          href={e.meeting_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "underline" }}
+        >
+          Online — join link
+        </a>
+      ) : (
+        "Online — we'll send the link"
+      )
+    ) : whereQuery ? (
+      <a
+        className="see"
+        href={mapsHref(whereQuery)}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ textDecoration: "underline" }}
+      >
+        {e.location_name ?? whereQuery}
+      </a>
+    ) : /* null, not "": an in-person row with no location at all (seeded rows
+          predating their first Luma sync) used to render an empty labelled row,
+          which reads as a bug. The row is now omitted instead. */
+      null;
   const metaRow = [
     e.kind,
     e.location_type === "virtual" ? "Virtual" : "In person",
@@ -155,6 +251,8 @@ export default async function EventPage({
     .filter(Boolean)
     .join(" · ");
   const body = e.body ?? [];
+  // Jump links for the Luma copy, only when it is long enough to need them.
+  const toc = e.about && body.length === 0 ? markdownToc(e.about) : [];
   // Real photos only. The seeded gallery arrays hold orb-gradient names
   // ("m-teal", "m-forest"...) as placeholders, and grayscaling a full-width
   // gradient placeholder produced a page-height black box (July 2026). A
@@ -202,22 +300,154 @@ export default async function EventPage({
                 </div>
               )}
               <Kv k="When" v={whenLine} />
-              <Kv k="Where" v={whereLine} />
+              {whereLine && <Kv k="Where" v={whereLine} />}
               <Kv k="Cost" v={e.cost || "Free"} />
               {e.bring && <Kv k="Bring" v={e.bring} />}
             </div>
 
-            {/* The full Luma "About Event" text (00094, Luma-owned) as plain
-                prose paragraphs — a FALLBACK, not a co-tenant: once the Labs
-                write their own "what we'll cover" (the editorial body), the
-                curated framing takes precedence and Luma's prose steps aside
-                (owner call, July 2026). Plain on purpose: Luma's markdown
-                emphasis and links are dropped rather than half-rendered —
-                the rail's "View on Luma" link carries anyone who wants the
-                styled page. */}
+            {/* The full Luma "About Event" text (00094, Luma-owned) — a
+                FALLBACK, not a co-tenant: once the Labs write their own "what
+                we'll cover" (the editorial body), the curated framing takes
+                precedence and Luma's prose steps aside (owner call, July
+                2026). That `body` override is also the escape hatch for copy
+                Luma cannot express, since the sync overwrites `about` every
+                tick.
+
+                renderMarkdown handles the subset Luma's editor can produce,
+                including its bold-as-heading convention and a schedule block
+                built from time rows — see lib/content/markdown.tsx. */}
+            {/* No "About this session" label above this: the Luma copy IS the
+                page body now, and labelling it made the real content look like
+                a footnote (owner call, 2026-07-31). Just a rule, then the text.
+
+                The jump nav only appears once there are enough headings to be
+                worth one — Luma copy for a full-day event runs long, and short
+                workshop copy would look silly with a table of contents. */}
             {e.about && body.length === 0 && (
-              <Ruled label="About this session">
-                <div className="ed-text">{renderMarkdown(e.about)}</div>
+              <div style={{ marginTop: 36 }}>
+                <hr className="rule" />
+                {toc.length >= 3 && (
+                  <nav
+                    aria-label="On this page"
+                    style={{ margin: "18px 0 22px" }}
+                  >
+                    <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
+                      On this page
+                    </div>
+                    <div className="flex flex-wrap" style={{ gap: "6px 18px" }}>
+                      {toc.map((h) => (
+                        <a
+                          key={h.id}
+                          className="see t-small"
+                          href={`#${h.id}`}
+                          style={{ textDecoration: "underline" }}
+                        >
+                          {h.text.replace(/:$/, "")}
+                        </a>
+                      ))}
+                    </div>
+                  </nav>
+                )}
+                <div className="ed-text" style={{ marginTop: 18 }}>
+                  {renderMarkdown(e.about)}
+                </div>
+              </div>
+            )}
+
+            {/* Location gets a section of its own, not just the rail's Kv row.
+                The rail sits in .detail-aside, which is display:none below
+                1024px, so on a narrow window the address was only in the
+                lg:hidden facts block — and on a wide one it was a small line in
+                a sidebar card. "Where is this?" deserves better than that
+                (owner call, 2026-07-31). An embedded map is deliberately not
+                here: it needs a paid Google Embed API key, and the link does
+                the job. */}
+            {e.location_type === "in_person" && whereQuery && (
+              <Ruled label="Location">
+                {e.location_name && (
+                  <p className="t-h4" style={{ marginBottom: 4 }}>
+                    {e.location_name}
+                  </p>
+                )}
+                {e.location_address &&
+                  e.location_address !== e.location_name && (
+                    <p className="t-body" style={{ color: "var(--slate)" }}>
+                      {e.location_address}
+                    </p>
+                  )}
+                {/* The embed is keyed and therefore optional: without a key it
+                    is simply absent, so local dev and previews show the link
+                    rather than a broken frame. Google's Embed API takes a plain
+                    address in `q`, so no geocoding and no stored coordinates.
+                    lazy-loaded because it is a third-party frame below the
+                    fold. */}
+                {mapsEmbedKey && (
+                  <div
+                    className="lcard"
+                    style={{
+                      marginTop: 16,
+                      overflow: "hidden",
+                      height: 300,
+                      padding: 0,
+                    }}
+                  >
+                    <iframe
+                      title={`Map of ${e.location_name ?? whereQuery}`}
+                      src={`https://www.google.com/maps/embed/v1/place?key=${mapsEmbedKey}&q=${encodeURIComponent(whereQuery)}`}
+                      loading="lazy"
+                      /* Google's documented value. Sends only the origin, not
+                         the full path, so which event page someone is reading
+                         is not handed to Google — and an origin is all a
+                         referrer-restricted key needs. */
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                      style={{ border: 0, width: "100%", height: "100%" }}
+                    />
+                  </div>
+                )}
+                <div style={{ marginTop: 14 }}>
+                  <a
+                    className="btn btn-ghost"
+                    href={mapsHref(whereQuery)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open in Maps
+                  </a>
+                </div>
+              </Ruled>
+            )}
+
+            {/* Editorial numerals (00095). Absent on short events, where a stat
+                row would be four numbers about nothing. */}
+            {stats.length > 0 && (
+              <Ruled label="By the numbers">
+                <div className="stat-row">
+                  {stats.map((s, i) => (
+                    <div className="stat-cell" key={i}>
+                      <div
+                        className="stat-num"
+                        style={{ color: "var(--teal-deep)" }}
+                      >
+                        {s.n}
+                      </div>
+                      <div className="stat-lbl">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </Ruled>
+            )}
+
+            {/* Sponsors are editorial (00095): Luma shows logos on its own page
+                but does not expose them through the API, so they cannot be
+                synced and live on the row instead. */}
+            {sponsors.length > 0 && (
+              <Ruled label="With thanks to our sponsors">
+                <div className="flex flex-wrap" style={{ gap: 16 }}>
+                  {sponsors.map((s, i) => (
+                    <SponsorTile key={i} sponsor={s} />
+                  ))}
+                </div>
               </Ruled>
             )}
 
@@ -265,12 +495,24 @@ export default async function EventPage({
               </div>
             )}
             <div className="lcard" style={{ padding: 24 }}>
-              <div className="t-h3" style={{ marginBottom: 4 }}>
-                {e.cost || "Free"}
-              </div>
-              <p className="t-small" style={{ marginBottom: 12 }}>
-                per person · first come, first served
-              </p>
+              {/* A price earns the big numeral slot; "Free" does not. Set at
+                  t-h3 it shouted, and "Free · per person" read as nonsense
+                  (owner flag, 2026-07-31). Free events now get one quiet line,
+                  and the card leads with the facts instead. */}
+              {isFree ? (
+                <p className="t-small" style={{ marginBottom: 14 }}>
+                  Free · first come, first served
+                </p>
+              ) : (
+                <>
+                  <div className="t-h3" style={{ marginBottom: 4 }}>
+                    {e.cost}
+                  </div>
+                  <p className="t-small" style={{ marginBottom: 12 }}>
+                    per person · first come, first served
+                  </p>
+                </>
+              )}
               <Kv
                 k="When"
                 v={
@@ -281,7 +523,7 @@ export default async function EventPage({
                   </>
                 }
               />
-              <Kv k="Where" v={whereLine} />
+              {whereLine && <Kv k="Where" v={whereLine} />}
               <div style={{ marginTop: 18 }}>
                 {registerCta("btn btn-teal btn-block")}
               </div>
