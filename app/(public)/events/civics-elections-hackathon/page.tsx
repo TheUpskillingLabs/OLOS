@@ -93,7 +93,7 @@ const TRACKS = [
     p: "Join a beginner-friendly morning track where you’ll learn how to turn an idea into something you can actually show someone. In the afternoon, you’ll get a look inside what the Pods are building.",
     points: [
       "See a real project up close and ask every question you’ve been holding",
-      "Learn by doing. You’ll leave with something you actually built",
+      "Learn by doing — you’ll leave with something you actually built",
       "No prior experience needed; your outside perspective is genuinely useful here",
     ],
   },
@@ -102,7 +102,7 @@ const TRACKS = [
     label: "Track two",
     h: "Pod sprint track",
     sub: "For Upskillers in the Civics & Elections Build Cycle",
-    p: "Join a Pod, a small research team focused on a specific civics or elections challenge, for a structured, full-day problem-solving sprint.",
+    p: "Join a Pod — a small research team focused on a specific civics or elections challenge — for a structured, full-day problem-solving sprint.",
     points: [
       "Share your perspective on the problem with your Pod",
       "Help identify promising directions, then choose one to explore",
@@ -121,7 +121,13 @@ type Slot = {
 
 // Facilitator links, kept beside the schedule they appear in.
 const A = ({ href, children }: { href: string; children: string }) => (
-  <a className="see" href={href} target="_blank" rel="noopener noreferrer">
+  <a
+    className="see"
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ textDecoration: "underline" }}
+  >
     {children}
   </a>
 );
@@ -161,9 +167,9 @@ const SCHEDULE: Slot[] = [
     pod: "Build prototypes",
     newcomer: (
       <>
-        Workshop: From Prompt to Prototype, building your professional website
-        with <A href="https://www.linkedin.com/in/ajbubb/">AJ Bubb</A> and
-        Lovable.dev
+        Workshop: From Prompt to Prototype — building your professional
+        website with <A href="https://www.linkedin.com/in/ajbubb/">AJ Bubb</A>{" "}
+        and Lovable.dev
       </>
     ),
   },
@@ -172,7 +178,8 @@ const SCHEDULE: Slot[] = [
     pod: "Build prototypes",
     newcomer: (
       <>
-        Workshop: Working Backwards from the Outcome, a prompting workshop with{" "}
+        Workshop: Working Backwards from the Outcome — a prompting workshop
+        with{" "}
         <A href="https://www.linkedin.com/in/ashwin-jaiprakash-67366b24/">
           Ashwin Jaiprakash
         </A>
@@ -184,10 +191,10 @@ const SCHEDULE: Slot[] = [
 ];
 
 const STATS = [
-  { n: "12", l: "Weeks per Build Cycle" },
-  { n: "1", l: "Day, idea to prototype" },
-  { n: "2", l: "Tracks, newcomer and Pod sprint" },
-  { n: "0", l: "Credentials required" },
+  { n: "12", l: "weeks per Build Cycle" },
+  { n: "1", l: "day, idea to prototype" },
+  { n: "2", l: "tracks, newcomer and Pod sprint" },
+  { n: "0", l: "credentials required" },
 ];
 
 /* ── Pieces ─────────────────────────────────────────────────────────────── */
@@ -318,7 +325,12 @@ export default async function CivicsElectionsHackathonPage() {
 
   const registerBtn = (className: string) =>
     event && session.signedIn ? (
-      <MemberRegister eventId={event.id} going={going} className={className} />
+      <MemberRegister
+        eventId={event.id}
+        going={going}
+        className={className}
+        label="Register"
+      />
     ) : (
       <a
         className={className}
@@ -326,7 +338,7 @@ export default async function CivicsElectionsHackathonPage() {
         target="_blank"
         rel="noopener noreferrer"
       >
-        Register for the hackathon
+        Register
       </a>
     );
 
@@ -363,7 +375,7 @@ export default async function CivicsElectionsHackathonPage() {
             </h1>
             <p className="t-lede ed-text" style={{ marginTop: 14 }}>
               A free, one-day event where you go from idea to working
-              prototype, with real teammates, real tools, and a real plan to
+              prototype — with real teammates, real tools, and a real plan to
               test what you build.
             </p>
             <div
@@ -398,11 +410,20 @@ export default async function CivicsElectionsHackathonPage() {
           >
             <div className="ed-cols">
               <p className="t-lede ed-text">
-                The event builds on civics and elections challenges inspired by
-                The Upskilling Labs&rsquo; Build Cycle, a thematic twelve-week
-                program where participants work on real-world problems and build
-                practical solutions. No previous involvement or AI experience
-                needed.
+                The event builds on{" "}
+                <Link
+                  className="see"
+                  href="/survey/civics"
+                  target="_blank"
+                  rel="noopener"
+                  style={{ textDecoration: "underline" }}
+                >
+                  civics and elections
+                </Link>{" "}
+                challenges inspired by The Upskilling Labs&rsquo; Build Cycle,
+                a thematic twelve-week program where participants work on
+                real-world problems and build practical solutions. No previous
+                involvement or AI experience needed.
               </p>
             </div>
             <div className="ed-cols" style={THREE_COLS}>
@@ -425,14 +446,14 @@ export default async function CivicsElectionsHackathonPage() {
             </div>
             <div className="ed-cols">
               <p className="t-small">
-                This is a non-partisan, non-political event.
+                Note: this is a non-partisan, non-political event.
               </p>
             </div>
           </EdSection>
 
           <EdSection
             eyebrow="Choose your track"
-            heading="Two tracks, one shared afternoon."
+            heading="Two tracks, one shared afternoon"
           >
             <EdRow cols={2}>
               {TRACKS.map((t) => (
@@ -458,7 +479,11 @@ export default async function CivicsElectionsHackathonPage() {
                   </p>
                   <ul
                     className="t-body ed-text"
-                    style={{ color: "var(--slate)", paddingLeft: 20 }}
+                    style={{
+                      color: "var(--slate)",
+                      paddingLeft: 20,
+                      listStyle: "disc",
+                    }}
                   >
                     {t.points.map((pt) => (
                       <li key={pt} style={{ marginBottom: 8 }}>
@@ -474,7 +499,7 @@ export default async function CivicsElectionsHackathonPage() {
           {/* The hero's "See the schedule" jump target; scroll-margin keeps
               the ruled header clear of the sticky nav. */}
           <div id="schedule" style={{ scrollMarginTop: 96 }}>
-          <EdSection eyebrow="Schedule" heading="The day, hour by hour.">
+          <EdSection eyebrow="Schedule">
             <div className="ed-cols">
               <div>
                 <div className="hidden md:block">
@@ -516,8 +541,14 @@ export default async function CivicsElectionsHackathonPage() {
           </div>
 
           <EdSection
-            eyebrow="The Build Cycle"
-            heading="Every quarter, a new Build Cycle. Every Build Cycle, a Pod sprint like this one."
+            eyebrow="The build cycle"
+            heading={
+              <>
+                Every quarter, a new Build Cycle.
+                <br />
+                Every Build Cycle, a Pod Sprint like this one.
+              </>
+            }
           >
             <div className="ed-cols">
               <div className="stat-row">
@@ -531,19 +562,9 @@ export default async function CivicsElectionsHackathonPage() {
                 ))}
               </div>
             </div>
-            <div className="ed-cols">
-              <Link
-                className="see"
-                href="/build-cycles"
-                target="_blank"
-                rel="noopener"
-              >
-                How a Build Cycle works →
-              </Link>
-            </div>
           </EdSection>
 
-          <EdSection eyebrow="With thanks to" heading="Our hosts and sponsors.">
+          <EdSection heading="With thanks to our sponsors">
             <div className="ed-cols">
               <Image
                 src="/assets/american-university.webp"
