@@ -215,8 +215,16 @@ function ScheduleRow({ slot }: { slot: Slot }) {
       >
         {slot.time}
       </th>
+      {/* Shared rows get an ink wash, not var(--tint): the tint token is a
+          cool blue-grey that clashes on the warm paper (owner flag, July
+          2026). 4% ink reads as "same page, slightly raised" — the
+          rule/border family. */}
       {slot.both ? (
-        <td className={cell} colSpan={2} style={{ background: "var(--tint)" }}>
+        <td
+          className={cell}
+          colSpan={2}
+          style={{ background: "rgba(0, 20, 27, 0.04)" }}
+        >
           {slot.both}
         </td>
       ) : (
@@ -462,16 +470,13 @@ export default async function CivicsElectionsHackathonPage() {
                         <th scope="col" className="lbl px-4 pb-3 text-left">
                           Time
                         </th>
-                        <th
-                          scope="col"
-                          className="lbl lbl-teal px-4 pb-3 text-left"
-                        >
+                        {/* Plain lbl, not lbl-teal: the teal small-caps is
+                            the section-eyebrow voice; column headers speak
+                            at the same volume as the Time header. */}
+                        <th scope="col" className="lbl px-4 pb-3 text-left">
                           Pod sprint track
                         </th>
-                        <th
-                          scope="col"
-                          className="lbl lbl-teal px-4 pb-3 text-left"
-                        >
+                        <th scope="col" className="lbl px-4 pb-3 text-left">
                           Newcomer track
                         </th>
                       </tr>

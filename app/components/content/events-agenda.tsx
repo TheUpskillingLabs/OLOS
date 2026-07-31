@@ -376,7 +376,9 @@ function AgendaRow({ event: e }: { event: EventRow }) {
       style={{
         borderTop: "1px solid var(--rule)",
         padding: "12px 10px",
-        background: isAnchor ? "var(--tint)" : undefined,
+        // 4% ink, not var(--tint): the tint token is a cool blue-grey that
+        // clashes on the warm paper (owner flag on the hackathon schedule).
+        background: isAnchor ? "rgba(0, 20, 27, 0.04)" : undefined,
         borderRadius: isAnchor ? "var(--r)" : undefined,
         color: "inherit",
         textDecoration: "none",
