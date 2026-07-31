@@ -98,7 +98,9 @@ export function fmtEvt(e: AnchorEvent): string {
   return `${mo} ${d.getDate()} · ${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`;
 }
 
-/** The anchor events as a downloadable .ics (the prototype's cycleICS). */
+/** The anchor events as a downloadable .ics (the prototype's cycleICS).
+    DTEND included — it never was, so every import landed as a zero-length
+    "4:30 PM – 4:30 PM" event (spotted in Apple Calendar, July 2026). */
 export function cycleICS(): string {
   const dt = (s: string) => s.replace(/[-:]/g, "") + "00";
   return (
@@ -109,6 +111,8 @@ export function cycleICS(): string {
         e.api_id +
         "@theupskillinglabs\r\nDTSTART:" +
         dt(e.start_at) +
+        "\r\nDTEND:" +
+        dt(e.end_at) +
         "\r\nSUMMARY:" +
         e.name.replace(/,/g, "\\,") +
         "\r\nLOCATION:" +
