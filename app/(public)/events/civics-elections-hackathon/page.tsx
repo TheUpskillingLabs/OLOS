@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { EdSection, EdRow } from "@/app/components/chrome/editorial";
-import { EventTeaser } from "@/app/components/content/teasers";
+import { EventTeaser, MediaFrame } from "@/app/components/content/teasers";
 import { MemberRegister } from "../[slug]/rsvp";
 import { fmtDay, fmtTime } from "@/lib/content/format";
 import { getEvent, getEvents } from "@/lib/content/queries";
@@ -81,8 +81,12 @@ const AUDIENCE = [
   },
 ];
 
+/* Each track carries a brand color as a 3px top rule (the .ed-pull
+   precedent) — enough to tell them apart at a glance without leaving
+   the palette. */
 const TRACKS = [
   {
+    accent: "var(--teal)",
     label: "Track one",
     h: "Newcomer track",
     sub: "Get hands-on with AI, start to finish",
@@ -94,6 +98,7 @@ const TRACKS = [
     ],
   },
   {
+    accent: "var(--forest)",
     label: "Track two",
     h: "Pod sprint track",
     sub: "For Upskillers in the Civics & Elections Build Cycle",
@@ -375,7 +380,17 @@ export default async function CivicsElectionsHackathonPage() {
               {facts}
             </div>
           </div>
-          <aside className="detail-aside">{facts}</aside>
+          <aside className="detail-aside">
+            {/* The event's own Luma card on top of the facts — the page went
+                light and ruled, and this is where its color comes back from:
+                real art, not decoration. */}
+            {event?.img && (
+              <div style={{ marginBottom: 20 }}>
+                <MediaFrame img={event.img} square />
+              </div>
+            )}
+            {facts}
+          </aside>
         </div>
       </div>
 
@@ -396,8 +411,11 @@ export default async function CivicsElectionsHackathonPage() {
               </p>
             </div>
             <div className="ed-cols" style={THREE_COLS}>
-              {AUDIENCE.map((a) => (
+              {AUDIENCE.map((a, i) => (
                 <div key={a.lbl} className="lcard" style={{ padding: 24 }}>
+                  <span className="ed-num">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
                     {a.lbl}
                   </div>
@@ -423,7 +441,11 @@ export default async function CivicsElectionsHackathonPage() {
           >
             <EdRow cols={2}>
               {TRACKS.map((t) => (
-                <div key={t.h} className="lcard" style={{ padding: 28 }}>
+                <div
+                  key={t.h}
+                  className="lcard"
+                  style={{ padding: 28, borderTop: `3px solid ${t.accent}` }}
+                >
                   <div className="lbl lbl-teal" style={{ marginBottom: 8 }}>
                     {t.label}
                   </div>
@@ -506,7 +528,9 @@ export default async function CivicsElectionsHackathonPage() {
               <div className="stat-row">
                 {STATS.map((s) => (
                   <div className="stat-cell" key={s.l}>
-                    <div className="stat-num">{s.n}</div>
+                    <div className="stat-num" style={{ color: "var(--teal-deep)" }}>
+                      {s.n}
+                    </div>
                     <div className="stat-lbl">{s.l}</div>
                   </div>
                 ))}
@@ -534,10 +558,9 @@ export default async function CivicsElectionsHackathonPage() {
       </div>
 
       {/* ── Register: the closing dark band, same grid as the header ── */}
-      <section
-        className="grain on-dark"
-        style={{ background: "var(--ink)" }}
-      >
+      {/* The same cover gradient as the /events hero — the page's one big
+          color moment, bookending the light ruled body. */}
+      <section className="s-cover grain on-dark">
         <div
           className="container"
           style={{ paddingTop: 88, paddingBottom: 88 }}
