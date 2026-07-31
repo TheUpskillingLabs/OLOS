@@ -307,6 +307,9 @@ export async function syncLumaEvents(
         ...locationOf(ev),
         img: ev.cover_url || null,
         luma_url: ev.url || null,
+        // The full About text, Luma-owned (00094): overwritten every tick,
+        // unlike `description` (a fill-only lede) and the editorial fields.
+        about: ev.description?.trim() || null,
         // Visibility is Luma-owned (00093): private events reach members on
         // /learning but never the public /events page. Written only when
         // Luma sends the field — absent means "leave as is", never "expose".
