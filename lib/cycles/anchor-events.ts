@@ -16,14 +16,19 @@ export interface AnchorEvent {
   kickoff?: boolean;
 }
 
+// Names, times and venue for kickoff / meet-the-pods / showcase are the LIVE
+// LUMA EVENTS' facts (owner decision 2026-07-30: Luma is the source of truth
+// for public event facts; the events table rows were merged with their Luma
+// twins the same day — scripts/ops/anchor-luma-merge-2026-07-30.sql). If a
+// time looks odd, fix it on Luma first; this constant follows.
 export const ANCHOR_EVENTS: AnchorEvent[] = [
   {
     api_id: "anchor-01",
     slug: "kickoff-summit",
-    name: "Kickoff Summit — Civic & Elections Cycle",
-    start_at: "2026-07-14T18:00",
-    end_at: "2026-07-14T21:00",
-    location_name: "DC Public Library — Main branch",
+    name: "Upskilling Summit #2: Energy/Climate Cycle Project Showcase & Civics/Elections Cycle Kick-Off",
+    start_at: "2026-07-14T16:30",
+    end_at: "2026-07-14T20:30",
+    location_name: "Martin Luther King Jr. Memorial Library, Washington, DC",
     kickoff: true,
   },
   {
@@ -39,10 +44,10 @@ export const ANCHOR_EVENTS: AnchorEvent[] = [
   {
     api_id: "anchor-02",
     slug: "meet-the-pods",
-    name: "Meet the Pods",
-    start_at: "2026-08-11T18:00",
-    end_at: "2026-08-11T20:30",
-    location_name: "Main branch",
+    name: "Meet the Pods: Civics and Elections",
+    start_at: "2026-08-11T16:30",
+    end_at: "2026-08-11T19:15",
+    location_name: "Martin Luther King Jr. Memorial Library, Washington, DC",
   },
   {
     api_id: "anchor-03",
@@ -65,10 +70,10 @@ export const ANCHOR_EVENTS: AnchorEvent[] = [
   {
     api_id: "anchor-05",
     slug: "showcase-summit",
-    name: "Showcase Summit",
-    start_at: "2026-10-13T18:00",
-    end_at: "2026-10-13T21:00",
-    location_name: "DC Public Library — Main branch",
+    name: "Upskilling Summit #3: Showcase Civics and Elections and Kick-off Q4 build cycle (Theme: TBD)",
+    start_at: "2026-10-13T16:30",
+    end_at: "2026-10-13T20:30",
+    location_name: "Martin Luther King Jr. Memorial Library, Washington, DC",
   },
 ];
 
@@ -77,14 +82,18 @@ export function coreEvents(): AnchorEvent[] {
   return ANCHOR_EVENTS.filter((e) => !e.kickoff);
 }
 
-/** "Jul 28 · 6 PM" — the prototype's fmtEvt. */
+/** "Jul 28 · 6 PM" / "Aug 11 · 4:30 PM" — the prototype's fmtEvt, plus
+    minutes when they're non-zero: the real anchor times are half-past starts
+    now, and "4 PM" for a 4:30 event is the show-up-at-the-wrong-time bug in
+    miniature. */
 export function fmtEvt(e: AnchorEvent): string {
   const d = new Date(e.start_at);
   const mo = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()];
   let h = d.getHours();
+  const m = d.getMinutes();
   const ap = h >= 12 ? "PM" : "AM";
   h = h % 12 || 12;
-  return `${mo} ${d.getDate()} · ${h} ${ap}`;
+  return `${mo} ${d.getDate()} · ${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`;
 }
 
 /** The anchor events as a downloadable .ics (the prototype's cycleICS). */
