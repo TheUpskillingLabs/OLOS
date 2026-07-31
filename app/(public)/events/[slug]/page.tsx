@@ -203,6 +203,21 @@ export default async function EventPage({
      address (00095); older rows have none until their next sync, so the short
      display label is the fallback query. */
   const whereQuery = e.location_address ?? e.location_name;
+  /* The rail's "Where" needs a LABEL, not the postal address. locationOf() in
+     lib/integrations/luma.ts sends whichever string Luma happened to have, so
+     `location_name` is often the full address — and set as a link in a 360px
+     rail that wrapped to four underlined lines, which reads as a mistake rather
+     than as a link (owner flag, 2026-07-31). The first comma-separated segment
+     is the venue ("American University, 4400 Massachusetts Ave NW, …"), and the
+     full address is a few sections down under Location anyway.
+
+     Only shortened when there is a comma to cut at, so a plain venue name is
+     untouched and a bare "1201 Sycamore Dr SE" keeps its street number. */
+  const whereLabel = (() => {
+    const name = e.location_name ?? whereQuery ?? "";
+    const head = name.split(",")[0].trim();
+    return head.length >= 4 ? head : name;
+  })();
   const sponsors = e.sponsors ?? [];
   const stats = e.stats ?? [];
   /* "Free · per person · first come, first served" reads as nonsense (owner
@@ -237,7 +252,7 @@ export default async function EventPage({
         rel="noopener noreferrer"
         style={{ textDecoration: "underline" }}
       >
-        {e.location_name ?? whereQuery}
+        {whereLabel}
       </a>
     ) : /* null, not "": an in-person row with no location at all (seeded rows
           predating their first Luma sync) used to render an empty labelled row,
