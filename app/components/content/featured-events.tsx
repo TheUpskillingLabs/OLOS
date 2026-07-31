@@ -77,44 +77,37 @@ export default function EventsHero({
           }}
         />
 
-        {/* ── The current cycle: what these anchor events belong to ──
-            Facts from CYCLE_PUBLIC (shared with /build-cycles). Deliberately
-            phrased for outsiders — "open to everyone" is the point; the
-            anchors are the cycle's public rhythm, not a members' calendar. */}
-        <div style={{ paddingTop: 32 }}>
-          <div className="lbl" style={{ color: "rgba(255,255,255,0.85)" }}>
-            The current build cycle
-          </div>
-          <p
-            className="t-body ed-text"
-            style={{ color: "rgba(255,255,255,0.92)", marginTop: 8 }}
-          >
-            <strong>
-              {CYCLE_PUBLIC.theme} · {CYCLE_PUBLIC.name}.
-            </strong>{" "}
-            {CYCLE_PUBLIC.weeks} weeks in {CYCLE_PUBLIC.city} — pods pick real
-            civic problems, build practical AI-enabled answers, and show their
-            work at the Showcase Summit in October. The anchor events below
-            are its next stops, and every one is free and open to everyone.
-          </p>
-          <p className="t-small" style={{ marginTop: 8 }}>
-            <Link
-              href="/build-cycles"
-              style={{ color: "var(--teal)", fontWeight: 600 }}
-            >
-              How a Build Cycle works →
-            </Link>
-          </p>
-        </div>
-
         {/* ── The next anchor events, side by side over a hairline ── */}
         {featured.length > 0 && (
-          <div className="grid gap-10 pt-8 md:grid-cols-2">
+          <div className="grid gap-10 pt-10 md:grid-cols-2">
             {featured.map((e, i) => (
               <FeaturedEvent key={e.slug} event={e} divided={i > 0} />
             ))}
           </div>
         )}
+
+        {/* ── What the highlights belong to — a footnote, not a header ──
+            (owner call: under the cards, subtle). Facts from CYCLE_PUBLIC,
+            shared with /build-cycles; phrased for outsiders — free and open
+            to everyone is the point. */}
+        <p
+          className="t-small ed-text"
+          style={{ color: "rgba(255,255,255,0.72)", marginTop: 32 }}
+        >
+          These are anchor events of the current Build Cycle —{" "}
+          {CYCLE_PUBLIC.theme} · {CYCLE_PUBLIC.name}, {CYCLE_PUBLIC.weeks}{" "}
+          weeks in {CYCLE_PUBLIC.city} where pods pick real civic problems,
+          build practical answers, and show their work at the Showcase Summit
+          in October. Free and open to everyone.{" "}
+          <Link
+            href="/build-cycles"
+            target="_blank"
+            rel="noopener"
+            style={{ color: "var(--teal)", fontWeight: 600, whiteSpace: "nowrap" }}
+          >
+            How a Build Cycle works →
+          </Link>
+        </p>
       </div>
     </section>
   );
