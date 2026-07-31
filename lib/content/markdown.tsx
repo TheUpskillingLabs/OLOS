@@ -111,7 +111,39 @@ const COLON_HEADING_RE = /^([^\n.!?]{2,80}):$/;
 function visibleText(text: string): string {
   return text
     .replace(/\[([^\]]+)\]\([^\s)]+\)/g, "$1")
+    .replace(/\\([^\sA-Za-z0-9])/g, "$1")
     .replace(/\*\*|\*|_/g, "");
+}
+
+/* Luma's About text ends with the calendar's standing boilerplate — "About The
+   Upskilling Labs: an open, project-based learning community…". On Luma that
+   paragraph earns its place, introducing us to someone who arrived from a
+   discover feed. On our own event page, one click from /about, it is filler
+   (owner call, 2026-07-31), so a trailing section that introduces the Labs is
+   dropped along with the divider above it.
+
+   Only the TAIL is considered. The same words mid-document are content — the
+   hackathon's own schedule has "About The Upskilling Labs and what to expect" as
+   a 9:45 entry, and that must survive. */
+const BOILERPLATE_RE = /^about\s+(?:the\s+)?upskilling\s+labs\b/i;
+const BOILERPLATE_TAIL = 3; // blocks from the end that count as "the tail"
+
+function dropTrailingBoilerplate(blocks: MdBlock[]): MdBlock[] {
+  for (
+    let i = blocks.length - 1;
+    i >= 0 && i >= blocks.length - BOILERPLATE_TAIL;
+    i--
+  ) {
+    const b = blocks[i];
+    if (b.kind !== "para" && b.kind !== "heading") continue;
+    if (!BOILERPLATE_RE.test(visibleText(b.text).trim())) continue;
+    // Take the divider that introduced the section with it, or the page ends on
+    // a rule with nothing under it.
+    let cut = i;
+    while (cut > 0 && blocks[cut - 1].kind === "rule") cut--;
+    return blocks.slice(0, cut);
+  }
+  return blocks;
 }
 
 /* Luma authors bold a whole sentence for emphasis as readily as they bold a
@@ -410,7 +442,7 @@ export function parseMarkdown(text: string): MdBlock[] {
     block.id = n === 1 ? base : `${base}-${n}`;
   }
 
-  return out;
+  return dropTrailingBoilerplate(out);
 }
 
 function slugify(text: string): string {
@@ -460,15 +492,22 @@ export function markdownToc(text: string): { id: string; text: string }[] {
 
 /* ── Inline rendering ───────────────────────────────────────────────────── */
 
+/* Backslash escapes come FIRST, and every emphasis run allows `\x` inside it.
+
+   Luma's editor escapes a literal asterisk when an author types one, so a
+   footnote marker inside bold arrives as `**\*Note:**`. Without escape handling
+   the `\*` read as an italic delimiter, the bold never closed, and the page
+   showed `*\Note:**` (owner flag, 2026-07-31). */
 const INLINE = new RegExp(
   [
-    /\[([^\]]+)\]\(([^\s)]+)\)/, //  1 label, 2 href
-    /\*\*([^*\n]+)\*\*/, //          3 bold
-    /\*([^*\n]+)\*/, //              4 italic
-    /_([^_\n]+)_/, //                5 italic
-    /(mailto:[^\s<>()[\]]+)/, //     6
-    /(https?:\/\/[^\s<>()[\]]+)/, // 7
-    /(\bwww\.[^\s<>()[\]]+)/, //     8
+    /\\([^\sA-Za-z0-9])/, //              1 escaped punctuation
+    /\[((?:\\.|[^\]])+)\]\(([^\s)]+)\)/, // 2 label, 3 href
+    /\*\*((?:\\.|[^*\n])+)\*\*/, //       4 bold
+    /\*((?:\\.|[^*\n])+)\*/, //           5 italic
+    /_((?:\\.|[^_\n])+)_/, //             6 italic
+    /(mailto:[^\s<>()[\]]+)/, //          7
+    /(https?:\/\/[^\s<>()[\]]+)/, //      8
+    /(\bwww\.[^\s<>()[\]]+)/, //          9
   ]
     .map((r) => r.source)
     .join("|"),
@@ -529,25 +568,30 @@ function renderInline(text: string): ReactNode[] {
   for (const m of text.matchAll(INLINE)) {
     const i = m.index ?? 0;
     if (i > last) out.push(text.slice(last, i));
-    if (m[1] && m[2]) {
+    if (m[1]) {
+      /* An escaped character is that character and nothing else. The backslash
+         is syntax and must not reach the page — which is not a violation of the
+         verbatim rule, since the author typed `*` and meant `*`. */
+      out.push(m[1]);
+    } else if (m[2] && m[3]) {
       out.push(
-        <Anchor key={key++} href={m[2]}>
-          {renderInline(m[1])}
+        <Anchor key={key++} href={m[3]}>
+          {renderInline(m[2])}
         </Anchor>
       );
-    } else if (m[3]) {
-      out.push(<strong key={key++}>{renderInline(m[3])}</strong>);
-    } else if (m[4] || m[5]) {
-      out.push(<em key={key++}>{renderInline(m[4] || m[5])}</em>);
-    } else if (m[6]) {
+    } else if (m[4]) {
+      out.push(<strong key={key++}>{renderInline(m[4])}</strong>);
+    } else if (m[5] || m[6]) {
+      out.push(<em key={key++}>{renderInline(m[5] || m[6])}</em>);
+    } else if (m[7]) {
       out.push(
-        <Anchor key={key++} href={m[6]}>
-          {m[6].replace(/^mailto:/, "")}
+        <Anchor key={key++} href={m[7]}>
+          {m[7].replace(/^mailto:/, "")}
         </Anchor>
       );
-    } else if (m[7] || m[8]) {
+    } else if (m[8] || m[9]) {
       // Bare URL. Trailing punctuation belongs to the sentence, not the link.
-      const raw = (m[7] || m[8]) as string;
+      const raw = (m[8] || m[9]) as string;
       const url = raw.replace(/[.,;:!?]+$/, "");
       out.push(
         <Anchor key={key++} href={url}>
@@ -790,23 +834,26 @@ export function renderMarkdown(text: string): ReactNode {
               />
             );
           case "heading":
-            /* A ruled small-caps eyebrow, the site's section vocabulary (see
-               EdSection in app/components/chrome/editorial.tsx), rather than
-               ordinary bold body text. Still an h3, so the document outline and
-               the jump links stay honest. */
+            /* A ruled heading at t-h3 (20px, 24px past 1024px). It began as the
+               site's small-caps teal eyebrow, borrowed from EdSection, but an
+               eyebrow is 12px and it sat above 16px body copy — so the heading
+               read as SMALLER than the text it introduced (owner flag,
+               2026-07-31). Eyebrows label a section from outside it; these are
+               headings inside a document, and they should outrank the prose.
+               The rule above stays: it is what separates the sections. */
             return (
-              <div key={i} style={{ marginTop: i === 0 ? 0 : 32 }}>
+              <div key={i} style={{ marginTop: i === 0 ? 0 : 36 }}>
                 <hr
                   style={{
                     border: 0,
                     borderTop: "1px solid var(--rule)",
-                    margin: "0 0 16px",
+                    margin: "0 0 18px",
                   }}
                 />
                 <h3
                   id={block.id}
-                  className="lbl lbl-teal"
-                  style={{ marginBottom: 12, scrollMarginTop: 96 }}
+                  className="t-h3"
+                  style={{ marginBottom: 14, scrollMarginTop: 96 }}
                 >
                   {renderInline(block.text)}
                 </h3>
