@@ -34,9 +34,14 @@ plainly rather than breaking.
 
 ## What Luma cannot carry
 
-The numeral row and the sponsor logo are editorial columns on the `events` row
-(migration `00095`), not Luma fields. Set them with SQL — see
+The numeral row is an editorial column on the `events` row (migration `00095`),
+not a Luma field. Set it with SQL — see
 `scripts/ops/hackathon-editorial-fields.sql`.
+
+Sponsor logos work the same way technically, but the rule is editorial (owner,
+2026-07-31): **no logo on our page unless it is on the Luma event page.** The
+Luma page currently shows none, so `sponsors` stays empty and the section is
+omitted. The SQL for it is in that file, commented out.
 
 Facts (date, time, venue, host, cost, register URL) come from Luma automatically.
 Do not write them into About as well; they would then exist in two places and

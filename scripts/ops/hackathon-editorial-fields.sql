@@ -2,13 +2,18 @@
 -- (Phase 4 of docs/proposals/luma-driven-event-pages.md).
 --
 -- WHY: /events/civics-elections-hackathon is now served by /events/[slug],
--- which renders Luma's About text. Two things on the old hand-built page were
--- never Luma's to give: the numeral row ("12 weeks per Build Cycle"...) and the
--- American University sponsor logo. Luma renders sponsor logos on its own page
--- but does not expose them through the API, and it has no concept of a stat row
--- at all. Migration 00095 added `stats` and `sponsors` as EDITORIAL columns for
--- exactly this: fill-only, never touched by the sync (see the ownership list in
+-- which renders Luma's About text. The numeral row ("12 weeks per Build
+-- Cycle"...) was on the old hand-built page and is not something Luma can
+-- express, so it moves to the editorial `stats` column added by 00095:
+-- fill-only, never touched by the sync (see the ownership list in
 -- lib/integrations/luma.ts's header).
+--
+-- SPONSOR LOGOS ARE DELIBERATELY NOT SET HERE (owner rule, 2026-07-31). The
+-- Luma event page shows no sponsor logos, so neither does ours: a logo on the
+-- site that is not on the event's own page is us asserting a sponsorship
+-- nobody confirmed. The `sponsors` column and the tile renderer exist and work;
+-- they stay empty until the logo appears in Luma. The UPDATE below is left
+-- commented out for that day.
 --
 -- Run against dev first, then prod at promotion time. Ops SQL, not a migration:
 -- this is content for one row, not schema.
@@ -36,20 +41,24 @@ SELECT slug,
 --    whatever is in `body` was hand-written editorial copy.
 -- UPDATE events SET body = NULL WHERE slug = 'civics-elections-hackathon';
 
--- 3. The numeral row and the sponsor wall.
---    `bg` is omitted: the AU lockup is dark-on-transparent and reads fine on the
---    warm paper. Knockout art (white-on-transparent) would need "bg": "dark".
+-- 3. The numeral row.
 UPDATE events
    SET stats = '[
          {"n": "12", "label": "weeks per Build Cycle"},
          {"n": "1",  "label": "day, idea to prototype"},
          {"n": "2",  "label": "tracks, newcomer and Pod sprint"},
          {"n": "0",  "label": "credentials required"}
-       ]'::jsonb,
-       sponsors = '[
-         {"src": "/assets/american-university.webp", "alt": "American University"}
        ]'::jsonb
  WHERE slug = 'civics-elections-hackathon';
 
--- 4. Confirm.
+-- 4. Sponsor logos: ONLY once the logo is on the Luma event page. `bg` marks
+--    knockout art (white-on-transparent), which is invisible on the warm paper
+--    without it; the AU lockup is colour-on-light and needs no flag.
+-- UPDATE events
+--    SET sponsors = '[
+--          {"src": "/assets/american-university.webp", "alt": "American University"}
+--        ]'::jsonb
+--  WHERE slug = 'civics-elections-hackathon';
+
+-- 5. Confirm.
 SELECT slug, stats, sponsors FROM events WHERE slug = 'civics-elections-hackathon';
