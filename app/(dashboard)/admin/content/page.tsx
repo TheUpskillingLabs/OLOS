@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth/guards";
 import StoriesAdmin, { type AdminSpotlight } from "./stories-admin";
 import LibraryAdmin, { type AdminResource } from "./library-admin";
+import EventsAdmin, { type AdminEvent } from "./events-admin";
 import SyncEventsButton from "./sync-events-button";
 
 /* Public content admin — the Learning Library (link-out resources: guides,
@@ -13,7 +14,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminContentPage() {
   const { serviceClient } = await requireAdmin();
 
-  const [{ data: spotlightData }, { data: resourceData }] = await Promise.all([
+  // Upcoming only for the events editor: the point of dressing an event is
+  // the moment before people decide to come. start_at is a naive local
+  // timestamp; a date-only cutoff keeps today's events in the list.
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [{ data: spotlightData }, { data: resourceData }, { data: eventData }] =
+    await Promise.all([
     serviceClient
       .from("spotlights")
       .select(
@@ -26,10 +33,19 @@ export default async function AdminContentPage() {
         "id, slug, title, content_type, url, summary, meta, author, status, created_at"
       )
       .order("created_at", { ascending: false }),
+    serviceClient
+      .from("events")
+      .select(
+        "id, slug, name, kind, anchor, start_at, status, description, bring, body, synced_at"
+      )
+      .eq("status", "published")
+      .gte("start_at", today)
+      .order("start_at", { ascending: true }),
   ]);
 
   const rows = (spotlightData as AdminSpotlight[]) ?? [];
   const resources = (resourceData as AdminResource[]) ?? [];
+  const events = (eventData as AdminEvent[]) ?? [];
 
   return (
     <div>
@@ -55,10 +71,19 @@ export default async function AdminContentPage() {
       <section className="mb-10">
         <h2 className="mb-1 t-h3 text-ink">Events</h2>
         <p className="mb-4 text-sm text-meta">
-          Pull the latest events from Luma into the public events cache now — a
-          cron also runs this every 6 hours.
+          The facts (name, time, venue, cover) come from Luma and can only be
+          changed there. What you edit here is the editorial layer — the lede,
+          the &ldquo;what we&apos;ll cover&rdquo; items, the bring line — and
+          it survives every sync.
         </p>
-        <SyncEventsButton />
+        <EventsAdmin initial={events} />
+        <div className="mt-4">
+          <p className="mb-2 text-sm text-meta">
+            Pull the latest events from Luma now — a cron also runs this every
+            6 hours.
+          </p>
+          <SyncEventsButton />
+        </div>
       </section>
 
       <hr className="mb-10 border-ink/10" />
