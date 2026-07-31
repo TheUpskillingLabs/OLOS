@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import EventsAgenda from "@/app/components/content/events-agenda";
-import { EditorialHeader } from "@/app/components/chrome/editorial";
+import EventsHero from "@/app/components/content/featured-events";
 import { getEvents } from "@/lib/content/queries";
 
-/* The public events directory — the generator's directoryPage('events'),
-   recomposed on the editorial "standards-manual" grid: the dark header (count
-   eyebrow + headline own the head row, standfirst beneath), then the shared
+/* The public events directory: the cover-band hero (headline + the next two
+   anchor events with direct registration — the owner's July 2026 design,
+   translated into the house system in featured-events.tsx), then the shared
    EventsAgenda island (month-grouped upcoming first, past in its own tab,
    filters + search, URL-synced). */
 
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Events & workshops · The Upskilling Labs",
   description:
-    "Free, public, hands-on. Drop into a session — or into the cycle’s six anchor events.",
+    "Free, public, hands-on. Drop into a workshop, or into one of the anchor events that shape each twelve-week Build Cycle. Everything here is open to everyone.",
 };
 
 export default async function EventsPage() {
@@ -30,15 +30,12 @@ export default async function EventsPage() {
 
   return (
     <>
-      {/* ── Header: count eyebrow + headline (head row), standfirst (beneath) ── */}
-      <EditorialHeader
-        eyebrow={`Events & workshops · ${events.length}`}
-        title="Drop into a session"
-        standfirst="Free and public, every one. ✦ marks the cycle’s anchor events."
-      />
+      {/* ── Hero: headline + the next two anchor events, one cover band ── */}
+      <EventsHero events={events} nowMs={nowMs} />
 
-      {/* ── Browse: the month-grouped agenda island, full-width ── */}
-      <section className="section">
+      {/* ── Browse: the month-grouped agenda island, full-width ──
+          id: the mobile hero's "Browse all sessions" jump target. */}
+      <section className="section" id="agenda" style={{ scrollMarginTop: 72 }}>
         <div className="container">
           {/* The island reads useSearchParams — Suspense keeps Next happy.
               The fallback holds the agenda's rough height so the page doesn't

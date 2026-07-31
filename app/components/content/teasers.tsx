@@ -63,14 +63,19 @@ export function EventTeaser({
       className={`card tappable event-card${corner ? " has-save" : ""}`}
       href={`/events/${e.slug}`}
     >
-      <MediaFrame img={e.img} grad={e.grad} tag={e.kind} square />
+      {/* No kind tag on the thumbnail (owner call, July 2026): with only two
+          kinds the badge repeated the filter without informing, and the
+          agenda's compact layout was already hiding it on mobile. MediaFrame
+          keeps `tag` for resource cards, whose content types vary. */}
+      <MediaFrame img={e.img} grad={e.grad} square />
       {/* Save button lives at the card level (not inside the thumbnail) so it can
           pin to the card's top-right on mobile, where the thumbnail is only 1/4 wide. */}
       {corner}
       <div className="card-body">
         <div className="lbl lbl-teal">{fmtDate(e.start_at)}</div>
+        {/* No ✦ glyph: anchor events now earn their prominence from the
+            featured strip at the top of /events, not a marker on the card. */}
         <div className="t-h4 card-title" style={{ margin: "6px 0 4px" }}>
-          {e.anchor ? "✦ " : ""}
           {e.name}
         </div>
         <p className="t-small">

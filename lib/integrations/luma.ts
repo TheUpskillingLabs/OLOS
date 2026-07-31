@@ -264,7 +264,7 @@ export async function syncLumaEvents(
 
   const { data: existingRows, error: readError } = await supabase
     .from("events")
-    .select("id, api_id, slug, status, start_at");
+    .select("id, api_id, slug, status, start_at, anchor, luma_url");
   if (readError) throw new Error(`events read failed: ${readError.message}`);
 
   const byApiId = new Map(
@@ -273,7 +273,29 @@ export async function syncLumaEvents(
       .map((r) => [r.api_id as string, r])
   );
   const takenSlugs = new Set((existingRows ?? []).map((r) => r.slug as string));
+
+  // Secondary match key. A locally authored row (an anchor) can carry the
+  // luma_url of an event that is also listed on Luma while keeping its own
+  // api_id — the anchor-0N ids were invented here and never existed on Luma.
+  // Matching on api_id alone would then insert a *second* row for the same
+  // event under a slugified name, and the site would show it twice: once as
+  // the curated anchor, once as a Luma import. Adopting the local row instead
+  // hands it to the sync from that point on, which also gets it into the guest
+  // mirror below (registration parity) — the reason luma_url is set on the
+  // hackathon row in migration 00092 in the first place.
+  const normUrl = (u: string | null | undefined) =>
+    u ? u.trim().replace(/\/+$/, "").toLowerCase() : null;
+  const byLumaUrl = new Map<string, { id: number }>();
+  for (const r of existingRows ?? []) {
+    const key = normUrl(r.luma_url as string | null);
+    if (key && !byLumaUrl.has(key)) byLumaUrl.set(key, { id: r.id as number });
+  }
   const syncedAt = new Date().toISOString();
+  // Rows this run matched or adopted, by id. `existingRows` is a snapshot read
+  // before the loop, so an adopted row still shows its old api_id there —
+  // without this the reconciliation below would archive the very row it just
+  // synced.
+  const touchedIds = new Set<number>();
 
   for (const [i, ev] of lumaEvents.entries()) {
     try {
@@ -288,13 +310,17 @@ export async function syncLumaEvents(
         updated_at: syncedAt,
       };
 
-      const existing = byApiId.get(ev.api_id);
+      const adopted = byLumaUrl.get(normUrl(ev.url) ?? "\u0000");
+      const existing = byApiId.get(ev.api_id) ?? adopted;
       if (existing) {
         const { error } = await supabase
           .from("events")
-          .update(lumaFields)
+          // Stamping api_id on an adopted row makes the next sync a plain
+          // api_id match; on an already-matched row it is a no-op write.
+          .update({ ...lumaFields, api_id: ev.api_id })
           .eq("id", existing.id);
         if (error) throw new Error(error.message);
+        touchedIds.add(existing.id as number);
         summary.updated++;
       } else {
         let slug = slugify(ev.name);
@@ -320,14 +346,22 @@ export async function syncLumaEvents(
     }
   }
 
-  // Reconcile: Luma is the source of truth for ALL events — any published
+  // Reconcile: Luma is the source of truth for Luma's events — any published
   // future row Luma didn't return (cancelled, unlisted, or a leftover seed)
   // leaves the site. Archived, not deleted: history and RSVP rows survive,
   // and un-archiving is one status flip.
+  //
+  // Anchor rows are exempt. They are authored here, not on Luma: their api_ids
+  // (anchor-01..06) can never appear in a Luma listing, so the rule above would
+  // archive the entire cycle spine on the first sync after each one's date
+  // passes into the future — including the three the /events page features.
+  // An anchor leaves the site by having its status flipped, deliberately.
   const lumaIds = new Set(lumaEvents.map((ev) => ev.api_id));
   const orphans = (existingRows ?? []).filter(
     (r) =>
       r.status === "published" &&
+      !r.anchor &&
+      !touchedIds.has(r.id as number) &&
       !lumaIds.has(r.api_id as string) &&
       new Date(r.start_at).getTime() > Date.now()
   );

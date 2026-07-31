@@ -22,10 +22,13 @@ export function MemberRegister({
   eventId,
   going: initialGoing,
   className,
+  label = "Register — save a spot",
 }: {
   eventId: number;
   going: boolean;
   className: string;
+  /** Button text — the /events hero says "Reserve a seat". */
+  label?: string;
 }) {
   const router = useRouter();
   const [going, setGoing] = useState(initialGoing);
@@ -62,7 +65,7 @@ export function MemberRegister({
   return (
     <>
       <button className={className} onClick={register} disabled={busy}>
-        {busy ? "Saving…" : "Register — save a spot"}
+        {busy ? "Saving…" : label}
       </button>
       {failed && (
         <p className="t-small" role="alert" style={{ marginTop: 8, color: "var(--red)" }}>

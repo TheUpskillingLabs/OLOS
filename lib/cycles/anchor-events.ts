@@ -46,11 +46,13 @@ export const ANCHOR_EVENTS: AnchorEvent[] = [
   },
   {
     api_id: "anchor-03",
-    slug: "hackathon-frame-sprint",
-    name: "Hackathon — the Frame Sprint",
-    start_at: "2026-08-13T09:00",
-    end_at: "2026-08-13T18:00",
-    location_name: "Main branch",
+    slug: "civics-elections-hackathon",
+    // Re-cast as the public, AU co-hosted event (migration 00092). Saturday,
+    // not the mid-week Frame Sprint date this entry used to carry.
+    name: "Idea to Prototype: A Civics and Elections Hackathon",
+    start_at: "2026-08-15T09:00",
+    end_at: "2026-08-15T16:30",
+    location_name: "American University, Constitution Hall",
   },
   {
     api_id: "anchor-04",
