@@ -337,70 +337,6 @@ export default async function EventPage({
               </div>
             )}
 
-            {/* Location gets a section of its own, not just the rail's Kv row.
-                The rail sits in .detail-aside, which is display:none below
-                1024px, so on a narrow window the address was only in the
-                lg:hidden facts block — and on a wide one it was a small line in
-                a sidebar card. "Where is this?" deserves better than that
-                (owner call, 2026-07-31). An embedded map is deliberately not
-                here: it needs a paid Google Embed API key, and the link does
-                the job. */}
-            {e.location_type === "in_person" && whereQuery && (
-              <Ruled label="Location">
-                {e.location_name && (
-                  <p className="t-h4" style={{ marginBottom: 4 }}>
-                    {e.location_name}
-                  </p>
-                )}
-                {e.location_address &&
-                  e.location_address !== e.location_name && (
-                    <p className="t-body" style={{ color: "var(--slate)" }}>
-                      {e.location_address}
-                    </p>
-                  )}
-                {/* The embed is keyed and therefore optional: without a key it
-                    is simply absent, so local dev and previews show the link
-                    rather than a broken frame. Google's Embed API takes a plain
-                    address in `q`, so no geocoding and no stored coordinates.
-                    lazy-loaded because it is a third-party frame below the
-                    fold. */}
-                {mapsEmbedKey && (
-                  <div
-                    className="lcard"
-                    style={{
-                      marginTop: 16,
-                      overflow: "hidden",
-                      height: 300,
-                      padding: 0,
-                    }}
-                  >
-                    <iframe
-                      title={`Map of ${e.location_name ?? whereQuery}`}
-                      src={`https://www.google.com/maps/embed/v1/place?key=${mapsEmbedKey}&q=${encodeURIComponent(whereQuery)}`}
-                      loading="lazy"
-                      /* Google's documented value. Sends only the origin, not
-                         the full path, so which event page someone is reading
-                         is not handed to Google — and an origin is all a
-                         referrer-restricted key needs. */
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      allowFullScreen
-                      style={{ border: 0, width: "100%", height: "100%" }}
-                    />
-                  </div>
-                )}
-                <div style={{ marginTop: 14 }}>
-                  <a
-                    className="btn btn-ghost"
-                    href={mapsHref(whereQuery)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open in Maps
-                  </a>
-                </div>
-              </Ruled>
-            )}
-
             {/* Editorial numerals (00095). Absent on short events, where a stat
                 row would be four numbers about nothing. */}
             {stats.length > 0 && (
@@ -448,6 +384,85 @@ export default async function EventPage({
                     </div>
                   ))}
                 </div>
+              </Ruled>
+            )}
+
+            {/* ── Practicalities: where, who, what to bring ──
+                Location gets a section of its own, not just the rail's Kv row.
+                The rail sits in .detail-aside, which is display:none below
+                1024px, so on a narrow window the address was only in the
+                lg:hidden facts block — and on a wide one it was a small line in
+                a sidebar card. "Where is this?" deserves better than that
+                (owner call, 2026-07-31).
+
+                It sits at the END of the column, next to Host and Bring, rather
+                than between the copy and the editorial sections: a map is a
+                300px object, and dropping one into the middle of the prose cut
+                the reading in half (owner call, 2026-07-31). The facts a reader
+                needs BEFORE deciding are already in the rail and in the
+                lg:hidden block up top; this section is for after they have
+                decided to come. */}
+            {e.location_type === "in_person" && whereQuery && (
+              <Ruled label="Location">
+                {e.location_name && (
+                  <p className="t-h4" style={{ marginBottom: 4 }}>
+                    {e.location_name}
+                  </p>
+                )}
+                {e.location_address &&
+                  e.location_address !== e.location_name && (
+                    <p className="t-body" style={{ color: "var(--slate)" }}>
+                      {e.location_address}
+                    </p>
+                  )}
+                {/* The embed is keyed and therefore optional: without a key it
+                    is simply absent, so local dev and previews show the link
+                    rather than a broken frame. Google's Embed API takes a plain
+                    address in `q`, so no geocoding and no stored coordinates.
+                    lazy-loaded because it is a third-party frame below the
+                    fold. */}
+                {mapsEmbedKey && (
+                  <div
+                    className="lcard"
+                    style={{
+                      marginTop: 16,
+                      overflow: "hidden",
+                      height: 300,
+                      padding: 0,
+                    }}
+                  >
+                    <iframe
+                      title={`Map of ${e.location_name ?? whereQuery}`}
+                      src={`https://www.google.com/maps/embed/v1/place?key=${mapsEmbedKey}&q=${encodeURIComponent(whereQuery)}`}
+                      loading="lazy"
+                      /* Google's documented value. Sends only the origin, not
+                         the full path, so which event page someone is reading
+                         is not handed to Google — and an origin is all a
+                         referrer-restricted key needs. */
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                      style={{ border: 0, width: "100%", height: "100%" }}
+                    />
+                  </div>
+                )}
+                {/* The button is the FALLBACK, not a companion to the embed:
+                    Google's own frame carries an "Open in Maps" chip in its top
+                    corner, so with a key configured this was the same action
+                    twice, six inches apart (owner flag, 2026-07-31). Without a
+                    key — local dev, or a preview that has none — it is the only
+                    way to see where the event is, so it stays. */}
+                {!mapsEmbedKey && (
+                  <div style={{ marginTop: 14 }}>
+                    <a
+                      className="btn btn-ghost"
+                      href={mapsHref(whereQuery)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open in Maps
+                    </a>
+                  </div>
+                )}
               </Ruled>
             )}
 
