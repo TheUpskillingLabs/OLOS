@@ -32,6 +32,7 @@ interface LumaEvent {
   name: string;
   visibility?: string | null; // "public" | "private" — absent on old payloads
   description?: string | null;
+  description_md?: string | null; // the detail endpoint may send markdown only
   start_at: string; // ISO 8601 UTC instant
   end_at?: string | null;
   timezone?: string | null;
@@ -266,6 +267,12 @@ export interface LumaSyncSummary {
   updated: number;
   archived: number;
   guests_mirrored: number;
+  /** Per-event detail fetches (descriptions live only there): ok vs failed.
+      Failures are deliberate non-errors — the sync must survive them — but
+      they must be VISIBLE, or an empty `about` column debugs like a ghost
+      (2026-07-31: three deploy cycles before anyone could see why). */
+  details_ok: number;
+  details_failed: number;
   errors: string[];
 }
 
@@ -279,6 +286,8 @@ export async function syncLumaEvents(
     updated: 0,
     archived: 0,
     guests_mirrored: 0,
+    details_ok: 0,
+    details_failed: 0,
     errors: [],
   };
   // An empty fetch is left alone on purpose: reconciliation only runs on a
@@ -330,8 +339,12 @@ export async function syncLumaEvents(
           ? ev.description
           : null;
       if (!description && new Date(ev.start_at).getTime() > Date.now()) {
+        const detail = await fetchLumaEventDetail(ev.api_id);
+        // The detail payload may carry plain text, markdown, or both.
         description =
-          (await fetchLumaEventDetail(ev.api_id))?.description ?? null;
+          detail?.description?.trim() || detail?.description_md?.trim() || null;
+        if (description) summary.details_ok++;
+        else summary.details_failed++;
       }
 
       const lumaFields = {
