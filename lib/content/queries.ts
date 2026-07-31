@@ -18,6 +18,7 @@ export interface EventRow {
   cost: string;
   host: string | null;
   description: string | null;
+  about: string | null;
   bring: string | null;
   body: string[] | null;
   gallery: string[] | null;
