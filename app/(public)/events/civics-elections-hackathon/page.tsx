@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { EdSection, EdRow } from "@/app/components/chrome/editorial";
-import { EventTeaser, MediaFrame } from "@/app/components/content/teasers";
+import { EventTeaser } from "@/app/components/content/teasers";
 import { MemberRegister } from "../[slug]/rsvp";
 import { fmtDay, fmtTime } from "@/lib/content/format";
 import { getEvent, getEvents } from "@/lib/content/queries";
@@ -380,17 +380,12 @@ export default async function CivicsElectionsHackathonPage() {
               {facts}
             </div>
           </div>
-          <aside className="detail-aside">
-            {/* The event's own Luma card on top of the facts — the page went
-                light and ruled, and this is where its color comes back from:
-                real art, not decoration. */}
-            {event?.img && (
-              <div style={{ marginBottom: 20 }}>
-                <MediaFrame img={event.img} square />
-              </div>
-            )}
-            {facts}
-          </aside>
+          {/* Facts only — no cover art. The square Luma card doubled the
+              rail's height against a short text column (a hero-sized void
+              under the buttons), and on its own page the card only repeats
+              the title, date and venue beside it. Its color job is covered
+              by the track rules, the numerals and the closing band. */}
+          <aside className="detail-aside">{facts}</aside>
         </div>
       </div>
 
