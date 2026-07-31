@@ -213,14 +213,13 @@ export default async function EventPage({
             )}
 
             {/* The photo is demoted (mock 3A) but not banished: small, in
-                grayscale, beside the host it depicts — the words above sell
-                the session, the face makes it human. */}
+                color, beside the host it depicts. The mock grayscaled it, but
+                the covers are designed brand cards, not photography — drained
+                of color they read as broken (owner call, July 2026). */}
             <Ruled label="Host">
               <div className="flex items-start gap-5">
                 {photo && (
-                  <div
-                    style={{ width: 168, flexShrink: 0, filter: "grayscale(1)" }}
-                  >
+                  <div style={{ width: 168, flexShrink: 0 }}>
                     <MediaFrame img={photo} square />
                   </div>
                 )}

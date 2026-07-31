@@ -1,9 +1,6 @@
 import Link from "next/link";
-import RsvpButton, { MemberRegister } from "@/app/(public)/events/[slug]/rsvp";
 import { fmtDay, fmtTime, fmtMonth } from "@/lib/content/format";
 import { featuredEvents } from "@/lib/content/featured";
-import { publicSession } from "@/lib/auth/public-session";
-import { createServiceClient } from "@/lib/supabase/server";
 import type { EventRow } from "@/lib/content/queries";
 
 /* The /events hero — the page headline and the next two anchor events in one
@@ -23,16 +20,12 @@ import type { EventRow } from "@/lib/content/queries";
    does the "this one is big" work now), and the All/Workshops/Anchor segments
    in the agenda toolbar remain the way to narrow the list.
 
-   "Reserve a seat" registers directly — members one-tap with their account
-   (same MemberRegister as the detail pages, so "You're going ✓" carries
-   across), anonymous visitors register on Luma where its questions and photo
-   release live, and the email modal covers editorial events Luma doesn't
-   know about. "More details" goes to the event's page.
+   One CTA per card (owner call, July 2026): "More details" to the event's
+   page, where the full registration rail lives. The band had a direct
+   "Reserve a seat" for a while; two buttons split the click and the reserve
+   path still needed the detail page for context, so it went. */
 
-   Server component: it reads the session and the member's RSVPs itself, so
-   the page only hands it the event list and the clock. */
-
-export default async function EventsHero({
+export default function EventsHero({
   events,
   nowMs,
 }: {
@@ -40,23 +33,6 @@ export default async function EventsHero({
   nowMs: number;
 }) {
   const featured = featuredEvents(events, nowMs, 2);
-  const session = await publicSession();
-
-  // Which featured events is this member already going to? Mirrors the
-  // detail page: in-app RSVPs plus, via the guest mirror, Luma registrations.
-  const going = new Set<number>();
-  if (session.signedIn && session.email && featured.length > 0) {
-    const supabase = createServiceClient();
-    const { data } = await supabase
-      .from("event_rsvps")
-      .select("event_id")
-      .in(
-        "event_id",
-        featured.map((e) => e.id)
-      )
-      .eq("email", session.email);
-    for (const r of data ?? []) going.add(r.event_id as number);
-  }
 
   return (
     <section className="s-cover grain on-dark">
@@ -104,13 +80,7 @@ export default async function EventsHero({
         {featured.length > 0 && (
           <div className="grid gap-10 pt-10 md:grid-cols-2">
             {featured.map((e, i) => (
-              <FeaturedEvent
-                key={e.slug}
-                event={e}
-                divided={i > 0}
-                signedIn={session.signedIn}
-                going={going.has(e.id)}
-              />
+              <FeaturedEvent key={e.slug} event={e} divided={i > 0} />
             ))}
           </div>
         )}
@@ -122,13 +92,9 @@ export default async function EventsHero({
 function FeaturedEvent({
   event: e,
   divided,
-  signedIn,
-  going,
 }: {
   event: EventRow;
   divided: boolean;
-  signedIn: boolean;
-  going: boolean;
 }) {
   const day = new Date(e.start_at).getDate();
   const month = fmtMonth(e.start_at).split(" ")[0]; // "August 2026" → "August"
@@ -138,36 +104,6 @@ function FeaturedEvent({
     e.location_type === "virtual"
       ? "Virtual"
       : (e.location_name ?? "").split(",")[0].trim() || "In person";
-
-  // The same three-way registration rule as the detail pages. Anonymous
-  // visitors on Luma-managed events register on Luma's own page (its
-  // questions, photo release included); the email modal remains only for
-  // editorial events Luma doesn't know about.
-  const reserve = signedIn ? (
-    <MemberRegister
-      eventId={e.id}
-      going={going}
-      className="btn btn-white"
-      label="Reserve a seat"
-    />
-  ) : e.luma_url ? (
-    <a
-      className="btn btn-white"
-      href={e.luma_url}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Reserve a seat
-    </a>
-  ) : (
-    <RsvpButton
-      eventId={e.id}
-      name={e.name}
-      dateLabel={fmtDay(e.start_at)}
-      label="Reserve a seat"
-      className="btn btn-white"
-    />
-  );
 
   return (
     <article
@@ -214,12 +150,8 @@ function FeaturedEvent({
         {weekday} · {time} · {where} · {e.cost || "Free"}
       </p>
 
-      <div
-        className="flex flex-wrap items-center gap-3"
-        style={{ marginTop: 20 }}
-      >
-        {reserve}
-        <Link className="btn btn-ghost" href={`/events/${e.slug}`}>
+      <div style={{ marginTop: 20 }}>
+        <Link className="btn btn-white" href={`/events/${e.slug}`}>
           More details
         </Link>
       </div>
