@@ -121,7 +121,13 @@ type Slot = {
 
 // Facilitator links, kept beside the schedule they appear in.
 const A = ({ href, children }: { href: string; children: string }) => (
-  <a className="see" href={href} target="_blank" rel="noopener noreferrer">
+  <a
+    className="see"
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ textDecoration: "underline" }}
+  >
     {children}
   </a>
 );
@@ -319,7 +325,12 @@ export default async function CivicsElectionsHackathonPage() {
 
   const registerBtn = (className: string) =>
     event && session.signedIn ? (
-      <MemberRegister eventId={event.id} going={going} className={className} />
+      <MemberRegister
+        eventId={event.id}
+        going={going}
+        className={className}
+        label="Register"
+      />
     ) : (
       <a
         className={className}
@@ -327,7 +338,7 @@ export default async function CivicsElectionsHackathonPage() {
         target="_blank"
         rel="noopener noreferrer"
       >
-        Register for the hackathon
+        Register
       </a>
     );
 
@@ -405,6 +416,7 @@ export default async function CivicsElectionsHackathonPage() {
                   href="/survey/civics"
                   target="_blank"
                   rel="noopener"
+                  style={{ textDecoration: "underline" }}
                 >
                   civics and elections
                 </Link>{" "}
@@ -467,7 +479,11 @@ export default async function CivicsElectionsHackathonPage() {
                   </p>
                   <ul
                     className="t-body ed-text"
-                    style={{ color: "var(--slate)", paddingLeft: 20 }}
+                    style={{
+                      color: "var(--slate)",
+                      paddingLeft: 20,
+                      listStyle: "disc",
+                    }}
                   >
                     {t.points.map((pt) => (
                       <li key={pt} style={{ marginBottom: 8 }}>
@@ -526,7 +542,13 @@ export default async function CivicsElectionsHackathonPage() {
 
           <EdSection
             eyebrow="The build cycle"
-            heading="Every quarter, a new Build Cycle. Every Build Cycle, a Pod Sprint like this one."
+            heading={
+              <>
+                Every quarter, a new Build Cycle.
+                <br />
+                Every Build Cycle, a Pod Sprint like this one.
+              </>
+            }
           >
             <div className="ed-cols">
               <div className="stat-row">
@@ -542,7 +564,7 @@ export default async function CivicsElectionsHackathonPage() {
             </div>
           </EdSection>
 
-          <EdSection eyebrow="With thanks to our sponsors">
+          <EdSection heading="With thanks to our sponsors">
             <div className="ed-cols">
               <Image
                 src="/assets/american-university.webp"

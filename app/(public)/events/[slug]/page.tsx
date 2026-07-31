@@ -193,8 +193,14 @@ export default async function EventPage({
               </p>
             )}
 
-            {/* Facts + CTA for viewports where the rail is hidden. */}
+            {/* Facts + CTA for viewports where the rail is hidden — led by
+                the Luma card, which desktop shows at the top of the rail. */}
             <div className="lg:hidden" style={{ marginTop: 24 }}>
+              {photo && (
+                <div style={{ marginBottom: 16, maxWidth: 360 }}>
+                  <MediaFrame img={photo} square />
+                </div>
+              )}
               <Kv k="When" v={whenLine} />
               <Kv k="Where" v={whereLine} />
               <Kv k="Cost" v={e.cost || "Free"} />
@@ -232,19 +238,8 @@ export default async function EventPage({
               </Ruled>
             )}
 
-            {/* The photo is demoted (mock 3A) but not banished: small, in
-                color, beside the host it depicts. The mock grayscaled it, but
-                the covers are designed brand cards, not photography — drained
-                of color they read as broken (owner call, July 2026). */}
             <Ruled label="Host">
-              <div className="flex items-start gap-5">
-                {photo && (
-                  <div style={{ width: 168, flexShrink: 0 }}>
-                    <MediaFrame img={photo} square />
-                  </div>
-                )}
-                <div className="t-h4">{e.host || "The Upskilling Labs"}</div>
-              </div>
+              <div className="t-h4">{e.host || "The Upskilling Labs"}</div>
             </Ruled>
 
             {e.bring && (
@@ -259,7 +254,14 @@ export default async function EventPage({
           </div>
 
           {/* ── The registration rail ── */}
+          {/* The Luma card tops the rail (owner call, July 2026 — "the
+              thumbnail at the top", the way Luma leads with it). */}
           <aside className="detail-aside">
+            {photo && (
+              <div style={{ marginBottom: 20 }}>
+                <MediaFrame img={photo} square />
+              </div>
+            )}
             <div className="lcard" style={{ padding: 24 }}>
               <div className="t-h3" style={{ marginBottom: 4 }}>
                 {e.cost || "Free"}

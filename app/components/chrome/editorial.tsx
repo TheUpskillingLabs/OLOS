@@ -47,7 +47,7 @@ export function EdSection({
   children,
 }: {
   eyebrow?: string;
-  heading?: string;
+  heading?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
