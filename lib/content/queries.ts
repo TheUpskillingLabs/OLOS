@@ -22,6 +22,7 @@ export interface EventRow {
   body: string[] | null;
   gallery: string[] | null;
   anchor: boolean;
+  visibility: "public" | "members";
   luma_url: string | null;
   synced_at: string | null; // set = Luma-managed row (migration 00035)
 }
@@ -56,17 +57,26 @@ export interface MetroRow {
   waiting: number; // live participant count for this lab (metro_id)
 }
 
-export async function getEvents(): Promise<EventRow[]> {
+/* Events are audience-scoped since 00093: 'members' rows (private Luma
+   events — dry runs, check-ins) reach signed-in surfaces only. Default is
+   the public view; /learning and the signed-in detail path opt in. */
+export async function getEvents(opts?: {
+  includeMembersOnly?: boolean;
+}): Promise<EventRow[]> {
   const supabase = createServiceClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("events")
     .select("*")
-    .eq("status", "published")
-    .order("start_at", { ascending: true });
+    .eq("status", "published");
+  if (!opts?.includeMembersOnly) query = query.eq("visibility", "public");
+  const { data, error } = await query.order("start_at", { ascending: true });
   if (error) console.error("[content] getEvents:", error.message);
   return (data as EventRow[]) ?? [];
 }
 
+/* Fetches regardless of visibility — the detail page holds the session and
+   is the right place to decide whether a 'members' row 404s for this
+   visitor; deciding here would mean fetching the session twice. */
 export async function getEvent(slug: string): Promise<EventRow | null> {
   const supabase = createServiceClient();
   const { data } = await supabase

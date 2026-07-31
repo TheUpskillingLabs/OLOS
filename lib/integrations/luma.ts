@@ -30,6 +30,7 @@ const LUMA_API_BASE =
 interface LumaEvent {
   api_id: string;
   name: string;
+  visibility?: string | null; // "public" | "private" — absent on old payloads
   description?: string | null;
   start_at: string; // ISO 8601 UTC instant
   end_at?: string | null;
@@ -306,6 +307,12 @@ export async function syncLumaEvents(
         ...locationOf(ev),
         img: ev.cover_url || null,
         luma_url: ev.url || null,
+        // Visibility is Luma-owned (00093): private events reach members on
+        // /learning but never the public /events page. Written only when
+        // Luma sends the field — absent means "leave as is", never "expose".
+        ...(typeof ev.visibility === "string"
+          ? { visibility: ev.visibility === "public" ? "public" : "members" }
+          : {}),
         synced_at: syncedAt,
         updated_at: syncedAt,
       };

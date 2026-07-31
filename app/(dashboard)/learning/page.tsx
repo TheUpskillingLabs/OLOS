@@ -37,7 +37,9 @@ export default async function LearningPage() {
   if (!participant) redirect("/register");
 
   const [events, resources, saved] = await Promise.all([
-    getEvents(),
+    // Members-only rows included: this page sits behind auth, and private
+    // Luma events (dry runs, check-ins) exist precisely for the people here.
+    getEvents({ includeMembersOnly: true }),
     getResources(),
     getSavedSlugs((participant as { id: number }).id),
   ]);
