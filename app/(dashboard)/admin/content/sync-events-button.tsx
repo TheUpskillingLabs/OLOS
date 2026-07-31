@@ -28,9 +28,15 @@ export default function SyncEventsButton() {
         return;
       }
       const errs = data.errors?.length ? ` · ${data.errors.length} errors` : "";
+      // details_failed surfaced by name: an event description that silently
+      // fails to fetch otherwise debugs as a mystery empty page.
+      const det =
+        typeof data.details_ok === "number"
+          ? ` · details ${data.details_ok} ok${data.details_failed ? ` / ${data.details_failed} failed` : ""}`
+          : "";
       setState({
         phase: "done",
-        note: `${data.created ?? 0} new · ${data.updated ?? 0} updated${errs}`,
+        note: `${data.created ?? 0} new · ${data.updated ?? 0} updated${det}${errs}`,
       });
       router.refresh();
     } catch {
