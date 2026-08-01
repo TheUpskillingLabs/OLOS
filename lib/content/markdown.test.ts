@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { parseMarkdown, markdownToc, scheduleColumns } from "./markdown";
+import {
+  parseMarkdown,
+  markdownToc,
+  renderMarkdown,
+  scheduleColumns,
+} from "./markdown";
 import type { MdBlock, MdSlot } from "./markdown";
 
 /* Tests target parseMarkdown, the pure half of the renderer. The vitest
@@ -678,6 +683,77 @@ describe("parseMarkdown — Luma's tight export", () => {
       text: "Bio:\nAda Lovelace",
       lede: false,
     });
+  });
+});
+
+describe("images — Luma sponsor logos", () => {
+  /* Verbatim shape of the hackathon's sponsor section after a real sync
+     (prod, 2026-08-01): a heading, then `![](url)` with an EMPTY alt, one
+     newline apart in Luma's tight export. The empty alt is what let this slip
+     past the link pattern — a link label cannot be empty — so the URL fell
+     through to the bare-URL matcher and the page showed literal `![](…)`. */
+  const SPONSORS = [
+    "**With Thanks to Our Sponsors**",
+    "![](https://images.lumacdn.com/cdn-cgi/image/format=auto,dpr=2,anim=false,background=white,quality=75,width=800/uploads/rr/59a9ef9f-a6d3-493f-b31f-4360e29eca04.png)",
+  ].join("\n");
+
+  it("splits an image line into its own block, so the heading still promotes", () => {
+    expect(kinds(parseMarkdown(SPONSORS))).toEqual(["heading", "para"]);
+  });
+
+  it("keeps the image syntax verbatim in the parse tree — rendering owns it", () => {
+    const para = parseMarkdown(SPONSORS).find((b) => b.kind === "para");
+    expect(para?.kind === "para" && para.text).toContain("![](");
+  });
+
+  /* The vitest environment has no DOM, but renderMarkdown only CREATES React
+     elements — plain objects — so the element tree can be walked directly. */
+  function walk(node: unknown, out: { types: unknown[]; text: string[] } = { types: [], text: [] }) {
+    if (Array.isArray(node)) {
+      node.forEach((n) => walk(n, out));
+    } else if (typeof node === "string") {
+      out.text.push(node);
+    } else if (node && typeof node === "object") {
+      const el = node as { type?: unknown; props?: { children?: unknown; [k: string]: unknown } };
+      if (el.type !== undefined) out.types.push(el);
+      walk(el.props?.children, out);
+    }
+    return out;
+  }
+
+  it("renders an <img>, not raw markdown or a bare link", () => {
+    const { types, text } = walk(renderMarkdown(SPONSORS));
+    const img = types.find(
+      (el) => (el as { type?: unknown }).type === "img"
+    ) as { props: { src: string; alt: string } } | undefined;
+    expect(img?.props.src).toContain("images.lumacdn.com");
+    expect(img?.props.alt).toBe(""); // empty alt renders as decorative, not dropped
+    expect(text.join("")).not.toContain("![");
+  });
+
+  it("renders an image with alt text and keeps the alt on the element", () => {
+    const { types } = walk(renderMarkdown("![AU logo](https://example.com/logo.png)"));
+    const img = types.find(
+      (el) => (el as { type?: unknown }).type === "img"
+    ) as { props: { alt: string } } | undefined;
+    expect(img?.props.alt).toBe("AU logo");
+  });
+
+  it("fails safe to the alt text for a src that is not web or root-relative", () => {
+    const { types, text } = walk(renderMarkdown("![logo](javascript:alert(1))"));
+    expect(types.some((el) => (el as { type?: unknown }).type === "img")).toBe(false);
+    expect(text.join("")).toContain("logo");
+  });
+
+  it("does not count an image URL toward the visible-length thresholds", () => {
+    // A heading that is a bolded label plus an image stays under HEADING_MAX
+    // only if the URL is syntax; the card threshold test mirrors the links one.
+    const md =
+      "What to bring:\n\n" +
+      "- A laptop ![](https://example.com/a/very/long/decorative/path/that/would/blow/the/card/limit.png)\n" +
+      "- A charger";
+    const list = parseMarkdown(md).find((b) => b.kind === "list");
+    expect(list?.kind === "list" && list.cards).toBe(true);
   });
 });
 
