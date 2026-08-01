@@ -177,7 +177,7 @@ Files:
   roles: Role[];             // owner, admin, observer, developer, moderator, participant
   permissions: Permission[]; // granular grants from participant_permissions
   moderatorPodIds: number[];
-  cycleEnrollments: { cycleId: number; status: "active" | "inactive" | "revoked" }[];
+  cycleEnrollments: { cycleId: number; status: "registered" | "active" | "inactive" | "revoked" }[];
 }
 ```
 

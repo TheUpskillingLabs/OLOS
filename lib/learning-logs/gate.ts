@@ -61,13 +61,17 @@ export async function learningLogGate(
 ): Promise<LogGateState> {
   const supabase = createServiceClient();
 
-  // Every currently active cycle, across modes, the member is actively
-  // enrolled in — 00060 means more than one can legitimately come back (the
-  // participant cycle and the org cycle). The single definition lives in
-  // lib/learning-logs/eligible.ts so gate.ts, the learning-logs route, and
-  // the dashboard never drift on what "eligible" means.
-  const enrolledCycles =
-    precomputedEligibleCycles ?? (await eligibleLogCycles(participantId));
+  // The lock has teeth ONLY for 'active' (in-a-pod) members — a pre-pod
+  // 'registered' member can file logs but is never locked out (the weekly
+  // cadence is a pod practice). So the gate narrows to active-only: it either
+  // fetches active-only itself, or filters a wide precomputed list (the log
+  // route hands us the registered|active composer list) down to active. 00060
+  // means more than one active cycle can come back (the participant cycle and
+  // the org cycle) for a dual-enrolled staff member.
+  const enrolledCycles = (
+    precomputedEligibleCycles ??
+    (await eligibleLogCycles(participantId, { statuses: ["active"] }))
+  ).filter((c) => c.status === "active");
   if (enrolledCycles.length === 0) return INACTIVE;
 
   const { data: configs } = await supabase

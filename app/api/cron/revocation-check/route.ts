@@ -1,5 +1,4 @@
 import { NextResponse, NextRequest } from "next/server";
-import { parseWindow } from "@/lib/cycles/lab-time";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getResendClient, FROM_EMAIL } from "@/lib/email";
 import {
@@ -8,14 +7,11 @@ import {
   revocationWarningSubject,
   type RevocationWarningReason,
 } from "@/lib/email/revocation-warning-template";
-import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
-// Intentional cross-module import: the at-risk predicate is canonical in
-// lib/moderator/nudges.ts (it powers the poderator dashboard's nudge
-// surface). Reusing it here means the cron's revocation-candidate
-// identification matches what the moderator already sees flagged. If a
-// third caller emerges, extract to lib/engagement/at-risk.ts; YAGNI for
-// now. See roadmap §3.7 (Phase C design decisions).
-import { deriveAtRiskRun } from "@/lib/moderator/nudges";
+// The engagement signal is missed weekly Learning Log windows — the cadence
+// with teeth under the registered/active model. consecutiveMissedLogWeeks
+// reconstructs the weekly windows from the cycle calendar (the Learning Log
+// has no per-window schedule table like pulse_checks).
+import { consecutiveMissedLogWeeks } from "@/lib/learning-logs/at-risk";
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const SEND_DELAY_MS = 200;
@@ -37,43 +33,48 @@ type Outcome = {
  * during the May Energy hot-fix). Phase C.3 re-registers it after a
  * ≥48h staging soak.
  *
+ * Registered/active model (migration 00099)
+ * ------------------------------------------
+ * The one revocation reason is the missed weekly cadence for an in-pod
+ * ('active') member. Being pod-less is no longer revocation-worthy — that
+ * member is 'registered', a permanent resting state the reconciler settles
+ * them into, and the loop below only iterates status='active' enrollments,
+ * so the old window-aware "not_in_pod" ladder was removed outright.
+ *
  * What's different from the old route
  * -----------------------------------
- *   1. Cycle-scoped queries. The old route's not_in_pod check counted
- *      pod_memberships across ALL cycles; this one joins to
- *      pods.cycle_id = current_cycle.id (broken edge #1).
- *   2. Window-aware not_in_pod. Only fires AFTER pod_registration_close.
- *      During the open window, being pod-less is expected, not
- *      revocation-worthy. This addresses the launch-time scenario where
- *      late-joiners were getting revoked before they had a chance to
- *      pick a pod.
- *   3. deriveAtRiskRun-driven missed-pulses detection. Uses the canonical
- *      predicate from lib/moderator/nudges.ts compared against
- *      cycle_config.at_risk_consecutive_misses (default 2). Replaces
- *      the old "7 days from created_at fallback" rule.
- *   4. Two-stage warn → revoke with 3-day grace. The cron sends a
+ *   1. Cycle-scoped queries. All per-participant reads join to
+ *      cycle_id = current_cycle.id (broken edge #1).
+ *   2. Missed-weekly-Learning-Log detection. consecutiveMissedLogWeeks
+ *      (lib/learning-logs/at-risk.ts) reconstructs the weekly windows from
+ *      the cycle calendar (getCycleWeek) and counts completed weeks with no
+ *      cycle-attributed learning_logs row, compared against
+ *      cycle_config.at_risk_consecutive_misses (default 2). A cycle whose
+ *      log gate is paused (log_gate_paused) is skipped — the whole cohort is
+ *      on holiday. This is the cadence with teeth under the log-gate model,
+ *      replacing the earlier pulse-check signal.
+ *   3. Two-stage warn → revoke with 3-day grace. The cron sends a
  *      warning email and stamps warned_at on the first hit; subsequent
- *      ticks check whether warned_at + 3 days has passed before
- *      calling the reconciler.
- *   5. State changes via reconcileEnrollmentActivation. The cron
- *      doesn't directly mutate cycle_enrollments / pod_memberships /
- *      access_revocations — it asks the Phase A reconciler to demote
- *      the enrollment with logRevocation=true, and the reconciler
- *      handles all the side effects atomically via service client.
- *   6. Admin/owner exemption. Admins and owners with active enrollments
+ *      ticks check whether warned_at + 3 days has passed before revoking.
+ *   4. The cron is the SOLE writer of 'inactive'. The reconciler no longer
+ *      produces exits (it only manages registered <-> active), so stage 2
+ *      writes cycle_enrollments.status='inactive' + inactive_date directly
+ *      and records the access_revocations audit row. The member's pod
+ *      membership is left intact — 'inactive' is an engagement flag, and
+ *      their next qualifying log recovers them to 'active'.
+ *   5. Admin/owner exemption. Admins and owners with active enrollments
  *      are never revoked by this cron — admins typically have no pod,
  *      and that's by design. (The proper fix for admin participation
  *      tracking lives in #122.)
- *   7. Recovery clears warned_at. If a previously-warned participant
- *      joins a pod or submits a pulse, the next cron tick clears
- *      warned_at so a future warning starts fresh. This is what makes
- *      admin-driven rescue via POST /api/admin/pods/[id]/memberships
- *      compose correctly with the cron — see #123 for the parallel
- *      moderator-add design question.
- *   8. DB-enforced revocation idempotency. Migration 00030 adds a
+ *   6. Recovery clears warned_at. If a previously-warned participant
+ *      catches up on the cadence, the next cron tick clears warned_at so a
+ *      future warning starts fresh. This is what makes admin-driven rescue
+ *      via POST /api/admin/pods/[id]/memberships compose correctly with the
+ *      cron — see #123 for the parallel moderator-add design question.
+ *   7. DB-enforced revocation idempotency. Migration 00030 adds a
  *      unique partial index on access_revocations(participant_id,
- *      cycle_id, reason) WHERE revocation_scope = 'full' so the
- *      reconciler's INSERT can safely retry.
+ *      cycle_id, reason) WHERE revocation_scope = 'full' so the stage-2
+ *      audit INSERT can safely retry.
  *
  * Auth + observability are unchanged from the existing pattern:
  *   - Bearer CRON_SECRET (same as pulse-check-reminder)
@@ -108,19 +109,18 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const nowIso = now.toISOString();
   const dashboardUrl = `${appUrl}/dashboard`;
-  const pulseUrl = `${appUrl}/pulse-check`;
   const resend = getResendClient();
 
   const outcomes: Outcome[] = [];
 
-  // Active cycles with their config (pod_registration_close + threshold).
-  // mode='open' only — org cycles have no pod_registration window and no
-  // pulse rows, so the ladders below are structurally inert for them, but
-  // scoping here means the warning/revocation emails can never reach staff.
+  // Active cycles with their calendar (for weekly-window reconstruction) and
+  // config (miss threshold + gate-pause holiday toggle). mode='open' only —
+  // org cycles run the Leadership Log cadence, not this one, so scoping here
+  // means the warning/revocation emails can never reach staff.
   const { data: cycles } = await supabase
     .from("cycles")
     .select(
-      "id, cycle_config(pod_registration_close, at_risk_consecutive_misses)"
+      "id, start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused)"
     )
     .eq("status", "active")
     .eq("mode", "open");
@@ -136,12 +136,14 @@ export async function GET(request: NextRequest) {
       );
       continue;
     }
-    // parseWindow: naive column read explicitly as a UTC instant
-    // (lib/cycles/lab-time.ts) — server-tz-independent.
-    const podRegistrationClosed =
-      config.pod_registration_close !== null &&
-      (parseWindow(config.pod_registration_close) as Date).getTime() <
-        now.getTime();
+    // A cycle whose Learning Log gate is paused is on holiday — no missed-log
+    // revocations while the whole cohort is exempt.
+    if (config.log_gate_paused) continue;
+    // Weekly windows are reconstructed from the cycle calendar; without both
+    // bounds there's no cadence to measure, so skip.
+    if (!cycle.start_date || !cycle.end_date) continue;
+    const cycleStart = new Date(cycle.start_date);
+    const cycleEnd = new Date(cycle.end_date);
     const missThreshold = config.at_risk_consecutive_misses ?? 2;
 
     // Active enrollments in this cycle, with the participant's identity,
@@ -188,39 +190,31 @@ export async function GET(request: NextRequest) {
 
       // === Reason determination ===
 
-      // Cycle-scoped active pod memberships (fixes architecture review
-      // broken edge #1 — old route counted across all cycles)
-      const { data: membershipRows } = await supabase
-        .from("pod_memberships")
-        .select("id, pods!inner(cycle_id)")
-        .eq("participant_id", pid)
-        .eq("pods.cycle_id", cycleId)
-        .is("inactive_at", null);
-      const activePodCount = (membershipRows ?? []).length;
-
-      // Pulse history for at-risk run derivation
-      const { data: pulseRows } = await supabase
-        .from("pulse_checks")
-        .select("scheduled_date, completed_at")
+      // The one revocation reason under the registered/active model: an in-pod
+      // ('active') member who fell behind the weekly Learning Log cadence.
+      // Being pod-less is no longer a revocation — that member is 'registered'
+      // (the reconciler settles them there) and never enters this loop, which
+      // only iterates status='active' enrollments. So the old "not_in_pod"
+      // ladder is gone.
+      //
+      // consecutiveMissedLogWeeks reconstructs the weekly windows from the
+      // cycle calendar and counts completed weeks with no cycle-attributed
+      // learning_logs row, back from the most recently completed week.
+      const { data: logRows } = await supabase
+        .from("learning_logs")
+        .select("created_at")
         .eq("participant_id", pid)
         .eq("cycle_id", cycleId);
+      const missedWeeks = consecutiveMissedLogWeeks(
+        now,
+        cycleStart,
+        cycleEnd,
+        (logRows ?? []).map((r) => new Date(r.created_at))
+      );
 
       let reason: RevocationWarningReason | null = null;
-
-      // Reason A: not_in_pod — only AFTER pod_registration_close
-      // (window-aware; addresses launch-time late-joiner scenario)
-      if (podRegistrationClosed && activePodCount === 0) {
-        reason = "not_in_pod";
-      }
-
-      // Reason B: missed_pulses — only when the participant DOES have a
-      // pod (otherwise reason A applies first) and the consecutive-miss
-      // run exceeds the cycle's threshold
-      if (!reason && activePodCount > 0) {
-        const run = deriveAtRiskRun(pid, pulseRows ?? []);
-        if (run && run.consecutiveMisses >= missThreshold) {
-          reason = "missed_pulses";
-        }
+      if (missedWeeks >= missThreshold) {
+        reason = "missed_logs";
       }
 
       // === Recovery: clear warned_at if no reason applies but warning was set
@@ -248,7 +242,9 @@ export async function GET(request: NextRequest) {
         // Stage 1: send warning + stamp warned_at
         const firstName =
           participant.preferred_name || participant.first_name || "there";
-        const actionUrl = reason === "missed_pulses" ? pulseUrl : dashboardUrl;
+        // The Learning Log composer lives on the dashboard, so every warning
+        // now points there.
+        const actionUrl = dashboardUrl;
         if (!participant.email) {
           outcomes.push({
             participant_id: pid,
@@ -312,25 +308,45 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Stage 2: grace expired — revoke via the reconciler.
-      // The reconciler reads current pod-membership reality and demotes
-      // cycle_enrollments.status to 'inactive' if appropriate. Setting
-      // logRevocation=true makes it INSERT the access_revocations row.
-      // Migration 00030's unique partial index means the INSERT is
-      // idempotent even if this cron retries.
-      const result = await reconcileEnrollmentActivation(pid, cycleId, {
-        reason,
-        logRevocation: true,
-      });
+      // Stage 2: grace expired — this is the ONE path that writes 'inactive'.
+      // The reconciler no longer produces exits (it only manages
+      // registered <-> active), so the cron writes the status + inactive_date
+      // itself and records the audit row. The pod membership is intentionally
+      // LEFT intact: 'inactive' is an engagement flag on a still-in-pod
+      // member, and their next qualifying log recovers them to 'active'
+      // (app/api/learning-logs/route.ts). Migration 00030's unique partial
+      // index (participant_id, cycle_id, reason) keeps the audit insert
+      // idempotent across cron retries — a duplicate returns an ignored error
+      // rather than a second row.
+      await supabase
+        .from("cycle_enrollments")
+        .update({ status: "inactive", inactive_date: nowIso })
+        .eq("participant_id", pid)
+        .eq("cycle_id", cycleId);
+
+      const { error: auditError } = await supabase
+        .from("access_revocations")
+        .insert({
+          participant_id: pid,
+          cycle_id: cycleId,
+          reason,
+          revocation_scope: "full",
+        });
+      if (auditError && auditError.code !== "23505") {
+        console.error(
+          `[revocation-check] audit insert failed participant_id=${pid} cycle_id=${cycleId} reason=${reason} error=${auditError.message ?? String(auditError)}`
+        );
+      }
+
       console.log(
-        `[revocation-check] revoked participant_id=${pid} cycle_id=${cycleId} reason=${reason} before=${result.before} after=${result.after} audited=${result.audited}`
+        `[revocation-check] revoked participant_id=${pid} cycle_id=${cycleId} reason=${reason} -> inactive`
       );
       outcomes.push({
         participant_id: pid,
         cycle_id: cycleId,
         action: "revoked",
         reason,
-        detail: `before=${result.before} after=${result.after}`,
+        detail: "status=inactive",
       });
     }
   }
@@ -347,17 +363,11 @@ export async function GET(request: NextRequest) {
     recovered_count: recoveredCount,
     skipped_count: skippedCount,
     breakdown: {
-      not_in_pod_warned: outcomes.filter(
-        (o) => o.action === "warned" && o.reason === "not_in_pod"
+      missed_logs_warned: outcomes.filter(
+        (o) => o.action === "warned" && o.reason === "missed_logs"
       ).length,
-      missed_pulses_warned: outcomes.filter(
-        (o) => o.action === "warned" && o.reason === "missed_pulses"
-      ).length,
-      not_in_pod_revoked: outcomes.filter(
-        (o) => o.action === "revoked" && o.reason === "not_in_pod"
-      ).length,
-      missed_pulses_revoked: outcomes.filter(
-        (o) => o.action === "revoked" && o.reason === "missed_pulses"
+      missed_logs_revoked: outcomes.filter(
+        (o) => o.action === "revoked" && o.reason === "missed_logs"
       ).length,
     },
     outcomes,

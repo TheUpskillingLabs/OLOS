@@ -19,7 +19,7 @@ export default function ParticipantsTable({
   mode,
 }: Props) {
   // Org core contributors are invite-only: enrollments never go through the activation
-  // pipeline the reconciler + stuck-inactive tooling exist for, so those
+  // pipeline the reconciler + stuck-registered tooling exist for, so those
   // affordances only render for participant cycles.
   const isOrg = mode === "org";
   const router = useRouter();
@@ -34,9 +34,14 @@ export default function ParticipantsTable({
     null
   );
 
+  // 'Stuck registered': a committed member who already holds an active pod
+  // membership but whose enrollment never got promoted to 'active' (the
+  // reconciler didn't fire). Running the reconciler fixes them. A registered
+  // member with no active pod is NOT stuck — that's the normal pre-pod
+  // resting state.
   const stuckCount = useMemo(
     () =>
-      participants.filter((p) => p.status === "inactive" && !p.has_revocation)
+      participants.filter((p) => p.status === "registered" && p.has_active_pod)
         .length,
     [participants]
   );
@@ -44,7 +49,7 @@ export default function ParticipantsTable({
   const visible = useMemo(() => {
     if (!stuckOnly) return participants;
     return participants.filter(
-      (p) => p.status === "inactive" && !p.has_revocation
+      (p) => p.status === "registered" && p.has_active_pod
     );
   }, [participants, stuckOnly]);
 
@@ -105,7 +110,7 @@ export default function ParticipantsTable({
               className="h-3.5 w-3.5 rounded border-ink/10 bg-white text-teal focus:ring-1 focus:ring-teal focus:ring-offset-0"
             />
             <span>
-              Show only stuck-inactive
+              Show only stuck-registered
               <span className="ml-1 text-meta tabular-nums">
                 ({stuckCount})
               </span>
@@ -113,8 +118,8 @@ export default function ParticipantsTable({
           </label>
           {stuckOnly && stuckCount === 0 && (
             <span className="text-xs text-meta">
-              No stuck-inactive participants — every inactive row has an
-              access_revocations entry.
+              No stuck-registered participants — every member with an active pod
+              is already active.
             </span>
           )}
         </div>
@@ -147,7 +152,7 @@ export default function ParticipantsTable({
               const displayName = p.preferred_name
                 ? `${p.preferred_name} ${p.last_name}`
                 : `${p.first_name} ${p.last_name}`;
-              const isStuck = p.status === "inactive" && !p.has_revocation;
+              const isStuck = p.status === "registered" && p.has_active_pod;
               const isReconciling = reconcilingId === p.participant_id;
               const showRowError = rowError?.id === p.participant_id;
 
@@ -160,7 +165,7 @@ export default function ParticipantsTable({
                     {displayName}
                     {!isOrg && isStuck && (
                       <span
-                        title="Inactive with no revocation row — likely never activated"
+                        title="Registered but already in an active pod — reconciler never promoted them to active"
                         className="ml-2 inline-flex items-center rounded-sm bg-red/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-red"
                       >
                         stuck
@@ -173,9 +178,11 @@ export default function ParticipantsTable({
                       className={`status ${
                         p.status === "active"
                           ? "active"
-                          : p.status === "revoked"
-                            ? "risk"
-                            : ""
+                          : p.status === "registered"
+                            ? "forming"
+                            : p.status === "revoked"
+                              ? "risk"
+                              : ""
                       }`}
                     >
                       {p.status}
@@ -202,7 +209,7 @@ export default function ParticipantsTable({
                   <td className="px-4 py-3 text-right">
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
-                        {!isOrg && p.status === "inactive" && (
+                        {!isOrg && isStuck && (
                           <button
                             type="button"
                             onClick={() => runReconciler(p.participant_id)}

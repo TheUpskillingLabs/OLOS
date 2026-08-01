@@ -166,6 +166,30 @@ describe("resolveUserRoles authority derivation", () => {
     expect(u.roles).toContain("participant");
   });
 
+  it("registered enrollment adds the participant role (pre-pod member)", async () => {
+    const u = await resolveUserRoles(
+      mockClient(
+        withParticipant({
+          cycle_enrollments: [{ cycle_id: 1, status: "registered" }],
+        })
+      ),
+      "auth-1"
+    );
+    expect(u.roles).toContain("participant");
+  });
+
+  it("inactive enrollment does NOT add the participant role (engagement exit)", async () => {
+    const u = await resolveUserRoles(
+      mockClient(
+        withParticipant({
+          cycle_enrollments: [{ cycle_id: 1, status: "inactive" }],
+        })
+      ),
+      "auth-1"
+    );
+    expect(u.roles).not.toContain("participant");
+  });
+
   it("no participant row → empty authority", async () => {
     const u = await resolveUserRoles(mockClient({ participants: null }), "auth-1");
     expect(u.participantId).toBeNull();
@@ -175,9 +199,10 @@ describe("resolveUserRoles authority derivation", () => {
 });
 
 /* Enrollment predicates for the cycle phase gates. isEnrolledParticipant is
-   the phase-1/2 gate (problem statements, voting): enrolled-but-'inactive'
-   is the normal pre-pod state and must pass; 'revoked' and not-enrolled must
-   not. isActiveParticipant stays the gate for pod-scoped phases. */
+   the phase-1/2 gate (problem statements, voting): 'registered' is the normal
+   pre-pod state and must pass; 'inactive' (an engagement exit) and 'revoked'
+   and not-enrolled must not. isActiveParticipant stays the gate for pod-scoped
+   phases. */
 
 import {
   isActiveParticipant,
@@ -224,9 +249,14 @@ describe("isEnrolledParticipant", () => {
     expect(isEnrolledParticipant(u, 1)).toBe(true);
   });
 
-  it("accepts inactive enrollments (pre-pod-registration state)", () => {
-    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 1, status: "inactive" }] });
+  it("accepts registered enrollments (pre-pod state)", () => {
+    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 1, status: "registered" }] });
     expect(isEnrolledParticipant(u, 1)).toBe(true);
+  });
+
+  it("rejects inactive enrollments (engagement exit)", () => {
+    const u = fixtureUser({ cycleEnrollments: [{ cycleId: 1, status: "inactive" }] });
+    expect(isEnrolledParticipant(u, 1)).toBe(false);
   });
 
   it("rejects revoked enrollments", () => {

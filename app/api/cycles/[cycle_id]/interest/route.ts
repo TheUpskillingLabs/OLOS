@@ -109,7 +109,9 @@ export const POST = withAuth(
       }
     }
 
-    // Upsert cycle_enrollments with status='inactive'
+    // Upsert cycle_enrollments with status='registered' — the committed
+    // pre-pod member state (the reconciler promotes it to 'active' once an
+    // active pod membership exists; see lib/enrollment/reconciler.ts).
     const { data: existingEnrollment } = await supabase
       .from("cycle_enrollments")
       .select("id")
@@ -127,7 +129,7 @@ export const POST = withAuth(
         .insert({
           participant_id: participantId,
           cycle_id: cycleId,
-          status: "inactive",
+          status: "registered",
         })
         .select("id")
         .single();

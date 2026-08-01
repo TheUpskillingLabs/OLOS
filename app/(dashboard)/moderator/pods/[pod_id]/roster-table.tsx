@@ -49,7 +49,7 @@ const SORT_OPTIONS: { value: RosterSort; label: string }[] = [
   { value: "last_activity_asc", label: "Last activity (stale)" },
   { value: "name_asc", label: "Name A→Z" },
   { value: "name_desc", label: "Name Z→A" },
-  { value: "pulse_status", label: "Pulse (at-risk first)" },
+  { value: "pulse_status", label: "Log status (at-risk first)" },
   { value: "ai_level", label: "AI level" },
 ];
 
@@ -227,7 +227,7 @@ export function RosterTable({
               <th className="lbl px-4 py-3">Member</th>
               <th className="lbl px-4 py-3">AI level</th>
               <th className="lbl px-4 py-3">Availability</th>
-              <th className="lbl px-4 py-3">Pulse</th>
+              <th className="lbl px-4 py-3">Learning Log</th>
               <th className="lbl px-4 py-3">Last activity</th>
             </tr>
           </thead>
@@ -274,7 +274,7 @@ export function RosterTable({
                     {m.is_trending_at_risk && (
                       <ManagedTooltip
                         tooltipKey="trending_at_risk"
-                        content="Trending toward at-risk: one more missed pulse and this member crosses the at-risk threshold."
+                        content="Trending toward at-risk: one more missed weekly Learning Log and this member crosses the at-risk threshold."
                       >
                         <span className="inline-flex rounded-sm bg-red/10 px-2 py-0.5 text-xs font-medium text-red">
                           trending
@@ -288,16 +288,16 @@ export function RosterTable({
                     {m.last_activity_at ? (
                       <span>{daysAgo(m.last_activity_at)} days ago</span>
                     ) : (
-                      <span className="text-meta-soft">no pulse yet</span>
+                      <span className="text-meta-soft">no logs yet</span>
                     )}
                     {m.streak >= 2 && (
                       <ManagedTooltip
                         tooltipKey="streak_badge"
-                        content="Consecutive submitted pulses (looking back from the most recent scheduled date)."
+                        content="Consecutive weeks with a Learning Log (looking back from the most recent completed week)."
                       >
                         <span
                           className="inline-flex items-center gap-0.5 rounded-sm bg-teal/10 px-1.5 py-0.5 text-[10px] font-medium text-teal-deep"
-                          title={`${m.streak}-pulse streak`}
+                          title={`${m.streak}-week log streak`}
                         >
                           🔥 {m.streak}
                         </span>
@@ -357,7 +357,7 @@ function RosterControls({
         className="min-w-[220px] flex-1 rounded-card border border-ink/10 bg-white px-3 py-1.5 text-base text-ink placeholder:text-meta-soft focus-visible:border-teal focus-visible:outline-none"
       />
       <FilterGroup
-        label="Pulse"
+        label="Log"
         options={PULSE_STATUSES.map((v) => ({ value: v, label: v.replace("_", " ") }))}
         selected={filters.status ?? []}
         onToggle={onToggleStatus}
@@ -456,12 +456,12 @@ function daysAgo(iso: string): number {
 function pulseStatusTooltip(status: RosterRow["pulse_status"]): string {
   switch (status) {
     case "current":
-      return "Submitted the most recent pulse on time.";
+      return "Filed a Learning Log for the most recent completed week.";
     case "pending":
-      return "Most recent pulse is still in its open window (≤7 days). Not late yet.";
+      return "No Learning Log yet for the current week, but the window is still open.";
     case "late":
-      return "Most recent pulse missed and the window has closed.";
+      return "Missed the most recent completed week's Learning Log.";
     case "at_risk":
-      return "Missed the consecutive-pulse threshold. Surfaces in the at-risk nudge list.";
+      return "Missed the consecutive-week Learning Log threshold. Surfaces in the at-risk nudge list.";
   }
 }
