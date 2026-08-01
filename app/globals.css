@@ -743,6 +743,23 @@ button:focus-visible {
      App chrome switches at 768px (top nav in, tab bar out) — never leave a
      640–1023px band on phone chrome. The logo only ever sits on dark navy. ════ */
   .sitenav { position: sticky; top: 0; z-index: 60; background: var(--ink); }
+
+  /* ── the member-simulation banner (lib/auth/simulation.ts) ──
+     Fixed rather than in flow because full-screen overlays (the join ceremony
+     at z-70, the pulse-check lock at z-100) painted straight over it, leaving
+     an admin inside one with no way to end the simulation. z-120 clears every
+     full-screen surface in the app; the nav's own dropdowns sit above it (210)
+     but open downward, so they never cover it.
+     Nothing double-counts: the spacer holds the banner's row in normal flow,
+     and the app bar parks below the banner instead of at the top of the
+     viewport. Both are keyed off the same height. That height is declared, not
+     measured, because the escape hatch carries no JavaScript: one line of
+     status above 640px, two below, where the status and the exit link wrap. */
+  :root { --sim-banner-h: 40px; }
+  @media (max-width: 639.98px) { :root { --sim-banner-h: 64px; } }
+  .sim-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 120; min-height: var(--sim-banner-h); }
+  .sim-banner-spacer { flex: none; height: var(--sim-banner-h); }
+  .sim-banner-spacer ~ .sitenav { top: var(--sim-banner-h); }
   .sitenav-inner { max-width: var(--maxw); margin: 0 auto; padding: 8px var(--pad); min-height: 76px; display: flex; align-items: center; gap: 12px; }
   .sitenav-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .sitenav-brand img { height: 56px; width: auto; display: block; }

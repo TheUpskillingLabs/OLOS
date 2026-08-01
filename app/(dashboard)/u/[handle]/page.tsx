@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import MemberProfileView from "../../profile/member-profile-view";
 import UpdatesFeed from "../../directory/updates-feed";
 import FollowButton from "@/app/components/follow-button";
 import { isFollowing } from "@/lib/follows/data";
 import { metroLabel } from "@/lib/metros-label";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 /**
  * /u/[handle] — a member's public-to-members profile (visitor mode).
@@ -75,10 +76,7 @@ export default async function MemberProfilePage({
   // Resolve the viewer to seed the Follow button (hidden on your own profile).
   let viewerId: number | null = null;
   {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await effectiveUser();
     if (user) {
       const { data: me } = await service
         .from("participants")

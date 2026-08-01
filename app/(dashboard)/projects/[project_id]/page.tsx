@@ -13,6 +13,7 @@ import { ContactsDownloadButton } from "@/app/components/contacts-download-butto
 import ContributorsSection from "./contributors-section";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 // Matches projects_status_check (00037): forming/active/inactive.
 type ProjectStatus = "active" | "forming" | "inactive";
@@ -35,9 +36,7 @@ export default async function ProjectDetailPage({
   const supabase = await createClient();
   const serviceClient = createServiceClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   const projectId = parseInt(project_id);
 
@@ -85,6 +84,24 @@ export default async function ProjectDetailPage({
   const canExportContacts =
     !!userRoles &&
     (isAdmin(userRoles) || isModeratorForPod(userRoles, project.pod_id));
+
+  // Who the roster is for (owner decision, Aug 2026): people on the project,
+  // plus admins. A signed-in stranger could previously read every member's name
+  // AND their active/left status off a project they have no connection to; the
+  // departure status was the part that had to stop. Everything else on the page
+  // stays open, so the project is still discoverable and followable.
+  //
+  // Gated on `user`, which is effectiveUser(). While an admin is simulating a
+  // member this must hide exactly what it hides for that member: it is a
+  // visibility rule, not an authorization gate, so reading the simulated
+  // identity is the point.
+  const canSeeMembers =
+    !!userRoles &&
+    (isAdmin(userRoles) ||
+      (userRoles.participantId != null &&
+        activeMembers.some(
+          (m) => m.participant_id === userRoles.participantId
+        )));
 
   // Fetch pulse check data for project members
   let pulseCheckData: {
@@ -268,7 +285,8 @@ export default async function ProjectDetailPage({
       <div className="mb-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="t-h3 text-ink">
-            {mode === "org" ? "Core team" : "Members"} ({activeMembers.length})
+            {mode === "org" ? "Core team" : "Members"}
+            {canSeeMembers ? ` (${activeMembers.length})` : ""}
           </h2>
           {canExportContacts && (
             <ContactsDownloadButton
@@ -276,51 +294,57 @@ export default async function ProjectDetailPage({
             />
           )}
         </div>
-        <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-teal/[0.08]">
-              <tr>
-                <th className="lbl lbl-teal px-4 py-3">
-                  Name
-                </th>
-                <th className="lbl lbl-teal px-4 py-3">
-                  Status
-                </th>
-                <th className="lbl lbl-teal px-4 py-3">
-                  Registered
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink/10">
-              {(memberships ?? []).map((m) => {
-                const p = (m.participants as unknown) as Record<
-                  string,
-                  string
-                > | null;
-                return (
-                  <tr
-                    key={m.participant_id}
-                    className="transition-colors duration-150 hover:bg-ink/[0.02]"
-                  >
-                    <td className="px-4 py-3 text-charcoal">
-                      {p?.preferred_name || p?.first_name} {p?.last_name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge
-                        variant={m.left_at ? "revoked" : "active"}
-                      >
-                        {m.left_at ? "left" : "active"}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-4 py-3 text-meta tabular-nums">
-                      {new Date(m.registered_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {canSeeMembers ? (
+          <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-teal/[0.08]">
+                <tr>
+                  <th className="lbl lbl-teal px-4 py-3">
+                    Name
+                  </th>
+                  <th className="lbl lbl-teal px-4 py-3">
+                    Status
+                  </th>
+                  <th className="lbl lbl-teal px-4 py-3">
+                    Registered
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/10">
+                {(memberships ?? []).map((m) => {
+                  const p = (m.participants as unknown) as Record<
+                    string,
+                    string
+                  > | null;
+                  return (
+                    <tr
+                      key={m.participant_id}
+                      className="transition-colors duration-150 hover:bg-ink/[0.02]"
+                    >
+                      <td className="px-4 py-3 text-charcoal">
+                        {p?.preferred_name || p?.first_name} {p?.last_name}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge
+                          variant={m.left_at ? "revoked" : "active"}
+                        >
+                          {m.left_at ? "left" : "active"}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-3 text-meta tabular-nums">
+                        {new Date(m.registered_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-meta">
+            Members are visible to people in this project.
+          </p>
+        )}
       </div>
 
       <div className="mb-8">

@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth/guards";
-import { can } from "@/lib/auth/roles";
+import { can, isOwner } from "@/lib/auth/roles";
+import { isProdProject } from "@/lib/env/project";
 import { one } from "@/lib/supabase/embed";
 import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import PeopleWorkspace, { type PeopleTab } from "./people-workspace";
@@ -15,16 +16,25 @@ export default async function AdminPeoplePage({
   const { tab } = await searchParams;
   const { userRoles, serviceClient } = await requireAdmin();
   const canManageRoles = can(userRoles, "roles:write");
+  // Read-only member simulation (lib/auth/simulation.ts) is owner-only against
+  // the production database, any admin elsewhere. The POST route re-checks this
+  // — hiding the button is presentation, not enforcement.
+  const canSimulate = !isProdProject() || isOwner(userRoles);
 
   // ── Participants (global master list) ──
   const { data: participants } = await serviceClient
     .from("participants")
-    .select("id, first_name, last_name, preferred_name, email, created_at, is_test, is_staff")
+    .select("id, first_name, last_name, preferred_name, email, created_at, is_test, is_staff, auth_user_id")
     .order("created_at", { ascending: false });
 
   const participantIds = participants?.map((p) => p.id) ?? [];
 
-  const [{ data: allRoles }, { data: allEnrollments }, { data: allModAssignments }] =
+  const [
+    { data: allRoles },
+    { data: allEnrollments },
+    { data: allModAssignments },
+    { data: authorityRoles },
+  ] =
     await Promise.all([
       participantIds.length
         ? serviceClient.from("user_roles").select("participant_id, role").in("participant_id", participantIds).is("revoked_at", null)
@@ -35,7 +45,18 @@ export default async function AdminPeoplePage({
       participantIds.length
         ? serviceClient.from("moderator_assignments").select("participant_id, pod_id, pods (name, cycles (mode))").in("participant_id", participantIds).is("removed_at", null)
         : Promise.resolve({ data: [] as { participant_id: number; pod_id: number; pods: unknown }[] }),
+      // Authority roles from participant_roles — the table resolveUserRoles and
+      // DB RLS both read. The `roles` chips above still come from the legacy
+      // user_roles list; simulation eligibility must not, or an admin granted
+      // only in participant_roles would show up as a legal target.
+      participantIds.length
+        ? serviceClient.from("participant_roles").select("participant_id").in("participant_id", participantIds).in("role", ["owner", "admin", "developer"]).is("revoked_at", null)
+        : Promise.resolve({ data: [] as { participant_id: number }[] }),
     ]);
+
+  const hasAuthorityRole = new Set(
+    (authorityRoles ?? []).map((r) => r.participant_id)
+  );
 
   const rolesByParticipant: Record<number, string[]> = {};
   for (const r of allRoles ?? []) {
@@ -81,6 +102,10 @@ export default async function AdminPeoplePage({
     roles: rolesByParticipant[p.id] ?? [],
     cycles: cyclesByParticipant[p.id] ?? [],
     moderator_pods: modPodsByParticipant[p.id] ?? [],
+    // No auth_user_id means they have never signed in; every member page
+    // resolves identity by that column, so simulating them would render an
+    // empty app rather than their view.
+    can_simulate: !!p.auth_user_id && !hasAuthorityRole.has(p.id),
   }));
 
   // ── Invitations ──
@@ -153,6 +178,7 @@ export default async function AdminPeoplePage({
             key="participants"
             people={people}
             canManageRoles={canManageRoles}
+            canSimulate={canSimulate}
           />
         }
         invitationsPanel={

@@ -9,6 +9,10 @@ import PermissionsEditor from "./permissions-editor";
 import AdminNameEditForm from "./admin-name-edit-form";
 import type { Person } from "./types";
 
+/** Why "View as" is unavailable, shown as text and repeated as the tooltip. */
+const SIMULATE_BLOCKED_REASON =
+  "Only members who have signed in at least once and hold no admin role can be simulated.";
+
 /**
  * The participant drill-in drawer. Replaces the standalone permissions page as
  * the primary surface for editing one participant: identity + name-edit,
@@ -21,10 +25,12 @@ import type { Person } from "./types";
 export default function ParticipantSheet({
   person,
   canManageRoles,
+  canSimulate,
   onClose,
 }: {
   person: Person | null;
   canManageRoles: boolean;
+  canSimulate: boolean;
   onClose: () => void;
 }) {
   // One participant-keyed result. State is only set inside the async callback
@@ -64,6 +70,36 @@ export default function ParticipantSheet({
       cancelled = true;
     };
   }, [participantId]);
+
+  // "View as" — start a read-only member-view simulation (lib/auth/simulation.ts)
+  // and land on their Home. A full navigation, not router.push: the identity
+  // swap happens server-side on the next request, so every cached RSC payload
+  // for the admin's own view has to be left behind.
+  const [simError, setSimError] = React.useState<string | null>(null);
+  const [simBusy, setSimBusy] = React.useState(false);
+
+  const startSimulation = async () => {
+    if (participantId == null) return;
+    setSimBusy(true);
+    setSimError(null);
+    try {
+      const res = await fetch("/api/admin/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participant_id: participantId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSimError(data.error ?? `Could not start simulation (${res.status})`);
+        setSimBusy(false);
+        return;
+      }
+      window.location.href = "/dashboard";
+    } catch {
+      setSimError("Could not start simulation.");
+      setSimBusy(false);
+    }
+  };
 
   const current = state && state.id === participantId ? state : null;
   const permissions = current?.status === "loaded" ? current.permissions : null;
@@ -174,6 +210,42 @@ export default function ParticipantSheet({
               </div>
             </div>
           </section>
+
+          {canSimulate && (
+            <section className="space-y-2">
+              <h3 className="lbl">View as</h3>
+              <p className="text-xs text-meta">
+                Render the member app as {person.preferred_name || person.first_name} to
+                see exactly what they see. Read-only — every change is blocked
+                until you exit.
+              </p>
+              <button
+                type="button"
+                onClick={startSimulation}
+                disabled={!person.can_simulate || simBusy}
+                title={
+                  person.can_simulate
+                    ? undefined
+                    : SIMULATE_BLOCKED_REASON
+                }
+                className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {simBusy ? "Starting…" : `View as ${person.first_name}`}
+              </button>
+              {/* A disabled button whose only explanation is a title attribute
+                  explains itself to nobody on a phone, a keyboard or a screen
+                  reader. The tooltip stays for the pointer; this is the copy
+                  everyone else gets. */}
+              {!person.can_simulate && (
+                <p className="text-xs text-meta">{SIMULATE_BLOCKED_REASON}</p>
+              )}
+              {simError && (
+                <p role="alert" className="text-sm text-red">
+                  {simError}
+                </p>
+              )}
+            </section>
+          )}
 
           <AdminNameEditForm
             participantId={person.id}

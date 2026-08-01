@@ -22,6 +22,7 @@ import {
   proposalMapUrl,
   type ProposalData,
 } from "@/app/components/proposal-details";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 // Matches pods_status_check (00063): forming/active/inactive/dissolved.
 type PodStatus = "active" | "forming" | "inactive" | "dissolved";
@@ -45,9 +46,7 @@ export default async function PodDetailPage({
   const supabase = await createClient();
   const serviceClient = createServiceClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   const { data: pod } = await supabase
     .from("pods")
@@ -86,10 +85,31 @@ export default async function PodDetailPage({
   // registration cards — previously it showed the bare statement text.
   const proposal = ps?.proposal_data ?? null;
 
-  // Viewer roles are only needed for the org charter affordance below.
+  // Viewer roles drive the roster gate, the org charter affordance and the
+  // contacts export below.
   const userRoles = user
     ? await resolveUserRoles(serviceClient, user.id)
     : null;
+
+  // Who the roster is for (owner decision, Aug 2026): people who belong here,
+  // the pod's poderator, and admins. A signed-in stranger could previously read
+  // every member's name AND their active/inactive status off a pod they have no
+  // connection to; the departure status was the part that had to stop. The rest
+  // of the page stays open on purpose, so the pod is still discoverable and
+  // followable.
+  //
+  // Gated on `user`, which is effectiveUser(). While an admin is simulating a
+  // member this must hide exactly what it hides for that member: it is a
+  // visibility rule, not an authorization gate, so reading the simulated
+  // identity is the point.
+  const canSeeMembers =
+    !!userRoles &&
+    (isAdmin(userRoles) ||
+      isModeratorForPod(userRoles, pod.id) ||
+      (userRoles.participantId != null &&
+        (members ?? []).some(
+          (m) => m.participant_id === userRoles.participantId && !m.inactive_at
+        )));
 
   // Org run pods (docs/ORG_CYCLES.md §2/§5) let their co-leads charter new
   // projects directly on the pod, no solution-proposal ballot required.
@@ -174,7 +194,7 @@ export default async function PodDetailPage({
       <div className="mb-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="t-h3 text-ink">
-            Members ({members?.length || 0})
+            Members{canSeeMembers ? ` (${members?.length || 0})` : ""}
           </h2>
           {canExportContacts && (
             <ContactsDownloadButton
@@ -182,48 +202,54 @@ export default async function PodDetailPage({
             />
           )}
         </div>
-        <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-teal/[0.08]">
-              <tr>
-                <th className="lbl lbl-teal px-4 py-3">
-                  Name
-                </th>
-                <th className="lbl lbl-teal px-4 py-3">
-                  Status
-                </th>
-                <th className="lbl lbl-teal px-4 py-3">
-                  Joined
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink/10">
-              {(members || []).map((m) => {
-                const p = (m.participants as unknown) as Record<string, string> | null;
-                return (
-                  <tr
-                    key={m.participant_id}
-                    className="transition-colors duration-150 hover:bg-ink/[0.02]"
-                  >
-                    <td className="px-4 py-3 text-charcoal">
-                      {p?.preferred_name || p?.first_name} {p?.last_name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge
-                        variant={m.inactive_at ? "revoked" : "active"}
-                      >
-                        {m.inactive_at ? "inactive" : "active"}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-4 py-3 text-meta tabular-nums">
-                      {new Date(m.joined_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {canSeeMembers ? (
+          <div className="overflow-x-auto rounded-card border border-ink/10 bg-white shadow-card">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-teal/[0.08]">
+                <tr>
+                  <th className="lbl lbl-teal px-4 py-3">
+                    Name
+                  </th>
+                  <th className="lbl lbl-teal px-4 py-3">
+                    Status
+                  </th>
+                  <th className="lbl lbl-teal px-4 py-3">
+                    Joined
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/10">
+                {(members || []).map((m) => {
+                  const p = (m.participants as unknown) as Record<string, string> | null;
+                  return (
+                    <tr
+                      key={m.participant_id}
+                      className="transition-colors duration-150 hover:bg-ink/[0.02]"
+                    >
+                      <td className="px-4 py-3 text-charcoal">
+                        {p?.preferred_name || p?.first_name} {p?.last_name}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge
+                          variant={m.inactive_at ? "revoked" : "active"}
+                        >
+                          {m.inactive_at ? "inactive" : "active"}
+                        </StatusBadge>
+                      </td>
+                      <td className="px-4 py-3 text-meta tabular-nums">
+                        {new Date(m.joined_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-meta">
+            Members are visible to people in this pod.
+          </p>
+        )}
       </div>
 
       {((projects && projects.length > 0) || canCharter) && (

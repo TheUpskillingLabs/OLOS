@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { EDITABLE_OPTION_LISTS } from "@/lib/validations/participants-update";
 import ProfileEditForm from "./profile-edit-form";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 // Allow only same-origin relative paths in the `next` query param so the
 // redirect cannot be hijacked to push users at an arbitrary external URL.
@@ -29,10 +30,7 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
   const required = requiredParam === "true";
   const nextPath = safeNextPath(nextParam);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect("/login");
 
   // Service client so we can read fields the cookie-bound client's RLS

@@ -1,7 +1,40 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  SIMULATION_COOKIE,
+  SIMULATION_BLOCKED_MESSAGE,
+} from "@/lib/auth/simulation-cookie";
+
+/** Requests that cannot change anything, so they run freely while simulating. */
+const READ_ONLY_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * The coarse half of the member-simulation write block (lib/auth/simulation.ts).
+ *
+ * While the simulation cookie is set, an admin is looking at the app through
+ * someone else's account — nothing may be written. This checks cookie PRESENCE
+ * only: verifying the signature would mean crypto in the edge path, and getting
+ * it wrong in the permissive direction is the failure that matters. A forged or
+ * expired cookie makes a request MORE restricted, never less, so presence is the
+ * right test here. `withAuth` does the signature-verified check behind it.
+ *
+ * `/api/admin/simulate` is exempt so exiting a simulation is always possible.
+ */
+function simulationWriteBlock(request: NextRequest): NextResponse | null {
+  if (READ_ONLY_METHODS.has(request.method)) return null;
+  if (!request.cookies.get(SIMULATION_COOKIE)) return null;
+  if (request.nextUrl.pathname.startsWith("/api/admin/simulate")) return null;
+
+  return NextResponse.json(
+    { error: SIMULATION_BLOCKED_MESSAGE },
+    { status: 403 }
+  );
+}
 
 export async function proxy(request: NextRequest) {
+  const blocked = simulationWriteBlock(request);
+  if (blocked) return blocked;
+
   // Skip auth check if Supabase env vars are not configured
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||

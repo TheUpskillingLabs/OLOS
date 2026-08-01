@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { parseWindow } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator } from "@/lib/auth/roles";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 type Proposal = {
   id: number;
@@ -31,10 +32,7 @@ export default async function ModeratorVoteProgressPage({
   const cycleId = parseInt(cycle_id, 10);
   if (Number.isNaN(cycleId)) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect("/login");
 
   const serviceClient = createServiceClient();

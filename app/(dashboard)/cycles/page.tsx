@@ -10,6 +10,7 @@ import { StatusBadge } from "@/app/components/ui";
 import { TaskRow } from "@/app/components/tasks";
 import { resolveWindowStates, windowDef } from "@/lib/cycles/windows";
 import CyclePhaseIndicator from "./cycle-phase-indicator";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 type CycleStatus = "active" | "upcoming" | "closed" | "draft";
 
@@ -26,9 +27,7 @@ const STATUS_VARIANT: Record<
 export default async function CyclesPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   const serviceClient = createServiceClient();
 

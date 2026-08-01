@@ -2,6 +2,7 @@ import Link from "next/link";
 import { parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { effectiveUser } from "@/lib/auth/simulation";
 import { notFound } from "next/navigation";
 import ProposalForm, { type InitialProposal } from "./proposal-form";
 
@@ -23,12 +24,12 @@ export default async function SolutionsPage({
 
   const serviceClient = createServiceClient();
 
-  const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
+  const [{ data: cycle }, { data: config }, user] = await Promise.all([
     supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
     // maybeSingle: a missing cycle_config row is a real production state —
     // read as closed, not an error (vibe-scan PP6).
     serviceClient.from("cycle_config").select("solution_proposal_open, solution_proposal_close").eq("cycle_id", cycleId).maybeSingle(),
-    supabase.auth.getUser(),
+    effectiveUser(),
   ]);
 
   if (!cycle) notFound();

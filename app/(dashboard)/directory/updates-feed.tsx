@@ -5,6 +5,7 @@ import { resolveUserRoles } from "@/lib/auth/roles";
 import { fetchFeedPage, type FeedScope } from "@/lib/updates/feed";
 import type { PageType } from "@/lib/pages/authz";
 import FeedList from "./feed-list";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 /**
  * Community updates — the feed reader. Rows are `profile_updates` authored either
@@ -51,9 +52,7 @@ export default async function UpdatesFeed({
   // Resolve the viewer once (for liked-by-me, the composer avatar, private-post
   // folding, and the pages they admin).
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   let viewer: { id: number; initials: string; avatarUrl: string | null } | null =
     null;
   if (user) {
