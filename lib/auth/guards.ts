@@ -17,6 +17,13 @@ import { resolveUserRoles, isAdmin, isOwner, type UserRoles } from "@/lib/auth/r
  * gate is the ONLY protection over those reads — it must fail closed: no user →
  * `/login`, not-admin → `/cycles`. Kept out of `roles.ts` so that module stays
  * free of `next/navigation`.
+ *
+ * Every gate in this file reads the REAL signed-in user — never
+ * `effectiveUser()` from `lib/auth/simulation.ts`. Member-view simulation swaps
+ * who the `app/(dashboard)` member pages render for; it must never swap who a
+ * request is authorized as, or "View as" would become a way to change your own
+ * permissions. Reading the real user here is also what keeps the banner's exit
+ * route reachable from inside `/admin` while a simulation is running.
  */
 export interface AdminContext {
   user: User;

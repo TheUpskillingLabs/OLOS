@@ -12,6 +12,7 @@ import { StatCard, StatusBadge } from "@/app/components/ui";
 import { TaskRow } from "@/app/components/tasks";
 import { cycleInfoContent } from "@/lib/cycles/info";
 import { resolveWindowStates, windowDef } from "@/lib/cycles/windows";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 type CycleStatus = "active" | "closed" | "draft";
 // Matches pods_status_check (00063): forming/active/inactive/dissolved.
@@ -89,9 +90,7 @@ export default async function CycleDetailPage({
       ?.theme_description,
   }).themeDescription;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   const { data: me } = user
     ? await supabase
         .from("participants")

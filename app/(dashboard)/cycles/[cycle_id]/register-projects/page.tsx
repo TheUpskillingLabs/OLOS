@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import ProjectRegistration from "./project-registration";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 export default async function RegisterProjectsPage({
   params,
@@ -41,9 +42,7 @@ export default async function RegisterProjectsPage({
     now
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   // Project registration is cycle-wide (not pod-scoped). The eligibility
   // gate is an active cycle_enrollment row, mirroring the server check in

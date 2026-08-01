@@ -10,6 +10,7 @@ import {
   proposalMapUrl,
   type ProposalData,
 } from "@/app/components/proposal-details";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 // Read-only gallery of the cycle's problem situations. Unlike the vote
 // ballot, this renders in every phase — the ballot only exists while the
@@ -50,9 +51,7 @@ export default async function ProposalsGalleryPage({
   );
   const votingOpen = windowOpen(config?.voting_open, config?.voting_close, now);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   const { data: me } = user
     ? await supabase

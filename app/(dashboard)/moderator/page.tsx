@@ -2,7 +2,7 @@ import Link from "next/link";
 import { parseWindow } from "@/lib/cycles/lab-time";
 import { Users } from "lucide-react";
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { EmptyState, StatusBadge } from "@/app/components/ui";
 import {
@@ -19,6 +19,7 @@ import OrientationCard from "./orientation-card";
 import { Switcher } from "./switcher";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 /**
  * All pods view (PRD §7.10).
@@ -49,10 +50,7 @@ export default async function ModeratorPage({
    */
   const explicitAllPods = sp.view === "all";
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect("/login");
 
   // Service client used for the moderator-dashboard queries; mirrors the

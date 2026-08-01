@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
@@ -10,16 +10,15 @@ import OrbDefs from "@/app/components/chrome/orb-defs";
 import FeedbackWidget from "@/app/components/feedback/feedback-widget";
 import DashboardFooter from "@/app/components/chrome/dashboard-footer";
 import { learningLogGate } from "@/lib/learning-logs/gate";
+import { effectiveUser, simulationContext } from "@/lib/auth/simulation";
+import SimulationBanner from "@/app/components/chrome/simulation-banner";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   if (!user) {
     redirect("/login");
@@ -99,7 +98,14 @@ export default async function DashboardLayout({
     hasEnrollment = !!enrollment;
   }
 
+  // `user` is the simulated member when a simulation is running, so every role
+  // flag below — the nav, the persona pill, the log-due pip — is theirs, not the
+  // admin's. That is the whole point: the chrome has to be their chrome.
   const userRoles = await resolveUserRoles(serviceClient, user.id);
+  // Also hides the tester self-reset below: that item wipes the account it runs
+  // from, and offering it while you are wearing someone else's account is a
+  // trap even though the read-only block would 403 the request.
+  const simulating = !!(await simulationContext());
   const adminUser = isAdmin(userRoles);
   const moderatorUser = isModerator(userRoles);
   const showPods = can(userRoles, "pods:read") || moderatorUser;
@@ -161,6 +167,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <OrbDefs />
+      <SimulationBanner />
       <AppNav
         initials={initials}
         avatarUrl={avatarUrl}
@@ -170,7 +177,7 @@ export default async function DashboardLayout({
         showPods={showPods}
         hasEnrollment={hasEnrollment}
         logDue={logGate.active}
-        isTest={!!participant?.is_test}
+        isTest={!!participant?.is_test && !simulating}
         moderatorPersonaLabel={coLeadOnly ? "Co-lead" : "Poderator"}
         labLeadHref={labLeadHref}
       />

@@ -23,9 +23,11 @@ import type { Person } from "./types";
 export default function PeopleTable({
   people,
   canManageRoles,
+  canSimulate,
 }: {
   people: Person[];
   canManageRoles: boolean;
+  canSimulate: boolean;
 }) {
   const [search, setSearch] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
@@ -219,6 +221,7 @@ export default function PeopleTable({
       <ParticipantSheet
         person={selected}
         canManageRoles={canManageRoles}
+        canSimulate={canSimulate}
         onClose={() => setSelectedId(null)}
       />
     </div>
