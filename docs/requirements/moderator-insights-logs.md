@@ -77,6 +77,14 @@ JSONB and no `tools_used`.
 > "completed" a cycle-week iff ≥1 cycle-attributed log lands in it. This is
 > the same synthesis `pod-detail.ts` now uses for pod health.
 
+> **Any miss count must be floored.** `consecutiveMissedLogWeeks` takes a
+> `MissedLogFloor`: a run of misses may not reach back past the week the
+> member joined a pod in the cycle, nor past the week the cohort's weekly-log
+> ritual is first evidenced (the earliest cycle-attributed log; nothing
+> records when the window was first armed). Unfloored, a mid-cycle joiner
+> reads as at-risk on arrival and a cycle that predates the weekly log reads
+> as a cohort-wide failure. Insights tiles that count misses inherit this.
+
 ## Requirements — target metrics
 
 Each is the log-based replacement for a current tile. Restrict aggregate

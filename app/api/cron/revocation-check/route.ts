@@ -11,7 +11,10 @@ import {
 // with teeth under the registered/active model. consecutiveMissedLogWeeks
 // reconstructs the weekly windows from the cycle calendar (the Learning Log
 // has no per-window schedule table like pulse_checks).
-import { consecutiveMissedLogWeeks } from "@/lib/learning-logs/at-risk";
+import {
+  consecutiveMissedLogWeeks,
+  memberCadenceFloor,
+} from "@/lib/learning-logs/at-risk";
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 const SEND_DELAY_MS = 200;
@@ -50,9 +53,15 @@ type Outcome = {
  *      the cycle calendar (getCycleWeek) and counts completed weeks with no
  *      cycle-attributed learning_logs row, compared against
  *      cycle_config.at_risk_consecutive_misses (default 2). A cycle whose
- *      log gate is paused (log_gate_paused) is skipped — the whole cohort is
- *      on holiday. This is the cadence with teeth under the log-gate model,
- *      replacing the earlier pulse-check signal.
+ *      log gate is paused (log_gate_paused) or has never been armed (no
+ *      log_due_at) is skipped: the whole cohort is exempt. This is the
+ *      cadence with teeth under the log-gate model, replacing the earlier
+ *      pulse-check signal.
+ *   2b. The miss count is FLOORED (MissedLogFloor) so it can never reach back
+ *      past the week the member joined a pod in this cycle, or past the week
+ *      the cohort's weekly-log ritual is first evidenced. Unfloored, a member
+ *      who joined in week 6 crossed the 2-miss threshold on arrival and any
+ *      cycle predating the weekly-log window revoked its entire cohort.
  *   3. Two-stage warn → revoke with 3-day grace. The cron sends a
  *      warning email and stamps warned_at on the first hit; subsequent
  *      ticks check whether warned_at + 3 days has passed before revoking.
@@ -120,7 +129,7 @@ export async function GET(request: NextRequest) {
   const { data: cycles } = await supabase
     .from("cycles")
     .select(
-      "id, start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused)"
+      "id, start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused, log_due_at)"
     )
     .eq("status", "active")
     .eq("mode", "open");
@@ -137,14 +146,50 @@ export async function GET(request: NextRequest) {
       continue;
     }
     // A cycle whose Learning Log gate is paused is on holiday — no missed-log
-    // revocations while the whole cohort is exempt.
-    if (config.log_gate_paused) continue;
+    // revocations while the whole cohort is exempt. A cycle with no log_due_at
+    // at all has never had the window armed (or it was cleared by a pause), so
+    // there is no window anyone could have missed.
+    if (config.log_gate_paused || !config.log_due_at) continue;
     // Weekly windows are reconstructed from the cycle calendar; without both
     // bounds there's no cadence to measure, so skip.
     if (!cycle.start_date || !cycle.end_date) continue;
     const cycleStart = new Date(cycle.start_date);
     const cycleEnd = new Date(cycle.end_date);
     const missThreshold = config.at_risk_consecutive_misses ?? 2;
+
+    // Floor part 2: the cohort-wide first log for this cycle. No column
+    // records when the weekly window was FIRST armed (log_due_at is a single
+    // rolling stamp the Friday cron overwrites), so the earliest
+    // cycle-attributed log across the cohort is the evidence that the ritual
+    // was running. Null (no logs at all in this cycle) means no evidence, and
+    // consecutiveMissedLogWeeks then counts nothing for anyone here.
+    const { data: firstLogRow } = await supabase
+      .from("learning_logs")
+      .select("created_at")
+      .eq("cycle_id", cycleId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const windowArmedSince = firstLogRow?.created_at
+      ? new Date(firstLogRow.created_at)
+      : null;
+
+    // Floor part 1, batched: the earliest still-active pod join per member in
+    // this cycle. Paired with the enrolment's own enrolled_at below.
+    const { data: podJoinRows } = await supabase
+      .from("pod_memberships")
+      .select("participant_id, joined_at, pods!inner(cycle_id)")
+      .eq("pods.cycle_id", cycleId)
+      .is("inactive_at", null);
+    const podJoinedAtByParticipant = new Map<number, Date>();
+    for (const row of podJoinRows ?? []) {
+      if (!row.joined_at) continue;
+      const joined = new Date(row.joined_at);
+      const prev = podJoinedAtByParticipant.get(row.participant_id);
+      if (!prev || joined < prev) {
+        podJoinedAtByParticipant.set(row.participant_id, joined);
+      }
+    }
 
     // Active enrollments in this cycle, with the participant's identity,
     // email, current warning state, and role list (for admin exemption).
@@ -154,6 +199,7 @@ export async function GET(request: NextRequest) {
       .from("cycle_enrollments")
       .select(
         `participant_id,
+         enrolled_at,
          warned_at,
          warning_reason,
          participants:participant_id(id, email, first_name, preferred_name,
@@ -199,7 +245,10 @@ export async function GET(request: NextRequest) {
       //
       // consecutiveMissedLogWeeks reconstructs the weekly windows from the
       // cycle calendar and counts completed weeks with no cycle-attributed
-      // learning_logs row, back from the most recently completed week.
+      // learning_logs row, back from the most recently completed week down to
+      // the floor: the later of the week this member joined a pod here and the
+      // week the cohort's ritual is first evidenced. Weeks before either are
+      // weeks they could not have filed, and must not cost them their place.
       const { data: logRows } = await supabase
         .from("learning_logs")
         .select("created_at")
@@ -209,7 +258,14 @@ export async function GET(request: NextRequest) {
         now,
         cycleStart,
         cycleEnd,
-        (logRows ?? []).map((r) => new Date(r.created_at))
+        (logRows ?? []).map((r) => new Date(r.created_at)),
+        {
+          memberActiveSince: memberCadenceFloor(
+            enrollment.enrolled_at ? new Date(enrollment.enrolled_at) : null,
+            podJoinedAtByParticipant.get(pid) ?? null
+          ),
+          windowArmedSince,
+        }
       );
 
       let reason: RevocationWarningReason | null = null;

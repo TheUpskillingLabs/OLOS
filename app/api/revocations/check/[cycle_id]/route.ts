@@ -2,7 +2,10 @@ import { NextResponse, NextRequest } from "next/server";
 import { withAdminAuth } from "@/lib/auth/middleware";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { parseIntParam } from "@/lib/api/params";
-import { consecutiveMissedLogWeeks } from "@/lib/learning-logs/at-risk";
+import {
+  consecutiveMissedLogWeeks,
+  memberCadenceFloor,
+} from "@/lib/learning-logs/at-risk";
 
 // Manual (admin-triggered) mirror of the engagement-revocation cron
 // (app/api/cron/revocation-check). Under the registered/active model
@@ -13,7 +16,9 @@ import { consecutiveMissedLogWeeks } from "@/lib/learning-logs/at-risk";
 //
 // The signal is missed weekly Learning Log windows (consecutiveMissedLogWeeks,
 // reconstructed from the cycle calendar) — identical to the cron, not the
-// legacy pulse-check count.
+// legacy pulse-check count. It carries the cron's floors too, and it must:
+// this sweep has NO warning stage and no grace, so an unfloored count here
+// would revoke a mid-cycle joiner outright the first time an admin ran it.
 //
 // The reconciler no longer writes exits (it only manages registered <->
 // active), so this route sets status='inactive' + inactive_date directly and
@@ -34,29 +39,67 @@ export const POST = withAdminAuth(
     const { data: cycle } = await auth.supabase
       .from("cycles")
       .select(
-        "start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused)"
+        "start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused, log_due_at)"
       )
       .eq("id", cycleId)
       .maybeSingle();
     const config = Array.isArray(cycle?.cycle_config)
       ? cycle?.cycle_config[0]
       : cycle?.cycle_config;
-    if (!cycle?.start_date || !cycle?.end_date || config?.log_gate_paused) {
+    // No calendar, gate on holiday, or a window that has never been armed
+    // (log_due_at null): nothing anyone could have missed.
+    if (
+      !cycle?.start_date ||
+      !cycle?.end_date ||
+      config?.log_gate_paused ||
+      !config?.log_due_at
+    ) {
       return NextResponse.json({ transitioned_to_inactive: [] });
     }
     const cycleStart = new Date(cycle.start_date);
     const cycleEnd = new Date(cycle.end_date);
     const missThreshold = config?.at_risk_consecutive_misses ?? 2;
 
-    // Get all active enrollees
+    // Get all active enrollees. enrolled_at is half of each member's floor.
     const { data: enrollments } = await auth.supabase
       .from("cycle_enrollments")
-      .select("participant_id")
+      .select("participant_id, enrolled_at")
       .eq("cycle_id", cycleId)
       .eq("status", "active");
 
     if (!enrollments || enrollments.length === 0) {
       return NextResponse.json({ transitioned_to_inactive: [] });
+    }
+
+    // Floor part 2: the cohort-wide first log for this cycle. Nothing records
+    // when the weekly window was first armed (cycle_config.log_due_at is a
+    // single rolling stamp), so the earliest cycle-attributed log is the
+    // evidence that the ritual was running. Null = no evidence = no misses.
+    const { data: firstLogRow } = await auth.supabase
+      .from("learning_logs")
+      .select("created_at")
+      .eq("cycle_id", cycleId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const windowArmedSince = firstLogRow?.created_at
+      ? new Date(firstLogRow.created_at)
+      : null;
+
+    // Floor part 1, batched: earliest still-active pod join per member here.
+    const { data: podJoinRows } = await auth.supabase
+      .from("pod_memberships")
+      .select("participant_id, joined_at, pods!inner(cycle_id)")
+      .eq("pods.cycle_id", cycleId)
+      .is("inactive_at", null);
+    const podJoinedAtByParticipant = new Map<number, Date>();
+    for (const row of podJoinRows ?? []) {
+      if (!row.joined_at) continue;
+      const joined = new Date(row.joined_at);
+      const prev = podJoinedAtByParticipant.get(row.participant_id);
+      if (!prev || joined < prev) {
+        podJoinedAtByParticipant.set(row.participant_id, joined);
+      }
     }
 
     const transitioned = [];
@@ -74,7 +117,14 @@ export const POST = withAdminAuth(
         nowDate,
         cycleStart,
         cycleEnd,
-        (logRows ?? []).map((r) => new Date(r.created_at))
+        (logRows ?? []).map((r) => new Date(r.created_at)),
+        {
+          memberActiveSince: memberCadenceFloor(
+            enrollment.enrolled_at ? new Date(enrollment.enrolled_at) : null,
+            podJoinedAtByParticipant.get(pid) ?? null
+          ),
+          windowArmedSince,
+        }
       );
       if (missedWeeks < missThreshold) continue;
 
