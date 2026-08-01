@@ -1,6 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { SIMULATION_COOKIE } from "@/lib/auth/simulation-cookie";
+import {
+  SIMULATION_COOKIE,
+  SIMULATION_BLOCKED_MESSAGE,
+} from "@/lib/auth/simulation-cookie";
 
 /** Requests that cannot change anything, so they run freely while simulating. */
 const READ_ONLY_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -23,10 +26,7 @@ function simulationWriteBlock(request: NextRequest): NextResponse | null {
   if (request.nextUrl.pathname.startsWith("/api/admin/simulate")) return null;
 
   return NextResponse.json(
-    {
-      error:
-        "Read-only while simulating a member. Exit the simulation to make changes.",
-    },
+    { error: SIMULATION_BLOCKED_MESSAGE },
     { status: 403 }
   );
 }

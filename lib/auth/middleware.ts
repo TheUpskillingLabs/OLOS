@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveUserRoles, UserRoles, isAdmin, isOwner } from "./roles";
 import { simulationContext } from "./simulation";
+import { SIMULATION_BLOCKED_MESSAGE } from "./simulation-cookie";
 
 export interface AuthenticatedRequest {
   user: UserRoles;
@@ -42,10 +43,7 @@ export function withAuth(handler: RouteHandler) {
       (await simulationContext())
     ) {
       return NextResponse.json(
-        {
-          error:
-            "Read-only while simulating a member. Exit the simulation to make changes.",
-        },
+        { error: SIMULATION_BLOCKED_MESSAGE },
         { status: 403 }
       );
     }

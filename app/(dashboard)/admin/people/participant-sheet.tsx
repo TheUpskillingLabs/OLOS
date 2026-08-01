@@ -9,6 +9,10 @@ import PermissionsEditor from "./permissions-editor";
 import AdminNameEditForm from "./admin-name-edit-form";
 import type { Person } from "./types";
 
+/** Why "View as" is unavailable, shown as text and repeated as the tooltip. */
+const SIMULATE_BLOCKED_REASON =
+  "Only members who have signed in at least once and hold no admin role can be simulated.";
+
 /**
  * The participant drill-in drawer. Replaces the standalone permissions page as
  * the primary surface for editing one participant: identity + name-edit,
@@ -222,12 +226,19 @@ export default function ParticipantSheet({
                 title={
                   person.can_simulate
                     ? undefined
-                    : "Only members who have signed in at least once and hold no admin role can be simulated."
+                    : SIMULATE_BLOCKED_REASON
                 }
                 className="btn btn-teal px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {simBusy ? "Starting…" : `View as ${person.first_name}`}
               </button>
+              {/* A disabled button whose only explanation is a title attribute
+                  explains itself to nobody on a phone, a keyboard or a screen
+                  reader. The tooltip stays for the pointer; this is the copy
+                  everyone else gets. */}
+              {!person.can_simulate && (
+                <p className="text-xs text-meta">{SIMULATE_BLOCKED_REASON}</p>
+              )}
               {simError && (
                 <p role="alert" className="text-sm text-red">
                   {simError}
