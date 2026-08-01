@@ -39,8 +39,22 @@ CREATE INDEX idx_custom_tasks_live ON custom_tasks (cycle_id) WHERE archived_at 
 ALTER TABLE custom_tasks ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: any member (the rows render on every member dashboard anyway).
+-- Reads: LIVE rows only for members, everything for admin/owner (owner call,
+-- 2026-08-01). The app itself never depends on this policy -- the dashboard and
+-- the admin queue preview both read through a service-role client, which bypasses
+-- RLS -- so the tight version costs nothing functionally. What it buys is that a
+-- member querying PostgREST directly cannot read a task drafted for next month or
+-- one that was archived. No personal data is at stake here, only program intent,
+-- which is exactly the kind of thing that should not leak early.
 CREATE POLICY "custom_tasks_select" ON custom_tasks FOR SELECT TO authenticated
-  USING (true);
+  USING (
+    is_admin_or_owner()
+    OR (
+      archived_at IS NULL
+      AND (starts_at IS NULL OR starts_at <= now())
+      AND (ends_at IS NULL OR ends_at > now())
+    )
+  );
 
 -- Writes: admin/owner only.
 CREATE POLICY "custom_tasks_insert" ON custom_tasks FOR INSERT TO authenticated

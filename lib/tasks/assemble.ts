@@ -250,7 +250,13 @@ export function assembleTasks(input: TaskInputs): Task[] {
       href: c.href,
       external: /^https?:\/\//i.test(c.href),
       hashLink: c.href.startsWith("#"),
-      cta: c.cta ?? undefined,
+      /* A button label is optional in the admin form but `href` is required,
+         so a task authored without one used to render with no action at all
+         from md: up -- the CTA row only draws when `cta` is set, and only the
+         phone layout makes the title the whole-card tap target (owner flag,
+         2026-08-01). Defaulting the label means no combination of admin input
+         can produce a card you cannot act on. */
+      cta: c.cta ?? "Open",
       deadline: c.deadline,
       priority: c.pinned ? PRIORITY.pinned : PRIORITY.custom,
       tone: c.pinned ? "teal" : "default",
