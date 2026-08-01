@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { BookOpen, ArrowRight } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { fmtDateOnly, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import {
   registrationWindow,
   type RegistrationWindow,
 } from "@/lib/cycles/schedule";
 import { StatusBadge } from "@/app/components/ui";
+import { TaskRow } from "@/app/components/tasks";
+import { resolveWindowStates, windowDef } from "@/lib/cycles/windows";
 import CyclePhaseIndicator from "./cycle-phase-indicator";
 
 type CycleStatus = "active" | "upcoming" | "closed" | "draft";
@@ -67,22 +69,36 @@ export default async function CyclesPage() {
     (c) => c.lab_id === null || (c.mode === "org" && c.lab_id === memberLabId),
   );
 
-  // Fetch config for the active cycle to power the phase indicator — the
-  // single HQ open cycle.
+  // Fetch config + phase rows for the active cycle — the single HQ open
+  // cycle. Config powers the phase indicator; both feed the registry's
+  // window resolver (phases-first, matching checkWindow) for the "Open now"
+  // rows below the rail.
   const activeCycle =
     cycles.find(
       (c) => c.status === "active" && c.mode === "open" && c.lab_id === null,
     ) ?? null;
   let activeCycleConfig = null;
+  let openWindows: ReturnType<typeof resolveWindowStates> = [];
   if (activeCycle) {
-    const { data } = await serviceClient
-      .from("cycle_config")
-      .select(
-        "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close",
-      )
-      .eq("cycle_id", activeCycle.id)
-      .single();
+    const [{ data }, { data: phases }] = await Promise.all([
+      serviceClient
+        .from("cycle_config")
+        .select(
+          "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close",
+        )
+        .eq("cycle_id", activeCycle.id)
+        .single(),
+      serviceClient
+        .from("cycle_phases")
+        .select("phase_key, starts_at, ends_at")
+        .eq("cycle_id", activeCycle.id),
+    ]);
     activeCycleConfig = data;
+    openWindows = resolveWindowStates(
+      phases && phases.length > 0 ? phases : null,
+      (data ?? null) as Record<string, string | null> | null,
+      new Date(),
+    ).filter((s) => s.open);
   }
 
   const otherCycles = cycles?.filter((c) => c.id !== activeCycle?.id) ?? [];
@@ -140,32 +156,44 @@ export default async function CyclesPage() {
         <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
       )}
 
+      {/* Open now — the active cycle's open windows, in the shared row
+          grammar (the rail above is timeline-only; these are the cycle's
+          state, with the same labels as the dashboard's task cards) */}
+      {openWindows.length > 0 && activeCycle && (
+        <div className="mb-8">
+          <h2 className="lbl mb-4">Open now</h2>
+          <div className="space-y-3">
+            {openWindows.map((s) => {
+              const def = windowDef(s.key);
+              return (
+                <TaskRow
+                  key={s.key}
+                  state="open"
+                  title={def.labels.action}
+                  href={`/cycles/${activeCycle.id}/${def.route}`}
+                  closesAt={s.closesAt}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Learning Log — the weekly practice, framed calmly (it replaced the pulse check) */}
       {activeCycle && (
-        <Link
-          href="/dashboard#learning-log"
-          className="group mb-4 flex items-center justify-between rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-        >
-          <div className="flex items-center gap-3">
-            <BookOpen
-              className="h-5 w-5 flex-shrink-0 text-teal-deep"
-              aria-hidden
-            />
-            <div>
-              <span className="font-semibold tracking-tight text-ink">
-                Your weekly Learning Log
-              </span>
-              <p className="text-sm text-meta">
-                A few lines on what you&apos;re figuring out &mdash; that&apos;s
-                the check-in.
-              </p>
-            </div>
-          </div>
-          <ArrowRight
-            className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-            aria-hidden
+        <div className="mb-4">
+          <TaskRow
+            title="Your weekly Learning Log"
+            detail="A few lines on what you're figuring out — that's the check-in."
+            href="/dashboard#learning-log"
+            icon={
+              <BookOpen
+                className="h-5 w-5 flex-shrink-0 text-teal-deep"
+                aria-hidden
+              />
+            }
           />
-        </Link>
+        </div>
       )}
 
       {/* Active cycle quick-link */}
@@ -177,8 +205,8 @@ export default async function CyclesPage() {
           <div>
             <h2 className="t-h3 text-ink">{activeCycle.name}</h2>
             <p className="mt-0.5 text-sm text-meta">
-              {new Date(activeCycle.start_date).toLocaleDateString()} &ndash;{" "}
-              {new Date(activeCycle.end_date).toLocaleDateString()}
+              {fmtDateOnly(activeCycle.start_date)} &ndash;{" "}
+              {fmtDateOnly(activeCycle.end_date)}
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
@@ -205,9 +233,9 @@ export default async function CyclesPage() {
               <div>
                 <h3 className="t-h3 text-ink">{activeOrgCycle.name}</h3>
                 <p className="mt-0.5 text-sm text-meta">
-                  {new Date(activeOrgCycle.start_date).toLocaleDateString()}{" "}
+                  {fmtDateOnly(activeOrgCycle.start_date)}{" "}
                   &ndash;{" "}
-                  {new Date(activeOrgCycle.end_date).toLocaleDateString()}
+                  {fmtDateOnly(activeOrgCycle.end_date)}
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
@@ -228,7 +256,7 @@ export default async function CyclesPage() {
                 <h3 className="t-h4 text-ink">{upcomingOrgCycle.name}</h3>
                 <p className="mt-1 text-sm text-meta">
                   Starts{" "}
-                  {new Date(upcomingOrgCycle.start_date).toLocaleDateString()}
+                  {fmtDateOnly(upcomingOrgCycle.start_date)}
                 </p>
               </div>
               <StatusBadge variant={STATUS_VARIANT.upcoming}>
@@ -287,8 +315,8 @@ export default async function CyclesPage() {
                   </div>
                   <p className="mt-2 text-sm text-meta">
                     {cycle.status === "active"
-                      ? `Running now — ends ${new Date(cycle.end_date).toLocaleDateString()}`
-                      : `Starts ${new Date(cycle.start_date).toLocaleDateString()}`}
+                      ? `Running now — ends ${fmtDateOnly(cycle.end_date)}`
+                      : `Starts ${fmtDateOnly(cycle.start_date)}`}
                   </p>
                   <span
                     className={`mt-4 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight ${
@@ -331,8 +359,8 @@ export default async function CyclesPage() {
                     <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
                   </div>
                   <p className="mt-2 text-sm text-meta">
-                    {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                    {new Date(cycle.end_date).toLocaleDateString()}
+                    {fmtDateOnly(cycle.start_date)} &ndash;{" "}
+                    {fmtDateOnly(cycle.end_date)}
                   </p>
                 </Link>
               );

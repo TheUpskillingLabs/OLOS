@@ -1,21 +1,17 @@
 import Link from "next/link";
 import { registrationWindow } from "@/lib/cycles/schedule";
-import {
-  windowOpen,
-  fmtLabDate,
-  fmtLabDateTime,
-  parseWindow,
-} from "@/lib/cycles/lab-time";
+import { fmtDateOnly, parseWindow } from "@/lib/cycles/lab-time";
 import {
   BookOpen,
-  ArrowRight,
   ChevronLeft,
   ExternalLink,
 } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { StatCard, StatusBadge } from "@/app/components/ui";
+import { TaskRow } from "@/app/components/tasks";
 import { cycleInfoContent } from "@/lib/cycles/info";
+import { resolveWindowStates, windowDef } from "@/lib/cycles/windows";
 
 type CycleStatus = "active" | "closed" | "draft";
 // Matches pods_status_check (00063): forming/active/inactive/dissolved.
@@ -36,19 +32,6 @@ const POD_STATUS_VARIANT: Record<
   inactive: "inactive",
   dissolved: "inactive",
 };
-
-const WINDOW_ROUTES: {
-  label: string;
-  field: string;
-  route: string;
-}[] = [
-  { label: "Submit Problem Situations", field: "problem_statement", route: "propose" },
-  { label: "Vote on Problem Situations", field: "voting", route: "vote" },
-  { label: "Register for Pods", field: "pod_registration", route: "register-pods" },
-  { label: "Submit Solution Proposals", field: "solution_proposal", route: "solutions" },
-  { label: "Vote on Solutions", field: "solution_voting", route: "solution-vote" },
-  { label: "Register for Projects", field: "project_registration", route: "register-projects" },
-];
 
 export default async function CycleDetailPage({
   params,
@@ -80,15 +63,23 @@ export default async function CycleDetailPage({
   const activeCount =
     enrollments?.filter((e) => e.status === "active").length || 0;
 
-  // Fetch active windows
+  // Window state: phases-first via the canonical registry resolver — the
+  // same decision procedure the write gate (checkWindow) uses, so a row
+  // shown "open" here can never 403 on submit.
   const serviceClient = createServiceClient();
-  const { data: config } = await serviceClient
-    .from("cycle_config")
-    .select(
-      "theme_description, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
-    )
-    .eq("cycle_id", cycle.id)
-    .single();
+  const [{ data: config }, { data: phases }] = await Promise.all([
+    serviceClient
+      .from("cycle_config")
+      .select(
+        "theme_description, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+      )
+      .eq("cycle_id", cycle.id)
+      .single(),
+    serviceClient
+      .from("cycle_phases")
+      .select("phase_key, starts_at, ends_at")
+      .eq("cycle_id", cycle.id),
+  ]);
 
   // The cycle's theme/explanation copy (cycle_config.theme_description, 00084)
   // — same source + generic fallback as the registration ceremony's theme
@@ -147,33 +138,32 @@ export default async function CycleDetailPage({
     : { data: null };
 
   const now = new Date();
-  const activeWindows: { label: string; route: string; closesAt: string }[] = [];
-  if (config) {
-    for (const w of WINDOW_ROUTES) {
-      const configRecord = config as Record<string, string | null>;
-      const openVal = configRecord[`${w.field}_open`];
-      const closeVal = configRecord[`${w.field}_close`];
-      if (openVal && closeVal && windowOpen(openVal, closeVal, now)) {
-        activeWindows.push({ label: w.label, route: w.route, closesAt: closeVal });
-      }
-    }
-  }
+  // Windows resolved through the canonical registry — one label set
+  // (labels.action) shared verbatim with the dashboard's task cards.
+  const windowStates =
+    cycle.mode !== "org"
+      ? resolveWindowStates(
+          phases && phases.length > 0 ? phases : null,
+          (config ?? null) as Record<string, string | null> | null,
+          now
+        )
+      : [];
+  const openWindows = windowStates.filter((s) => s.open);
 
   // The seam between voting and pod registration is the one quiet stretch
   // where the page would otherwise go silent mid-arc: votes are in, pods
-  // aren't announced. Say what's happening rather than showing nothing.
-  let interlude: string | null = null;
-  if (config && activeWindows.length === 0) {
-    const cfg = config as Record<string, string | null>;
-    const votingClosed =
-      cfg.voting_close && now > (parseWindow(cfg.voting_close) as Date);
-    const podRegStarted =
-      cfg.pod_registration_open &&
-      now > (parseWindow(cfg.pod_registration_open) as Date);
+  // aren't announced. Say what's happening rather than showing nothing —
+  // an upcoming-state row for pod registration.
+  let interlude: { opensAt: string | null } | null = null;
+  if (openWindows.length === 0 && windowStates.length > 0) {
+    const voting = windowStates.find((s) => s.key === "voting");
+    const podReg = windowStates.find((s) => s.key === "pod_registration");
+    const votingClose = parseWindow(voting?.closesAt);
+    const podRegOpen = parseWindow(podReg?.opensAt);
+    const votingClosed = !!votingClose && now > votingClose;
+    const podRegStarted = !!podRegOpen && now > podRegOpen;
     if (votingClosed && !podRegStarted) {
-      interlude = cfg.pod_registration_open
-        ? `Voting has closed — the shortlist is being finalized. Pod registration opens ${fmtLabDateTime(cfg.pod_registration_open)}.`
-        : "Voting has closed — the shortlist is being finalized. Pod registration opens next.";
+      interlude = { opensAt: podReg?.opensAt ?? null };
     }
   }
 
@@ -195,8 +185,8 @@ export default async function CycleDetailPage({
         </h1>
         <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-meta">
           <span className="tabular-nums">
-            {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-            {new Date(cycle.end_date).toLocaleDateString()}
+            {fmtDateOnly(cycle.start_date)} &ndash;{" "}
+            {fmtDateOnly(cycle.end_date)}
           </span>
           <StatusBadge variant={cycleStatusVariant}>{cycle.status}</StatusBadge>
         </div>
@@ -205,28 +195,18 @@ export default async function CycleDetailPage({
       {/* Register CTA — only while the D-10 window is open and the viewer
           hasn't signed this cycle's agreement yet */}
       {showRegisterCta && (
-        <Link
-          href={`/cycles/${cycle.id}/join`}
-          className="group mb-8 flex items-center justify-between gap-3 rounded-card border border-teal/30 bg-teal/10 p-5 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-        >
-          <div>
-            <span className="font-semibold tracking-tight text-ink">
-              Registration is open
-            </span>
-            <p className="mt-0.5 text-sm text-meta">
-              {cycle.status === "active"
+        <div className="mb-8">
+          <TaskRow
+            state="open"
+            title="Registration is open"
+            detail={
+              cycle.status === "active"
                 ? "This cycle is running — complete the short registration to join it."
-                : "Pre-register now to claim your spot for this cycle."}
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">
-            Register
-            <ArrowRight
-              className="h-4 w-4 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </span>
-        </Link>
+                : "Pre-register now to claim your spot for this cycle."
+            }
+            href={`/cycles/${cycle.id}/join`}
+          />
+        </div>
       )}
 
       {/* Cycle theme/explanation copy — below the title/dates, above the tiles */}
@@ -239,72 +219,53 @@ export default async function CycleDetailPage({
         </p>
       )}
 
-      {/* Active window CTAs */}
-      {activeWindows.length > 0 && (
-        <div className="mb-8 space-y-3">
-          {activeWindows.map((w) => (
-            <Link
-              key={w.route}
-              href={`/cycles/${cycle.id}/${w.route}`}
-              className="group flex items-center justify-between gap-3 rounded-card border border-teal/30 bg-teal/10 p-4 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-            >
-              <div className="flex items-center gap-3">
-                <span className="relative flex h-2 w-2" aria-hidden>
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-teal" />
-                </span>
-                <span className="font-semibold tracking-tight text-ink">
-                  {w.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate">
-                <span className="tabular-nums">
-                  closes{" "}
-                  {fmtLabDate(w.closesAt)}
-                </span>
-                <ArrowRight
-                  className="h-4 w-4 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-                  aria-hidden
+      {/* Open windows — the cycle's state, in the shared row grammar (never
+          dismissible; same labels.action strings as the dashboard's cards) */}
+      {openWindows.length > 0 && (
+        <div className="mb-8">
+          <h2 className="lbl mb-4">Open now</h2>
+          <div className="space-y-3">
+            {openWindows.map((s) => {
+              const def = windowDef(s.key);
+              return (
+                <TaskRow
+                  key={s.key}
+                  state="open"
+                  title={def.labels.action}
+                  href={`/cycles/${cycle.id}/${def.route}`}
+                  closesAt={s.closesAt}
                 />
-              </div>
-            </Link>
-          ))}
+              );
+            })}
+          </div>
         </div>
       )}
 
       {interlude && (
-        <div className="mb-8 rounded-card border border-ink/10 bg-white p-4 shadow-card">
-          <p className="text-sm text-charcoal">{interlude}</p>
+        <div className="mb-8">
+          <TaskRow
+            state="upcoming"
+            title={windowDef("pod_registration").labels.action}
+            detail="Voting has closed — the shortlist is being finalized."
+            opensAt={interlude.opensAt}
+          />
         </div>
       )}
 
       {/* Learning Log — the weekly practice, framed calmly (it replaced the pulse check) */}
       {cycle.status === "active" && (
         <div className="mb-8">
-          <Link
+          <TaskRow
+            title="Your weekly Learning Log"
+            detail="A few lines each week on what you're figuring out. That's the check-in that keeps you in the cycle."
             href="/dashboard#learning-log"
-            className="group flex items-center justify-between gap-3 rounded-card border border-ink/10 border-l-4 border-l-teal bg-white p-4 shadow-card transition-colors duration-150 ease-out hover:bg-ink/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-          >
-            <div className="flex items-center gap-3">
+            icon={
               <BookOpen
                 className="h-5 w-5 flex-shrink-0 text-teal-deep"
                 aria-hidden
               />
-              <div>
-                <span className="font-semibold tracking-tight text-ink">
-                  Your weekly Learning Log
-                </span>
-                <p className="mt-0.5 text-sm text-meta">
-                  A few lines each week on what you&apos;re figuring out. That&apos;s
-                  the check-in that keeps you in the cycle.
-                </p>
-              </div>
-            </div>
-            <ArrowRight
-              className="h-4 w-4 flex-shrink-0 text-teal-deep transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </Link>
+            }
+          />
         </div>
       )}
 

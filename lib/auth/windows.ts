@@ -1,36 +1,24 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { one } from "@/lib/supabase/embed";
 import { windowOpen, parseWindow } from "@/lib/cycles/lab-time";
+import { CYCLE_WINDOWS, type WindowKey } from "@/lib/cycles/windows";
 
-type WindowField =
-  | "problem_statement"
-  | "voting"
-  | "pod_registration"
-  | "solution_proposal"
-  | "solution_voting"
-  | "project_registration";
+type WindowField = WindowKey;
 
 // Stage 1 calendar overhaul (00085): cycle_phases is the tz-aware read
 // model. The legacy pod_registration field maps onto the pod_forming phase
 // (pod-registration.md two-window split); every other field key matches its
 // phase_key. Stage 2 adds pod_active_join-aware routing per pod status.
-const FIELD_TO_PHASE: Record<WindowField, string> = {
-  problem_statement: "problem_statement",
-  voting: "voting",
-  pod_registration: "pod_forming",
-  solution_proposal: "solution_proposal",
-  solution_voting: "solution_voting",
-  project_registration: "project_registration",
-};
+// The mapping + messages come from the canonical window registry
+// (lib/cycles/windows.ts); checkWindow's decision procedure below is
+// unchanged and remains the sole write authorization.
+const FIELD_TO_PHASE: Record<WindowField, string> = Object.fromEntries(
+  CYCLE_WINDOWS.map((w) => [w.key, w.phaseKey])
+) as Record<WindowField, string>;
 
-const WINDOW_MESSAGES: Record<WindowField, string> = {
-  problem_statement: "Problem statement submission is not currently open.",
-  voting: "Voting is not currently open.",
-  pod_registration: "Pod registration is not currently open.",
-  solution_proposal: "Solution proposal submission is not currently open.",
-  solution_voting: "Solution voting is not currently open.",
-  project_registration: "Project registration is not currently open.",
-};
+const WINDOW_MESSAGES: Record<WindowField, string> = Object.fromEntries(
+  CYCLE_WINDOWS.map((w) => [w.key, w.closedMessage])
+) as Record<WindowField, string>;
 
 export async function checkWindow(
   supabase: SupabaseClient,

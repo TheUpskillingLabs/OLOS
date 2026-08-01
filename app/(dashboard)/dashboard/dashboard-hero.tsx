@@ -41,7 +41,8 @@ export default function DashboardHero({
   );
 
   useEffect(() => {
-    // Deferred past the effect body (repo pattern — see up-next.tsx) so the
+    // Deferred past the effect body (repo pattern — see
+    // app/components/tasks/checklist-card.tsx) so the
     // localStorage read isn't a synchronous setState-in-effect.
     queueMicrotask(() => {
       try {

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { parseWindow, fmtLabDate } from "@/lib/cycles/lab-time";
 import { getCycleWeek } from "@/lib/cycle/week";
+import { CYCLE_WINDOWS } from "@/lib/cycles/windows";
 
 type CycleConfig = {
   phase_2_start: string | null;
@@ -59,15 +59,6 @@ const PHASES = [
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
-const OPERATIONAL_WINDOWS = [
-  { label: "Problem Situations", field: "problem_statement", route: "propose" },
-  { label: "Voting", field: "voting", route: "vote" },
-  { label: "Pod Registration", field: "pod_registration", route: "register-pods" },
-  { label: "Solution Proposals", field: "solution_proposal", route: "solutions" },
-  { label: "Solution Voting", field: "solution_voting", route: "solution-vote" },
-  { label: "Project Registration", field: "project_registration", route: "register-projects" },
-] as const;
-
 function formatDate(iso: string): string {
   // Window timestamps are naive-UTC instants; render lab-local dates
   // (lib/cycles/lab-time.ts).
@@ -78,37 +69,16 @@ function daysUntil(from: Date, to: Date): number {
   return Math.max(0, Math.ceil((to.getTime() - from.getTime()) / 86_400_000));
 }
 
-function getActiveWindows(
-  config: CycleConfig,
-  now: Date
-): { label: string; closesAt: string; route: string }[] {
-  const active: { label: string; closesAt: string; route: string }[] = [];
-  for (const w of OPERATIONAL_WINDOWS) {
-    const openKey = `${w.field}_open` as keyof CycleConfig;
-    const closeKey = `${w.field}_close` as keyof CycleConfig;
-    const openVal = config[openKey];
-    const closeVal = config[closeKey];
-    if (openVal && closeVal) {
-      if (
-        now >= (parseWindow(openVal) as Date) &&
-        now <= (parseWindow(closeVal) as Date)
-      ) {
-        active.push({ label: w.label, closesAt: closeVal, route: w.route });
-      }
-    }
-  }
-  return active;
-}
-
 function getUpcomingWindow(
   config: CycleConfig,
   now: Date
 ): { label: string; opensAt: string } | null {
-  for (const w of OPERATIONAL_WINDOWS) {
-    const openKey = `${w.field}_open` as keyof CycleConfig;
-    const openVal = config[openKey];
+  // Registry order = chronological order; the first not-yet-open window is
+  // the rail's neutral "Up next" chip.
+  for (const w of CYCLE_WINDOWS) {
+    const openVal = config[w.openField as keyof CycleConfig];
     if (openVal && (parseWindow(openVal) as Date) > now) {
-      return { label: w.label, opensAt: openVal };
+      return { label: w.labels.short, opensAt: openVal };
     }
   }
   return null;
@@ -136,9 +106,11 @@ export default function CyclePhaseIndicator({
   const cycleActive = now >= startDate && now <= endDate;
   const cycleComplete = now > endDate;
 
-  const activeWindows = getActiveWindows(config, now);
-  const upcomingWindow =
-    activeWindows.length === 0 ? getUpcomingWindow(config, now) : null;
+  // The rail is timeline-only (task consolidation, 2026-07): open windows
+  // render as actionable cards on the dashboard queue and as status rows on
+  // the cycle pages — not a third time here. The one neutral "Up next" chip
+  // below the rail is temporal context, not a task.
+  const upcomingWindow = getUpcomingWindow(config, now);
 
   // Which phase are we in?
   const currentPhaseNum =
@@ -351,26 +323,13 @@ export default function CyclePhaseIndicator({
         </div>
       </div>
 
-      {/* ── Active / upcoming window chips ────────────────────────── */}
-      {(activeWindows.length > 0 || upcomingWindow) && (
+      {/* ── Upcoming window chip — temporal context only ──────────── */}
+      {upcomingWindow && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {activeWindows.map((w) => (
-            <Link
-              key={w.label}
-              href={`/cycles/${cycle.id}/${w.route}`}
-              className="inline-flex items-center gap-1.5 rounded-card bg-teal/10 px-3 py-1 text-xs font-medium text-teal-deep transition-colors hover:bg-teal/20"
-            >
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-teal" />
-              {w.label} &middot; closes {formatDate(w.closesAt)}
-              <span className="ml-0.5">&rarr;</span>
-            </Link>
-          ))}
-          {upcomingWindow && (
-            <span className="inline-flex items-center gap-1.5 rounded-card bg-ink/[0.04] px-3 py-1 text-xs text-meta">
-              Up next: {upcomingWindow.label} &middot; opens{" "}
-              {formatDate(upcomingWindow.opensAt)}
-            </span>
-          )}
+          <span className="inline-flex items-center gap-1.5 rounded-card bg-ink/[0.04] px-3 py-1 text-xs text-meta">
+            Up next: {upcomingWindow.label} &middot; opens{" "}
+            {formatDate(upcomingWindow.opensAt)}
+          </span>
         </div>
       )}
     </div>
