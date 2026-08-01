@@ -4,8 +4,9 @@ import Link from "next/link";
 /* A deliberately small markdown renderer for Luma's About text (events.about,
    00094). Luma's editor has no heading levels and no tables, so the subset it
    can actually produce is: paragraphs, "- " lists (one level of nesting),
-   **bold**, *italic* / _italic_, [text](url) links, bare URLs, and "---"
-   dividers. This renders exactly that subset and nothing more — if Luma copy
+   **bold**, *italic* / _italic_, [text](url) links, bare URLs, ![alt](url)
+   images (Luma's editor inserts uploaded images this way — sponsor logos),
+   and "---" dividers. This renders exactly that subset and nothing more — if Luma copy
    ever outgrows it, reach for a real renderer rather than growing this one.
 
    Server-safe, dependency-free, and everything passes through React's escaping
@@ -91,6 +92,12 @@ function clean(text: string): string {
 
 const RULE_RE = /^(?:-{3,}|\*{3,}|_{3,})$/;
 const BULLET_RE = /^[-*]\s+/;
+/** A line that is exactly one image. Luma's editor inserts uploaded images as
+    their own block (`![](url)`, alt always empty), and its tight export puts
+    them one newline under whatever precedes them — so, like bullets and rules,
+    an image line has to start a block of its own or it fuses into the
+    paragraph above (the sponsor-logo-as-raw-text bug, owner flag 2026-08-01). */
+const IMAGE_LINE_RE = /^!\[[^\]]*\]\([^\s)]+\)$/;
 /** A bold-only line, with an optional trailing colon inside or outside. */
 const HEADING_RE = /^\*\*\s*([^*]+?)\s*\*\*:?$/;
 /** An ATX heading. Luma's editor does emit these ("## **Schedule:**"), despite
@@ -110,6 +117,7 @@ const COLON_HEADING_RE = /^([^\n.!?]{2,80}):$/;
     measure what a reader sees, so a markdown link's URL cannot decide layout. */
 function visibleText(text: string): string {
   return text
+    .replace(/!\[([^\]]*)\]\([^\s)]+\)/g, "$1")
     .replace(/\[([^\]]+)\]\([^\s)]+\)/g, "$1")
     .replace(/\\([^\sA-Za-z0-9])/g, "$1")
     .replace(/\*\*|\*|_/g, "");
@@ -266,7 +274,11 @@ function loosen(text: string): string {
   const starts = (line: string): boolean => {
     const t = line.trim();
     return (
-      ATX_RE.test(t) || BULLET_RE.test(t) || RULE_RE.test(t) || TIME_RE.test(t)
+      ATX_RE.test(t) ||
+      BULLET_RE.test(t) ||
+      RULE_RE.test(t) ||
+      TIME_RE.test(t) ||
+      IMAGE_LINE_RE.test(t)
     );
   };
   const out: string[] = [];
@@ -501,13 +513,16 @@ export function markdownToc(text: string): { id: string; text: string }[] {
 const INLINE = new RegExp(
   [
     /\\([^\sA-Za-z0-9])/, //              1 escaped punctuation
-    /\[((?:\\.|[^\]])+)\]\(([^\s)]+)\)/, // 2 label, 3 href
-    /\*\*((?:\\.|[^*\n])+)\*\*/, //       4 bold
-    /\*((?:\\.|[^*\n])+)\*/, //           5 italic
-    /_((?:\\.|[^_\n])+)_/, //             6 italic
-    /(mailto:[^\s<>()[\]]+)/, //          7
-    /(https?:\/\/[^\s<>()[\]]+)/, //      8
-    /(\bwww\.[^\s<>()[\]]+)/, //          9
+    /!\[([^\]]*)\]\(([^\s)]+)\)/, //      2 alt, 3 src — before links: alt may
+    //                                      be empty where a link label cannot,
+    //                                      so `![](url)` must not fall through
+    /\[((?:\\.|[^\]])+)\]\(([^\s)]+)\)/, // 4 label, 5 href
+    /\*\*((?:\\.|[^*\n])+)\*\*/, //       6 bold
+    /\*((?:\\.|[^*\n])+)\*/, //           7 italic
+    /_((?:\\.|[^_\n])+)_/, //             8 italic
+    /(mailto:[^\s<>()[\]]+)/, //          9
+    /(https?:\/\/[^\s<>()[\]]+)/, //      10
+    /(\bwww\.[^\s<>()[\]]+)/, //          11
   ]
     .map((r) => r.source)
     .join("|"),
@@ -573,25 +588,51 @@ function renderInline(text: string): ReactNode[] {
          is syntax and must not reach the page — which is not a violation of the
          verbatim rule, since the author typed `*` and meant `*`. */
       out.push(m[1]);
-    } else if (m[2] && m[3]) {
+    } else if (m[2] !== undefined && m[3]) {
+      /* An image. The alt group participates even when empty (Luma emits
+         `![](url)` for uploads), so the check is against undefined, not
+         truthiness. Only web and root-relative srcs become an <img>; anything
+         stranger fails safe to the alt text, per the renderer's philosophy. */
+      if (/^(https?:\/\/|\/)/.test(m[3])) {
+        out.push(
+          // Third-party Luma CDN src; next/image would need a remotePatterns
+          // allowlist and gains nothing for a one-off content image.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={key++}
+            src={m[3]}
+            alt={m[2]}
+            loading="lazy"
+            style={{
+              display: "block",
+              maxWidth: "min(100%, 560px)",
+              height: "auto",
+              margin: "8px 0",
+            }}
+          />
+        );
+      } else if (m[2]) {
+        out.push(m[2]);
+      }
+    } else if (m[4] && m[5]) {
       out.push(
-        <Anchor key={key++} href={m[3]}>
-          {renderInline(m[2])}
+        <Anchor key={key++} href={m[5]}>
+          {renderInline(m[4])}
         </Anchor>
       );
-    } else if (m[4]) {
-      out.push(<strong key={key++}>{renderInline(m[4])}</strong>);
-    } else if (m[5] || m[6]) {
-      out.push(<em key={key++}>{renderInline(m[5] || m[6])}</em>);
-    } else if (m[7]) {
+    } else if (m[6]) {
+      out.push(<strong key={key++}>{renderInline(m[6])}</strong>);
+    } else if (m[7] || m[8]) {
+      out.push(<em key={key++}>{renderInline(m[7] || m[8])}</em>);
+    } else if (m[9]) {
       out.push(
-        <Anchor key={key++} href={m[7]}>
-          {m[7].replace(/^mailto:/, "")}
+        <Anchor key={key++} href={m[9]}>
+          {m[9].replace(/^mailto:/, "")}
         </Anchor>
       );
-    } else if (m[8] || m[9]) {
+    } else if (m[10] || m[11]) {
       // Bare URL. Trailing punctuation belongs to the sentence, not the link.
-      const raw = (m[8] || m[9]) as string;
+      const raw = (m[10] || m[11]) as string;
       const url = raw.replace(/[.,;:!?]+$/, "");
       out.push(
         <Anchor key={key++} href={url}>
