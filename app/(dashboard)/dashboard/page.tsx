@@ -1,25 +1,30 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { windowOpen, fmtLabDateTime, fmtDateOnly } from "@/lib/cycles/lab-time";
 import { registrationWindow } from "@/lib/cycles/schedule";
 import { redirect } from "next/navigation";
-import { ArrowRight, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StatusBadge, EmptyState } from "@/app/components/ui";
 import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import { type MilestoneContext } from "./learning-log-card";
-import { getCycleWeek, getCycleWeekStart } from "@/lib/cycle/week";
+import { getCycleWeek } from "@/lib/cycle/week";
 import { getCyclePhase, type CyclePhase } from "@/lib/cycle/phase";
 import {
   milestoneKindForWeek,
   milestoneLabel,
   type MilestoneWeeks,
 } from "@/lib/cycle/milestones";
-import SetupChecklist, { type ChecklistItem } from "./setup-checklist";
+import { selectMemberCycles } from "@/lib/cycle/active";
+import { dashboardTasks } from "@/lib/tasks/tasks";
+import { SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
+import {
+  TaskList,
+  ChecklistCard,
+  CycleRegisterCard,
+} from "@/app/components/tasks";
 import CycleCommitments from "./cycle-commitments";
-import UpNext, { type TodoCard } from "./up-next";
-import MobileUpNextStrip, { type StripChip } from "./mobile-up-next-strip";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
 import QuickLinks from "./quick-links";
 import UpdatesFeed from "../directory/updates-feed";
@@ -37,7 +42,6 @@ import {
   BASELINE_QUESTIONS,
   AI_USAGE_OPTIONS,
 } from "@/lib/learning-logs/baseline";
-import WhatsNextCard from "./whats-next-card";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
 import { resolveUserRoles } from "@/lib/auth/roles";
 import { pagesUserCanPostAs } from "@/lib/pages/authz";
@@ -86,32 +90,16 @@ export default async function DashboardPage() {
   // cycle. Only the org track stays lab-first: lab staff resolve their
   // lab's internal cycle, everyone else HQ's.
   const memberLabId: number | null = participant.metro_id ?? null;
-  const pickCycle = (status: string, mode: string) =>
-    (mode === "org" && memberLabId !== null
-      ? cycles?.find(
-          (c) => c.status === status && c.mode === mode && c.lab_id === memberLabId
-        )
-      : null) ??
-    cycles?.find(
-      (c) => c.status === status && c.mode === mode && c.lab_id === null
-    ) ??
-    null;
-
-  const activeCycle = pickCycle("active", "open");
-
-  // The cohort a not-yet-enrolled member registers for: the newest cycle open
-  // for pre-registration (`upcoming`), if any. Mirrors getMemberRecruitingCycle
-  // (lib/cycle/active.ts) — the signup funnel and the confirmation email
-  // already point new members at this cohort, so the dashboard's join CTA has
-  // to as well, or a member who signed up for the upcoming cohort lands here
-  // with no path to it. `cycles` is ordered start_date desc → the first match
-  // is the newest upcoming.
-  const upcomingCycle = pickCycle("upcoming", "open");
-
-  // The org-internal cycle running alongside the participant cycle
+  // activeCycle: the running open (HQ) cycle. upcomingCycle: the cohort a
+  // not-yet-enrolled member registers for — the newest cycle open for
+  // pre-registration (`cycles` is ordered start_date desc). orgCycle: the
+  // org-internal cycle running alongside the participant cycle
   // (docs/ORG_CYCLES.md) — lab staff resolve their lab's internal cycle,
-  // everyone else HQ's. At most one is active per stream (00062).
-  const orgCycle = pickCycle("active", "org");
+  // everyone else HQ's.
+  const { activeCycle, upcomingCycle, orgCycle } = selectMemberCycles(
+    cycles,
+    memberLabId
+  );
 
   type PodMembership = { id: number; pod_id: number; pods: { id: number; name: string; status: string } };
   type WorkstreamMembership = {
@@ -400,31 +388,9 @@ export default async function DashboardPage() {
   // isn't an active cycle member; the weekly gate + pod health check only
   // apply inside an active cycle. Rendered in every dashboard state below.
   const inActiveCycle = state === "active";
-  // The Learning Log now lives in the feed composer (below, top of feed). A
-  // gated member is bounced here by the layout gate and must save a log to
-  // escape — so when the gate is active, surface a jump-link near the top that
-  // scrolls to the composer and (via the composer's #learning-log handler)
-  // opens the Learning Log tab.
-  // Desktop-only: on phones the strip's urgent "Log due" chip + the composer
-  // sitting one viewport down (feed-first order) carry this.
-  const logDueBanner = logGate.active ? (
-    <a
-      href="#learning-log"
-      id="log-gate-banner"
-      role="alert"
-      className="mb-8 hidden items-center justify-between gap-4 rounded-card border border-red bg-red/5 px-5 py-4 transition-colors duration-150 hover:bg-red/10 md:flex"
-    >
-      <span>
-        <span className="block font-semibold tracking-tight text-ink">
-          Your weekly Learning Log is due
-        </span>
-        <span className="mt-0.5 block text-sm text-charcoal">
-          Save one in your feed below and everything unlocks the moment you do.
-        </span>
-      </span>
-      <span className="btn btn-teal shrink-0 px-4 py-2 text-sm">Log now</span>
-    </a>
-  ) : null;
+  // The gate's visual counterpart is the blocking task card that leads the
+  // Up-next queue (lib/tasks/assemble.ts) — on every breakpoint, in every
+  // dashboard state. The old desktop-only logDueBanner is gone.
 
   // The Leadership Log section — rendered for org leads (workstream/lab) with
   // an armed weekly window, in every dashboard state (a lead's org duty is
@@ -443,11 +409,8 @@ export default async function DashboardPage() {
     </section>
   );
 
-  // Setup checklist — the onboarding home for a new member (prototype
-  // panel-dashboard: "checklist first"). Built here so it shows in EVERY state
-  // below, not only once enrolled: the profile step is always relevant; the
-  // cycle steps appear when a cycle is running or open for registration.
-  // SetupChecklist collapses to a strip once every row is done.
+  // Task signals — inputs to the central assembler (lib/tasks). Derived here,
+  // above the early returns, so the queue + checklist render in EVERY state.
   const profileDone = !!(participant.bio || participant.headline);
 
   // Onboarding "follow people you know" step — done once the member follows at
@@ -465,12 +428,11 @@ export default async function DashboardPage() {
     .select("id", { head: true, count: "exact" })
     .eq("follower_participant_id", participant.id);
 
-  // The "Register" row leads to the cohort the member should register for. In
+  // The register task targets the cohort the member should register for. In
   // the onboarding states (no active enrollment yet) that's the upcoming cohort
   // when one is open for pre-registration — matching where the signup funnel
-  // routed them — otherwise the running cohort. Once the member is engaged in
-  // the active cycle the row reflects that cycle (and collapses when done), so
-  // an active member isn't nagged about the next cohort.
+  // routed them — otherwise the running cohort. Once done it leaves the queue,
+  // so an active member isn't nagged about the next cohort.
   const onboarding = state === "no_cycle" || state === "no_enrollment";
   const registerCycle =
     onboarding && upcomingCycle ? upcomingCycle : activeCycle;
@@ -481,9 +443,9 @@ export default async function DashboardPage() {
 
   // D-10 (docs/requirements/pod-registration.md): registration for a cohort
   // closes between pod-forming close and the active-join window, and again
-  // after active-join ends. Gates the register checklist row and the join
-  // CTA card below — members who already signed keep their done row and
-  // confirmation regardless of the window.
+  // after active-join ends. Gates the register task and the state card
+  // below — members who already signed keep their confirmation regardless
+  // of the window.
   const regWindow =
     registerCycle && !registerDone
       ? await registrationWindow(serviceClient, registerCycle.id)
@@ -492,193 +454,91 @@ export default async function DashboardPage() {
 
   // The Slack row shipped in PR #287 (deployed 2026-07-21). Members created
   // before then were onboarded without it - only new signups see the row.
-  const SLACK_ROW_SINCE = Date.parse("2026-07-21T00:00:00Z");
   const slackRowVisible =
     !!participant.created_at &&
-    Date.parse(participant.created_at) >= SLACK_ROW_SINCE;
+    Date.parse(participant.created_at) >= Date.parse(SLACK_ROW_SINCE_ISO);
 
-  const checklistItems: ChecklistItem[] = [
-    // Cycle registration leads the list — it's the reason most members are
-    // here, and testers looked for it above the housekeeping rows (July 2026
-    // feedback: "civics/elections registration comes first"). Hidden while
-    // the D-10 window is closed (nothing actionable); a signed member's done
-    // row always shows.
-    ...(registerCycle && regOpen
-      ? [
-          {
-            key: "register",
-            label: `Register for ${registerCycle.name}`,
-            done: registerDone,
-            href: `/cycles/${registerCycle.id}/join`,
-            cta: "Register",
-          },
-        ]
-      : []),
-    {
-      key: "profile",
-      // Label names the exact fields that flip profileDone (bio || headline),
-      // so editing other profile fields not counting isn't a surprise.
-      label: "Add your bio and headline",
-      done: profileDone,
-      href: "/profile/edit",
-      cta: "Edit",
-    },
-    {
-      key: "follow",
-      label: "Follow people you know",
-      done: followsAnyone,
-      href: "/directory",
-      cta: "Find",
-    },
-    // "Join the Slack" is onboarding-only. It has no completion tracking yet
-    // (issue #189), so a permanently-undone row would pin the checklist open
-    // for members who finished setup long ago (regression of the July 2026
-    // "To Do list reopens" feedback). Members created before the row shipped
-    // never see it; for new signups it's advisory (excluded from the all-done
-    // collapse math in SetupChecklist) so it can't block auto-collapse.
-    ...(slackRowVisible
-      ? [
-          {
-            key: "slack",
-            label: "Join the Slack",
-            done: false,
-            advisory: true,
-            href:
-              process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
-              "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ",
-            cta: "Join",
-            external: true,
-          },
-        ]
-      : []),
-    // Pod + Learning Log steps belong to the running cohort — an upcoming
-    // cohort has no pods yet — so these stay tied to the active cycle. The
-    // pod row also waits for its registration window: showing "Choose a pod"
-    // before any pod is open was a reported bug.
-    ...(activeCycle && podWindowOpen
-      ? [
-          {
-            key: "pod",
-            label: "Join a pod",
-            done: myPods.length > 0,
-            href: `/cycles/${activeCycle.id}/register-pods`,
-            cta: "Choose",
-          },
-        ]
-      : []),
-    // The Baseline Learning Log — a one-time snapshot filed before the weekly
-    // ritual begins; the row is present only while a pending baseline exists
-    // (it drops out the moment the member files it). Same #learning-log anchor
-    // as the first-log row, sitting just above it.
-    ...(pendingBaseline
-      ? [
-          {
-            key: "baseline",
-            label: "Complete your Cycle onboarding Learning Log",
-            done: false,
-            href: "#learning-log",
-            cta: "Log",
-          },
-        ]
-      : []),
-    ...(activeCycle
-      ? [
-          {
-            key: "log",
-            label: "Save your first Learning Log",
-            done: logCount > 0,
-            href: "#learning-log",
-            cta: "Log",
-          },
-        ]
-      : []),
-  ];
+  // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
+  // default 1). The dashboard is optimized for the one-pod case but honors a
+  // higher limit if an admin raises it.
+  const podLimit =
+    (activeCycleConfig as { pod_limit?: number } | null)?.pod_limit ?? 1;
 
-  // Join / pre-register CTA card for the onboarding empty states, pointed at
-  // the cohort the member should register for. For an upcoming cohort the copy
-  // frames it as pre-registration; for the running cohort it's a straight join.
+  // The central task assembly (lib/tasks) — the one derivation of the
+  // member's queue + checklist, replacing the three hand-built lists
+  // (checklistItems / upNextTodos / stripChips) that used to live here.
+  // Built above the early returns so it feeds every dashboard state.
+  const taskData = await dashboardTasks({
+    participantId: participant.id,
+    profileDone,
+    followsAnyone,
+    slackRowVisible,
+    slackInviteUrl: process.env.NEXT_PUBLIC_SLACK_INVITE_URL,
+    activeCycle: activeCycle
+      ? {
+          id: activeCycle.id,
+          name: activeCycle.name,
+          mode: activeCycle.mode,
+          start_date: activeCycle.start_date,
+          end_date: activeCycle.end_date,
+        }
+      : null,
+    activeCycleConfig: (activeCycleConfig ?? null) as Record<
+      string,
+      string | null
+    > | null,
+    registerCycle: registerCycle
+      ? {
+          id: registerCycle.id,
+          name: registerCycle.name,
+          upcoming: onboarding && !!upcomingCycle,
+        }
+      : null,
+    registerOpen: regOpen,
+    registerDone,
+    myPodCount: myPods.length,
+    podLimit,
+    logCount,
+    pendingBaseline: pendingBaseline
+      ? { id: pendingBaseline.id, name: pendingBaseline.name }
+      : null,
+    gate: { active: logGate.active, pending: logGate.pending },
+    leadershipDue: leadershipCardScopes
+      .filter((s) => !s.submittedThisWeek)
+      .map((s) => ({
+        tier: s.tier,
+        cycleId: s.cycleId,
+        podId: s.podId,
+        labId: s.labId,
+      })),
+    engaged: state === "active",
+  });
+
+  // Registration state/confirmation cards for the onboarding states — the
+  // actionable "register now" path lives in the Up-next queue (a feature
+  // task card); these cover the two states with nothing to do. Shared
+  // component: app/components/tasks/cycle-register-card.tsx.
   type CycleCardData = {
     id: number;
     name: string;
     start_date: string | null;
     end_date: string | null;
   };
-  const joinCycleCard = (cycle: CycleCardData, upcoming: boolean) => (
-    <Link
-      href={`/cycles/${cycle.id}/join`}
-      className="group flex items-center justify-between rounded-card border border-teal/30 bg-white p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-    >
-      <div>
-        <h2 className="t-h3 text-ink">{cycle.name}</h2>
-        {cycle.start_date && cycle.end_date && (
-          <p className="mt-1 text-sm text-meta">
-            {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-            {new Date(cycle.end_date).toLocaleDateString()}
-          </p>
-        )}
-        <p className="mt-3 text-sm text-meta">
-          {upcoming
-            ? "Pre-register now to claim your spot for the next cycle."
-            : "Complete this form to join the cycle."}
-        </p>
-      </div>
-      <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
-        {upcoming ? "Pre-register" : `Join ${cycle.name}`}
-        <ArrowRight
-          className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-          aria-hidden
-        />
-      </span>
-    </Link>
-  );
-
-  // Shown instead of the join card once the member has signed the upcoming
-  // cohort's agreement — they're set; nothing to do until it starts.
-  const preRegisteredCard = (cycle: CycleCardData) => (
-    <Link
-      href={`/cycles/${cycle.id}`}
-      className="group flex items-center justify-between rounded-card border border-teal/30 bg-teal/[0.06] p-8 shadow-card transition-colors duration-150 ease-out hover:border-teal hover:bg-teal/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
-    >
-      <div>
-        <div className="lbl lbl-teal mb-2">You&apos;re pre-registered</div>
-        <h2 className="t-h3 text-ink">{cycle.name}</h2>
-        <p className="mt-2 text-sm text-meta">
-          You&apos;re all set for the next cycle
-          {cycle.start_date
-            ? ` — it kicks off ${new Date(cycle.start_date).toLocaleDateString(
-                "en-US",
-                { month: "long", day: "numeric" }
-              )}`
-            : ""}
-          . We&apos;ll open your next steps here when it starts.
-        </p>
-      </div>
-      <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">
-        View cycle
-        <ArrowRight
-          className="h-5 w-5 transition-transform duration-150 ease-spring group-hover:translate-x-0.5"
-          aria-hidden
-        />
-      </span>
-    </Link>
-  );
-
-  // Shown instead of the join card while the D-10 registration window is
-  // closed — names the reopen instant during the dead zone (pods forming),
-  // plain "closed" after active-join ends.
-  const registrationClosedCard = (cycle: CycleCardData) => (
-    <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
-      <div className="lbl mb-2">Registration closed</div>
-      <h2 className="t-h3 text-ink">{cycle.name}</h2>
-      <p className="mt-2 text-sm text-meta">
-        {regWindow?.state === "dead_zone" && regWindow.reopensAt
-          ? `Pods are forming right now, so registration is paused. It reopens ${fmtLabDateTime(
-              regWindow.reopensAt.toISOString()
-            )}, when pods open to new members.`
-          : "Registration for this cycle has closed. The next Build Cycle will show up right here."}
-      </p>
-    </div>
-  );
+  const registerStateCard = (cycle: CycleCardData) =>
+    registerDone && onboarding && upcomingCycle ? (
+      <CycleRegisterCard cycle={cycle} state="pre_registered" upcoming />
+    ) : !regOpen ? (
+      <CycleRegisterCard
+        cycle={cycle}
+        state="closed"
+        upcoming={onboarding && !!upcomingCycle}
+        reopensAt={
+          regWindow?.state === "dead_zone" && regWindow.reopensAt
+            ? regWindow.reopensAt.toISOString()
+            : null
+        }
+      />
+    ) : null;
 
   // Your workstreams — the org cycle's runs the member co-leads or
   // participates in (docs/ORG_CYCLES.md). Same pods machinery as the
@@ -724,122 +584,6 @@ export default async function DashboardPage() {
     </section>
   );
 
-  // "Up next" — the cycle actions whose window is open right now, as
-  // dismissible cards (the rail shows timing; this gives the button). Derived
-  // here, above the early returns, because it feeds the desktop UpNext cards
-  // AND the phone strip in every state (pure math over the already-fetched
-  // cycle config — no extra queries).
-  const cfg = (activeCycleConfig ?? {}) as Record<string, string | null>;
-  const nowMs = new Date().getTime();
-  const windowClose = (k: string): string | null => {
-    const o = cfg[`${k}_open`];
-    const c = cfg[`${k}_close`];
-    if (!o || !c) return null;
-    const open = parseWindow(o) as Date;
-    const close = parseWindow(c) as Date;
-    return nowMs >= open.getTime() && nowMs <= close.getTime() ? c : null;
-  };
-  const WINDOW_TODOS = [
-    { k: "problem_statement", title: "Submit a problem situation", cta: "Propose", sub: "propose" },
-    { k: "voting", title: "Vote on problem situations", cta: "Vote", sub: "vote" },
-    { k: "pod_registration", title: "Register for a pod", cta: "Choose pod", sub: "register-pods" },
-    { k: "solution_proposal", title: "Submit your solution proposal", cta: "Propose", sub: "solutions" },
-    { k: "solution_voting", title: "Cast your solution ballot", cta: "Vote", sub: "solution-vote" },
-    { k: "project_registration", title: "Register for a project", cta: "Register", sub: "register-projects" },
-  ];
-  const upNextTodos: TodoCard[] = activeCycle
-    ? WINDOW_TODOS.flatMap((w) => {
-        const close = windowClose(w.k);
-        if (!close) return [];
-        return [
-          {
-            id: w.k,
-            title: w.title,
-            detail: `Open now — closes ${fmtLabDateTime(close)}`,
-            href: `/cycles/${activeCycle.id}/${w.sub}`,
-            cta: w.cta,
-          },
-        ];
-      })
-    : [];
-
-  // The phone "Up next" strip — chips condensing the task cards that lead the
-  // desktop center column, ordered by urgency. Data-driven, so onboarding
-  // states naturally show only register/survey/setup. The window-todo chips
-  // share ids (and the localStorage dismissal store) with the desktop UpNext
-  // cards; the rest anchor into their full cards below the feed or link out.
-  const checklistDone = checklistItems.filter((i) => i.done).length;
-  const stripChips: StripChip[] = [
-    ...(logGate.active
-      ? [
-          {
-            id: "log-due",
-            eyebrow: "Due",
-            title: "Your weekly Learning Log is due",
-            detail: "Save it below and everything unlocks.",
-            href: "#learning-log",
-            hashLink: true,
-            tone: "urgent" as const,
-          },
-        ]
-      : []),
-    ...(pendingBaseline && !logGate.active
-      ? [
-          {
-            id: "baseline",
-            eyebrow: "Start here",
-            title: "Complete your Cycle onboarding Learning Log",
-            href: "#learning-log",
-            hashLink: true,
-            tone: "teal" as const,
-          },
-        ]
-      : []),
-    ...(registerCycle && regOpen && !registerDone
-      ? [
-          {
-            id: "register",
-            title: `Register for ${registerCycle.name}`,
-            detail:
-              onboarding && upcomingCycle
-                ? "Pre-register now to claim your spot."
-                : "Complete this form to join the cycle.",
-            href: `/cycles/${registerCycle.id}/join`,
-          },
-        ]
-      : []),
-    ...upNextTodos.map((t) => ({
-      id: t.id,
-      title: t.title,
-      detail: t.detail,
-      href: t.href,
-      dismissible: true,
-    })),
-    ...(checklistItems.length > 0 && checklistDone < checklistItems.length
-      ? [
-          {
-            id: "setup",
-            title: `Finish setup · ${checklistDone}/${checklistItems.length}`,
-            detail: "A few steps left to get fully set up.",
-            href: "#dash-setup",
-            hashLink: true,
-          },
-        ]
-      : []),
-    ...(leadershipCardScopes.some((s) => !s.submittedThisWeek)
-      ? [
-          {
-            id: "leadership",
-            eyebrow: "Leadership",
-            title: "Write your Leadership Log",
-            detail: "Your weekly team reflection.",
-            href: "#leadership-log",
-            hashLink: true,
-          },
-        ]
-      : []),
-  ];
-
   // Phone-only tail of the deferred task group: people discovery (moved from
   // above the composer — LinkedIn puts it after the feed) and the network row,
   // since hiding the left rail removed ProfileMiniCard's Following link — the
@@ -864,13 +608,34 @@ export default async function DashboardPage() {
     </div>
   );
 
-  // The center column's shared scaffold. DOM order (= desktop and tablet
-  // visual order) keeps tasks above the feed; on phones a mobile-only flex on
-  // .dash-center (globals.css) sends .dash-defer below the feed, so the strip
+  // While the checklist has unfinished trackable rows it stays PINNED to
+  // the top of the center column — above the queue, above the feed, on
+  // every breakpoint (the original "checklist first" owner decision). Once
+  // everything is done it moves down into the deferred task group as the
+  // collapsed strip.
+  const checklistIncomplete = taskData.checklist.some(
+    (t) => !t.done && !t.advisory
+  );
+  const checklistBlock = (
+    <div id="dash-setup" className="scroll-mt-24">
+      <ChecklistCard items={taskData.checklist} />
+    </div>
+  );
+
+  // The center column's shared scaffold. The Up-next queue (TaskList — the
+  // same component on every breakpoint: snap strip on phones, 2-col grid on
+  // md+) leads the column everywhere, behind only an unfinished checklist.
+  // DOM order (= desktop and tablet visual order) keeps the rest of the
+  // task group above the feed; on phones a mobile-only flex on .dash-center
+  // (globals.css) sends .dash-defer below the feed, so the pinned blocks
   // and the composer lead — the LinkedIn feed-first posture.
   const centerColumn = (tasks: ReactNode, feed: ReactNode) => (
     <div className="dash-center">
-      <MobileUpNextStrip chips={stripChips} />
+      {checklistIncomplete && checklistBlock}
+      <TaskList
+        tasks={taskData.queue}
+        activeCycleId={activeCycle?.id ?? null}
+      />
       <div className="dash-defer max-md:mt-8">
         {tasks}
         {mobileDeferExtras}
@@ -945,8 +710,8 @@ export default async function DashboardPage() {
                       {cycle.name}
                     </span>
                     <span className="mt-0.5 block text-xs text-meta">
-                      {new Date(cycle.start_date).toLocaleDateString()} &ndash;{" "}
-                      {new Date(cycle.end_date).toLocaleDateString()}
+                      {fmtDateOnly(cycle.start_date)} &ndash;{" "}
+                      {fmtDateOnly(cycle.end_date)}
                     </span>
                   </span>
                   <StatusBadge variant={variant}>{cycle.status}</StatusBadge>
@@ -1037,20 +802,12 @@ export default async function DashboardPage() {
               {/* Org-only staff lead with their actual work; the cohort join CTA
                   is for the participant pipeline they're not in. */}
               {orgActive && workstreamsSection}
-              <div id="dash-setup" className="scroll-mt-24">
-                <SetupChecklist items={checklistItems} />
-              </div>
-              {!orgActive &&
-                (upcomingCycle
-                  ? preRegisteredUpcoming
-                    ? preRegisteredCard(upcomingCycle)
-                    : regOpen
-                      ? joinCycleCard(upcomingCycle, true)
-                      : registrationClosedCard(upcomingCycle)
-                  : regOpen
-                    ? joinCycleCard(activeCycle, false)
-                    : registrationClosedCard(activeCycle))}
-              {logDueBanner}
+              {/* An unfinished checklist is pinned above the queue (in
+                  centerColumn); once complete its collapsed strip settles
+                  here. The actionable register path is a queue task — only
+                  the pre-registered / closed confirmations render as cards. */}
+              {!checklistIncomplete && checklistBlock}
+              {!orgActive && registerCycle && registerStateCard(registerCycle)}
               {leadershipSection}
             </>,
             feedFor(!orgActive)
@@ -1085,20 +842,10 @@ export default async function DashboardPage() {
           {centerColumn(
             <>
               {orgActive && workstreamsSection}
-              {checklistItems.length > 0 && (
-                <div id="dash-setup" className="scroll-mt-24">
-                  <SetupChecklist items={checklistItems} />
-                </div>
-              )}
+              {!checklistIncomplete && checklistBlock}
               {!orgActive &&
                 (upcomingCycle ? (
-                  preRegisteredUpcoming ? (
-                    preRegisteredCard(upcomingCycle)
-                  ) : regOpen ? (
-                    joinCycleCard(upcomingCycle, true)
-                  ) : (
-                    registrationClosedCard(upcomingCycle)
-                  )
+                  registerStateCard(upcomingCycle)
                 ) : (
                   <EmptyState
                     icon={Calendar}
@@ -1106,7 +853,6 @@ export default async function DashboardPage() {
                     description="Check back soon for the next Build Cycle."
                   />
                 ))}
-              {logDueBanner}
               {leadershipSection}
             </>,
             feedFor(!orgActive)
@@ -1119,45 +865,8 @@ export default async function DashboardPage() {
   }
 
   // Engaged state: user has a cycle_enrollments row — full dashboard chrome.
-  // (checklistItems and upNextTodos are built above the early returns so they
-  // render in every state.)
-
-  // The per-week "What's next" nudge (weekly_messages — program-global, the
-  // cycle only supplies which week it is) — surfaced only once the member has
-  // actually logged this cycle week, and only for a live open cycle inside
-  // its wk0→wk12 calendar. Both reads stay behind the guard so non-active
-  // states pay nothing. Mirrors the POST route's selection.
-  let whatsNext: { cycleId: number; week: number; message: string } | null =
-    null;
-  if (
-    state === "active" &&
-    activeCycle &&
-    activeCycle.mode === "open" &&
-    activeCycle.start_date &&
-    activeCycle.end_date
-  ) {
-    const start = new Date(activeCycle.start_date);
-    const end = new Date(activeCycle.end_date);
-    const week = getCycleWeek(new Date(), start, end);
-    if (week >= 0 && week <= 12) {
-      const [{ data: weekMsg }, { count: weekLogCount }] = await Promise.all([
-        serviceClient
-          .from("weekly_messages")
-          .select("message")
-          .eq("week", week)
-          .maybeSingle(),
-        serviceClient
-          .from("learning_logs")
-          .select("id", { head: true, count: "exact" })
-          .eq("participant_id", participant.id)
-          .eq("cycle_id", activeCycle.id)
-          .gte("created_at", getCycleWeekStart(week, start, end).toISOString()),
-      ]);
-      if (weekMsg?.message && (weekLogCount ?? 0) > 0) {
-        whatsNext = { cycleId: activeCycle.id, week, message: weekMsg.message };
-      }
-    }
-  }
+  // (The task queue — incl. the per-week "What's next" nudge — is assembled
+  // above the early returns so it renders in every state.)
 
   // Hero copy + at-a-glance stats — the identity band adapts to the state.
   const heroLede = logGate.active
@@ -1175,12 +884,6 @@ export default async function DashboardPage() {
           { value: myPods.length, label: myPods.length === 1 ? "Pod" : "Pods" },
         ]
       : [];
-
-  // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
-  // default 1). The dashboard is optimized for the one-pod case but honors a
-  // higher limit if an admin raises it.
-  const podLimit =
-    (activeCycleConfig as { pod_limit?: number } | null)?.pod_limit ?? 1;
 
   const podRegOpen =
     (state === "interest_submitted_window_open" || state === "active") &&
@@ -1213,20 +916,11 @@ export default async function DashboardPage() {
         {/* CENTER — what to do now, then the community feed */}
         {centerColumn(
           <>
-            {/* Setup leads — the checklist stays pinned to the top of the column
-                while it has open items; collapses to a strip once done. */}
-            {checklistItems.length > 0 && (
-              <div id="dash-setup" className="scroll-mt-24">
-                <SetupChecklist items={checklistItems} />
-              </div>
-            )}
-
-            {/* The Learning Log lives in the feed composer at the top of the
-                feed. When the weekly gate is active the layout bounces the
-                member here and locks the app until they log, so surface a
-                jump-link banner up top that scrolls to the composer and opens
-                the Learning Log tab. */}
-            {logDueBanner}
+            {/* An unfinished checklist is pinned above the queue (in
+                centerColumn); once complete its collapsed strip settles
+                here. The gate banner, the window cards, and the weekly
+                nudge all live in the queue — one surface per fact. */}
+            {!checklistIncomplete && checklistBlock}
             {leadershipSection}
 
             {/* Interest submitted, pod window not yet open */}
@@ -1250,24 +944,6 @@ export default async function DashboardPage() {
                 participantId={participant.id}
                 myPodIds={myPods.map((m) => m.pod_id)}
                 podLimit={podLimit}
-              />
-            )}
-
-            {/* Up next — dismissible action cards for the currently-open
-                windows. Desktop-only: the strip's dismissible chips replicate
-                these 1:1 on phones (same ids, same localStorage store). */}
-            {upNextTodos.length > 0 && (
-              <div className="hidden md:block">
-                <UpNext todos={upNextTodos} />
-              </div>
-            )}
-
-            {/* This week's "What's next" nudge — shown once they've logged. */}
-            {whatsNext && (
-              <WhatsNextCard
-                cycleId={whatsNext.cycleId}
-                week={whatsNext.week}
-                message={whatsNext.message}
               />
             )}
 

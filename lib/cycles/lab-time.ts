@@ -142,3 +142,19 @@ export function fmtLabDate(value: string | null | undefined): string {
     day: "numeric",
   }).format(d);
 }
+
+/** "Jun 2, 2026" — for DATE columns (cycles.start_date/end_date), which are
+    calendar dates with no instant semantics. Formatted in UTC so the date
+    never shifts by the viewer's timezone (a bare toLocaleDateString parses
+    "2026-06-02" as UTC midnight and can render Jun 1 in the Americas). */
+export function fmtDateOnly(value: string | null | undefined): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(d);
+}

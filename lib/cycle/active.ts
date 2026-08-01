@@ -103,6 +103,44 @@ export async function getOrgCycle(
    The metroId parameter is kept so call sites stay explicit about having
    thought of labs, but it no longer changes the open-track answer. */
 
+/** The minimal cycle shape the pure selector reads. */
+export interface SelectableCycle {
+  status: string;
+  mode: string;
+  lab_id: number | null;
+}
+
+/**
+ * Pure member-facing cycle selection over an already-fetched cycles list
+ * (start_date descending, the dashboard/cycles-page query order): the
+ * active open (HQ) cycle, the newest upcoming open cycle (the register
+ * target), and the running org cycle (the member's lab's own internal
+ * track when they have one, else HQ's). Extracted from the dashboard's
+ * inline pickCycle so pages that already hold the list stop re-deriving
+ * this filter by hand.
+ */
+export function selectMemberCycles<T extends SelectableCycle>(
+  cycles: T[] | null | undefined,
+  memberLabId: number | null
+): { activeCycle: T | null; upcomingCycle: T | null; orgCycle: T | null } {
+  const pick = (status: string, mode: string): T | null =>
+    (mode === "org" && memberLabId !== null
+      ? cycles?.find(
+          (c) => c.status === status && c.mode === mode && c.lab_id === memberLabId
+        )
+      : null) ??
+    cycles?.find(
+      (c) => c.status === status && c.mode === mode && c.lab_id === null
+    ) ??
+    null;
+
+  return {
+    activeCycle: pick("active", "open"),
+    upcomingCycle: pick("upcoming", "open"),
+    orgCycle: pick("active", "org"),
+  };
+}
+
 export async function getMemberOperatingCycle(
   supabase: SupabaseClient,
   metroId: number | null

@@ -25,6 +25,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/server";
 import { parseWindow } from "@/lib/cycles/lab-time";
+import { CYCLE_WINDOWS } from "@/lib/cycles/windows";
 
 export type PhaseKey =
   | "problem_statement"
@@ -61,14 +62,16 @@ export interface ScheduleConfig {
   phase_3_start?: string | null;
 }
 
-const SPINE: { key: PhaseKey; position: number; open: keyof ScheduleConfig; close: keyof ScheduleConfig }[] = [
-  { key: "problem_statement", position: 1, open: "problem_statement_open", close: "problem_statement_close" },
-  { key: "voting", position: 2, open: "voting_open", close: "voting_close" },
-  { key: "pod_forming", position: 3, open: "pod_registration_open", close: "pod_registration_close" },
-  { key: "solution_proposal", position: 4, open: "solution_proposal_open", close: "solution_proposal_close" },
-  { key: "solution_voting", position: 5, open: "solution_voting_open", close: "solution_voting_close" },
-  { key: "project_registration", position: 6, open: "project_registration_open", close: "project_registration_close" },
-];
+// Re-derived from the canonical window registry (lib/cycles/windows.ts) —
+// same six rows the previous literal carried, now impossible to drift from
+// the registry's field/phase mapping.
+const SPINE: { key: PhaseKey; position: number; open: keyof ScheduleConfig; close: keyof ScheduleConfig }[] =
+  CYCLE_WINDOWS.map((w) => ({
+    key: w.phaseKey,
+    position: w.position,
+    open: w.openField as keyof ScheduleConfig,
+    close: w.closeField as keyof ScheduleConfig,
+  }));
 
 /**
  * Pure: derive the full phase-row set from a cycle_config shape. Pairs with
