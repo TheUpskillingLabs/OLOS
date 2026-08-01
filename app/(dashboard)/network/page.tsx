@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/app/components/ui";
 import FollowButton from "@/app/components/follow-button";
+import { effectiveUser } from "@/lib/auth/simulation";
 import {
   getFollowedParticipantIds,
   getFollowedPages,
@@ -23,10 +24,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function NetworkPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
   if (!user) redirect("/login");
 
   const service = createServiceClient();

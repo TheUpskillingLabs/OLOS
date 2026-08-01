@@ -2,9 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { fetchDirectoryData } from "@/lib/directory/data";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import DirectorySearch from "./directory-search";
 import PeopleYouMayKnow from "../people-you-may-know";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 /**
  * /directory — the community directory (roadmap Phase 2). Members-only: the
@@ -31,10 +32,7 @@ export default async function DirectoryPage() {
   let viewerId: number | null = null;
   let viewerMetroId: number | null = null;
   {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await effectiveUser();
     if (user) {
       const service = createServiceClient();
       const { data: me } = await service

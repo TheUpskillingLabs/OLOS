@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import VoteBallot from "./vote-ballot";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 export default async function VotePage({
   params,
@@ -43,9 +44,7 @@ export default async function VotePage({
   // (app/api/votes/route.ts) makes the same determination when a vote is
   // cast; resolving it here too lets the ballot show the right budget from
   // the first render instead of defaulting to the non-submitter value.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   let isSubmitter = false;
   if (user) {

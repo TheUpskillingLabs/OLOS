@@ -1,5 +1,6 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles } from "@/lib/auth/roles";
+import { effectiveUser } from "@/lib/auth/simulation";
 import { isFollowing } from "@/lib/follows/data";
 import {
   isPageAdmin,
@@ -33,9 +34,15 @@ export async function resolvePageContext(
   };
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // The viewer these pages render for, which is the simulated member while a
+  // "View as" session is running (lib/auth/simulation.ts). Follow state, the
+  // composer identity and the manage panel all hang off this, so leaving it on
+  // the real user would show the admin's own follow/manage state inside an
+  // otherwise-simulated pod or project page. Nothing here authorizes a write:
+  // `isPageAdmin` only decides whether the manage UI renders, the simulated
+  // target can never hold an admin role, and every mutation is blocked while
+  // the cookie is set.
+  const user = await effectiveUser();
   if (!user) return empty;
 
   const service = createServiceClient();

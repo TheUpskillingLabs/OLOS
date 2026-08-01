@@ -2,6 +2,7 @@ import Link from "next/link";
 import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ArrowRight } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { effectiveUser } from "@/lib/auth/simulation";
 import { notFound } from "next/navigation";
 import PodRegistration from "./pod-registration";
 
@@ -14,13 +15,13 @@ export default async function RegisterPodsPage({
   const cycleId = parseInt(cycle_id, 10);
   const supabase = await createClient();
 
-  const [{ data: cycle }, { data: config }, { data: { user } }] = await Promise.all([
+  const [{ data: cycle }, { data: config }, user] = await Promise.all([
     supabase.from("cycles").select("id, name, status").eq("id", cycleId).single(),
     // maybeSingle: a cycle with no cycle_config row is a real production
     // state (config is seeded by hand) — .single() errors instead of
     // reading as a closed window (vibe-scan PP6, matching propose/vote).
     createServiceClient().from("cycle_config").select("pod_registration_open, pod_registration_close, pod_limit").eq("cycle_id", cycleId).maybeSingle(),
-    supabase.auth.getUser(),
+    effectiveUser(),
   ]);
 
   if (!cycle) notFound();

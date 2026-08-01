@@ -8,22 +8,12 @@
 // app/(dashboard)/admin/layout.tsx) so every admin page — not just the
 // explorer — carries the warning.
 
-/** OLOS production Supabase project ref. */
-const PROD_PROJECT_REF = "cdbgkgkjnomjnpicaxqe";
-
-/** Extract the project ref from a Supabase URL, e.g. https://<ref>.supabase.co. */
-function projectRef(url: string | undefined): string {
-  if (!url) return "unknown";
-  const match = url.match(/^https?:\/\/([^.]+)\./);
-  return match ? match[1] : "unknown";
-}
+import { isProdProject, projectRef } from "@/lib/env/project";
 
 export function EnvBanner() {
   const ref = projectRef(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const isProd =
-    ref === PROD_PROJECT_REF || process.env.VERCEL_ENV === "production";
 
-  if (isProd) {
+  if (isProdProject()) {
     return (
       <div
         role="status"

@@ -13,6 +13,7 @@ import { ContactsDownloadButton } from "@/app/components/contacts-download-butto
 import ContributorsSection from "./contributors-section";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 // Matches projects_status_check (00037): forming/active/inactive.
 type ProjectStatus = "active" | "forming" | "inactive";
@@ -35,9 +36,7 @@ export default async function ProjectDetailPage({
   const supabase = await createClient();
   const serviceClient = createServiceClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   const projectId = parseInt(project_id);
 

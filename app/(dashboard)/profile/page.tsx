@@ -1,14 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import MemberProfileView from "./member-profile-view";
 import UpdatesFeed from "../directory/updates-feed";
 import { metroLabel } from "@/lib/metros-label";
+import { effectiveUser } from "@/lib/auth/simulation";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await effectiveUser();
 
   if (!user) {
     redirect("/login");
