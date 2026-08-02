@@ -269,9 +269,9 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
           <div>
             <ManagedTooltip
               tooltipKey="pod_health_indicator"
-              content="Count of active pod members who haven't submitted this week's pulse. Banded into healthy / warning / critical by cycle-configurable thresholds."
+              content="Count of active pod members who haven't filed this week's Learning Log. Banded into healthy / warning / critical by cycle-configurable thresholds."
             >
-              <div className="mb-1 text-xs text-meta">Pulse this week</div>
+              <div className="mb-1 text-xs text-meta">Logs this week</div>
             </ManagedTooltip>
             <div className="flex items-baseline gap-1.5">
               <span
@@ -325,7 +325,7 @@ function AtRiskSection({
           At-risk · needs attention
         </h2>
         <span className="text-xs text-meta">
-          {threshold}-pulse miss threshold
+          {threshold}-log miss threshold
         </span>
       </div>
       <div className="space-y-3">
@@ -353,7 +353,7 @@ function AtRiskCard({
 }) {
   const lastActiveCopy = member.last_activity_at
     ? `last active ${daysAgo(member.last_activity_at)} days ago`
-    : "no pulse activity yet";
+    : "no log activity yet";
   return (
     <div className="rounded-card border border-red/25 bg-red/[0.04] p-4">
       <div className="flex items-start gap-4">
@@ -380,7 +380,7 @@ function AtRiskCard({
               tooltipKey="at_risk_nudge_type"
               content="At-risk nudge: fires when a member misses the configured consecutive-miss threshold. System flags only — you follow up via Slack or email."
             >
-              <span className="font-medium">Missed consecutive pulses</span>
+              <span className="font-medium">Missed consecutive Learning Logs</span>
             </ManagedTooltip>
             <span className="text-meta-soft">·</span>
             <span className="text-meta">{lastActiveCopy}</span>

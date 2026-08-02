@@ -224,8 +224,8 @@ async function run() {
     .select("participant_id, status")
     .eq("cycle_id", cycle.id);
   check(
-    "enrollments default to 'inactive' (self-service pre-pod state)",
-    enrollments.length === 6 && enrollments.every((e) => e.status === "inactive"),
+    "enrollments default to 'registered' (self-service pre-pod state)",
+    enrollments.length === 6 && enrollments.every((e) => e.status === "registered"),
     JSON.stringify(enrollments)
   );
 
@@ -390,10 +390,10 @@ async function run() {
     [0, 1, 2].every((i) => statusOf(i) === "active")
   );
   check(
-    "pod B members (under-min) still 'inactive'",
-    [3, 4].every((i) => statusOf(i) === "inactive")
+    "pod B members (under-min) still 'registered'",
+    [3, 4].every((i) => statusOf(i) === "registered")
   );
-  check("never-joined participant still 'inactive'", statusOf(5) === "inactive");
+  check("never-joined participant still 'registered'", statusOf(5) === "registered");
 
   // -- 7. Admin force-activate the under-min pod --------------------------
   step("7. Force-activate pod B (admin PATCH semantics) + reconcile");

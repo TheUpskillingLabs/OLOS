@@ -39,11 +39,13 @@ export type ParticipantRow = {
   pods: number[];
   roles: string[];
   // True when an access_revocations row exists for this (participant, cycle).
-  // Combined with status='inactive', has_revocation=false identifies
-  // 'stuck inactive' participants — never legitimately revoked, just
-  // never activated in the first place (architecture review broken edge
-  // #15). The participants-table filter uses this to surface them.
   has_revocation: boolean;
+  // True when the participant holds an active pod membership in a pod that is
+  // itself status='active'. Combined with status='registered', this identifies
+  // 'stuck registered' participants — they should be 'active' but the
+  // reconciler never fired (architecture review broken edge #15). The
+  // participants-table filter surfaces them and offers a Run-reconciler fix.
+  has_active_pod: boolean;
 };
 
 export default async function AdminCycleDetailPage({
@@ -114,6 +116,12 @@ export default async function AdminCycleDetailPage({
     (podsByParticipant[m.participant_id] ??= []).push(m.pod_id);
   }
 
+  // Pods that are themselves status='active' — used to flag 'stuck registered'
+  // members (an active pod membership but still status='registered').
+  const activePodIds = new Set(
+    (pods ?? []).filter((p) => p.status === "active").map((p) => p.id)
+  );
+
   // Fetch moderator assignments for all pods in this cycle
   const { data: modAssignments } = podIds.length
     ? await serviceClient
@@ -176,10 +184,16 @@ export default async function AdminCycleDetailPage({
       pods: podsByParticipant[e.participant_id] ?? [],
       roles: rolesByParticipant[e.participant_id] ?? [],
       has_revocation: revokedParticipantIds.has(e.participant_id),
+      has_active_pod: (podsByParticipant[e.participant_id] ?? []).some((pid) =>
+        activePodIds.has(pid)
+      ),
     };
   });
 
   const activeCount = participants.filter((p) => p.status === "active").length;
+  const registeredCount = participants.filter(
+    (p) => p.status === "registered"
+  ).length;
 
   // Participant list for the moderator + add-member dropdowns.
   const participantOptions = participants.map((p) => ({
@@ -314,6 +328,13 @@ export default async function AdminCycleDetailPage({
         <StatCard
           label="Active"
           value={<span className="text-teal-deep">{activeCount}</span>}
+          sublabel={
+            isOrg ? undefined : (
+              <span className="text-meta">
+                {registeredCount} registered (pre-pod)
+              </span>
+            )
+          }
         />
         <StatCard label={podNoun(cycle.mode, true)} value={pods?.length ?? 0} />
       </div>

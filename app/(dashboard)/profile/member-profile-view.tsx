@@ -250,7 +250,15 @@ export default function MemberProfileView({
                       {e.cycle_name || `Cycle ${e.cycle_id}`}
                     </span>
                     <StatusBadge
-                      variant={e.status === "active" ? "active" : "inactive"}
+                      variant={
+                        e.status === "active"
+                          ? "active"
+                          : e.status === "registered"
+                            ? "forming"
+                            : e.status === "revoked"
+                              ? "revoked"
+                              : "inactive"
+                      }
                     >
                       {e.status}
                     </StatusBadge>
