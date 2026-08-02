@@ -36,13 +36,16 @@ export const POST = withAdminAuth(
     // Cycle calendar (for weekly-window reconstruction) + gate-pause holiday
     // toggle + miss threshold. Without both date bounds there's no cadence to
     // measure; a paused gate exempts the whole cohort.
-    const { data: cycle } = await auth.supabase
+    const { data: cycle, error: cycleError } = await auth.supabase
       .from("cycles")
       .select(
         "start_date, end_date, cycle_config(at_risk_consecutive_misses, log_gate_paused, log_due_at)"
       )
       .eq("id", cycleId)
       .maybeSingle();
+    if (cycleError) {
+      console.error(`[revocations/check] cycle query failed: ${cycleError.message}`);
+    }
     const config = Array.isArray(cycle?.cycle_config)
       ? cycle?.cycle_config[0]
       : cycle?.cycle_config;
@@ -61,11 +64,14 @@ export const POST = withAdminAuth(
     const missThreshold = config?.at_risk_consecutive_misses ?? 2;
 
     // Get all active enrollees. enrolled_at is half of each member's floor.
-    const { data: enrollments } = await auth.supabase
+    const { data: enrollments, error: enrollmentsError } = await auth.supabase
       .from("cycle_enrollments")
       .select("participant_id, enrolled_at")
       .eq("cycle_id", cycleId)
       .eq("status", "active");
+    if (enrollmentsError) {
+      console.error(`[revocations/check] enrollments query failed: ${enrollmentsError.message}`);
+    }
 
     if (!enrollments || enrollments.length === 0) {
       return NextResponse.json({ transitioned_to_inactive: [] });

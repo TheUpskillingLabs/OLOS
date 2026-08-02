@@ -195,7 +195,9 @@ export async function GET(request: NextRequest) {
     // email, current warning state, and role list (for admin exemption).
     // user_roles is filtered to non-revoked rows in the JS layer below;
     // an empty roles array means the participant has no special privileges.
-    const { data: enrollments } = await supabase
+    // user_roles has TWO FKs to participants (participant_id, granted_by), so
+    // the embed must name its relationship or PostgREST rejects it (PGRST201).
+    const { data: enrollments, error: enrollmentsError } = await supabase
       .from("cycle_enrollments")
       .select(
         `participant_id,
@@ -203,10 +205,16 @@ export async function GET(request: NextRequest) {
          warned_at,
          warning_reason,
          participants:participant_id(id, email, first_name, preferred_name,
-           user_roles(role, revoked_at))`
+           user_roles!user_roles_participant_id_fkey(role, revoked_at))`
       )
       .eq("cycle_id", cycleId)
       .eq("status", "active");
+    if (enrollmentsError) {
+      console.error(
+        `[revocation-check] enrollments query failed cycle_id=${cycleId}: ${enrollmentsError.message}`
+      );
+      continue;
+    }
 
     for (const enrollment of enrollments ?? []) {
       const pid = enrollment.participant_id;
