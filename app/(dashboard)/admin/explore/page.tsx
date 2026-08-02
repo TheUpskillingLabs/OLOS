@@ -14,6 +14,7 @@ import { fetchEntityList } from "@/lib/entity-explorer/fetch";
 import { isEntityKey } from "@/lib/entity-explorer/registry";
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import type { EntityKey } from "@/lib/entity-explorer/types";
+import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
 import { Breadcrumbs } from "./breadcrumbs";
 import { EntityPicker, type CycleOption } from "./entity-picker";
 import { EntityTable } from "./entity-table";
@@ -58,6 +59,13 @@ export default async function ExplorePage({
     name: (c.name as string) ?? `Cycle ${c.id}`,
   }));
 
+  // CSV of the CURRENT filters (entity + cycle + deleted), all pages, capped —
+  // served by /api/admin/explore/export, which re-checks admin + the flag.
+  const csvParams = new URLSearchParams({ entity });
+  if (cycleId != null) csvParams.set("cycle", String(cycleId));
+  if (includeDeleted) csvParams.set("deleted", "1");
+  const csvHref = `/api/admin/explore/export?${csvParams.toString()}`;
+
   return (
     <div>
       <Breadcrumbs
@@ -82,6 +90,10 @@ export default async function ExplorePage({
         cycleId={cycleId}
         includeDeleted={includeDeleted}
       />
+
+      <div className="mb-3 flex justify-end">
+        <ContactsDownloadButton href={csvHref} label="Download CSV" />
+      </div>
 
       <EntityTable result={result} cycleId={cycleId} includeDeleted={includeDeleted} />
     </div>

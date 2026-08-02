@@ -6,7 +6,28 @@
 
 import Link from "next/link";
 import { StatusBadge } from "@/app/components/ui";
-import type { EntityConfig, EntityRow } from "@/lib/entity-explorer/types";
+import type { EntityConfig, EntityKey, EntityRow } from "@/lib/entity-explorer/types";
+
+/**
+ * Where detail links point and which entities may be linked at all. The admin
+ * surface links everything under /admin/explore; the pod-scoped poderator
+ * surface links only its allowlisted entities under
+ * /moderator/pods/[pod_id]/explore — an FK to a non-allowlisted entity (e.g.
+ * cycle_id → cycles) renders as its plain label, no link. The detail routes
+ * re-check scope server-side, so an unlinked (or hand-typed) id can't leak.
+ */
+export interface LinkContext {
+  /** Route prefix detail links hang off, e.g. "/admin/explore". */
+  basePath: string;
+  /** When set, only these entities render as links. Absent = link everything. */
+  entities?: EntityKey[];
+}
+
+export const ADMIN_LINK_CTX: LinkContext = { basePath: "/admin/explore" };
+
+function canLink(ctx: LinkContext, entity: EntityKey): boolean {
+  return ctx.entities == null || ctx.entities.includes(entity);
+}
 
 type BadgeVariant = "active" | "forming" | "inactive" | "draft" | "revoked";
 
@@ -26,8 +47,12 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
   revoked: "revoked",
 };
 
-export function detailHref(entity: string, id: number | string): string {
-  return `/admin/explore/${entity}/${id}`;
+export function detailHref(
+  ctx: LinkContext,
+  entity: string,
+  id: number | string,
+): string {
+  return `${ctx.basePath}/${entity}/${id}`;
 }
 
 export function formatDate(value: unknown): string {
@@ -53,6 +78,7 @@ export function renderCell(
   row: EntityRow,
   config: EntityConfig,
   foreignKeyLabels: Record<string, Record<string, string>>,
+  ctx: LinkContext = ADMIN_LINK_CTX,
 ): React.ReactNode {
   const value = row[column];
 
@@ -60,9 +86,12 @@ export function renderCell(
   const fk = config.foreignKeys.find((f) => f.column === column);
   if (fk && value != null) {
     const label = foreignKeyLabels[column]?.[String(value)] ?? `#${String(value)}`;
+    if (!canLink(ctx, fk.target)) {
+      return <span className="font-medium text-charcoal">{label}</span>;
+    }
     return (
       <Link
-        href={detailHref(fk.target, value as number | string)}
+        href={detailHref(ctx, fk.target, value as number | string)}
         className="font-medium text-teal-deep underline decoration-dotted underline-offset-2 transition hover:decoration-solid hover:brightness-110"
       >
         {label}
@@ -97,9 +126,12 @@ export function renderCell(
 
   // The primary key → link to this row's own detail view.
   if (column === "id") {
+    if (!canLink(ctx, config.key)) {
+      return <span className="font-mono text-xs text-charcoal">{String(value)}</span>;
+    }
     return (
       <Link
-        href={detailHref(config.key, value as number | string)}
+        href={detailHref(ctx, config.key, value as number | string)}
         className="font-mono text-xs text-teal-deep transition hover:brightness-110"
       >
         {String(value)}

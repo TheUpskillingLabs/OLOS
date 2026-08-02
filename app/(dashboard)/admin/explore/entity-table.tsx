@@ -7,9 +7,10 @@
 
 import Link from "next/link";
 import type { FetchListResult } from "@/lib/entity-explorer/types";
-import { isRowDeleted, renderCell } from "./cells";
+import { ADMIN_LINK_CTX, isRowDeleted, renderCell, type LinkContext } from "./cells";
 
 function pagerHref(
+  basePath: string,
   entity: string,
   cycleId: number | null,
   includeDeleted: boolean,
@@ -18,17 +19,20 @@ function pagerHref(
   const params = new URLSearchParams({ entity, page: String(page) });
   if (cycleId != null) params.set("cycle", String(cycleId));
   if (includeDeleted) params.set("deleted", "1");
-  return `/admin/explore?${params.toString()}`;
+  return `${basePath}?${params.toString()}`;
 }
 
 export function EntityTable({
   result,
   cycleId,
   includeDeleted,
+  ctx = ADMIN_LINK_CTX,
 }: {
   result: FetchListResult;
   cycleId: number | null;
   includeDeleted: boolean;
+  /** Link base + entity-link allowlist; defaults to the admin surface. */
+  ctx?: LinkContext;
 }) {
   const { config, rows, page, pageSize, total, foreignKeyLabels } = result;
 
@@ -78,7 +82,7 @@ export function EntityTable({
                       key={c}
                       className={`px-4 py-3 align-top ${ci === 0 && deleted ? "border-l-2 border-red" : ""}`}
                     >
-                      {renderCell(c, row, config, foreignKeyLabels)}
+                      {renderCell(c, row, config, foreignKeyLabels, ctx)}
                     </td>
                   ))}
                 </tr>
@@ -103,13 +107,13 @@ export function EntityTable({
         <span>{pageSize} rows / page</span>
         <div className="flex gap-2">
           <PagerButton
-            href={pagerHref(config.key, cycleId, includeDeleted, page - 1)}
+            href={pagerHref(ctx.basePath, config.key, cycleId, includeDeleted, page - 1)}
             enabled={hasPrev}
           >
             ← Prev
           </PagerButton>
           <PagerButton
-            href={pagerHref(config.key, cycleId, includeDeleted, page + 1)}
+            href={pagerHref(ctx.basePath, config.key, cycleId, includeDeleted, page + 1)}
             enabled={hasNext}
           >
             Next →
