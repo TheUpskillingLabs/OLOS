@@ -23,6 +23,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "name", "slug", "status", "start_date", "end_date"],
     labelField: "name",
     cycleScoped: false,
+    podScope: null,
     softDelete: null,
     foreignKeys: [],
     defaultSort: { column: "id", direction: "desc" },
@@ -40,6 +41,10 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "preferred_name", "email", "google_id", "created_at"],
     labelField: "preferred_name",
     cycleScoped: false,
+    // Pod scope = the pod's (active-membership) roster. Emails ARE shown to the
+    // pod's poderator here — same contact data the pod contacts export already
+    // hands them (app/api/pods/[pod_id]/contacts/export).
+    podScope: { kind: "lookup", column: "id", via: { entity: "pod_memberships", select: "participant_id" } },
     softDelete: null,
     foreignKeys: [],
     defaultSort: { column: "created_at", direction: "desc" },
@@ -65,6 +70,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "participant_id", "cycle_id", "status", "enrolled_at"],
     labelField: "id",
     cycleScoped: true,
+    podScope: null,
     // NOTE: soft delete here is the `status` flag, not a NULL-able timestamp.
     // 'revoked' is treated as deleted (hidden by default, shown via the toggle);
     // 'active' and 'inactive' stay visible — 'inactive' is the column default for
@@ -87,6 +93,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "statement_text", "participant_id", "cycle_id", "created_at"],
     labelField: "statement_text",
     cycleScoped: true,
+    podScope: null,
     softDelete: null,
     foreignKeys: [
       { column: "participant_id", target: "participants" },
@@ -109,6 +116,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "problem_statement_id", "vote_count", "created_at"],
     labelField: "id",
     cycleScoped: true,
+    podScope: null,
     softDelete: null,
     foreignKeys: [
       { column: "problem_statement_id", target: "problem_statements" },
@@ -127,6 +135,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "name", "status", "cycle_id", "created_at"],
     labelField: "name",
     cycleScoped: true,
+    podScope: { kind: "self" },
     softDelete: null,
     foreignKeys: [{ column: "cycle_id", target: "cycles" }],
     defaultSort: { column: "created_at", direction: "desc" },
@@ -149,6 +158,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "participant_id", "pod_id", "joined_at", "inactive_at"],
     labelField: "id",
     cycleScoped: false,
+    podScope: { kind: "column", column: "pod_id" },
     softDelete: { kind: "timestamp", column: "inactive_at" },
     foreignKeys: [
       { column: "participant_id", target: "participants" },
@@ -165,6 +175,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "participant_id", "pod_id", "cycle_id", "assigned_at", "removed_at"],
     labelField: "id",
     cycleScoped: true,
+    podScope: { kind: "column", column: "pod_id" },
     softDelete: { kind: "timestamp", column: "removed_at" },
     foreignKeys: [
       { column: "participant_id", target: "participants" },
@@ -184,6 +195,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "name", "pod_id", "participant_id", "proposal_data", "created_at"],
     labelField: "name",
     cycleScoped: true,
+    podScope: { kind: "column", column: "pod_id" },
     softDelete: null,
     foreignKeys: [
       { column: "cycle_id", target: "cycles" },
@@ -203,6 +215,9 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "solution_proposal_id", "vote_count", "created_at"],
     labelField: "id",
     cycleScoped: true,
+    // podScope uses the table's pod_id column (present per migration 00001;
+    // deliberately not displayed — see the voter-anonymity NOTE above).
+    podScope: { kind: "column", column: "pod_id" },
     softDelete: null,
     foreignKeys: [
       { column: "solution_proposal_id", target: "solution_proposals" },
@@ -219,6 +234,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "name", "pod_id", "solution_proposal_id", "status", "cycle_id", "created_at"],
     labelField: "name",
     cycleScoped: true,
+    podScope: { kind: "column", column: "pod_id" },
     softDelete: null,
     foreignKeys: [
       { column: "cycle_id", target: "cycles" },
@@ -243,6 +259,8 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // table DOES have `cycle_id` and `left_at` (migration 00001). Both are honored
     // here so the cycle filter and show-deleted toggle work as elsewhere.
     cycleScoped: true,
+    // No pod_id column — scoped via the pod's projects.
+    podScope: { kind: "lookup", column: "project_id", via: { entity: "projects", select: "id" } },
     softDelete: { kind: "timestamp", column: "left_at" },
     foreignKeys: [
       { column: "participant_id", target: "participants" },
@@ -259,6 +277,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "participant_id", "role", "granted_at", "revoked_at"],
     labelField: "role",
     cycleScoped: false,
+    podScope: null,
     softDelete: { kind: "timestamp", column: "revoked_at" },
     foreignKeys: [{ column: "participant_id", target: "participants" }],
     defaultSort: { column: "granted_at", direction: "desc" },
@@ -277,6 +296,10 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // filter (.eq) will therefore exclude rows with a null cycle_id when a cycle
     // is selected; "All cycles" shows them.
     cycleScoped: true,
+    // No pod_id column — scoped via the pod roster. NOTE: for a member this
+    // includes their pulses from other cycles; the poderator surface has no
+    // cycle filter, which is acceptable for a read-only stopgap.
+    podScope: { kind: "lookup", column: "participant_id", via: { entity: "pod_memberships", select: "participant_id" } },
     softDelete: null,
     foreignKeys: [
       { column: "participant_id", target: "participants" },
@@ -296,6 +319,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "slug", "name", "kind", "anchor", "start_at", "status", "synced_at"],
     labelField: "name",
     cycleScoped: false,
+    podScope: null,
     softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
     foreignKeys: [],
     defaultSort: { column: "start_at", direction: "desc" },
@@ -309,6 +333,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "slug", "title", "content_type", "author", "from_line", "status", "created_at"],
     labelField: "title",
     cycleScoped: false,
+    podScope: null,
     softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
     foreignKeys: [],
     defaultSort: { column: "created_at", direction: "desc" },
@@ -322,6 +347,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "slug", "name", "st", "status", "partner", "members", "waiting_baseline"],
     labelField: "name",
     cycleScoped: false,
+    podScope: null,
     softDelete: null,
     foreignKeys: [],
     defaultSort: { column: "id", direction: "asc" },
@@ -337,6 +363,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     columns: ["id", "participant_id", "cycle_id", "agreement_version", "signature_name", "signed_at"],
     labelField: "id",
     cycleScoped: true,
+    podScope: null,
     softDelete: null,
     foreignKeys: [
       { column: "participant_id", target: "participants" },
@@ -350,6 +377,16 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
 /** Ordered list of entity keys, for building the entity picker. */
 export const ENTITY_KEYS = Object.keys(REGISTRY) as EntityKey[];
 
+/**
+ * Entities visible on the pod-scoped poderator surface: a declared podScope IS
+ * the allowlist (types.ts). Everything else — cycles, cycle_enrollments,
+ * problem_statements, votes, user_roles, content tables, agreements — stays
+ * admin-only.
+ */
+export const MODERATOR_ENTITY_KEYS = ENTITY_KEYS.filter(
+  (key) => REGISTRY[key].podScope != null,
+);
+
 /** Runtime guard: is an arbitrary URL string an allowlisted entity key? */
 export function isEntityKey(value: string | null | undefined): value is EntityKey {
   return value != null && Object.prototype.hasOwnProperty.call(REGISTRY, value);
@@ -358,4 +395,11 @@ export function isEntityKey(value: string | null | undefined): value is EntityKe
 /** Look up a config by (possibly untrusted) key; null when not allowlisted. */
 export function getEntityConfig(key: string | null | undefined): EntityConfig | null {
   return isEntityKey(key) ? REGISTRY[key] : null;
+}
+
+/** Runtime guard for the poderator surface: allowlisted AND pod-scopable. */
+export function isModeratorEntityKey(
+  value: string | null | undefined,
+): value is EntityKey {
+  return isEntityKey(value) && REGISTRY[value].podScope != null;
 }

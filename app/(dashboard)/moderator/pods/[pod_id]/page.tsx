@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
 import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
+import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import { getPodDetail, type PodDetail, type RosterRow } from "@/lib/moderator/pod-detail";
 import { getPodInsights } from "@/lib/moderator/pod-insights";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
@@ -162,9 +163,21 @@ export default async function ModeratorPodPage({
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="t-h3 text-ink">Roster</h2>
-          <ContactsDownloadButton
-            href={`/api/pods/${podId}/contacts/export`}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Pod data (Entity Explorer, pod-scoped) — hidden with the flag,
+                same as the admin nav link; the route 404s regardless. */}
+            {ENTITY_EXPLORER_ENABLED && (
+              <Link
+                href={`/moderator/pods/${podId}/explore`}
+                className="inline-flex items-center gap-1.5 rounded-card border border-teal/40 px-4 py-2 text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:bg-teal/10"
+              >
+                Pod data
+              </Link>
+            )}
+            <ContactsDownloadButton
+              href={`/api/pods/${podId}/contacts/export`}
+            />
+          </div>
         </div>
         <PodContentTabs
           members={detail.members}

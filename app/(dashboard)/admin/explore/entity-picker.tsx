@@ -9,9 +9,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { REGISTRY } from "@/lib/entity-explorer/registry";
 import type { EntityKey } from "@/lib/entity-explorer/types";
 
-/** Entity dropdown groups. Covers every key in the registry so no registered
-    entity is reachable only by typing the URL. */
-const GROUPS: { label: string; keys: EntityKey[] }[] = [
+export type EntityGroup = { label: string; keys: EntityKey[] };
+
+/** Admin entity dropdown groups. Covers every key in the registry so no
+    registered entity is reachable only by typing the URL. */
+const ADMIN_GROUPS: EntityGroup[] = [
   { label: "Core", keys: ["cycles", "participants", "cycle_enrollments"] },
   { label: "Pods", keys: ["problem_statements", "votes", "pods", "pod_memberships", "moderator_assignments"] },
   { label: "Projects", keys: ["solution_proposals", "project_votes", "projects", "project_memberships"] },
@@ -26,11 +28,18 @@ export function EntityPicker({
   cycles,
   cycleId,
   includeDeleted,
+  basePath = "/admin/explore",
+  groups = ADMIN_GROUPS,
 }: {
   entity: EntityKey;
-  cycles: CycleOption[];
+  /** Null hides the cycle filter (the pod surface is already one cycle). */
+  cycles: CycleOption[] | null;
   cycleId: number | null;
   includeDeleted: boolean;
+  /** List-route prefix navigation pushes to; defaults to the admin surface. */
+  basePath?: string;
+  /** Dropdown contents; the pod surface passes its allowlisted subset. */
+  groups?: EntityGroup[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,7 +52,7 @@ export function EntityPicker({
       else params.set(key, value);
     }
     params.set("page", "1");
-    router.push(`/admin/explore?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   };
 
   const selectClass =
@@ -61,7 +70,7 @@ export function EntityPicker({
           onChange={(e) => update({ entity: e.target.value })}
           className={selectClass}
         >
-          {GROUPS.map((group) => (
+          {groups.map((group) => (
             <optgroup key={group.label} label={group.label}>
               {group.keys.map((key) => (
                 <option key={key} value={key}>{REGISTRY[key].label}</option>
@@ -71,21 +80,23 @@ export function EntityPicker({
         </select>
       </div>
 
-      {/* Cycle */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="ee-cycle" className={labelClass}>Cycle</label>
-        <select
-          id="ee-cycle"
-          value={cycleId ?? ""}
-          onChange={(e) => update({ cycle: e.target.value || null })}
-          className={selectClass}
-        >
-          <option value="">All cycles</option>
-          {cycles.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
+      {/* Cycle — hidden on the pod surface (a pod lives in one cycle). */}
+      {cycles != null && (
+        <div className="flex flex-col gap-1">
+          <label htmlFor="ee-cycle" className={labelClass}>Cycle</label>
+          <select
+            id="ee-cycle"
+            value={cycleId ?? ""}
+            onChange={(e) => update({ cycle: e.target.value || null })}
+            className={selectClass}
+          >
+            <option value="">All cycles</option>
+            {cycles.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Show deleted */}
       <label className="flex items-center gap-2 pb-2 text-sm text-charcoal">
