@@ -17,6 +17,8 @@ type Revocation = {
 const REASON_LABELS: Record<string, string> = {
   not_in_pod: "Not in pod",
   missed_pulse_checks: "Missed pulse checks",
+  missed_pulses: "Missed pulse checks",
+  missed_logs: "Missed learning logs",
   reactivated: "Reactivated",
 };
 
@@ -54,9 +56,14 @@ export default function RevocationsSection({
   );
 
   async function runCheck() {
+    // Decision O3 (2026-08-01): this sweep revokes IMMEDIATELY — unlike the
+    // cron there is no warning stage, no 3-day grace, and no email. The
+    // dialog must say so.
     if (
       !confirm(
-        "Run inactivity check? This may revoke access for inactive participants."
+        "Run inactivity check? Members over the missed-log threshold will " +
+          "lose access IMMEDIATELY — no warning email and no grace period. " +
+          "The scheduled check warns first; this button does not."
       )
     )
       return;

@@ -1,20 +1,34 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { followPageSilently } from "@/lib/follows/seed";
 
-export type EnrollmentStatus = "active" | "inactive";
+/**
+ * The two states the reconciler manages. 'registered' (committed member, no
+ * active pod yet) and 'active' (member with an active pod) are the two ends
+ * of the pod-activation axis. 'inactive' (engagement exit) and 'revoked'
+ * (archive) live OUTSIDE this axis — the reconciler never writes them and,
+ * by default, never touches a row that already holds one (see opts.recover).
+ */
+export type EnrollmentStatus = "registered" | "active" | "inactive";
 
 export interface ReconcileOptions {
-  reason?: string;
-  logRevocation?: boolean;
+  /**
+   * When true, a current exit ('inactive' engagement revocation) is treated
+   * as recoverable: the status is re-derived from pod reality (→ 'active' if
+   * an active pod exists, else 'registered') and the exit bookkeeping
+   * (inactive_date / warned_at / warning_reason) is cleared. The two recovery
+   * callers — admin reactivation and auto-recover-on-log — pass this; normal
+   * pod join/leave reconciles do not, so an engagement exit stays put until a
+   * deliberate recovery.
+   */
+  recover?: boolean;
 }
 
 export interface ReconcileResult {
   participantId: number;
   cycleId: number;
-  before: EnrollmentStatus | null;
-  after: EnrollmentStatus | null;
+  before: string | null;
+  after: string | null;
   mutated: boolean;
-  audited: boolean;
 }
 
 interface PodMembershipRow {
@@ -25,20 +39,23 @@ interface PodMembershipRow {
 /**
  * Brings cycle_enrollments.status in line with current pod membership reality
  * for one (participant, cycle) pair. Single source of truth for the
- * inactive <-> active enrollment transition across the codebase.
+ * registered <-> active enrollment transition across the codebase.
  *
  * Target status:
  *   - 'active' if the participant has at least one active pod_memberships
  *     row (inactive_at IS NULL) whose pod is itself status='active'.
- *   - 'inactive' otherwise.
+ *   - 'registered' otherwise (committed member, just not in an active pod).
+ *
+ * The reconciler NEVER writes 'inactive'. That value is an engagement exit
+ * owned exclusively by the revocation cron / admin sweep (which also write
+ * the access_revocations audit row). Exits are sticky here: a row already at
+ * 'inactive' or 'revoked' is left untouched — otherwise the next pod reconcile
+ * would silently undo a revocation. Deliberate recovery comes through
+ * opts.recover (admin reactivation, or the member's next qualifying log).
  *
  * Idempotent. If no cycle_enrollments row exists, returns without mutating
  * (creation belongs in registration / cycle-interest routes). If status
  * already matches target, returns without mutating.
- *
- * On demotion (active -> inactive), optionally writes an access_revocations
- * audit row when opts.logRevocation === true. The cron will opt in; inline
- * after-leave callers will not, since their demotions are mechanical.
  *
  * Uses a service client internally because cycle_enrollments is gated by
  * is_admin_or_owner() RLS — a cookie-bound user client would silently
@@ -58,20 +75,15 @@ export async function reconcileEnrollmentActivation(
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
-  const before: EnrollmentStatus | null =
-    enrollment?.status === "active" || enrollment?.status === "inactive"
-      ? enrollment.status
-      : null;
+  const before: string | null = enrollment?.status ?? null;
 
   if (!enrollment) {
-    return {
-      participantId,
-      cycleId,
-      before,
-      after: null,
-      mutated: false,
-      audited: false,
-    };
+    return { participantId, cycleId, before, after: null, mutated: false };
+  }
+
+  // Exits are sticky (see doc above): only a recover call may re-derive them.
+  if ((before === "inactive" || before === "revoked") && !opts.recover) {
+    return { participantId, cycleId, before, after: before, mutated: false };
   }
 
   const { data: memberships } = await client
@@ -83,47 +95,32 @@ export async function reconcileEnrollmentActivation(
 
   const rows = (memberships ?? []) as unknown as PodMembershipRow[];
   const hasActivePod = rows.some((m) => m.pods?.status === "active");
-  const target: EnrollmentStatus = hasActivePod ? "active" : "inactive";
+  const target: EnrollmentStatus = hasActivePod ? "active" : "registered";
 
   if (before === target) {
-    return {
-      participantId,
-      cycleId,
-      before,
-      after: before,
-      mutated: false,
-      audited: false,
-    };
+    return { participantId, cycleId, before, after: target, mutated: false };
   }
 
-  const nowIso = new Date().toISOString();
+  const update: {
+    status: EnrollmentStatus;
+    inactive_date: null;
+    warned_at?: null;
+    warning_reason?: null;
+  } = { status: target, inactive_date: null };
+
+  if (opts.recover) {
+    // Recovering out of an exit — clear the engagement-exit bookkeeping so
+    // the member is fully reset, not merely re-statused.
+    update.warned_at = null;
+    update.warning_reason = null;
+  }
+
   await client
     .from("cycle_enrollments")
-    .update({
-      status: target,
-      inactive_date: target === "inactive" ? nowIso : null,
-    })
+    .update(update)
     .eq("id", enrollment.id);
 
-  let audited = false;
-  if (target === "inactive" && opts.logRevocation) {
-    await client.from("access_revocations").insert({
-      participant_id: participantId,
-      cycle_id: cycleId,
-      reason: opts.reason ?? "reconciler: no active pod memberships",
-      revocation_scope: "full",
-    });
-    audited = true;
-  }
-
-  return {
-    participantId,
-    cycleId,
-    before,
-    after: target,
-    mutated: true,
-    audited,
-  };
+  return { participantId, cycleId, before, after: target, mutated: true };
 }
 
 /**

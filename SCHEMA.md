@@ -210,6 +210,8 @@ erDiagram
 
 Participants join cycles via `cycle_enrollments`. Authority (owner/admin/developer/observer + scoped poderator/lab_lead) resolves from `participant_roles` — see the authorization note below. `access_revocations` is the audit trail for removals. `pulse_checks` tracks weekly engagement.
 
+> **`cycle_enrollments.status` — membership vs. pod-activation (migration `00099`).** The status splits two axes. `registered` = committed member with no active pod yet (the self-service resting state and column default; grants the `participant` role and can submit learning logs). `active` = member **with** an active pod (unchanged meaning; only these members are under the weekly-log cadence). `inactive` = the one true exit — was `active`, fell behind the weekly logs — and always carries an `access_revocations` audit row. `revoked` = hard erasure/archive (`lib/owner/archive.ts`). The reconciler (`lib/enrollment/reconciler.ts`) owns only `registered ⇄ active` (promote on a pod becoming active, demote to `registered` on leaving the last pod) and **never** writes `inactive`; the engagement cron / admin sweep are the sole writers of `inactive`. A member who never joins a pod stays `registered` indefinitely; an `inactive` member auto-recovers on their next qualifying log. (`interested`/`stepped_back`/`completed` remain in the CHECK vocabulary from earlier migrations but are not written by the current flow.)
+
 ```mermaid
 erDiagram
     participants {

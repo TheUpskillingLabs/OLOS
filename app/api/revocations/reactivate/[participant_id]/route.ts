@@ -8,9 +8,13 @@ import { reconcileEnrollmentActivation } from "@/lib/enrollment/reconciler";
 
 // Admin reactivation. Memberships are restored first; the enrollment status
 // then follows membership reality via the reconciler (§3.7: one write path).
-// Consequence of the single source of truth: if the restored memberships'
-// pods aren't status='active', the enrollment stays inactive — the response
-// reports the reconciled status so the admin sees what actually happened.
+// Because 'inactive' is a sticky engagement exit under the registered/active
+// model (migration 00099), the reconcile is invoked with { recover: true } so
+// it re-derives the exit from pod reality instead of no-oping. Consequence: if
+// the restored memberships' pods aren't status='active', the member lands at
+// 'registered' (still a member, just not in an active pod) rather than back at
+// 'active' — the response reports the reconciled status so the admin sees what
+// actually happened.
 export const POST = withAdminAuth(
   async (request: NextRequest, auth: AuthenticatedRequest, params: Record<string, string>) => {
     const participantId = parseIntParam(params.participant_id, "participant_id");
@@ -52,10 +56,12 @@ export const POST = withAdminAuth(
     const restoredProjects = (projectMemberships || []).map((m) => m.project_id);
 
     // 3. Enrollment status follows the restored memberships — reconciler,
-    //    never a direct status write.
+    //    never a direct status write. recover:true clears the sticky
+    //    'inactive' exit and its bookkeeping (inactive_date/warned_at).
     const reconciled = await reconcileEnrollmentActivation(
       participantId,
-      cycle_id
+      cycle_id,
+      { recover: true }
     );
 
     // 4. Record reactivation in audit trail
