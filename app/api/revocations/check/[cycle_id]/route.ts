@@ -151,7 +151,9 @@ export const POST = withAdminAuth(
           revocation_scope: "full",
           revoked_systems: ["enrollment"],
         });
-      if (auditError && auditError.code !== "23505") {
+      // Fresh audit row on every revocation (00100 dropped the unique index,
+      // decision O2) — any insert error is a real error now.
+      if (auditError) {
         console.error(
           `[revocations/check] audit insert failed participant_id=${pid} cycle_id=${cycleId} error=${auditError.message ?? String(auditError)}`
         );

@@ -80,10 +80,13 @@ type Outcome = {
  *      future warning starts fresh. This is what makes admin-driven rescue
  *      via POST /api/admin/pods/[id]/memberships compose correctly with the
  *      cron — see #123 for the parallel moderator-add design question.
- *   7. DB-enforced revocation idempotency. Migration 00030 adds a
- *      unique partial index on access_revocations(participant_id,
- *      cycle_id, reason) WHERE revocation_scope = 'full' so the stage-2
- *      audit INSERT can safely retry.
+ *   7. Every revocation writes a fresh audit row. Migration 00100 dropped
+ *      00030's unique partial index (owner decision O2, 2026-08-01): a
+ *      member revoked → reactivated → revoked again gets a second
+ *      missed_logs row, so the audit trail always ends on the true state.
+ *      Idempotency is state-driven — the INSERT only fires on the
+ *      status='active' → 'inactive' transition, which removes the member
+ *      from the pool this loop iterates.
  *
  * Auth + observability are unchanged from the existing pattern:
  *   - Bearer CRON_SECRET (same as pulse-check-reminder)
@@ -378,10 +381,10 @@ export async function GET(request: NextRequest) {
       // itself and records the audit row. The pod membership is intentionally
       // LEFT intact: 'inactive' is an engagement flag on a still-in-pod
       // member, and their next qualifying log recovers them to 'active'
-      // (app/api/learning-logs/route.ts). Migration 00030's unique partial
-      // index (participant_id, cycle_id, reason) keeps the audit insert
-      // idempotent across cron retries — a duplicate returns an ignored error
-      // rather than a second row.
+      // (app/api/learning-logs/route.ts). Every revocation writes a fresh
+      // audit row (00100 dropped 00030's unique index — decision O2): the
+      // status transition above is what makes this insert single-shot, and
+      // any insert error is a real error.
       await supabase
         .from("cycle_enrollments")
         .update({ status: "inactive", inactive_date: nowIso })
@@ -396,7 +399,7 @@ export async function GET(request: NextRequest) {
           reason,
           revocation_scope: "full",
         });
-      if (auditError && auditError.code !== "23505") {
+      if (auditError) {
         console.error(
           `[revocation-check] audit insert failed participant_id=${pid} cycle_id=${cycleId} reason=${reason} error=${auditError.message ?? String(auditError)}`
         );

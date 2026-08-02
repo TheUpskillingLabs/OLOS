@@ -70,21 +70,27 @@ cron is what arms it), so the revocation cron would have skipped it even
 unparked. Do not relax the parking runbook: any Friday arming makes the hazard
 live again.
 
-### O2 — audit trail skips a beat on re-revocation
+### O2 — RESOLVED (owner, 2026-08-01): re-revocations now write a fresh row
 
-Sweep-revoking a previously-revoked-then-reactivated member hits the
-`access_revocations` unique constraint; the insert 23505 is swallowed by
-design (00030 idempotency), so the trail reads revoke(01:19) → reactivate
-(01:23) with **no row for the second revocation (01:29)** — the enrollment is
-`inactive` again but the newest audit row says "reactivated". Design question
-for the PR, not a blocker.
+As found: sweep-revoking a previously-revoked-then-reactivated member hit the
+`access_revocations` unique index (00030); the 23505 was swallowed, so the
+trail read revoke(01:19) → reactivate(01:23) with no row for the second
+revocation — the newest audit row said "reactivated" while the enrollment was
+inactive. Owner chose fresh-row semantics. Implemented as **migration 00100**
+(drops the unique index, adds a plain lookup index; idempotency is state-driven
+via the active→inactive transition) + both routes stop special-casing 23505.
+Applied to dev and re-tested: the re-revocation wrote a third row (02:00),
+trail now matches reality. **00100 joins 00099 in the manual prod-apply at
+promotion.**
 
-### O3 — "Run inactivity check" button on the admin People tab
+### O3 — RESOLVED (owner, 2026-08-01): confirmation dialog strengthened
 
-The sweep endpoint is wired to a one-click button on `/admin/cycles/[id]` →
-People → Access revocations. On an armed open cycle it revokes real members
-with no warning, no grace, no email, no confirm dialog. Recommend requiring a
-confirmation step before merge (plan step 14 asked exactly this question).
+The button already had a `confirm()`, but its copy ("may revoke access for
+inactive participants") didn't say the sweep is immediate with no warning
+email and no grace. Copy now states exactly that and contrasts it with the
+scheduled check. Verified rendering on cycle 9 (cancelled, no action taken).
+Also added the missing `missed_logs` (and `missed_pulses`) entries to
+`REASON_LABELS` so revocation reasons render as labels, not raw enum values.
 
 ### O4 — cron's warn→grace ladder is per-run-order dependent, fine as designed
 
@@ -114,9 +120,9 @@ schedule + the O3 decision belong together at merge time.
 
 ## End-state of the fixture (for the next session)
 
-146 active (logs in w0+w3), 147 **registered** (left over from the C2 stuck-row
-setup; two `access_revocations` rows + one `reactivated`), 148 active (no
-logs). Cycle 13 back to `org`/lab 1, gate unpaused. Cycle 9 restored
-`active`/`open`, verified sole open cycle. Snapshot: `archive_aug01`. Teardown
-SQL (bottom of `pr-313-throwaway-cycle.sql`) NOT run — keeping the fixture for
-the prod-merge re-test.
+146 active (logs in w0+w3), 147 **inactive** (re-revoked 02:00 during the O2
+re-test; three audit rows: missed_logs → reactivated → missed_logs), 148
+active (no logs). Cycle 13 back to `org`/lab 1, gate unpaused. Cycle 9
+restored `active`/`open`. Dev DB has 00099 AND 00100 applied. Snapshot:
+`archive_aug01`. Teardown SQL (bottom of `pr-313-throwaway-cycle.sql`) NOT
+run — keeping the fixture for the prod-merge re-test.
