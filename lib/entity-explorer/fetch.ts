@@ -50,6 +50,38 @@ export function buildSelectColumns(config: EntityConfig): string[] {
   return [...cols];
 }
 
+/** Escapes ILIKE wildcard characters so a literal `%` or `_` in user input
+    doesn't act as a pattern wildcard. */
+function escapeIlikeWildcards(term: string): string {
+  return term.replace(/[%_]/g, (c) => `\\${c}`);
+}
+
+/**
+ * Builds the `.or()` filter expression for a free-text search across every
+ * one of the entity's `textColumns` (registry.ts) — the explicit allowlist of
+ * human text columns. Null when the term is empty/whitespace-only, or when
+ * the entity declares no textColumns at all (the caller then short-circuits
+ * to zero rows rather than silently ignoring the search — DESIGN.md §11).
+ */
+export function buildSearchOrExpr(config: EntityConfig, term: string): string | null {
+  const trimmed = term.trim();
+  if (trimmed === "" || config.textColumns.length === 0) return null;
+  // PostgREST's `.or()` string uses `,` and `()` as its own syntax — escape
+  // those plus the ILIKE wildcards so a raw search term is read literally.
+  const escaped = escapeIlikeWildcards(trimmed).replace(/[,()]/g, (c) => `\\${c}`);
+  return config.textColumns.map((c) => `${c}.ilike.%${escaped}%`).join(",");
+}
+
+/**
+ * Whether `column` is safe to filter on for the dynamic single-column filter:
+ * it must be one of the entity's own displayed `columns` (never an arbitrary
+ * string from a query param) — the same explicit-allowlist rule as every
+ * other part of this module (DESIGN.md §6).
+ */
+export function isFilterableColumn(config: EntityConfig, column: string): boolean {
+  return config.columns.includes(column);
+}
+
 /** Distinct, non-null values of `column` across the page's rows. */
 export function collectIds(
   rows: EntityRow[],
@@ -213,8 +245,11 @@ export async function fetchEntityList(
   const includeDeleted = params.includeDeleted ?? false;
   const { from, to } = pageRange(page, pageSize);
 
-  // ── Pod scope (poderator surface): forced server-side, never URL-driven. ──
-  const podId = params.podId ?? null;
+  // ── Pod scope (poderator surface only): forced server-side from the route
+  // path and the moderator-assignment check — never a user-editable query
+  // param. Guarded against entities with no podScope (Problem statements,
+  // Votes, …) so a mismatched caller no-ops rather than throws. ──
+  const podId = params.podId != null && config.podScope != null ? params.podId : null;
   let podLookupIds: (number | string)[] | null = null;
   if (podId != null) {
     podLookupIds = await resolvePodLookupIds(supabase, config, podId);
@@ -244,6 +279,39 @@ export async function fetchEntityList(
     query = sd.kind === "isNull"
       ? query.is(sd.column, null)
       : query.not(sd.column, "in", sd.values);
+  }
+
+  // ── Free-text search: OR'd ILIKE across every textColumn. ──
+  if (params.search != null) {
+    const orExpr = buildSearchOrExpr(config, params.search);
+    if (orExpr != null) {
+      query = query.or(orExpr);
+    } else if (params.search.trim() !== "") {
+      // Non-empty term, but this entity has no textColumns to match against
+      // (Votes, Pod memberships, …) — it can never match, so say so instead
+      // of silently showing every row.
+      return { config, rows: [], page, pageSize, total: 0, foreignKeyLabels: {} };
+    }
+  }
+
+  // ── Dynamic single-column filter. ──
+  if (
+    params.filterColumn != null &&
+    params.filterValue != null &&
+    params.filterValue.trim() !== "" &&
+    isFilterableColumn(config, params.filterColumn)
+  ) {
+    const value = params.filterValue.trim();
+    if (config.textColumns.includes(params.filterColumn)) {
+      query = query.ilike(params.filterColumn, `%${escapeIlikeWildcards(value)}%`);
+    } else {
+      const num = Number(value);
+      if (!Number.isFinite(num)) {
+        // Non-text column, non-numeric value — no row can ever match.
+        return { config, rows: [], page, pageSize, total: 0, foreignKeyLabels: {} };
+      }
+      query = query.eq(params.filterColumn, num);
+    }
   }
 
   const { data, count, error } = await query;

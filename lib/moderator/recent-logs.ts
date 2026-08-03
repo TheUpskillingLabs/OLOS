@@ -45,7 +45,7 @@ export type RecentLogsPayload = {
 export async function getRecentLogs(
   supabase: SupabaseClient,
   podId: number,
-  options: { before?: string | null; limit?: number } = {}
+  options: { before?: string | null; since?: string | null; limit?: number } = {}
 ): Promise<RecentLogsPayload | { error: "pod-not-found" }> {
   const limit = Math.min(
     Math.max(1, options.limit ?? RECENT_LOGS_PAGE_SIZE),
@@ -107,6 +107,10 @@ export async function getRecentLogs(
 
   if (options.before) {
     query = query.lt("created_at", options.before);
+  }
+  if (options.since) {
+    // Range floor (poderator time filter): only logs on/after this instant.
+    query = query.gte("created_at", options.since);
   }
 
   const { data: logRows } = await query;

@@ -22,6 +22,8 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "cycles",
     columns: ["id", "name", "slug", "status", "start_date", "end_date"],
     labelField: "name",
+    // All VARCHAR (00001_initial_schema.sql) — safe for ILIKE.
+    textColumns: ["name", "slug", "status"],
     cycleScoped: false,
     podScope: null,
     softDelete: null,
@@ -40,6 +42,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // google_id) is intentional — organizers = admins already see it (DESIGN.md §6).
     columns: ["id", "preferred_name", "email", "google_id", "created_at"],
     labelField: "preferred_name",
+    textColumns: ["preferred_name", "email", "google_id"],
     cycleScoped: false,
     // Pod scope = the pod's (active-membership) roster. Emails ARE shown to the
     // pod's poderator here — same contact data the pod contacts export already
@@ -69,6 +72,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "cycle_enrollments",
     columns: ["id", "participant_id", "cycle_id", "status", "enrolled_at"],
     labelField: "id",
+    textColumns: ["status"],
     cycleScoped: true,
     podScope: null,
     // NOTE: soft delete here is the `status` flag, not a NULL-able timestamp.
@@ -92,6 +96,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // text column is `statement_text`; vote totals live in the `votes` table.
     columns: ["id", "statement_text", "participant_id", "cycle_id", "created_at"],
     labelField: "statement_text",
+    textColumns: ["statement_text"],
     cycleScoped: true,
     podScope: null,
     softDelete: null,
@@ -115,6 +120,9 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // voter_id directly.
     columns: ["id", "problem_statement_id", "vote_count", "created_at"],
     labelField: "id",
+    // No text column at all — voter_id is deliberately hidden (see NOTE above)
+    // and everything else is numeric/timestamp.
+    textColumns: [],
     cycleScoped: true,
     podScope: null,
     softDelete: null,
@@ -134,6 +142,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // stored column, so it's omitted.
     columns: ["id", "name", "status", "cycle_id", "created_at"],
     labelField: "name",
+    textColumns: ["name", "status"],
     cycleScoped: true,
     podScope: { kind: "self" },
     softDelete: null,
@@ -157,6 +166,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // column is `inactive_at` (migration 00001). Corrected here.
     columns: ["id", "participant_id", "pod_id", "joined_at", "inactive_at"],
     labelField: "id",
+    textColumns: [],
     cycleScoped: false,
     podScope: { kind: "column", column: "pod_id" },
     softDelete: { kind: "timestamp", column: "inactive_at" },
@@ -174,6 +184,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "moderator_assignments",
     columns: ["id", "participant_id", "pod_id", "cycle_id", "assigned_at", "removed_at"],
     labelField: "id",
+    textColumns: [],
     cycleScoped: true,
     podScope: { kind: "column", column: "pod_id" },
     softDelete: { kind: "timestamp", column: "removed_at" },
@@ -194,6 +205,8 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // (a large text body) is deliberately omitted from the list view.
     columns: ["id", "name", "pod_id", "participant_id", "proposal_data", "created_at"],
     labelField: "name",
+    // proposal_data (JSONB) is deliberately excluded — not free text.
+    textColumns: ["name"],
     cycleScoped: true,
     podScope: { kind: "column", column: "pod_id" },
     softDelete: null,
@@ -214,6 +227,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // above (DESIGN_INTENT.md: "never per-voter attribution").
     columns: ["id", "solution_proposal_id", "vote_count", "created_at"],
     labelField: "id",
+    textColumns: [],
     cycleScoped: true,
     // podScope uses the table's pod_id column (present per migration 00001;
     // deliberately not displayed — see the voter-anonymity NOTE above).
@@ -233,6 +247,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "projects",
     columns: ["id", "name", "pod_id", "solution_proposal_id", "status", "cycle_id", "created_at"],
     labelField: "name",
+    textColumns: ["name", "status"],
     cycleScoped: true,
     podScope: { kind: "column", column: "pod_id" },
     softDelete: null,
@@ -255,6 +270,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // NOTE: mockup showed `joined_at`; the real column is `registered_at`.
     columns: ["id", "participant_id", "project_id", "registered_at"],
     labelField: "id",
+    textColumns: [],
     // NOTE: DESIGN.md §6 marks this not-cycle-scoped with no soft delete, but the
     // table DOES have `cycle_id` and `left_at` (migration 00001). Both are honored
     // here so the cycle filter and show-deleted toggle work as elsewhere.
@@ -276,6 +292,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "user_roles",
     columns: ["id", "participant_id", "role", "granted_at", "revoked_at"],
     labelField: "role",
+    textColumns: ["role"],
     cycleScoped: false,
     podScope: null,
     softDelete: { kind: "timestamp", column: "revoked_at" },
@@ -292,6 +309,8 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // columns are `scheduled_date`, `completed_at`, and `survey_responses` (JSONB).
     columns: ["id", "participant_id", "cycle_id", "scheduled_date", "survey_responses", "created_at"],
     labelField: "id",
+    // survey_responses is JSONB, scheduled_date a date — no free text here.
+    textColumns: [],
     // NOTE: pulse_checks.cycle_id was made nullable (migration 00004). The cycle
     // filter (.eq) will therefore exclude rows with a null cycle_id when a cycle
     // is selected; "All cycles" shows them.
@@ -318,6 +337,8 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "events",
     columns: ["id", "slug", "name", "kind", "anchor", "start_at", "status", "synced_at"],
     labelField: "name",
+    // All VARCHAR (00086_cycle_phases_events.sql) — safe for ILIKE.
+    textColumns: ["slug", "name", "kind", "status"],
     cycleScoped: false,
     podScope: null,
     softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
@@ -332,6 +353,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "resources",
     columns: ["id", "slug", "title", "content_type", "author", "from_line", "status", "created_at"],
     labelField: "title",
+    textColumns: ["slug", "title", "content_type", "author", "from_line", "status"],
     cycleScoped: false,
     podScope: null,
     softDelete: { kind: "status", column: "status", deletedValues: ["archived"] },
@@ -346,6 +368,8 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     table: "metros",
     columns: ["id", "slug", "name", "st", "status", "partner", "members", "waiting_baseline"],
     labelField: "name",
+    // members/waiting_baseline are INTEGER — not free text.
+    textColumns: ["slug", "name", "st", "status", "partner"],
     cycleScoped: false,
     podScope: null,
     softDelete: null,
@@ -362,6 +386,7 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // deliberately NOT listed — registration intake stays out of the grid.
     columns: ["id", "participant_id", "cycle_id", "agreement_version", "signature_name", "signed_at"],
     labelField: "id",
+    textColumns: ["agreement_version", "signature_name"],
     cycleScoped: true,
     podScope: null,
     softDelete: null,

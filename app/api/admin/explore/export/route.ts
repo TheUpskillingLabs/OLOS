@@ -27,6 +27,9 @@ export const GET = withAdminAuth(async (request) => {
   const cycleNum = cycleRaw != null ? Number(cycleRaw) : NaN;
   const cycleId = Number.isFinite(cycleNum) ? cycleNum : null;
   const includeDeleted = sp.get("deleted") === "1";
+  const search = sp.get("q");
+  const filterColumn = sp.get("fcol");
+  const filterValue = sp.get("fval");
 
   const serviceClient = createServiceClient();
   let exported;
@@ -35,6 +38,9 @@ export const GET = withAdminAuth(async (request) => {
       entity,
       cycleId,
       includeDeleted,
+      search,
+      filterColumn,
+      filterValue,
     });
   } catch (error) {
     return dbError(error, "explore-export");

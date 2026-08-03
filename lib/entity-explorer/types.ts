@@ -96,6 +96,13 @@ export interface EntityConfig {
   columns: string[];
   /** Column that best represents a row when it's referenced as a FK elsewhere. */
   labelField: string;
+  /** Explicit allowlist (subset of `columns`) of human-text columns free-text
+      search and the ILIKE branch of the dynamic column filter may match
+      against. Never derived from the schema — a VARCHAR/TEXT column doesn't
+      make this list until someone decides it's meant to be searched (same
+      allowlist discipline as `columns` itself). Empty for entities with no
+      free-text column (Votes, Pod memberships, Moderator assignments, …). */
+  textColumns: string[];
   /** True when the table has a `cycle_id` the global cycle filter applies to. */
   cycleScoped: boolean;
   /** How rows narrow to one pod; null = invisible on the poderator surface. */
@@ -125,11 +132,29 @@ export interface FetchListParams {
   /** When false (default), soft-deleted rows are hidden. */
   includeDeleted?: boolean;
   /**
-   * Forces pod scoping (poderator surface). Server-derived from the route path
-   * and the moderator-assignment check — never a user-editable query param.
-   * Requires the entity to declare a podScope; throws otherwise.
+   * Forces pod scoping (poderator surface only). Server-derived from the
+   * route path and the moderator-assignment check — never a user-editable
+   * query param. Ignored (fetch.ts) when the entity has no podScope, rather
+   * than throwing — a mismatched caller is a no-op, not an error.
    */
   podId?: number | null;
+  /**
+   * Free-text search: a case-insensitive substring match OR'd across every
+   * one of the entity's `textColumns`. An entity with none (e.g. Votes)
+   * returns zero rows for a non-empty term rather than silently matching
+   * everything — a search box that looks active should never be a no-op.
+   */
+  search?: string | null;
+  /**
+   * Dynamic single-column filter: `filterColumn` must be one of the entity's
+   * displayed `columns` (validated in fetch.ts — anything else is ignored,
+   * not thrown, since it can arrive as a raw query param). ILIKE substring
+   * match when the column is a `textColumn`; otherwise an exact numeric
+   * `.eq()`, and a non-numeric value against a non-text column returns zero
+   * rows (it can never match).
+   */
+  filterColumn?: string | null;
+  filterValue?: string | null;
 }
 
 /**

@@ -50,7 +50,9 @@ interface MemberInput {
 export async function getLogHealth(
   supabase: SupabaseClient,
   cycleId: number,
-  members: MemberInput[]
+  members: MemberInput[],
+  /** Sentiment/blocked lookback override (poderator range filter); default 14. */
+  lookbackDays: number = LOOKBACK_DAYS
 ): Promise<LogHealth> {
   const real = members.filter((m) => !m.is_inactive && !m.is_staff_or_test);
   const ids = real.map((m) => m.participant_id);
@@ -76,7 +78,7 @@ export async function getLogHealth(
     config?.log_due_at && !config.log_gate_paused ? config.log_due_at : null;
 
   const lookback = new Date();
-  lookback.setDate(lookback.getDate() - LOOKBACK_DAYS);
+  lookback.setDate(lookback.getDate() - lookbackDays);
 
   const { data: logs } = await supabase
     .from("learning_logs")
