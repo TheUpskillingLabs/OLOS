@@ -59,7 +59,7 @@ export function EntityPicker({
   };
 
   const selectClass =
-    "rounded-card border border-ink/10 bg-white px-2 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-teal/60 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
+    "rounded-card border border-ink/10 bg-white px-2 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-teal/60 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal disabled:cursor-not-allowed disabled:border-ink/5 disabled:bg-ink/[0.03] disabled:text-meta-soft disabled:opacity-70";
   const labelClass = "lbl lbl-teal shrink-0";
 
   // Cycle only filters entities that carry a cycle_id (registry.ts
@@ -118,7 +118,12 @@ export function EntityPicker({
       {/* Cycle — hidden on the pod surface (a pod lives in one cycle). */}
       {cycles != null && (
         <div className="flex items-center gap-1.5">
-          <label htmlFor="ee-cycle" className={labelClass}>Cycle</label>
+          <label
+            htmlFor="ee-cycle"
+            className={entityCycleScoped ? labelClass : "lbl shrink-0 text-meta-soft"}
+          >
+            Cycle
+          </label>
           <select
             id="ee-cycle"
             value={entityCycleScoped ? cycleId ?? "" : ""}
@@ -126,9 +131,7 @@ export function EntityPicker({
             className={selectClass}
             disabled={!entityCycleScoped}
           >
-            <option value="">
-              {entityCycleScoped ? "All cycles" : "Not cycle-scoped"}
-            </option>
+            <option value="">All cycles</option>
             {entityCycleScoped &&
               cycles.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
