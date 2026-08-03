@@ -223,14 +223,14 @@ export default async function PodOverviewPage({
           <p className="mt-3 text-xs text-meta-soft">
             Low sign-ups are a nudge opportunity, not a metric.
           </p>
-          {workshops.length > 3 && (
-            <Link
-              href={`${base}/workshops`}
-              className="mt-3 inline-block text-xs font-semibold text-teal-deep hover:brightness-110"
-            >
-              See all {workshops.length} workshops →
-            </Link>
-          )}
+          <Link
+            href={`${base}/workshops`}
+            className="mt-3 inline-block text-xs font-semibold text-teal-deep hover:brightness-110"
+          >
+            {workshops.length > 3
+              ? `See all ${workshops.length} workshops →`
+              : "Open workshops →"}
+          </Link>
         </section>
       </div>
     </div>
