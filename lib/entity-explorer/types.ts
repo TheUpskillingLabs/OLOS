@@ -1,9 +1,11 @@
 // Entity Explorer — module-internal types.
 //
-// Read-only admin entity browser (stopgap). See docs/entity-explorer/DESIGN.md.
-// Nothing outside lib/entity-explorer/ and app/(dashboard)/admin/explore/ should
-// import from this module — keeping it self-contained is what makes the feature
-// trivial to delete later (DESIGN.md §4).
+// Read-only entity browser (stopgap). See docs/entity-explorer/DESIGN.md.
+// Two surfaces share this module: the admin explorer (app/(dashboard)/admin/
+// explore/) and the pod-scoped poderator explorer (app/(dashboard)/moderator/
+// pods/[pod_id]/explore/ + the explore export API routes). Nothing else should
+// import from it — keeping it self-contained is what makes the feature trivial
+// to delete later (DESIGN.md §4).
 
 /**
  * The closed set of entities the explorer can show. This union IS the allowlist:
@@ -45,6 +47,22 @@ export type SoftDeleteRule =
   | { kind: "timestamp"; column: string }
   | { kind: "status"; column: string; deletedValues: string[] };
 
+/**
+ * How an entity's rows narrow to a single pod, for the pod-scoped poderator
+ * surface (/moderator/pods/[pod_id]/explore). The moderator allowlist IS
+ * "podScope declared": entities without one never render there.
+ *  - `self`: the pods table itself — the row whose id IS the pod.
+ *  - `column`: the table carries the pod's id directly (`.eq(column, podId)`).
+ *  - `lookup`: no direct pod column; the allowed values of `column` are read
+ *    first from another pod-scoped entity (e.g. participants via
+ *    pod_memberships.participant_id; project_memberships via projects.id).
+ *    The via entity must itself have a `column` pod scope.
+ */
+export type PodScope =
+  | { kind: "self" }
+  | { kind: "column"; column: string }
+  | { kind: "lookup"; column: string; via: { entity: EntityKey; select: string } };
+
 /** A forward foreign key: a column on this entity that points at another entity. */
 export interface ForeignKey {
   /** Column on this entity holding the referenced row's id. */
@@ -78,8 +96,17 @@ export interface EntityConfig {
   columns: string[];
   /** Column that best represents a row when it's referenced as a FK elsewhere. */
   labelField: string;
+  /** Explicit allowlist (subset of `columns`) of human-text columns free-text
+      search and the ILIKE branch of the dynamic column filter may match
+      against. Never derived from the schema — a VARCHAR/TEXT column doesn't
+      make this list until someone decides it's meant to be searched (same
+      allowlist discipline as `columns` itself). Empty for entities with no
+      free-text column (Votes, Pod memberships, Moderator assignments, …). */
+  textColumns: string[];
   /** True when the table has a `cycle_id` the global cycle filter applies to. */
   cycleScoped: boolean;
+  /** How rows narrow to one pod; null = invisible on the poderator surface. */
+  podScope: PodScope | null;
   /** How this entity soft-deletes rows, or null when it has no soft delete. */
   softDelete: SoftDeleteRule | null;
   /** Forward FK click-through map. */
@@ -104,6 +131,30 @@ export interface FetchListParams {
   pageSize?: number;
   /** When false (default), soft-deleted rows are hidden. */
   includeDeleted?: boolean;
+  /**
+   * Forces pod scoping (poderator surface only). Server-derived from the
+   * route path and the moderator-assignment check — never a user-editable
+   * query param. Ignored (fetch.ts) when the entity has no podScope, rather
+   * than throwing — a mismatched caller is a no-op, not an error.
+   */
+  podId?: number | null;
+  /**
+   * Free-text search: a case-insensitive substring match OR'd across every
+   * one of the entity's `textColumns`. An entity with none (e.g. Votes)
+   * returns zero rows for a non-empty term rather than silently matching
+   * everything — a search box that looks active should never be a no-op.
+   */
+  search?: string | null;
+  /**
+   * Dynamic single-column filter: `filterColumn` must be one of the entity's
+   * displayed `columns` (validated in fetch.ts — anything else is ignored,
+   * not thrown, since it can arrive as a raw query param). ILIKE substring
+   * match when the column is a `textColumn`; otherwise an exact numeric
+   * `.eq()`, and a non-numeric value against a non-text column returns zero
+   * rows (it can never match).
+   */
+  filterColumn?: string | null;
+  filterValue?: string | null;
 }
 
 /**

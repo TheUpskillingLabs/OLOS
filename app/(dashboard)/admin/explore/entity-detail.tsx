@@ -4,9 +4,16 @@
 // explicit "no rows" sections so nothing looks missing.
 
 import type { EntityRow, FetchDetailResult, RelationResult } from "@/lib/entity-explorer/types";
-import { renderCell } from "./cells";
+import { ADMIN_LINK_CTX, renderCell, type LinkContext } from "./cells";
 
-export function EntityDetail({ result }: { result: FetchDetailResult }) {
+export function EntityDetail({
+  result,
+  ctx = ADMIN_LINK_CTX,
+}: {
+  result: FetchDetailResult;
+  /** Link base + entity-link allowlist; defaults to the admin surface. */
+  ctx?: LinkContext;
+}) {
   const { config, row, foreignKeyLabels, relations } = result;
   // The route guarantees a non-null row before rendering.
   const baseRow = row as EntityRow;
@@ -34,7 +41,7 @@ export function EntityDetail({ result }: { result: FetchDetailResult }) {
               <dt className="text-[11px] font-semibold uppercase tracking-wider text-teal-deep">
                 {c}
               </dt>
-              <dd className="text-sm">{renderCell(c, baseRow, config, foreignKeyLabels)}</dd>
+              <dd className="text-sm">{renderCell(c, baseRow, config, foreignKeyLabels, ctx)}</dd>
             </div>
           ))}
         </dl>
@@ -52,7 +59,7 @@ export function EntityDetail({ result }: { result: FetchDetailResult }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {relations.map((rel) => (
-            <RelationCard key={rel.relation.entity + rel.relation.via} rel={rel} />
+            <RelationCard key={rel.relation.entity + rel.relation.via} rel={rel} ctx={ctx} />
           ))}
         </div>
       )}
@@ -60,7 +67,7 @@ export function EntityDetail({ result }: { result: FetchDetailResult }) {
   );
 }
 
-function RelationCard({ rel }: { rel: RelationResult }) {
+function RelationCard({ rel, ctx }: { rel: RelationResult; ctx: LinkContext }) {
   const { relation, config, rows, total, truncated, foreignKeyLabels } = rel;
   const empty = total === 0;
 
@@ -101,7 +108,7 @@ function RelationCard({ rel }: { rel: RelationResult }) {
                 <tr key={String(row.id ?? i)} className="transition-colors hover:bg-ink/[0.02]">
                   {config.columns.map((c) => (
                     <td key={c} className="px-3 py-2 align-top">
-                      {renderCell(c, row, config, foreignKeyLabels)}
+                      {renderCell(c, row, config, foreignKeyLabels, ctx)}
                     </td>
                   ))}
                 </tr>
