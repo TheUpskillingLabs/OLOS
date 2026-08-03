@@ -2,11 +2,13 @@ import Link from "next/link";
 import { StatusBadge } from "@/app/components/ui";
 import { getPodContext } from "@/lib/moderator/pod-context";
 import { getLogHealth } from "@/lib/moderator/log-health";
+import { parseRange } from "@/lib/moderator/range";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
 import { podNoun } from "@/lib/cycle/labels";
 import { getPodWorkshops } from "@/lib/moderator/workshops";
 import { PersistLastView } from "./persist-last-view";
 import { NeedsAttention } from "./needs-attention";
+import { RangeToggle } from "./_nav/range-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -15,24 +17,33 @@ export const dynamic = "force-dynamic";
  * doc §3): status strip, the signal-grouped needs-attention list, the
  * log-health dials, and the next few workshops. Everything else moved one
  * click left: logs, pulse insights, feedback, and the roster are their own
- * sub-pages under the layout's nav. Deliberately current-state — this page
- * answers "what needs me NOW", so it carries no range filter.
+ * sub-pages under the layout's nav.
+ *
+ * The range filter scopes the log-health sentiment/blocked lookback, same
+ * as the Logs sub-page. Everything else on this page stays current-state
+ * on purpose: the status strip and Needs-attention badges answer "what
+ * needs me NOW" (same rule as the nav badges — see layout.tsx), and Next
+ * workshops is forward-looking, so a past-looking range doesn't apply to it.
  */
 export default async function PodOverviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ pod_id: string }>;
+  searchParams: Promise<{ range?: string }>;
 }) {
   const { pod_id } = await params;
   const ctx = await getPodContext(pod_id);
   const { detail, realMembers } = ctx;
   const isOrg = detail.cycle_mode === "org";
   const noun = podNoun(detail.cycle_mode);
+  const range = parseRange((await searchParams).range);
+  const lookbackDays = range === "week" ? 7 : range === "4w" ? 28 : 365;
 
   const memberIds = realMembers.map((m) => m.participant_id);
 
   const [health, workshops] = await Promise.all([
-    getLogHealth(ctx.serviceClient, detail.cycle_id, detail.members),
+    getLogHealth(ctx.serviceClient, detail.cycle_id, detail.members, lookbackDays),
     getPodWorkshops(ctx.serviceClient, memberIds),
   ]);
 
@@ -74,6 +85,7 @@ export default async function PodOverviewPage({
         >
           {detail.status}
         </StatusBadge>
+        <RangeToggle current={range} />
       </div>
 
       {/* ── Status strip (condensed StatusHeader, design doc §4) ── */}
