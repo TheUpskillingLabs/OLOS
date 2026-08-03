@@ -1,274 +1,112 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { AlertTriangle, Users } from "lucide-react";
-import { createServiceClient } from "@/lib/supabase/server";
-import { resolveUserRoles, isAdmin, isModeratorForPod } from "@/lib/auth/roles";
 import { StatusBadge } from "@/app/components/ui";
-import { ContactsDownloadButton } from "@/app/components/contacts-download-button";
-import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
-import { getPodDetail, type PodDetail, type RosterRow } from "@/lib/moderator/pod-detail";
-import { getPodInsights } from "@/lib/moderator/pod-insights";
+import { getPodContext } from "@/lib/moderator/pod-context";
+import { getLogHealth } from "@/lib/moderator/log-health";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
-import { PodInsightsSection } from "./insights-section";
-import { DismissButton } from "./dismiss-button";
-import { Switcher } from "../../switcher";
-import { PersistLastView } from "./persist-last-view";
-import { ManagedTooltip } from "../../tooltip-state";
-import { getPodsForUser } from "@/lib/moderator/pods-list";
-import { getUiState } from "@/lib/moderator/ui-state";
-import { PodContentTabs } from "./pod-content-tabs";
-import PodSquadSections from "./pod-squad-sections";
-import PodMilestoneLogs from "./pod-milestone-logs";
 import { podNoun } from "@/lib/cycle/labels";
-import { effectiveUser } from "@/lib/auth/simulation";
+import { PersistLastView } from "./persist-last-view";
+import { NeedsAttention } from "./needs-attention";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Per-pod view (PRD §7.1, §7.2, §7.3).
- *
- * Composition (top → bottom):
- *   - status header (pod + cycle + phase + pulse-health + close timestamp)
- *   - at-risk nudge cards (read-only — dismiss action is chunk 8)
- *   - pulse insights (§7.9.2 + §7.10.3 AI summary)
- *   - members / recent-pulses tab wrapper
- *
- * Pod Resources (§7.6), the second "phase opened" deadline cell, and
- * the Phase Guidance prose panel (§7.5) were intentionally removed —
- * the phase + close timestamp already live in the status header, and
- * the prose was judged not decision-driving.
+ * Overview — the pod surface's triage landing (poderator redesign, design
+ * doc §3): status strip, the signal-grouped needs-attention list, the
+ * log-health dials, and the next few workshops. Everything else moved one
+ * click left: logs, pulse insights, feedback, and the roster are their own
+ * sub-pages under the layout's nav. Deliberately current-state — this page
+ * answers "what needs me NOW", so it carries no range filter.
  */
-export default async function ModeratorPodPage({
+export default async function PodOverviewPage({
   params,
 }: {
   params: Promise<{ pod_id: string }>;
 }) {
   const { pod_id } = await params;
-  const podId = Number.parseInt(pod_id, 10);
-  if (Number.isNaN(podId)) notFound();
-
-  const user = await effectiveUser();
-  if (!user) redirect("/login");
-
-  const serviceClient = createServiceClient();
-  const userRoles = await resolveUserRoles(serviceClient, user.id);
-
-  // Pod-scoped auth: admin (any pod) OR active moderator assignment for this pod.
-  if (!isAdmin(userRoles) && !isModeratorForPod(userRoles, podId)) {
-    redirect("/moderator");
-  }
-
-  const [detail, switcherCards, uiState] = await Promise.all([
-    getPodDetail(serviceClient, podId, userRoles.participantId),
-    getPodsForUser(serviceClient, userRoles),
-    getUiState(serviceClient, userRoles.participantId),
-  ]);
-  if (!detail) notFound();
+  const ctx = await getPodContext(pod_id);
+  const { detail, realMembers } = ctx;
   const isOrg = detail.cycle_mode === "org";
-  // Pass last_pod_tab through to seed the tab wrapper. Filter/sort still
-  // hydrates from /api/moderator/ui-state in the client (see RosterTable).
-  const initialTab = uiState.last_pod_tab ?? "members";
-
-  // A pod practices ONE weekly instrument in practice - Learning Logs
-  // (current) or pulse checks (legacy) - so the activity tab auto-selects
-  // whichever has data instead of always offering both (owner decision,
-  // 2026-07-22). Head-only count queries; members are the roster ids.
-  const memberIds = detail.members.map((m) => m.participant_id);
-  const [logCountRes, pulseCountRes] = await Promise.all([
-    memberIds.length
-      ? serviceClient
-          .from("learning_logs")
-          .select("id", { head: true, count: "exact" })
-          .in("participant_id", memberIds)
-          .eq("cycle_id", detail.cycle_id)
-      : Promise.resolve({ count: 0 }),
-    memberIds.length
-      ? serviceClient
-          .from("pulse_checks")
-          .select("id", { head: true, count: "exact" })
-          .in("participant_id", memberIds)
-          .eq("cycle_id", detail.cycle_id)
-          .not("completed_at", "is", null)
-      : Promise.resolve({ count: 0 }),
-  ]);
-  const hasLogs = (logCountRes.count ?? 0) > 0;
-  const hasPulses = (pulseCountRes.count ?? 0) > 0;
-
-  // §7.9.2 pod-level insights — pre-compute both ranges so the client
-  // toggle doesn't need a round-trip. Plus the AI-summary prompt for
-  // §7.10.3. Org runs have no pulse checks, so skip the fetches entirely —
-  // the insights section (and its AI summary) only exists for pods.
-  const [fourWeeksInsights, fullCycleInsights, aiPromptRow] = isOrg
-    ? [null, null, null]
-    : await Promise.all([
-        getPodInsights(serviceClient, podId, "4w"),
-        getPodInsights(serviceClient, podId, "full"),
-        serviceClient
-          .from("cycle_config")
-          .select("ai_summary_prompt")
-          .eq("cycle_id", detail.cycle_id)
-          .maybeSingle(),
-      ]);
-  const aiSummaryPrompt =
-    (aiPromptRow?.data?.ai_summary_prompt as string | null) ?? null;
-
-  const atRiskMembers = detail.members.filter(
-    (m) => m.pulse_status === "at_risk" && !m.is_inactive && !m.nudge_dismissed
-  );
-
-  const switcherPods = switcherCards.map((c) => ({
-    id: c.id,
-    name: c.name ?? `Pod ${c.id}`,
-  }));
-  const showAllPodsEntry =
-    isAdmin(userRoles) || switcherCards.length > 1;
-
-  return (
-    <div className="space-y-8">
-      <PersistLastView podId={detail.id} />
-      <div className="flex items-center gap-3">
-        <BackLink />
-        <Switcher
-          pods={switcherPods}
-          current={{ pod_id: detail.id }}
-          showAllPods={showAllPodsEntry}
-        />
-      </div>
-      <StatusHeader detail={detail} />
-
-      {!isOrg && atRiskMembers.length > 0 && (
-        <AtRiskSection
-          members={atRiskMembers}
-          podId={detail.id}
-          podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
-          threshold={detail.at_risk_threshold}
-        />
-      )}
-
-      {fourWeeksInsights && fullCycleInsights && (
-        <PodInsightsSection
-          fourWeeks={fourWeeksInsights}
-          fullCycle={fullCycleInsights}
-          aiSummaryPrompt={aiSummaryPrompt}
-        />
-      )}
-
-      {/* Pod Squad sections: Learning-Log health (blocked first), workshop
-          sign-ups, feedback inbox — the memo batch + Phase 1 repoint. */}
-      <PodSquadSections cycleId={detail.cycle_id} members={detail.members} />
-
-      {/* Milestone Logs: wk-mid/final evaluation status per member. */}
-      <PodMilestoneLogs cycleId={detail.cycle_id} members={detail.members} />
-
-      <section>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="t-h3 text-ink">Roster</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Pod data (Entity Explorer, pod-scoped) — hidden with the flag,
-                same as the admin nav link; the route 404s regardless. */}
-            {ENTITY_EXPLORER_ENABLED && (
-              <Link
-                href={`/moderator/pods/${podId}/explore`}
-                className="inline-flex items-center gap-1.5 rounded-card border border-teal/40 px-4 py-2 text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:bg-teal/10"
-              >
-                Pod data
-              </Link>
-            )}
-            <ContactsDownloadButton
-              href={`/api/pods/${podId}/contacts/export`}
-            />
-          </div>
-        </div>
-        <PodContentTabs
-          members={detail.members}
-          podId={detail.id}
-          podName={detail.name ?? `${podNoun(detail.cycle_mode)} ${detail.id}`}
-          initialTab={initialTab}
-          mode={detail.cycle_mode}
-          hasLogs={hasLogs}
-          hasPulses={hasPulses}
-        />
-      </section>
-    </div>
-  );
-}
-
-function BackLink() {
-  // ?view=all is required: /moderator auto-redirects returning poderators
-  // back to their last-viewed pod, which is the very pod we're leaving.
-  // The query param flags this as an explicit "All pods" intent so the
-  // page skips the redirect.
-  return (
-    <Link
-      href="/moderator?view=all"
-      className="inline-flex items-center gap-1.5 text-xs text-slate transition-colors hover:text-ink"
-    >
-      ← All pods
-    </Link>
-  );
-}
-
-// ─── Status header (§7.1) ─────────────────────────────────────────────
-
-const POD_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
-  active: "active",
-  forming: "forming",
-  inactive: "inactive",
-  dissolved: "inactive",
-};
-
-const BAND_TEXT: Record<Band, string> = {
-  healthy: "text-ink",
-  warning: "text-red",
-  critical: "text-red",
-};
-
-const TREND_ARROW: Record<Trend, string> = {
-  up: "↑",
-  down: "↓",
-  flat: "→",
-};
-
-const TREND_COLOR: Record<Trend, string> = {
-  up: "text-teal-deep",
-  down: "text-red",
-  flat: "text-meta",
-};
-
-function StatusHeader({ detail }: { detail: PodDetail }) {
-  const statusVariant = POD_STATUS_VARIANT[detail.status] ?? "inactive";
   const noun = podNoun(detail.cycle_mode);
-  // Workstream runs have no pulse checks — drop the pulse cell rather than
-  // show a permanently-empty metric.
-  const isOrg = detail.cycle_mode === "org";
+
+  const memberIds = realMembers.map((m) => m.participant_id);
+
+  const [health, rsvps] = await Promise.all([
+    getLogHealth(ctx.serviceClient, detail.cycle_id, detail.members),
+    memberIds.length
+      ? ctx.serviceClient
+          .from("event_rsvps")
+          .select("participant_id, events!inner(id, name, start_at, status)")
+          .in("participant_id", memberIds)
+          .eq("events.status", "published")
+          .gte("events.start_at", new Date().toISOString().slice(0, 10))
+          .then((r) => r.data ?? [])
+      : Promise.resolve([]),
+  ]);
+
+  // Blocked members who are ALSO at-risk already appear in the at-risk
+  // group; only surface the rest as a separate signal.
+  const atRiskIds = new Set(ctx.atRiskMembers.map((m) => m.participant_id));
+  const blocked = health.blocked.filter((b) => !atRiskIds.has(b.participant_id));
+
+  // Composite log-health average across whichever dials have data.
+  const dialValues = [
+    health.avg_progress,
+    health.avg_energy,
+    health.avg_clarity,
+    health.avg_alignment,
+  ].filter((v): v is number => v != null);
+  const healthAvg =
+    dialValues.length > 0
+      ? Math.round(
+          (dialValues.reduce((a, b) => a + b, 0) / dialValues.length) * 10
+        ) / 10
+      : null;
+  const totalForLogs = health.logged_ids.length + health.waiting_ids.length;
+
+  // Next workshops (soonest 3 of however many are scheduled).
+  type EventGroup = { name: string; start_at: string; count: number };
+  const byEvent = new Map<number, EventGroup>();
+  for (const row of rsvps) {
+    const event = Array.isArray(row.events) ? row.events[0] : row.events;
+    if (!event) continue;
+    const entry: EventGroup = byEvent.get(event.id) ?? {
+      name: event.name,
+      start_at: event.start_at,
+      count: 0,
+    };
+    entry.count += 1;
+    byEvent.set(event.id, entry);
+  }
+  const upcoming = [...byEvent.values()]
+    .sort((a, b) => a.start_at.localeCompare(b.start_at))
+    .slice(0, 3);
+
+  const base = `/moderator/pods/${detail.id}`;
+
   return (
-    <header>
-      <div className="lbl mb-1.5">
-        {detail.cycle_name ? `${detail.cycle_name} · ${noun}` : noun}
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="t-h1 text-ink">
-          {detail.name ?? `${noun} ${detail.id}`}
-        </h1>
-        <StatusBadge variant={statusVariant} withDot>
+    <div>
+      <PersistLastView podId={detail.id} />
+
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <h1 className="t-h1 text-ink">{detail.name ?? `${noun} ${detail.id}`}</h1>
+        <StatusBadge
+          variant={detail.status === "active" ? "active" : detail.status === "forming" ? "forming" : "inactive"}
+          withDot
+        >
           {detail.status}
         </StatusBadge>
       </div>
 
-      <div
-        className={`mt-5 grid grid-cols-1 gap-4 rounded-card border border-ink/10 bg-white p-5 shadow-card ${
-          isOrg ? "sm:grid-cols-2" : "sm:grid-cols-3"
-        }`}
-      >
-        <div>
-          <div className="mb-1 text-xs text-meta">Phase</div>
-          <div className="text-base font-semibold text-ink">
+      {/* ── Status strip (condensed StatusHeader, design doc §4) ── */}
+      <div className={`mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 ${isOrg ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+        <StripCell label="Phase">
+          <div className="text-lg font-bold text-ink">
             {detail.phase_display_name ?? "—"}
           </div>
           {detail.phase_close_at && (
-            <div className="mt-1 text-xs text-meta">
-              {detail.phase_is_active ? "Closes" : "Opens"}:{" "}
-              <span className="tabular-nums text-ink">
+            <div className="mt-0.5 text-xs text-meta">
+              {detail.phase_is_active ? "closes" : "opens"}{" "}
+              <span className="tabular-nums">
                 {formatDateTime(
                   detail.phase_is_active
                     ? detail.phase_close_at
@@ -277,167 +115,191 @@ function StatusHeader({ detail }: { detail: PodDetail }) {
               </span>
             </div>
           )}
-        </div>
+        </StripCell>
+
         {!isOrg && (
-          <div>
-            <ManagedTooltip
-              tooltipKey="pod_health_indicator"
-              content="Count of active pod members who haven't filed this week's Learning Log. Banded into healthy / warning / critical by cycle-configurable thresholds."
-            >
-              <div className="mb-1 text-xs text-meta">Logs this week</div>
-            </ManagedTooltip>
+          <StripCell label="Logs this week">
             <div className="flex items-baseline gap-1.5">
-              <span
-                className={`text-2xl font-bold tabular-nums ${BAND_TEXT[detail.band]}`}
-              >
-                {detail.missing_this_week}
+              <span className={`text-lg font-bold tabular-nums ${BAND_TEXT[detail.band]}`}>
+                {detail.missing_this_week} missing
               </span>
-              <span className="text-xs text-meta">missing</span>
-              <ManagedTooltip
-                tooltipKey="trend_arrow"
-                content="Trend vs. the prior 3 weeks. ↑ rising completion, ↓ falling, → flat (within 5pp tolerance)."
-              >
-                <span className={`ml-auto text-xs ${TREND_COLOR[detail.trend]}`}>
-                  {TREND_ARROW[detail.trend]}
-                </span>
-              </ManagedTooltip>
+              <span className={`text-xs ${TREND_COLOR[detail.trend]}`}>
+                {TREND_ARROW[detail.trend]}
+              </span>
             </div>
-            <div className="mt-1 text-xs text-meta">
-              band: {detail.band}
-            </div>
-          </div>
+            <div className="mt-0.5 text-xs text-meta">band: {detail.band}</div>
+          </StripCell>
         )}
-        <div>
-          <div className="mb-1 text-xs text-meta">Active members</div>
-          <div className="text-2xl font-bold tabular-nums text-ink">
+
+        <StripCell label="Log health">
+          <div className={`text-lg font-bold tabular-nums ${healthAvg != null && healthAvg < 3 ? "text-red" : "text-ink"}`}>
+            {healthAvg != null ? `${healthAvg} / 5` : "—"}
+          </div>
+          <div className="mt-0.5 text-xs text-meta">
+            {totalForLogs > 0
+              ? `${health.logged_ids.length}/${totalForLogs} logged this window`
+              : "no window armed"}
+          </div>
+        </StripCell>
+
+        <StripCell label={`Active ${noun.toLowerCase() === "pod" ? "members" : "people"}`}>
+          <div className="text-lg font-bold tabular-nums text-ink">
             {detail.active_member_count}
           </div>
-        </div>
+          {ctx.trendingMembers.length > 0 && (
+            <div className="mt-0.5 text-xs text-meta">
+              {ctx.trendingMembers.length} trending toward at-risk
+            </div>
+          )}
+        </StripCell>
       </div>
-    </header>
-  );
-}
 
-// ─── At-risk nudges (§7.2) ────────────────────────────────────────────
+      {/* ── Needs attention: one row per signal ── */}
+      {!isOrg && (
+        <NeedsAttention
+          podId={detail.id}
+          atRisk={ctx.atRiskMembers}
+          trending={ctx.trendingMembers}
+          blocked={blocked}
+          newFeedbackCount={ctx.newFeedbackCount}
+          threshold={detail.at_risk_threshold}
+        />
+      )}
 
-function AtRiskSection({
-  members,
-  podId,
-  podName,
-  threshold,
-}: {
-  members: RosterRow[];
-  podId: number;
-  podName: string;
-  threshold: number;
-}) {
-  return (
-    <section>
-      <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="t-h3 text-ink">
-          At-risk · needs attention
-        </h2>
-        <span className="text-xs text-meta">
-          {threshold}-log miss threshold
-        </span>
-      </div>
-      <div className="space-y-3">
-        {members.map((m) => (
-          <AtRiskCard
-            key={m.participant_id}
-            member={m}
-            podId={podId}
-            podName={podName}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function AtRiskCard({
-  member,
-  podId,
-  podName,
-}: {
-  member: RosterRow;
-  podId: number;
-  podName: string;
-}) {
-  const lastActiveCopy = member.last_activity_at
-    ? `last active ${daysAgo(member.last_activity_at)} days ago`
-    : "no log activity yet";
-  return (
-    <div className="rounded-card border border-red/25 bg-red/[0.04] p-4">
-      <div className="flex items-start gap-4">
-        <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-teal text-sm font-semibold text-white">
-          {member.initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-sm font-semibold text-ink">
-              {member.display_name}
-            </span>
-            {member.availability_snippet && (
-              <>
-                <span className="text-xs text-meta">·</span>
-                <span className="truncate text-xs text-meta">
-                  {member.availability_snippet}
-                </span>
-              </>
-            )}
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-red">
-            <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-            <ManagedTooltip
-              tooltipKey="at_risk_nudge_type"
-              content="At-risk nudge: fires when a member misses the configured consecutive-miss threshold. System flags only — you follow up via Slack or email."
-            >
-              <span className="font-medium">Missed consecutive Learning Logs</span>
-            </ManagedTooltip>
-            <span className="text-meta-soft">·</span>
-            <span className="text-meta">{lastActiveCopy}</span>
-          </div>
-          <div className="mt-3 flex items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 rounded-sm bg-ink/[0.04] px-2 py-0.5 text-slate">
-              <Users className="h-3 w-3" />
-              {podName}
+      {/* ── Digest row: log-health dials + next workshops ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="t-h3 text-ink">Log health</h2>
+            <span className="text-xs text-meta">
+              {health.window_due_at
+                ? `window opened ${new Date(health.window_due_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                : "trailing 7 days"}
             </span>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {member.email && (
-            <a
-              href={`mailto:${member.email}`}
-              className="rounded-card bg-teal-deep px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal"
-            >
-              Email
-            </a>
+          {health.sample_size === 0 ? (
+            <p className="mt-3 text-sm text-meta">
+              No logs yet. Signals show up here once the {noun.toLowerCase()}{" "}
+              starts logging.
+            </p>
+          ) : (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <Dial label="Progress" value={health.avg_progress} />
+              <Dial label="Energy" value={health.avg_energy} />
+              <Dial label="Clarity" value={health.avg_clarity} />
+              <Dial label="Alignment" value={health.avg_alignment} />
+              <Dial
+                label="Logged"
+                text={totalForLogs > 0 ? `${health.logged_ids.length}/${totalForLogs}` : "—"}
+                low={totalForLogs > 0 && health.logged_ids.length / totalForLogs < 0.5}
+              />
+            </div>
           )}
-          {member.nudge_key && (
-            <DismissButton podId={podId} nudgeKey={member.nudge_key} />
+          <Link
+            href={`${base}/logs`}
+            className="mt-4 inline-block text-xs font-semibold text-teal-deep hover:brightness-110"
+          >
+            Open the logs →
+          </Link>
+        </section>
+
+        <section className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="t-h3 text-ink">Next workshops</h2>
+            <span className="text-xs text-meta">
+              {byEvent.size} with sign-ups this cycle
+            </span>
+          </div>
+          {upcoming.length === 0 ? (
+            <p className="mt-3 text-sm text-meta">No upcoming sign-ups yet.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-ink/10">
+              {upcoming.map((e) => (
+                <li key={e.name} className="flex items-baseline justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0">
+                  <span className="text-charcoal">
+                    {e.name}
+                    <span className="ml-1.5 text-xs text-meta">
+                      {new Date(e.start_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </span>
+                  </span>
+                  <span className="whitespace-nowrap text-xs tabular-nums text-meta">
+                    {e.count} of {realMembers.length}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
+          <p className="mt-3 text-xs text-meta-soft">
+            Low sign-ups are a nudge opportunity, not a metric.
+          </p>
+        </section>
       </div>
     </div>
   );
 }
 
-// ─── Date helpers ────────────────────────────────────────────────────
+// ─── Strip + dial primitives ───────────────────────────────────────────
+
+const BAND_TEXT: Record<Band, string> = {
+  healthy: "text-ink",
+  warning: "text-red",
+  critical: "text-red",
+};
+const TREND_ARROW: Record<Trend, string> = { up: "↑", down: "↓", flat: "→" };
+const TREND_COLOR: Record<Trend, string> = {
+  up: "text-teal-deep",
+  down: "text-red",
+  flat: "text-meta",
+};
+
+function StripCell({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-card border border-ink/10 bg-white p-4 shadow-card">
+      <div className="lbl lbl-teal mb-1">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function Dial({
+  label,
+  value,
+  text,
+  low,
+}: {
+  label: string;
+  value?: number | null;
+  text?: string;
+  low?: boolean;
+}) {
+  const display = text ?? (value != null ? String(value) : "—");
+  const isLow = low ?? (value != null && value < 3);
+  return (
+    <div className="rounded-card border border-ink/10 px-3 py-2 text-center">
+      <div className={`text-base font-bold tabular-nums ${isLow ? "text-red" : "text-ink"}`}>
+        {display}
+        {value != null && <span className="text-xs font-normal text-meta"> / 5</span>}
+      </div>
+      <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-meta">
+        {label}
+      </div>
+    </div>
+  );
+}
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleString("en-US", {
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
     month: "short",
     day: "numeric",
-    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZoneName: "short",
   });
-}
-
-function daysAgo(iso: string): number {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  return Math.max(0, Math.floor(diffMs / 86_400_000));
 }

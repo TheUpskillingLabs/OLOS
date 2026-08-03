@@ -11,13 +11,23 @@ import type { RosterRow } from "@/lib/moderator/pod-detail";
      3. Pod feedback inbox — what this pod flagged through the feedback
         widget. Read-only; the shepherd observes, never grades. */
 
+export type PodSquadSection = "log_health" | "workshops" | "feedback";
+
 export default async function PodSquadSections({
   cycleId,
   members,
+  sections = ["log_health", "workshops", "feedback"],
+  logLookbackDays,
 }: {
   cycleId: number;
   members: RosterRow[];
+  /** Which sections to render — the sub-page split (design doc §3) reuses
+      these one at a time instead of always stacking all three. */
+  sections?: PodSquadSection[];
+  /** Range filter override for the log-health sentiment lookback. */
+  logLookbackDays?: number;
 }) {
+  const show = new Set<PodSquadSection>(sections);
   const supabase = createServiceClient();
   const realMembers = members.filter((m) => !m.is_staff_or_test);
   const memberIds = realMembers.map((m) => m.participant_id);
@@ -29,8 +39,8 @@ export default async function PodSquadSections({
   );
 
   const [health, rsvps, feedback] = await Promise.all([
-    getLogHealth(supabase, cycleId, realMembers),
-    memberIds.length
+    getLogHealth(supabase, cycleId, realMembers, logLookbackDays),
+    show.has("workshops") && memberIds.length
       ? supabase
           .from("event_rsvps")
           .select(
@@ -41,7 +51,7 @@ export default async function PodSquadSections({
           .gte("events.start_at", new Date().toISOString().slice(0, 10))
           .then((r) => r.data ?? [])
       : Promise.resolve([]),
-    memberIds.length
+    show.has("feedback") && memberIds.length
       ? supabase
           .from("feedback")
           .select("id, participant_id, category, description, status, created_at")
@@ -72,6 +82,7 @@ export default async function PodSquadSections({
 
   return (
     <>
+      {show.has("log_health") && (<>
       {/* ── Learning Log health ── */}
       <section className="mb-6 rounded-card border border-ink/10 bg-white p-5 shadow-card">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -199,7 +210,9 @@ export default async function PodSquadSections({
           </div>
         )}
       </section>
+      </>)}
 
+      {show.has("workshops") && (<>
       {/* ── Workshop sign-ups ── */}
       <section className="mb-6 rounded-card border border-ink/10 bg-white p-5 shadow-card">
         <h2 className="t-h3 text-ink">Workshop sign-ups</h2>
@@ -228,7 +241,9 @@ export default async function PodSquadSections({
           </ul>
         )}
       </section>
+      </>)}
 
+      {show.has("feedback") && (<>
       {/* ── Pod feedback inbox (read-only) ── */}
       <section className="mb-6 rounded-card border border-ink/10 bg-white p-5 shadow-card">
         <h2 className="t-h3 text-ink">Pod feedback</h2>
@@ -262,6 +277,7 @@ export default async function PodSquadSections({
           </ul>
         )}
       </section>
+      </>)}
     </>
   );
 }

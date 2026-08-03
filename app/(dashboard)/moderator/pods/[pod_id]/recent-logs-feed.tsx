@@ -19,14 +19,15 @@ type LoadState =
   | { kind: "loading-more"; payload: RecentLogsPayload }
   | { kind: "error"; message: string };
 
-export function RecentLogsFeed({ podId }: { podId: number }) {
+export function RecentLogsFeed({ podId, since }: { podId: number; since?: string | null }) {
   const [state, setState] = React.useState<LoadState>({ kind: "idle" });
 
   React.useEffect(() => {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ kind: "loading" });
-    fetch(`/api/moderator/pods/${podId}/recent-logs`)
+    const sinceQs = since ? `?since=${encodeURIComponent(since)}` : "";
+    fetch(`/api/moderator/pods/${podId}/recent-logs${sinceQs}`)
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -44,7 +45,7 @@ export function RecentLogsFeed({ podId }: { podId: number }) {
     return () => {
       cancelled = true;
     };
-  }, [podId]);
+  }, [podId, since]);
 
   const loadMore = async () => {
     if (state.kind !== "loaded" || !state.payload.nextCursor) return;
@@ -53,7 +54,7 @@ export function RecentLogsFeed({ podId }: { podId: number }) {
     setState({ kind: "loading-more", payload: prev });
     try {
       const res = await fetch(
-        `/api/moderator/pods/${podId}/recent-logs?before=${encodeURIComponent(cursor)}`
+        `/api/moderator/pods/${podId}/recent-logs?before=${encodeURIComponent(cursor)}${since ? `&since=${encodeURIComponent(since)}` : ""}`
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));

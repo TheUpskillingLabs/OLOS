@@ -34,6 +34,7 @@ export const GET = withAuth(
 
     const url = new URL(request.url);
     const before = url.searchParams.get("before");
+    const since = url.searchParams.get("since");
     const limitParam = url.searchParams.get("limit");
     const limit = limitParam
       ? Number.parseInt(limitParam, 10)
@@ -41,6 +42,7 @@ export const GET = withAuth(
 
     const result = await getRecentLogs(auth.supabase, podId, {
       before: before && before.length > 0 ? before : null,
+      since: since && since.length > 0 ? since : null,
       limit: Number.isFinite(limit) ? limit : RECENT_LOGS_PAGE_SIZE,
     });
     if ("error" in result) {
