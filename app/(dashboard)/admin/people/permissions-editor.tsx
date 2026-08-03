@@ -14,9 +14,17 @@ const PRESET_COLORS: Record<string, string> = {
   owner: "bg-ink/10 text-ink ring-ink/30",
   admin: "bg-teal/10 text-teal-deep ring-teal/30",
   developer: "bg-forest/10 text-forest ring-forest/30",
-  moderator: "bg-navy/10 text-navy ring-navy/30",
   observer: "bg-ink/[0.04] text-meta ring-ink/10",
 };
+
+// The 'moderator' preset is deliberately NOT offered here (bug fix): it
+// granted the three poderator caps globally, with no pod/cycle scope, no
+// un-apply, and no effect on which pods the person can actually see. Real
+// poderator access comes from pod assignments (cycle admin page), whose
+// sync trigger grants the same caps scoped to the pod, and whose Remove
+// button revokes them. ROLE_PRESETS.moderator itself stays: it feeds
+// ROLE_CAPABILITIES.poderator (role -> caps resolution).
+const HIDDEN_PRESETS = new Set(["moderator"]);
 
 export default function PermissionsEditor({
   participantId,
@@ -80,7 +88,9 @@ export default function PermissionsEditor({
     }
   }
 
-  const currentPresets = activePresets([...permissions]);
+  const currentPresets = activePresets([...permissions]).filter(
+    (p) => !HIDDEN_PRESETS.has(p)
+  );
 
   async function togglePermission(permission: Permission) {
     const action = permissions.has(permission) ? "revoke" : "grant";
@@ -146,7 +156,9 @@ export default function PermissionsEditor({
           Quick Assign — Role Presets
         </h2>
         <div className="flex flex-wrap gap-2">
-          {Object.keys(ROLE_PRESETS).map((preset) => {
+          {Object.keys(ROLE_PRESETS)
+            .filter((preset) => !HIDDEN_PRESETS.has(preset))
+            .map((preset) => {
             const isActive = currentPresets.includes(preset);
             const isRestricted =
               !canManageRoles && (preset === "owner" || preset === "admin" || preset === "developer");
@@ -282,12 +294,14 @@ export default function PermissionsEditor({
         </div>
       </section>
 
-      {/* Pod Assignments (informational) */}
-      {podAssignments.length > 0 && (
-        <section>
-          <h2 className="lbl mb-3">
-            Moderator Pod Assignments
-          </h2>
+      {/* Pod Assignments (informational). Always rendered: this is also
+          where an admin looking to grant poderator access gets pointed at
+          the real flow, now that the unscoped Moderator preset is gone. */}
+      <section>
+        <h2 className="lbl mb-3">
+          Poderator Pod Assignments
+        </h2>
+        {podAssignments.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {podAssignments.map((pa) => (
               <span
@@ -303,11 +317,16 @@ export default function PermissionsEditor({
               </span>
             ))}
           </div>
-          <p className="mt-2 text-xs text-meta">
-            Pod assignments are managed from the cycle admin page.
-          </p>
-        </section>
-      )}
+        ) : (
+          <p className="text-sm text-meta">No pod assignments.</p>
+        )}
+        <p className="mt-2 text-xs text-meta">
+          Poderator access is granted and removed by assigning pods on the
+          cycle admin page (Cycles, then the cycle, then Assign poderator on
+          a pod). Assignment grants the needed permissions automatically,
+          scoped to that pod.
+        </p>
+      </section>
     </div>
   );
 }
