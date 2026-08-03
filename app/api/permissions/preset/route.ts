@@ -25,6 +25,20 @@ export const POST = withAdminAuth(
       return NextResponse.json({ error: "Unknown preset" }, { status: 400 });
     }
 
+    // The unscoped moderator preset is no longer applyable (bug fix): it
+    // granted global caps with no pod scope and no un-apply path. Poderator
+    // access flows from pod assignments (POST /api/pods/[pod_id]/moderators),
+    // which grant the same caps scoped to the pod and are removable.
+    if (preset === "moderator") {
+      return NextResponse.json(
+        {
+          error:
+            "Poderator access is granted by assigning pods on the cycle admin page, not by preset.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Attenuation up front (before any write): if this preset carries a global
     // role, the actor must be allowed to grant it — owner-only for owner, admin
     // for admin/developer/observer (lib/auth/grants.ts). Checking here avoids a
