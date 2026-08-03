@@ -1,0 +1,58 @@
+"use client";
+
+// Cycle filter for the All pods view — a poderator running multiple
+// cycles' pods can scope the cards + aggregates (rollup, pulse insights,
+// field survey links) to one cycle at a time. Single-select (a plain
+// <select>, never `multiple`). State lives in the URL (?cycle=)
+// alongside the range filter, so both are linkable and independent.
+// Absent ?cycle= means "use the default" (the current cycle — resolved
+// server-side); explicitly picking "All cycles" writes ?cycle=all so it
+// sticks instead of reverting to that default on the next load.
+
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+
+export interface CycleOption {
+  id: number;
+  name: string;
+}
+
+export function CycleFilter({
+  current,
+  options,
+}: {
+  current: number | null;
+  options: CycleOption[];
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Nothing to filter when everything visible is already one cycle.
+  if (options.length <= 1) return null;
+
+  return (
+    <div className="inline-flex items-center gap-2">
+      <label htmlFor="cycle-filter" className="lbl lbl-teal">
+        Cycle
+      </label>
+      <select
+        id="cycle-filter"
+        value={current ?? ""}
+        onChange={(e) => {
+          const params = new URLSearchParams(searchParams.toString());
+          params.set("cycle", e.target.value || "all");
+          const qs = params.toString();
+          router.push(qs ? `${pathname}?${qs}` : pathname);
+        }}
+        className="rounded-card border border-ink/10 bg-white px-2.5 py-1.5 text-sm font-semibold text-ink focus:border-teal focus:outline-none"
+      >
+        <option value="">All cycles</option>
+        {options.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}

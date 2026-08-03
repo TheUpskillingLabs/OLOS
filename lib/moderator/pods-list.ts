@@ -31,6 +31,9 @@ export type PodCard = {
   cycle_id: number;
   cycle_name: string | null;
   cycle_mode: string | null;
+  /** cycles.status ('active' | 'upcoming' | 'closed' | ...) — drives the
+   *  All pods view's "default to the current cycle" behavior. */
+  cycle_status: string | null;
   lab_id: number | null;
   lab_name: string | null;
   phase_num: number | null;
@@ -85,7 +88,7 @@ export async function getPodsForUser(
   // Pods + cycle metadata.
   const { data: podRows } = await supabase
     .from("pods")
-    .select("id, name, status, cycle_id, lab_id, cycles (id, name, mode), metros (name)")
+    .select("id, name, status, cycle_id, lab_id, cycles (id, name, mode, status), metros (name)")
     .in("id", podIds);
 
   if (!podRows || podRows.length === 0) return [];
@@ -158,9 +161,10 @@ export async function getPodsForUser(
       memberIds.length
     );
 
-    const cycle = pod.cycles as unknown as { name: string; mode: string | null } | null;
+    const cycle = pod.cycles as unknown as { name: string; mode: string | null; status: string | null } | null;
     const cycleName = cycle?.name ?? null;
     const cycleMode = cycle?.mode ?? null;
+    const cycleStatus = cycle?.status ?? null;
     const lab = one(pod.metros as { name: string | null } | { name: string | null }[] | null);
 
     return {
@@ -170,6 +174,7 @@ export async function getPodsForUser(
       cycle_id: pod.cycle_id as number,
       cycle_name: cycleName,
       cycle_mode: cycleMode,
+      cycle_status: cycleStatus,
       lab_id: (pod.lab_id as number | null) ?? null,
       lab_name: lab?.name ?? null,
       phase_num: phase?.num ?? null,
