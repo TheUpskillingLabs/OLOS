@@ -19,6 +19,8 @@ export interface PodNavBadges {
   attention: number;
   /** "logged/total" for the current window — neutral. */
   logs: string | null;
+  /** Count of upcoming events with sign-ups this cycle — neutral. */
+  workshops: number;
   /** Unread (status=new) feedback — red. */
   feedback: number;
   /** Active member count — neutral. */
@@ -64,6 +66,11 @@ export function PodNav({
         badges.attention > 0
           ? { text: String(badges.attention), tone: "red" }
           : null,
+    },
+    {
+      label: "Workshops",
+      suffix: "/workshops",
+      badge: badges.workshops > 0 ? { text: String(badges.workshops), tone: "soft" } : null,
     },
     {
       label: "Learning & Milestone Logs",

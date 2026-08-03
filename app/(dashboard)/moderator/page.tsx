@@ -14,6 +14,9 @@ import { getRollup } from "@/lib/moderator/rollup";
 import { getCrossPodInsights } from "@/lib/moderator/cross-pod-insights";
 import { CrossPodInsightsSection } from "./cross-pod-insights-section";
 import { getUiState } from "@/lib/moderator/ui-state";
+import { parseRange, RANGE_LABELS, type PodRange } from "@/lib/moderator/range";
+import { RangeToggle } from "./pods/[pod_id]/_nav/range-toggle";
+import { CycleFilter, type CycleOption } from "./cycle-filter";
 import { getFieldSurveyForCycle } from "@/lib/content/surveys";
 import OrientationCard from "./orientation-card";
 import { Switcher } from "./switcher";
@@ -37,9 +40,11 @@ import { effectiveUser } from "@/lib/auth/simulation";
 export default async function ModeratorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; cycle?: string; range?: string }>;
 }) {
   const sp = await searchParams;
+  const range = parseRange(sp.range);
+  const periodWeeks = range === "week" ? 1 : range === "4w" ? 4 : 52;
   /**
    * Explicit "show me All pods" intent — set by the back-arrow link on
    * per-pod pages and by the Switcher's "All pods" item. Required to
@@ -67,6 +72,44 @@ export default async function ModeratorPage({
     getUiState(serviceClient, userRoles.participantId),
   ]);
 
+  // Cycle filter — only offered when the poderator's pods actually span
+  // more than one cycle; scopes the cards below plus every aggregate
+  // (rollup, cross-pod insights, field-survey links) to the chosen one.
+  // Single-select only (a plain <select>, never `multiple`).
+  const cycleOptions: CycleOption[] = Array.from(
+    new Map(
+      cards.map((c) => [c.cycle_id, { id: c.cycle_id, name: c.cycle_name ?? `Cycle ${c.cycle_id}` }])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  // Default landing = the current cycle, not "All cycles": prefer the
+  // active participant ('open') cycle, then any other active cycle. Falls
+  // back to "All cycles" (null) if nothing is active among these pods —
+  // e.g. a poderator whose only assignments are from a closed cycle.
+  const defaultCycleId =
+    cards.find((c) => c.cycle_status === "active" && c.cycle_mode === "open")
+      ?.cycle_id ??
+    cards.find((c) => c.cycle_status === "active")?.cycle_id ??
+    null;
+
+  // ?cycle= is absent → use the default above; "all" → explicit All
+  // cycles (distinct from "absent", so picking it sticks instead of
+  // reverting to the default cycle on the next load); anything else →
+  // that cycle id, falling back to the default if it's not one of the
+  // poderator's own cycles.
+  const cycleFilter =
+    sp.cycle === undefined
+      ? defaultCycleId
+      : sp.cycle === "all"
+        ? null
+        : cards.some((c) => c.cycle_id === Number(sp.cycle))
+          ? Number(sp.cycle)
+          : defaultCycleId;
+
+  const visibleCards = cycleFilter
+    ? cards.filter((c) => c.cycle_id === cycleFilter)
+    : cards;
+
   // PRD §7.7: first-time single-pod poderators land on their pod;
   // first-time multi-pod poderators land here. Returning poderators
   // land wherever they last were — if they last viewed a pod we redirect,
@@ -87,9 +130,9 @@ export default async function ModeratorPage({
   // P-7 / B-1: partition cards into participant pods vs. org workstream
   // runs. Sort order within each subset is preserved — `cards` is already
   // sorted (non-zero missing first, then alphabetical) and `.filter()`
-  // keeps relative order.
-  const participantCards = cards.filter((c) => c.cycle_mode !== "org");
-  const orgCards = cards.filter((c) => c.cycle_mode === "org");
+  // keeps relative order. Scoped to the cycle filter, if one is active.
+  const participantCards = visibleCards.filter((c) => c.cycle_mode !== "org");
+  const orgCards = visibleCards.filter((c) => c.cycle_mode === "org");
   const hasParticipantCards = participantCards.length > 0;
   const hasOrgCards = orgCards.length > 0;
   const sectioned = hasParticipantCards && hasOrgCards;
@@ -120,7 +163,7 @@ export default async function ModeratorPage({
   const [rollup, crossPodFourWeeks, crossPodFullCycle, aiPromptRow] =
     showAggregates && podIds.length > 0
       ? await Promise.all([
-          getRollup(serviceClient, { podIds }),
+          getRollup(serviceClient, { podIds }, periodWeeks),
           getCrossPodInsights(serviceClient, podIds, "4w"),
           getCrossPodInsights(serviceClient, podIds, "full"),
           cycleIds.length > 0
@@ -178,9 +221,16 @@ export default async function ModeratorPage({
       <h1 className="t-h1 mb-2 text-ink">
         {heading}
       </h1>
-      <p className="mb-8 text-sm text-charcoal">
+      <p className="mb-4 text-sm text-charcoal">
         {subtitle}
       </p>
+
+      {cards.length > 0 && (
+        <div className="mb-8 flex flex-wrap items-center gap-3">
+          <CycleFilter current={cycleFilter} options={cycleOptions} />
+          <RangeToggle current={range} />
+        </div>
+      )}
 
       <OrientationCard tooltipSeen={uiState.tooltip_seen ?? []} />
 
@@ -215,6 +265,12 @@ export default async function ModeratorPage({
               : "You are not currently assigned to moderate any pods."
           }
         />
+      ) : visibleCards.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No pods in this cycle"
+          description="Switch the cycle filter above, or choose All cycles to see everything again."
+        />
       ) : (
         <div className="space-y-8">
           {sectioned ? (
@@ -229,12 +285,13 @@ export default async function ModeratorPage({
               </section>
             </>
           ) : (
-            <SectionedByLab cards={cards} />
+            <SectionedByLab cards={visibleCards} />
           )}
           {rollup && (
             <RollupBlock
               rollup={rollup}
               podCount={participantCards.length}
+              range={range}
             />
           )}
           {crossPodFourWeeks && crossPodFullCycle && (
@@ -416,9 +473,11 @@ function formatPhaseSuffix(
 function RollupBlock({
   rollup,
   podCount,
+  range,
 }: {
   rollup: NonNullable<Awaited<ReturnType<typeof getRollup>>>;
   podCount: number;
+  range: PodRange;
 }) {
   return (
     <section>
@@ -463,11 +522,11 @@ function RollupBlock({
             }
           />
           <KPI
-            label={`Pulses this period`}
+            label="Pulses this period"
             value={rollup.pulsesThisPeriod.submitted}
             valueClass="text-ink"
             inline="submitted"
-            sub={`of ${rollup.pulsesThisPeriod.possible} possible · ${rollup.pulsesThisPeriod.periodWeeks}w`}
+            sub={`of ${rollup.pulsesThisPeriod.possible} possible · ${RANGE_LABELS[range].toLowerCase()}`}
           />
           <KPI
             label="Engagement trend"
