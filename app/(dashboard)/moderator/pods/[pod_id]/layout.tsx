@@ -42,10 +42,13 @@ export default async function PodLayout({
 
   const totalForLogs = health.logged_ids.length + health.waiting_ids.length;
   const badges: PodNavBadges = {
-    attention:
-      ctx.atRiskMembers.length +
-      ctx.trendingMembers.length +
-      (ctx.newFeedbackCount > 0 ? 1 : 0),
+    // Org runs render no needs-attention card (no pulse-based nudges — same
+    // rule as the old page), so their Overview badge must stay quiet too.
+    attention: isOrg
+      ? 0
+      : ctx.atRiskMembers.length +
+        ctx.trendingMembers.length +
+        (ctx.newFeedbackCount > 0 ? 1 : 0),
     logs: totalForLogs > 0 ? `${health.logged_ids.length}/${totalForLogs}` : null,
     feedback: ctx.newFeedbackCount,
     roster: detail.active_member_count,
