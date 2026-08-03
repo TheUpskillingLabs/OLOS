@@ -2,9 +2,12 @@
 
 // Cycle filter for the All pods view — a poderator running multiple
 // cycles' pods can scope the cards + aggregates (rollup, pulse insights,
-// field survey links) to one cycle at a time. State lives in the URL
-// (?cycle=, absent = all cycles) alongside the range filter, so both are
-// linkable and independent.
+// field survey links) to one cycle at a time. Single-select (a plain
+// <select>, never `multiple`). State lives in the URL (?cycle=)
+// alongside the range filter, so both are linkable and independent.
+// Absent ?cycle= means "use the default" (the current cycle — resolved
+// server-side); explicitly picking "All cycles" writes ?cycle=all so it
+// sticks instead of reverting to that default on the next load.
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
@@ -37,8 +40,7 @@ export function CycleFilter({
         value={current ?? ""}
         onChange={(e) => {
           const params = new URLSearchParams(searchParams.toString());
-          if (e.target.value) params.set("cycle", e.target.value);
-          else params.delete("cycle");
+          params.set("cycle", e.target.value || "all");
           const qs = params.toString();
           router.push(qs ? `${pathname}?${qs}` : pathname);
         }}

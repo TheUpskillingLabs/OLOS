@@ -75,16 +75,37 @@ export default async function ModeratorPage({
   // Cycle filter — only offered when the poderator's pods actually span
   // more than one cycle; scopes the cards below plus every aggregate
   // (rollup, cross-pod insights, field-survey links) to the chosen one.
+  // Single-select only (a plain <select>, never `multiple`).
   const cycleOptions: CycleOption[] = Array.from(
     new Map(
       cards.map((c) => [c.cycle_id, { id: c.cycle_id, name: c.cycle_name ?? `Cycle ${c.cycle_id}` }])
     ).values()
   ).sort((a, b) => a.name.localeCompare(b.name));
-  const requestedCycle = sp.cycle ? Number(sp.cycle) : null;
+
+  // Default landing = the current cycle, not "All cycles": prefer the
+  // active participant ('open') cycle, then any other active cycle. Falls
+  // back to "All cycles" (null) if nothing is active among these pods —
+  // e.g. a poderator whose only assignments are from a closed cycle.
+  const defaultCycleId =
+    cards.find((c) => c.cycle_status === "active" && c.cycle_mode === "open")
+      ?.cycle_id ??
+    cards.find((c) => c.cycle_status === "active")?.cycle_id ??
+    null;
+
+  // ?cycle= is absent → use the default above; "all" → explicit All
+  // cycles (distinct from "absent", so picking it sticks instead of
+  // reverting to the default cycle on the next load); anything else →
+  // that cycle id, falling back to the default if it's not one of the
+  // poderator's own cycles.
   const cycleFilter =
-    requestedCycle && cards.some((c) => c.cycle_id === requestedCycle)
-      ? requestedCycle
-      : null;
+    sp.cycle === undefined
+      ? defaultCycleId
+      : sp.cycle === "all"
+        ? null
+        : cards.some((c) => c.cycle_id === Number(sp.cycle))
+          ? Number(sp.cycle)
+          : defaultCycleId;
+
   const visibleCards = cycleFilter
     ? cards.filter((c) => c.cycle_id === cycleFilter)
     : cards;
