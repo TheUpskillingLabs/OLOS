@@ -4,6 +4,7 @@ import { getPodContext } from "@/lib/moderator/pod-context";
 import { getLogHealth } from "@/lib/moderator/log-health";
 import type { Band, Trend } from "@/lib/moderator/pulse-health";
 import { podNoun } from "@/lib/cycle/labels";
+import { getPodWorkshops } from "@/lib/moderator/workshops";
 import { PersistLastView } from "./persist-last-view";
 import { NeedsAttention } from "./needs-attention";
 
@@ -30,17 +31,9 @@ export default async function PodOverviewPage({
 
   const memberIds = realMembers.map((m) => m.participant_id);
 
-  const [health, rsvps] = await Promise.all([
+  const [health, workshops] = await Promise.all([
     getLogHealth(ctx.serviceClient, detail.cycle_id, detail.members),
-    memberIds.length
-      ? ctx.serviceClient
-          .from("event_rsvps")
-          .select("participant_id, events!inner(id, name, start_at, status)")
-          .in("participant_id", memberIds)
-          .eq("events.status", "published")
-          .gte("events.start_at", new Date().toISOString().slice(0, 10))
-          .then((r) => r.data ?? [])
-      : Promise.resolve([]),
+    getPodWorkshops(ctx.serviceClient, memberIds),
   ]);
 
   // Blocked members who are ALSO at-risk already appear in the at-risk
@@ -63,23 +56,9 @@ export default async function PodOverviewPage({
       : null;
   const totalForLogs = health.logged_ids.length + health.waiting_ids.length;
 
-  // Next workshops (soonest 3 of however many are scheduled).
-  type EventGroup = { name: string; start_at: string; count: number };
-  const byEvent = new Map<number, EventGroup>();
-  for (const row of rsvps) {
-    const event = Array.isArray(row.events) ? row.events[0] : row.events;
-    if (!event) continue;
-    const entry: EventGroup = byEvent.get(event.id) ?? {
-      name: event.name,
-      start_at: event.start_at,
-      count: 0,
-    };
-    entry.count += 1;
-    byEvent.set(event.id, entry);
-  }
-  const upcoming = [...byEvent.values()]
-    .sort((a, b) => a.start_at.localeCompare(b.start_at))
-    .slice(0, 3);
+  // Next workshops (soonest 3 of however many are scheduled — see the
+  // full list on the Workshops sub-page).
+  const upcoming = workshops.slice(0, 3);
 
   const base = `/moderator/pods/${detail.id}`;
 
@@ -207,7 +186,7 @@ export default async function PodOverviewPage({
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="t-h3 text-ink">Next workshops</h2>
             <span className="text-xs text-meta">
-              {byEvent.size} with sign-ups this cycle
+              {workshops.length} with sign-ups this cycle
             </span>
           </div>
           {upcoming.length === 0 ? (
@@ -215,7 +194,7 @@ export default async function PodOverviewPage({
           ) : (
             <ul className="mt-3 divide-y divide-ink/10">
               {upcoming.map((e) => (
-                <li key={e.name} className="flex items-baseline justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0">
+                <li key={e.id} className="flex items-baseline justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0">
                   <span className="text-charcoal">
                     {e.name}
                     <span className="ml-1.5 text-xs text-meta">
@@ -232,6 +211,14 @@ export default async function PodOverviewPage({
           <p className="mt-3 text-xs text-meta-soft">
             Low sign-ups are a nudge opportunity, not a metric.
           </p>
+          {workshops.length > 3 && (
+            <Link
+              href={`${base}/workshops`}
+              className="mt-3 inline-block text-xs font-semibold text-teal-deep hover:brightness-110"
+            >
+              See all {workshops.length} workshops →
+            </Link>
+          )}
         </section>
       </div>
     </div>
