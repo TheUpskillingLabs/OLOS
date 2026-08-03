@@ -85,6 +85,8 @@ export default async function PodLayout({
           pods={ctx.switcherPods.map((p) => ({
             id: p.id,
             name: p.name ?? `${noun} ${p.id}`,
+            cycle_id: p.cycle_id,
+            cycle_name: p.cycle_name,
           }))}
           badges={badges}
           showExplorer={ENTITY_EXPLORER_ENABLED}

@@ -1,7 +1,8 @@
 "use client";
 
 // Left nav for the pod surface (design doc §3): pod filter dropdown on top
-// (only the pods the caller can see), then the sub-pages in HQ's settled
+// (only the pods the caller can see), scoped by a Cycle dropdown when those
+// pods span more than one cycle, then the sub-pages in HQ's settled
 // order. Active state from the pathname; badge counts are server-computed
 // and always reflect the CURRENT week regardless of the range filter — the
 // "do I need to look now?" signal.
@@ -9,10 +10,16 @@
 // UI copy never says "moderator" (docs/poderator-dashboard/CLAUDE.md); the
 // route paths are internal and stay under /moderator/.
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-export type PodNavPod = { id: number; name: string };
+export type PodNavPod = {
+  id: number;
+  name: string;
+  cycle_id: number;
+  cycle_name: string | null;
+};
 
 export interface PodNavBadges {
   /** At-risk + trending — red. */
@@ -57,6 +64,26 @@ export function PodNav({
   const pathname = usePathname();
   const router = useRouter();
   const base = `/moderator/pods/${podId}`;
+
+  // Cycle scoping for the pod filter (companion to the All pods view's
+  // ?cycle= filter, but local state here: navigating to a pod resets the
+  // scope to that pod's own cycle, which is the natural default when you
+  // are already looking at it). Options derive from the caller-visible pod
+  // list only, so a cycle where this poderator has no pods never appears.
+  const currentPodCycle = pods.find((p) => p.id === podId)?.cycle_id ?? null;
+  const [cycleId, setCycleId] = React.useState<number | null>(currentPodCycle);
+  const cycleOptions = React.useMemo(() => {
+    const seen = new Map<number, string>();
+    for (const p of pods) {
+      if (!seen.has(p.cycle_id)) {
+        seen.set(p.cycle_id, p.cycle_name ?? `Cycle ${p.cycle_id}`);
+      }
+    }
+    return Array.from(seen, ([id, name]) => ({ id, name }));
+  }, [pods]);
+  const visiblePods =
+    cycleId === null ? pods : pods.filter((p) => p.cycle_id === cycleId);
+  const currentVisible = visiblePods.some((p) => p.id === podId);
 
   const items: Item[] = [
     {
@@ -107,21 +134,49 @@ export function PodNav({
   return (
     <nav className="w-60 flex-shrink-0" aria-label="Pod sections">
       <div className="mb-4 rounded-card border border-ink/10 bg-white p-3.5 shadow-card">
+        {cycleOptions.length > 1 && (
+          <div className="mb-3">
+            <label htmlFor="pod-nav-cycle" className="lbl lbl-teal">
+              Cycle
+            </label>
+            <select
+              id="pod-nav-cycle"
+              value={cycleId === null ? "all" : String(cycleId)}
+              onChange={(e) =>
+                setCycleId(e.target.value === "all" ? null : Number(e.target.value))
+              }
+              className="mt-1.5 w-full rounded-card border border-ink/10 bg-white px-2.5 py-1.5 text-sm font-semibold text-ink focus:border-teal focus:outline-none"
+            >
+              {cycleOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+              <option value="all">All cycles</option>
+            </select>
+          </div>
+        )}
         <label htmlFor="pod-nav-filter" className="lbl lbl-teal">
           Pod
         </label>
         {pods.length > 1 ? (
           <select
             id="pod-nav-filter"
-            value={podId}
+            value={currentVisible ? String(podId) : ""}
             onChange={(e) => {
+              if (!e.target.value) return;
               // Land on the same sub-page for the newly chosen pod.
               const suffix = pathname.startsWith(base) ? pathname.slice(base.length) : "";
               router.push(`/moderator/pods/${e.target.value}${suffix}`);
             }}
             className="mt-1.5 w-full rounded-card border border-ink/10 bg-white px-2.5 py-1.5 text-sm font-semibold text-ink focus:border-teal focus:outline-none"
           >
-            {pods.map((p) => (
+            {!currentVisible && (
+              <option value="" disabled>
+                Select…
+              </option>
+            )}
+            {visiblePods.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
