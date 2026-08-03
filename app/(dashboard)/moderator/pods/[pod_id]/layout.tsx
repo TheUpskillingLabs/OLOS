@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPodContext } from "@/lib/moderator/pod-context";
 import { getLogHealth } from "@/lib/moderator/log-health";
+import { getPodWorkshops } from "@/lib/moderator/workshops";
 import { ENTITY_EXPLORER_ENABLED } from "@/lib/entity-explorer/flag";
 import { podNoun } from "@/lib/cycle/labels";
 import { PodNav, type PodNavBadges } from "./_nav/pod-nav";
@@ -27,17 +28,21 @@ export default async function PodLayout({
   const noun = podNoun(detail.cycle_mode);
   const podName = detail.name ?? `${noun} ${detail.id}`;
 
-  // Logs badge (logged/total for the current window) + pulse presence.
-  const [health, pulseCountRes] = await Promise.all([
+  const memberIds = realMembers.map((m) => m.participant_id);
+
+  // Logs badge (logged/total for the current window) + pulse presence +
+  // upcoming workshop count.
+  const [health, pulseCountRes, workshops] = await Promise.all([
     getLogHealth(ctx.serviceClient, detail.cycle_id, detail.members),
     isOrg || realMembers.length === 0
       ? Promise.resolve({ count: 0 })
       : ctx.serviceClient
           .from("pulse_checks")
           .select("id", { head: true, count: "exact" })
-          .in("participant_id", realMembers.map((m) => m.participant_id))
+          .in("participant_id", memberIds)
           .eq("cycle_id", detail.cycle_id)
           .not("completed_at", "is", null),
+    getPodWorkshops(ctx.serviceClient, memberIds),
   ]);
 
   const totalForLogs = health.logged_ids.length + health.waiting_ids.length;
@@ -50,6 +55,7 @@ export default async function PodLayout({
         ctx.trendingMembers.length +
         (ctx.newFeedbackCount > 0 ? 1 : 0),
     logs: totalForLogs > 0 ? `${health.logged_ids.length}/${totalForLogs}` : null,
+    workshops: workshops.length,
     feedback: ctx.newFeedbackCount,
     roster: detail.active_member_count,
     pulsesEmpty: (pulseCountRes.count ?? 0) === 0,
