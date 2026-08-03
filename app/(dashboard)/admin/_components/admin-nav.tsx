@@ -114,7 +114,8 @@ const BASE_ITEMS: NavItem[] = [
 
 const DATA_ITEM: NavItem = {
   href: "/admin/explore",
-  label: "Data",
+  // Matches the poderator pod-view nav's label for the same feature.
+  label: "Entity Explorer",
   Icon: Database,
   match: (p) => p.startsWith("/admin/explore") || p.startsWith("/admin/data"),
 };

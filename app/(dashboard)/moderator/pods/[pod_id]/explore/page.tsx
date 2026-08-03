@@ -39,7 +39,14 @@ export default async function PodExplorePage({
   searchParams,
 }: {
   params: Promise<{ pod_id: string }>;
-  searchParams: Promise<{ entity?: string; page?: string; deleted?: string }>;
+  searchParams: Promise<{
+    entity?: string;
+    page?: string;
+    deleted?: string;
+    q?: string;
+    fcol?: string;
+    fval?: string;
+  }>;
 }) {
   const { pod_id } = await params;
   const { podId, pod, serviceClient } = await requirePodExplorer(pod_id);
@@ -55,12 +62,18 @@ export default async function PodExplorePage({
 
   const page = Math.max(1, Number(sp.page) || 1);
   const includeDeleted = sp.deleted === "1";
+  const search = sp.q ?? null;
+  const filterColumn = sp.fcol ?? null;
+  const filterValue = sp.fval ?? null;
 
   const result = await fetchEntityList(serviceClient, {
     entity,
     podId, // forced — never URL-driven
     page,
     includeDeleted,
+    search,
+    filterColumn,
+    filterValue,
   });
 
   const basePath = `/moderator/pods/${podId}/explore`;
@@ -68,6 +81,9 @@ export default async function PodExplorePage({
 
   const csvParams = new URLSearchParams({ entity });
   if (includeDeleted) csvParams.set("deleted", "1");
+  if (search) csvParams.set("q", search);
+  if (filterColumn) csvParams.set("fcol", filterColumn);
+  if (filterValue) csvParams.set("fval", filterValue);
   const csvHref = `/api/moderator/pods/${podId}/explore/export?${csvParams.toString()}`;
 
   const podLabel = pod.name ?? `Pod #${podId}`;
@@ -82,11 +98,14 @@ export default async function PodExplorePage({
         ]}
       />
 
-      <div className="mb-6">
-        <h1 className="t-h1 text-ink">Pod data</h1>
-        <p className="mt-1 text-sm text-slate">
-          Browse {podLabel}&rsquo;s raw records by entity. Read-only.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="t-h1 text-ink">Pod data</h1>
+          <p className="mt-1 text-sm text-slate">
+            Browse {podLabel}&rsquo;s raw records by entity. Read-only.
+          </p>
+        </div>
+        <ContactsDownloadButton href={csvHref} label="Download CSV" />
       </div>
 
       <EntityPicker
@@ -98,14 +117,13 @@ export default async function PodExplorePage({
         groups={POD_GROUPS}
       />
 
-      <div className="mb-3 flex justify-end">
-        <ContactsDownloadButton href={csvHref} label="Download CSV" />
-      </div>
-
       <EntityTable
         result={result}
         cycleId={null}
         includeDeleted={includeDeleted}
+        search={search}
+        filterColumn={filterColumn}
+        filterValue={filterValue}
         ctx={ctx}
       />
     </div>

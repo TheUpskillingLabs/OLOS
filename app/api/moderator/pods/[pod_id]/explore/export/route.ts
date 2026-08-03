@@ -34,6 +34,9 @@ export const GET = withAuth(async (request, auth, params) => {
     return NextResponse.json({ error: "Unknown entity" }, { status: 400 });
   }
   const includeDeleted = sp.get("deleted") === "1";
+  const search = sp.get("q");
+  const filterColumn = sp.get("fcol");
+  const filterValue = sp.get("fval");
 
   const serviceClient = createServiceClient();
   let exported;
@@ -42,6 +45,9 @@ export const GET = withAuth(async (request, auth, params) => {
       entity,
       podId,
       includeDeleted,
+      search,
+      filterColumn,
+      filterValue,
     });
   } catch (error) {
     return dbError(error, "pod-explore-export");
