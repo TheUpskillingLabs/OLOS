@@ -315,9 +315,9 @@ export const REGISTRY: Record<EntityKey, EntityConfig> = {
     // filter (.eq) will therefore exclude rows with a null cycle_id when a cycle
     // is selected; "All cycles" shows them.
     cycleScoped: true,
-    // No pod_id column — scoped via the pod roster. NOTE: for a member this
-    // includes their pulses from other cycles; the poderator surface has no
-    // cycle filter, which is acceptable for a read-only stopgap.
+    // No pod_id column — scoped via the pod roster AND pinned to the pod's
+    // cycle in fetch.ts, so a member's pulses from other cycles stay out
+    // (HQ caught that leak on the live Civics pod, 2026-08-03).
     podScope: { kind: "lookup", column: "participant_id", via: { entity: "pod_memberships", select: "participant_id" } },
     softDelete: null,
     foreignKeys: [

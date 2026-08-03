@@ -176,6 +176,25 @@ async function resolvePodLookupIds(
 }
 
 /**
+ * The pod's own cycle_id, for pinning pod-scoped reads of cycle-scoped
+ * entities to the pod's cycle. Without this, `lookup`-scoped entities
+ * (pulse_checks via the roster) surface members' rows from OTHER cycles —
+ * a Civics pod showing its members' old Energy & Climate pulses.
+ */
+async function resolvePodCycleId(
+  supabase: SupabaseClient,
+  podId: number,
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("pods")
+    .select("cycle_id")
+    .eq("id", podId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.cycle_id as number | null) ?? null;
+}
+
+/**
  * Apply a pod scope to a query builder. `lookupIds` must be pre-resolved (and
  * non-empty — the caller short-circuits an empty allowlist to zero rows rather
  * than issuing `.in()` with an empty list).
@@ -251,8 +270,12 @@ export async function fetchEntityList(
   // Votes, …) so a mismatched caller no-ops rather than throws. ──
   const podId = params.podId != null && config.podScope != null ? params.podId : null;
   let podLookupIds: (number | string)[] | null = null;
+  let podCycleId: number | null = null;
   if (podId != null) {
-    podLookupIds = await resolvePodLookupIds(supabase, config, podId);
+    [podLookupIds, podCycleId] = await Promise.all([
+      resolvePodLookupIds(supabase, config, podId),
+      config.cycleScoped ? resolvePodCycleId(supabase, podId) : Promise.resolve(null),
+    ]);
     if (podLookupIds != null && podLookupIds.length === 0) {
       // Empty allowlist (e.g. a pod with no members yet) → zero rows, no query.
       return { config, rows: [], page, pageSize, total: 0, foreignKeyLabels: {} };
@@ -272,6 +295,12 @@ export async function fetchEntityList(
   }
   if (podId != null) {
     query = applyPodScope(query, config, podId, podLookupIds);
+    // Cycle pin: pod-scoped reads of cycle-scoped entities stay inside the
+    // pod's own cycle (NOTE: rows with a NULL cycle_id drop out — same
+    // semantics as the admin cycle filter).
+    if (podCycleId != null) {
+      query = query.eq("cycle_id", podCycleId);
+    }
   }
   const sd = includeDeleted ? null : softDeleteFilter(config);
   if (sd) {
@@ -337,8 +366,12 @@ async function fetchRelation(
   // Pod mode: the caller already dropped relations without a podScope; the
   // survivors are narrowed to the pod so a 360 never walks outside it.
   let podLookupIds: (number | string)[] | null = null;
+  let podCycleId: number | null = null;
   if (podId != null) {
-    podLookupIds = await resolvePodLookupIds(supabase, config, podId);
+    [podLookupIds, podCycleId] = await Promise.all([
+      resolvePodLookupIds(supabase, config, podId),
+      config.cycleScoped ? resolvePodCycleId(supabase, podId) : Promise.resolve(null),
+    ]);
     if (podLookupIds != null && podLookupIds.length === 0) {
       return { relation: rel, config, rows: [], total: 0, truncated: false, foreignKeyLabels: {} };
     }
@@ -355,6 +388,12 @@ async function fetchRelation(
 
   if (podId != null) {
     query = applyPodScope(query, config, podId, podLookupIds);
+    // Cycle pin: pod-scoped reads of cycle-scoped entities stay inside the
+    // pod's own cycle (NOTE: rows with a NULL cycle_id drop out — same
+    // semantics as the admin cycle filter).
+    if (podCycleId != null) {
+      query = query.eq("cycle_id", podCycleId);
+    }
   }
 
   // Relation sections always hide soft-deleted rows (DESIGN.md §6.1).
@@ -404,6 +443,12 @@ export async function fetchEntityDetail(
     .eq("id", id);
   if (podId != null) {
     baseQuery = applyPodScope(baseQuery, config, podId, podLookupIds);
+    if (config.cycleScoped) {
+      const podCycleIdForBase = await resolvePodCycleId(supabase, podId);
+      if (podCycleIdForBase != null) {
+        baseQuery = baseQuery.eq("cycle_id", podCycleIdForBase);
+      }
+    }
   }
   const { data, error } = await baseQuery.maybeSingle();
   if (error) throw error;
