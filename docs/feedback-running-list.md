@@ -28,6 +28,7 @@ Status legend: 🆕 new · 🔍 needs-dedupe · ✅ addressed · ❌ won't-do ·
 | 11 | 2026-07-12 | Labs / waitlist | Decide what additional information to collect when someone joins the waitlist for a lab in a city that doesn't have one yet. | 🧭 |
 | 12 | 2026-07-14 | Cycles / pods | Closing a cycle doesn't touch its pods — the Energy & Climate pods still showed `active` in prod after the cycle went `closed`. Rule: when a cycle's status flips to `closed`, set its pods `inactive` in the same admin action. | ✅ |
 | 13 | 2026-07-15 | Problem statements | Users should be able to **view and edit** their problem statements after submission — right now there's just a small card/preview of what they submitted. Extends #2. | 🆕 |
+| 14 | 2026-08-04 | Pods / admin | No way to close a single underfilled pod mid-cycle — only bulk dissolution at full cycle close-out exists. Need an admin action/cron to dissolve `forming` pods that never hit `pod_min`. | 🆕 |
 
 ## Details
 
@@ -147,6 +148,15 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 **Expected:** A full view of your own submitted problem statement(s), plus the ability to edit them after submission (at least while the submission window is still open).
 
 **To investigate:** Extends #2, whose fix (propose-form echo + the "Your problem statements" section on the cycle page) covers *seeing* the submission — a full detail view and editing are still missing. For edit: whether any update path exists on the problem-statements API (likely only POST today), what edit window makes sense (e.g. until the submission window closes / voting opens — editing after votes are cast is problematic), and where the edit surface should live (the cycle page card → detail view → edit form).
+
+### 14 — No way to close a single underfilled pod mid-cycle (2026-08-04)
+**Observed:** Asked how to close pods that didn't hit their enrollment minimum. Investigation confirmed: `pods.status` supports `forming → active → dissolved`, and auto-activation flips `forming → active` per-pod once membership hits `cycle_config.pod_min` (`app/api/pods/[pod_id]/register/route.ts`). But the reverse — dissolving a pod that *never* hit `pod_min` — only happens as a side effect of `closeOutCycle()` (`lib/cycle/closeout.ts`) dissolving **every** pod in a cycle at once, when the whole cycle goes `archived`/`closed`. There is no way to close one underfilled pod while its cycle and sibling pods keep running.
+
+**Urgency:** Not urgent/blocking today — handled this instance with a manual one-off — but will recur every cycle unless built, and is explicitly called out as unbuilt in `docs/requirements/pod-registration.md` ("FR-4").
+
+**Needs more thought?** Mostly clear-cut on the mechanics (reuse the existing `dissolved` status and the soft-delete pattern `closeOutCycle` already uses for `pod_memberships.inactive_at` / `moderator_assignments.removed_at`), but two product questions are open before building: (1) trigger — admin-initiated button, or an automatic cron at the forming-window boundary? (2) what happens to a displaced participant's `cycle_enrollments.status` — does losing their only pod immediately demote them, or do they stay `registered` pending the existing (currently unscheduled) revocation cron? Also need: an admin API route accepting `dissolved` (today's `adminPodStatusSchema` only allows `forming`/`active`), and a notification/email template — none exists for "your pod was closed."
+
+**Submitted by:** amg@dalmatianops.com
 
 Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
