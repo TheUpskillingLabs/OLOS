@@ -34,18 +34,34 @@ export default function AssignModeratorButton({
   const [open, setOpen] = useState(false);
   const [moderators, setModerators] = useState<Moderator[]>(initialModerators);
   const [selectedId, setSelectedId] = useState<string>("");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentModIds = new Set(moderators.map((m) => m.participant_id));
   const available = participants.filter((p) => !currentModIds.has(p.participant_id));
 
+  // The all-participants candidate list runs long, so offer the same
+  // client-side name/email filter the org add-member picker uses
+  // (pods-table.tsx / the people-table.tsx idiom). Hidden for short lists.
+  const showSearch = available.length > 10;
+  const q = search.trim().toLowerCase();
+  const matchesSearch = (p: Participant) =>
+    !q ||
+    p.name.toLowerCase().includes(q) ||
+    (p.email ?? "").toLowerCase().includes(q);
+
   // Candidates who aren't enrolled in this cycle are assignable (a poderator
   // shepherds a pod they don't sit in) but grouped separately so an admin
   // can't grab the wrong Jordan by accident. `enrolled` is only set on
   // participant-cycle lists; org lists stay a single flat group.
-  const enrolledAvailable = available.filter((p) => p.enrolled !== false);
-  const unenrolledAvailable = available.filter((p) => p.enrolled === false);
+  const enrolledAvailable = available.filter(
+    (p) => p.enrolled !== false && matchesSearch(p)
+  );
+  const unenrolledAvailable = available.filter(
+    (p) => p.enrolled === false && matchesSearch(p)
+  );
+  const anyAvailable = enrolledAvailable.length > 0 || unenrolledAvailable.length > 0;
 
   const optionLabel = (p: Participant) =>
     p.enrolled === false && p.email ? `${p.name} · ${p.email}` : p.name;
@@ -80,6 +96,7 @@ export default function AssignModeratorButton({
         },
       ]);
       setSelectedId("");
+      setSearch("");
     } else {
       const data = await res.json();
       setError(data.error ?? "Failed to assign");
@@ -152,48 +169,68 @@ export default function AssignModeratorButton({
       )}
 
       {available.length > 0 && (
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            aria-label="Select participant"
-            className="flex-1 rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-          >
-            <option value="">Select participant...</option>
-            {unenrolledAvailable.length === 0 ? (
-              enrolledAvailable.map((p) => (
-                <option key={p.participant_id} value={p.participant_id}>
-                  {optionLabel(p)}
-                </option>
-              ))
-            ) : (
-              <>
-                {enrolledAvailable.length > 0 && (
-                  <optgroup label="Enrolled in this cycle">
-                    {enrolledAvailable.map((p) => (
+        <div className="space-y-2">
+          {showSearch && (
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                // A hidden-by-filter selection would still be assignable via
+                // the button; drop it so what you see is what you assign.
+                setSelectedId("");
+              }}
+              placeholder="Search by name or email…"
+              aria-label="Search participants"
+              className="w-full rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            />
+          )}
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              aria-label="Select participant"
+              className="flex-1 rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+            >
+              <option value="">Select participant...</option>
+              {unenrolledAvailable.length === 0 ? (
+                enrolledAvailable.map((p) => (
+                  <option key={p.participant_id} value={p.participant_id}>
+                    {optionLabel(p)}
+                  </option>
+                ))
+              ) : (
+                <>
+                  {enrolledAvailable.length > 0 && (
+                    <optgroup label="Enrolled in this cycle">
+                      {enrolledAvailable.map((p) => (
+                        <option key={p.participant_id} value={p.participant_id}>
+                          {optionLabel(p)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="Not enrolled in this cycle">
+                    {unenrolledAvailable.map((p) => (
                       <option key={p.participant_id} value={p.participant_id}>
                         {optionLabel(p)}
                       </option>
                     ))}
                   </optgroup>
-                )}
-                <optgroup label="Not enrolled in this cycle">
-                  {unenrolledAvailable.map((p) => (
-                    <option key={p.participant_id} value={p.participant_id}>
-                      {optionLabel(p)}
-                    </option>
-                  ))}
-                </optgroup>
-              </>
-            )}
-          </select>
-          <button
-            onClick={assign}
-            disabled={!selectedId || loading}
-            className="rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
-          >
-            {loading ? "…" : "Assign"}
-          </button>
+                </>
+              )}
+            </select>
+            <button
+              onClick={assign}
+              disabled={!selectedId || loading}
+              className="rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+            >
+              {loading ? "…" : "Assign"}
+            </button>
+          </div>
+          {q && !anyAvailable && (
+            <p className="text-xs text-meta">No participants match that search.</p>
+          )}
         </div>
       )}
 
