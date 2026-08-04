@@ -18,6 +18,28 @@ type Moderator = {
   assigned_at: string;
 };
 
+function initialsOf(name: string): string {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+
+/**
+ * Assign-on-click poderator picker. One control: a search input over a
+ * clickable candidate list — clicking a row assigns immediately and closes
+ * the panel (a misclick is one Manage → Remove away). The zero-state shows
+ * only this cycle's enrollees; the long everyone-else tail (a poderator
+ * shepherds a pod they don't sit in, so any participant is assignable)
+ * appears once the admin types, keeping the open state short even with
+ * hundreds of participants. `enrolled` is only set on participant-cycle
+ * candidate lists; org co-lead lists come pre-scoped and skip the tail rule.
+ */
 export default function AssignModeratorButton({
   podId,
   cycleId,
@@ -33,70 +55,69 @@ export default function AssignModeratorButton({
 }) {
   const [open, setOpen] = useState(false);
   const [moderators, setModerators] = useState<Moderator[]>(initialModerators);
-  const [selectedId, setSelectedId] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [savingId, setSavingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentModIds = new Set(moderators.map((m) => m.participant_id));
   const available = participants.filter((p) => !currentModIds.has(p.participant_id));
 
-  // The all-participants candidate list runs long, so offer the same
-  // client-side name/email filter the org add-member picker uses
-  // (pods-table.tsx / the people-table.tsx idiom). Hidden for short lists.
-  const showSearch = available.length > 10;
   const q = search.trim().toLowerCase();
   const matchesSearch = (p: Participant) =>
     !q ||
     p.name.toLowerCase().includes(q) ||
     (p.email ?? "").toLowerCase().includes(q);
 
-  // Candidates who aren't enrolled in this cycle are assignable (a poderator
-  // shepherds a pod they don't sit in) but grouped separately so an admin
-  // can't grab the wrong Jordan by accident. `enrolled` is only set on
-  // participant-cycle lists; org lists stay a single flat group.
   const enrolledAvailable = available.filter(
     (p) => p.enrolled !== false && matchesSearch(p)
   );
-  const unenrolledAvailable = available.filter(
-    (p) => p.enrolled === false && matchesSearch(p)
-  );
-  const anyAvailable = enrolledAvailable.length > 0 || unenrolledAvailable.length > 0;
+  // The not-enrolled tail stays hidden until the admin types — this is what
+  // keeps the picker small on open.
+  const unenrolledAvailable = q
+    ? available.filter((p) => p.enrolled === false && matchesSearch(p))
+    : [];
+  const hiddenUnenrolledCount = available.filter(
+    (p) => p.enrolled === false
+  ).length;
+  const anyAvailable =
+    enrolledAvailable.length > 0 || unenrolledAvailable.length > 0;
 
-  const optionLabel = (p: Participant) =>
-    p.enrolled === false && p.email ? `${p.name} · ${p.email}` : p.name;
+  function close() {
+    setOpen(false);
+    setSearch("");
+    setError(null);
+  }
 
-  async function assign() {
-    if (!selectedId) return;
-    setLoading(true);
+  async function assign(participantId: number) {
+    setSavingId(participantId);
     setError(null);
 
     const res = await fetch(`/api/pods/${podId}/moderators`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        participant_id: parseInt(selectedId, 10),
+        participant_id: participantId,
         cycle_id: cycleId,
       }),
     });
 
-    setLoading(false);
+    setSavingId(null);
 
     if (res.ok) {
       const data = await res.json();
-      const p = participants.find(
-        (p) => p.participant_id === parseInt(selectedId, 10)
-      );
+      const p = participants.find((p) => p.participant_id === participantId);
       setModerators((prev) => [
         ...prev,
         {
-          participant_id: parseInt(selectedId, 10),
+          participant_id: participantId,
           name: p?.name ?? "",
           assigned_at: data.assigned_at,
         },
       ]);
-      setSelectedId("");
-      setSearch("");
+      // Done — collapse back to the names + Manage strip. Assigning a second
+      // poderator is a reopen away, and closing keeps the table scannable.
+      close();
     } else {
       const data = await res.json();
       setError(data.error ?? "Failed to assign");
@@ -146,6 +167,36 @@ export default function AssignModeratorButton({
     );
   }
 
+  const candidateRow = (p: Participant) => (
+    <button
+      key={p.participant_id}
+      type="button"
+      onClick={() => assign(p.participant_id)}
+      disabled={savingId !== null || loading}
+      className="group flex w-full items-center gap-2.5 rounded-card px-2 py-1.5 text-left transition-colors duration-150 hover:bg-teal/10 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
+    >
+      <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-teal/15 text-[10px] font-bold text-teal-deep">
+        {initialsOf(p.name)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-ink">
+          {p.name}
+        </span>
+        {p.email && (
+          <span className="block truncate text-xs text-meta">{p.email}</span>
+        )}
+      </span>
+      {p.enrolled === false && (
+        <span className="flex-none rounded-full bg-ink/[0.06] px-2 py-0.5 text-[10px] font-medium text-meta">
+          Not enrolled
+        </span>
+      )}
+      <span className="flex-none text-xs font-semibold text-teal-deep opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+        {savingId === p.participant_id ? "…" : "+ Assign"}
+      </span>
+    </button>
+  );
+
   return (
     <div className="space-y-3 rounded-card border border-ink/10 bg-white p-3 shadow-card">
       {moderators.length > 0 && (
@@ -158,7 +209,7 @@ export default function AssignModeratorButton({
               <span className="text-charcoal">{m.name}</span>
               <button
                 onClick={() => remove(m.participant_id)}
-                disabled={loading}
+                disabled={loading || savingId !== null}
                 className="text-xs font-medium text-red transition-colors duration-150 hover:text-red disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Remove
@@ -170,67 +221,48 @@ export default function AssignModeratorButton({
 
       {available.length > 0 && (
         <div className="space-y-2">
-          {showSearch && (
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                // A hidden-by-filter selection would still be assignable via
-                // the button; drop it so what you see is what you assign.
-                setSelectedId("");
-              }}
-              placeholder="Search by name or email…"
-              aria-label="Search participants"
-              className="w-full rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            />
-          )}
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              aria-label="Select participant"
-              className="flex-1 rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
-            >
-              <option value="">Select participant...</option>
-              {unenrolledAvailable.length === 0 ? (
-                enrolledAvailable.map((p) => (
-                  <option key={p.participant_id} value={p.participant_id}>
-                    {optionLabel(p)}
-                  </option>
-                ))
-              ) : (
-                <>
-                  {enrolledAvailable.length > 0 && (
-                    <optgroup label="Enrolled in this cycle">
-                      {enrolledAvailable.map((p) => (
-                        <option key={p.participant_id} value={p.participant_id}>
-                          {optionLabel(p)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  <optgroup label="Not enrolled in this cycle">
-                    {unenrolledAvailable.map((p) => (
-                      <option key={p.participant_id} value={p.participant_id}>
-                        {optionLabel(p)}
-                      </option>
-                    ))}
-                  </optgroup>
-                </>
-              )}
-            </select>
-            <button
-              onClick={assign}
-              disabled={!selectedId || loading}
-              className="rounded-card bg-teal/10 px-3 py-1 text-xs font-semibold tracking-tight text-teal-deep transition-all duration-150 hover:bg-teal/20 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal"
-            >
-              {loading ? "…" : "Assign"}
-            </button>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Add a ${moderatorNoun(mode).toLowerCase()} — type a name or email…`}
+            aria-label="Search participants"
+            autoFocus
+            className="w-full rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+          />
+
+          <div className="max-h-64 overflow-y-auto">
+            {enrolledAvailable.length > 0 && (
+              <>
+                {unenrolledAvailable.length > 0 && (
+                  <p className="px-2 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-meta">
+                    Enrolled in this cycle
+                  </p>
+                )}
+                {enrolledAvailable.map(candidateRow)}
+              </>
+            )}
+            {unenrolledAvailable.length > 0 && (
+              <>
+                <p className="px-2 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-meta">
+                  Not enrolled in this cycle
+                </p>
+                {unenrolledAvailable.map(candidateRow)}
+              </>
+            )}
+            {!q && hiddenUnenrolledCount > 0 && (
+              <p className="px-2 pt-1.5 text-xs text-meta">
+                + {hiddenUnenrolledCount} more participant
+                {hiddenUnenrolledCount === 1 ? "" : "s"} not enrolled in this
+                cycle. Type to search them.
+              </p>
+            )}
+            {q && !anyAvailable && (
+              <p className="px-2 py-1.5 text-xs text-meta">
+                No participants match that search.
+              </p>
+            )}
           </div>
-          {q && !anyAvailable && (
-            <p className="text-xs text-meta">No participants match that search.</p>
-          )}
         </div>
       )}
 
@@ -241,7 +273,7 @@ export default function AssignModeratorButton({
       )}
 
       <button
-        onClick={() => setOpen(false)}
+        onClick={close}
         className="text-xs text-meta transition-colors duration-150 hover:text-charcoal"
       >
         Close
