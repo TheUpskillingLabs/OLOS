@@ -26,6 +26,7 @@ import WorkstreamsPanel, {
 import CycleWorkspaceTabs from "./cycle-workspace-tabs";
 import { resolveInitialTab } from "./cycle-tabs";
 import { podNoun, cycleStatusVariant } from "@/lib/cycle/labels";
+import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { one } from "@/lib/supabase/embed";
 
 export type ParticipantRow = {
@@ -195,13 +196,43 @@ export default async function AdminCycleDetailPage({
     (p) => p.status === "registered"
   ).length;
 
-  // Participant list for the moderator + add-member dropdowns.
+  // Participant list for the add-member dropdown (enrollment-scoped: direct
+  // pod membership stays limited to this cycle's enrollees).
   const participantOptions = participants.map((p) => ({
     participant_id: p.participant_id,
     name: p.preferred_name
       ? `${p.preferred_name} ${p.last_name}`
       : `${p.first_name} ${p.last_name}`,
   }));
+
+  // Poderator candidates are NOT limited to this cycle's enrollees — a
+  // poderator shepherds a pod they don't sit in, and the assign route
+  // (POST /api/pods/[pod_id]/moderators) never required enrollment. Offer
+  // every participant, tagging the ones without an enrollment here so the
+  // admin sees what they're doing. Placeholder-named stubs (participants
+  // created by invite/migration who never completed their profile —
+  // lib/participants/placeholder.ts) are held back until fixed, matching
+  // the invitation-fulfillment guard.
+  const { data: allParticipants } = await serviceClient
+    .from("participants")
+    .select("id, first_name, last_name, preferred_name, email")
+    .order("last_name");
+
+  const enrolledIdSet = new Set(participantIds);
+  const moderatorCandidateOptions = (allParticipants ?? [])
+    .filter(
+      (p) =>
+        enrolledIdSet.has(p.id) ||
+        !hasPlaceholderName(p.first_name, p.last_name)
+    )
+    .map((p) => ({
+      participant_id: p.id,
+      name: p.preferred_name
+        ? `${p.preferred_name} ${p.last_name}`
+        : `${p.first_name} ${p.last_name}`,
+      email: p.email,
+      enrolled: enrolledIdSet.has(p.id),
+    }));
 
   // Pod rows with named members + moderators for the Formation tab.
   const nameByParticipant = new Map(
@@ -266,29 +297,21 @@ export default async function AdminCycleDetailPage({
       : priorCyclesQuery.is("lab_id", null);
     priorCyclesQuery = priorCyclesQuery.order("start_date", { ascending: false });
 
-    const [
-      { data: workstreamsData },
-      { data: runPods },
-      { data: priorCycles },
-      { data: allParticipants },
-    ] = await Promise.all([
-      wsQuery,
-      serviceClient
-        .from("pods")
-        .select("id, name, workstream_id")
-        .eq("cycle_id", cycleId)
-        .not("workstream_id", "is", null),
-      priorCyclesQuery,
-      // Org runs are invite-only and cross-lab: the add-member and co-lead
-      // pickers draw from EVERY registered participant, not just this
-      // cycle's enrollees (which is empty on a fresh org cycle — the
-      // chicken-and-egg the email-invite flow can't solve for people who
-      // already have accounts).
-      serviceClient
-        .from("participants")
-        .select("id, first_name, last_name, preferred_name, email")
-        .order("last_name"),
-    ]);
+    const [{ data: workstreamsData }, { data: runPods }, { data: priorCycles }] =
+      await Promise.all([
+        wsQuery,
+        serviceClient
+          .from("pods")
+          .select("id, name, workstream_id")
+          .eq("cycle_id", cycleId)
+          .not("workstream_id", "is", null),
+        priorCyclesQuery,
+      ]);
+    // Org runs are invite-only and cross-lab: the add-member and co-lead
+    // pickers draw from EVERY registered participant, not just this
+    // cycle's enrollees (which is empty on a fresh org cycle — the
+    // chicken-and-egg the email-invite flow can't solve for people who
+    // already have accounts). Reuses the poderator-candidate fetch above.
     orgParticipantOptions = (allParticipants ?? []).map((p) => ({
       participant_id: p.id,
       name: p.preferred_name
@@ -494,6 +517,9 @@ export default async function AdminCycleDetailPage({
           cycleId={cycle.id}
           pods={podAdminRows}
           participants={isOrg ? orgParticipantOptions : participantOptions}
+          moderatorCandidates={
+            isOrg ? orgParticipantOptions : moderatorCandidateOptions
+          }
           mode={cycle.mode}
           isOwner={isOwner(userRoles)}
         />
