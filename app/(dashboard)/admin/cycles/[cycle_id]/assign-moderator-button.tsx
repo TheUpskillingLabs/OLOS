@@ -6,6 +6,10 @@ import { moderatorNoun } from "@/lib/cycle/labels";
 type Participant = {
   participant_id: number;
   name: string;
+  email?: string;
+  /** False when not enrolled in this cycle. Set only on participant-cycle
+   * candidate lists; org lists leave it undefined (no grouping). */
+  enrolled?: boolean;
 };
 
 type Moderator = {
@@ -35,6 +39,16 @@ export default function AssignModeratorButton({
 
   const currentModIds = new Set(moderators.map((m) => m.participant_id));
   const available = participants.filter((p) => !currentModIds.has(p.participant_id));
+
+  // Candidates who aren't enrolled in this cycle are assignable (a poderator
+  // shepherds a pod they don't sit in) but grouped separately so an admin
+  // can't grab the wrong Jordan by accident. `enrolled` is only set on
+  // participant-cycle lists; org lists stay a single flat group.
+  const enrolledAvailable = available.filter((p) => p.enrolled !== false);
+  const unenrolledAvailable = available.filter((p) => p.enrolled === false);
+
+  const optionLabel = (p: Participant) =>
+    p.enrolled === false && p.email ? `${p.name} · ${p.email}` : p.name;
 
   async function assign() {
     if (!selectedId) return;
@@ -146,11 +160,32 @@ export default function AssignModeratorButton({
             className="flex-1 rounded-card border border-ink/10 bg-white px-2 py-1 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
           >
             <option value="">Select participant...</option>
-            {available.map((p) => (
-              <option key={p.participant_id} value={p.participant_id}>
-                {p.name}
-              </option>
-            ))}
+            {unenrolledAvailable.length === 0 ? (
+              enrolledAvailable.map((p) => (
+                <option key={p.participant_id} value={p.participant_id}>
+                  {optionLabel(p)}
+                </option>
+              ))
+            ) : (
+              <>
+                {enrolledAvailable.length > 0 && (
+                  <optgroup label="Enrolled in this cycle">
+                    {enrolledAvailable.map((p) => (
+                      <option key={p.participant_id} value={p.participant_id}>
+                        {optionLabel(p)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Not enrolled in this cycle">
+                  {unenrolledAvailable.map((p) => (
+                    <option key={p.participant_id} value={p.participant_id}>
+                      {optionLabel(p)}
+                    </option>
+                  ))}
+                </optgroup>
+              </>
+            )}
           </select>
           <button
             onClick={assign}

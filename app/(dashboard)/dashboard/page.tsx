@@ -224,6 +224,21 @@ export default async function DashboardPage() {
   // Drives the "Register" checklist row + the pre-registration confirmation so
   // a member who's pre-registered for the next cohort isn't asked to do it
   // again.
+  // Assignment-only poderators: an active moderator assignment in a running
+  // or upcoming cycle, without an enrollment of their own. They were brought
+  // in to shepherd pods, not as cohort members (the assign route and the
+  // pod-only invite flow deliberately don't enroll them), so the register
+  // task and the registration state cards below stay quiet. Registering
+  // later (say, joining the next cohort as a member) restores the normal
+  // flow, because the flag only applies in the onboarding states.
+  const { count: activeModAssignmentCount } = await serviceClient
+    .from("moderator_assignments")
+    .select("id, cycles!inner(status)", { head: true, count: "exact" })
+    .eq("participant_id", participant.id)
+    .is("removed_at", null)
+    .in("cycles.status", ["active", "upcoming"]);
+  const moderatesCurrentCycle = (activeModAssignmentCount ?? 0) > 0;
+
   let preRegisteredUpcoming = false;
   if (upcomingCycle) {
     const { count } = await serviceClient
@@ -433,8 +448,14 @@ export default async function DashboardPage() {
   // routed them — otherwise the running cohort. Once done it leaves the queue,
   // so an active member isn't nagged about the next cohort.
   const onboarding = state === "no_cycle" || state === "no_enrollment";
-  const registerCycle =
-    onboarding && upcomingCycle ? upcomingCycle : activeCycle;
+  // See moderatesCurrentCycle above — a poderator without an enrollment is
+  // not a registration prospect, so nothing to register for.
+  const assignmentOnlyPoderator = onboarding && moderatesCurrentCycle;
+  const registerCycle = assignmentOnlyPoderator
+    ? null
+    : onboarding && upcomingCycle
+      ? upcomingCycle
+      : activeCycle;
   const registerDone =
     onboarding && upcomingCycle
       ? preRegisteredUpcoming
@@ -792,7 +813,9 @@ export default async function DashboardPage() {
           lede={
             orgActive
               ? "Here's your home base — your workstreams are below."
-              : "You're almost in — here's how to get set up."
+              : assignmentOnlyPoderator
+                ? "Here's your home base. Your pods are in the Poderator dashboard."
+                : "You're almost in — here's how to get set up."
           }
         />
         <div className="dash-12">
@@ -843,7 +866,7 @@ export default async function DashboardPage() {
               {orgActive && workstreamsSection}
               {!checklistIncomplete && checklistBlock}
               {!orgActive &&
-                (upcomingCycle ? (
+                (upcomingCycle && !assignmentOnlyPoderator ? (
                   registerStateCard(upcomingCycle)
                 ) : (
                   <EmptyState

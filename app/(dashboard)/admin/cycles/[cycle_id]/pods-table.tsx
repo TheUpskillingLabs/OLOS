@@ -40,7 +40,15 @@ export type PodAdminRow = {
   /** Existing projects for this pod — gates the Finalize-projects action. */
   projectCount: number;
 };
-type ParticipantOption = { participant_id: number; name: string; email?: string };
+type ParticipantOption = {
+  participant_id: number;
+  name: string;
+  email?: string;
+  /** False when the participant is not enrolled in this cycle. Only set on
+   * the poderator-candidate list — a poderator shepherds a pod they don't
+   * sit in, so the assign dropdown offers everyone and tags non-enrollees. */
+  enrolled?: boolean;
+};
 
 const POD_STATUS_VARIANT: Record<string, "active" | "forming" | "inactive"> = {
   active: "active",
@@ -53,12 +61,17 @@ export default function PodsTable({
   cycleId,
   pods,
   participants,
+  moderatorCandidates,
   mode,
   isOwner = false,
 }: {
   cycleId: number;
   pods: PodAdminRow[];
+  /** Add-member dropdown: this cycle's enrollees (org: full roster). */
   participants: ParticipantOption[];
+  /** Assign-poderator dropdown: every participant, enrolled or not.
+   * Falls back to `participants` when not provided. */
+  moderatorCandidates?: ParticipantOption[];
   mode?: string | null;
   isOwner?: boolean;
 }) {
@@ -109,7 +122,7 @@ export default function PodsTable({
               <AssignModeratorButton
                 podId={p.id}
                 cycleId={cycleId}
-                participants={participants}
+                participants={moderatorCandidates ?? participants}
                 initialModerators={p.moderators}
                 mode={mode}
               />
