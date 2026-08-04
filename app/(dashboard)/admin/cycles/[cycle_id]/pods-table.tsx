@@ -125,6 +125,7 @@ export default function PodsTable({
                 participants={moderatorCandidates ?? participants}
                 initialModerators={p.moderators}
                 mode={mode}
+                podName={p.name ?? `${podNoun(mode)} ${p.id}`}
               />
             ),
           },
