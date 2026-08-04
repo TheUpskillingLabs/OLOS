@@ -25,149 +25,96 @@
 --
 -- Cycle resolution
 -- ----------------
--- Targets the single cycle with status = 'active' (the schema enforces at
--- most one). If that's not the cycle you mean, replace the WHERE clause in
--- `_target_cycle` below with `WHERE id = <cycle_id>`.
+-- Targets pods whose cycle has status = 'active'. If you mean a different
+-- cycle, replace `c.status = 'active'` with `c.id = <cycle_id>` in BOTH
+-- queries below.
 --
--- Two-pass dry-run pattern (same convention as reset-energy-participants.sql)
+-- How to run (two separate, self-contained statements — no temp tables, no
+-- explicit BEGIN/ROLLBACK: each is a single atomic statement, safe to paste
+-- into the Supabase SQL Editor on its own)
 -- -----------------------------------------------------------------------------
--- This script ends with `ROLLBACK` by default. Run it once in the Supabase
--- SQL Editor, read the NOTICE report, sanity-check the pod list and counts,
--- then:
---
---   1. Change the final `ROLLBACK` to `COMMIT` (single-line edit at the bottom)
---   2. Re-run against the SAME database
---   3. Change back to `ROLLBACK` before committing this file to git
+--   1. Run Query 1 (read-only). Check the pod list and counts look right.
+--   2. Only then run Query 2. It performs the update; either it fully
+--      succeeds (one statement = one implicit transaction) or fully fails.
+--      Its result row reports exactly what changed.
 --
 -- =============================================================================
 
-BEGIN;
-
 -- -----------------------------------------------------------------------------
--- Pre-flight: resolve the target cycle and its pod_min
+-- Query 1 — PREVIEW (read-only, no side effects, safe to re-run any time)
 -- -----------------------------------------------------------------------------
 
-CREATE TEMP TABLE _target_cycle ON COMMIT DROP AS
-SELECT c.id AS cycle_id, c.name, cc.pod_min
-FROM cycles c
-JOIN cycle_config cc ON cc.cycle_id = c.id
-WHERE c.status = 'active';
-
-DO $$
-DECLARE
-  n INT;
-  target_id INT;
-  target_name TEXT;
-  target_pod_min INT;
-BEGIN
-  SELECT COUNT(*), MAX(cycle_id), MAX(name), MAX(pod_min)
-    INTO n, target_id, target_name, target_pod_min
-    FROM _target_cycle;
-  IF n = 0 THEN
-    RAISE EXCEPTION 'No active cycle found. Aborting — edit _target_cycle to target by id instead.';
-  ELSIF n > 1 THEN
-    RAISE EXCEPTION 'Multiple active cycles found (% rows). Refusing to guess. Aborting.', n;
-  END IF;
-  RAISE NOTICE 'Target cycle resolved: id=% name=% pod_min=%', target_id, target_name, target_pod_min;
-END $$;
-
--- -----------------------------------------------------------------------------
--- Identify underfilled forming pods in the target cycle
--- -----------------------------------------------------------------------------
-
-CREATE TEMP TABLE _underfilled_pods ON COMMIT DROP AS
+WITH target_cycle AS (
+  SELECT c.id AS cycle_id, c.name AS cycle_name, cc.pod_min
+  FROM cycles c
+  JOIN cycle_config cc ON cc.cycle_id = c.id
+  WHERE c.status = 'active'
+)
 SELECT
   p.id AS pod_id,
   p.name AS pod_name,
+  tc.cycle_id,
+  tc.cycle_name,
   tc.pod_min,
   COUNT(pm.id) FILTER (WHERE pm.inactive_at IS NULL) AS active_members
 FROM pods p
-JOIN _target_cycle tc ON tc.cycle_id = p.cycle_id
+JOIN target_cycle tc ON tc.cycle_id = p.cycle_id
 LEFT JOIN pod_memberships pm ON pm.pod_id = p.id
 WHERE p.status = 'forming'
-GROUP BY p.id, p.name, tc.pod_min
-HAVING COUNT(pm.id) FILTER (WHERE pm.inactive_at IS NULL) < tc.pod_min;
+GROUP BY p.id, p.name, tc.cycle_id, tc.cycle_name, tc.pod_min
+HAVING COUNT(pm.id) FILTER (WHERE pm.inactive_at IS NULL) < tc.pod_min
+ORDER BY p.id;
 
-DO $$
-DECLARE
-  r RECORD;
-  n INT;
-BEGIN
-  SELECT COUNT(*) INTO n FROM _underfilled_pods;
-  RAISE NOTICE '--- % underfilled forming pod(s) targeted ---', n;
-  FOR r IN SELECT * FROM _underfilled_pods ORDER BY pod_id LOOP
-    RAISE NOTICE 'pod_id=% name=% active_members=%/%', r.pod_id, r.pod_name, r.active_members, r.pod_min;
-  END LOOP;
-END $$;
+-- If this returns 0 rows: either every forming pod already meets pod_min, or
+-- `target_cycle` matched no/multiple cycles — check `SELECT id, name, status
+-- FROM cycles WHERE status = 'active';` returns exactly the one you expect.
 
 -- -----------------------------------------------------------------------------
--- BEFORE counts (open memberships / assignments on the targeted pods)
+-- Query 2 — COMMIT (writes; run only after reviewing Query 1's output)
 -- -----------------------------------------------------------------------------
 
-DO $$
-DECLARE
-  memberships_before INT;
-  assignments_before INT;
-BEGIN
-  SELECT COUNT(*) INTO memberships_before
-    FROM pod_memberships
-   WHERE pod_id IN (SELECT pod_id FROM _underfilled_pods) AND inactive_at IS NULL;
-  SELECT COUNT(*) INTO assignments_before
-    FROM moderator_assignments
-   WHERE pod_id IN (SELECT pod_id FROM _underfilled_pods) AND removed_at IS NULL;
-  RAISE NOTICE 'Before: % open pod_memberships | % open moderator_assignments', memberships_before, assignments_before;
-END $$;
+WITH target_cycle AS (
+  SELECT c.id AS cycle_id, cc.pod_min
+  FROM cycles c
+  JOIN cycle_config cc ON cc.cycle_id = c.id
+  WHERE c.status = 'active'
+),
+target_pods AS (
+  SELECT p.id AS pod_id
+  FROM pods p
+  JOIN target_cycle tc ON tc.cycle_id = p.cycle_id
+  LEFT JOIN pod_memberships pm ON pm.pod_id = p.id
+  WHERE p.status = 'forming'
+  GROUP BY p.id, tc.pod_min
+  HAVING COUNT(pm.id) FILTER (WHERE pm.inactive_at IS NULL) < tc.pod_min
+),
+close_pods AS (
+  UPDATE pods
+     SET status = 'dissolved'
+   WHERE id IN (SELECT pod_id FROM target_pods)
+     AND status = 'forming'
+  RETURNING id
+),
+close_memberships AS (
+  UPDATE pod_memberships
+     SET inactive_at = now()
+   WHERE pod_id IN (SELECT pod_id FROM target_pods)
+     AND inactive_at IS NULL
+  RETURNING id
+),
+close_assignments AS (
+  UPDATE moderator_assignments
+     SET removed_at = now()
+   WHERE pod_id IN (SELECT pod_id FROM target_pods)
+     AND removed_at IS NULL
+  RETURNING id
+)
+SELECT
+  (SELECT array_agg(id ORDER BY id) FROM close_pods) AS pods_dissolved_ids,
+  (SELECT count(*) FROM close_pods)         AS pods_dissolved,
+  (SELECT count(*) FROM close_memberships)  AS memberships_closed,
+  (SELECT count(*) FROM close_assignments)  AS assignments_removed;
 
--- -----------------------------------------------------------------------------
--- Close the pods
--- -----------------------------------------------------------------------------
-
-UPDATE pods
-   SET status = 'dissolved'
- WHERE id IN (SELECT pod_id FROM _underfilled_pods)
-   AND status = 'forming';
-
-UPDATE pod_memberships
-   SET inactive_at = now()
- WHERE pod_id IN (SELECT pod_id FROM _underfilled_pods)
-   AND inactive_at IS NULL;
-
-UPDATE moderator_assignments
-   SET removed_at = now()
- WHERE pod_id IN (SELECT pod_id FROM _underfilled_pods)
-   AND removed_at IS NULL;
-
--- -----------------------------------------------------------------------------
--- AFTER report — pods should now read 'dissolved', open counts should be 0
--- -----------------------------------------------------------------------------
-
-DO $$
-DECLARE
-  r RECORD;
-  memberships_after INT;
-  assignments_after INT;
-BEGIN
-  RAISE NOTICE '--- After ---';
-  FOR r IN
-    SELECT id, name, status FROM pods
-     WHERE id IN (SELECT pod_id FROM _underfilled_pods)
-     ORDER BY id
-  LOOP
-    RAISE NOTICE 'pod_id=% name=% status=%', r.id, r.name, r.status;
-  END LOOP;
-  SELECT COUNT(*) INTO memberships_after
-    FROM pod_memberships
-   WHERE pod_id IN (SELECT pod_id FROM _underfilled_pods) AND inactive_at IS NULL;
-  SELECT COUNT(*) INTO assignments_after
-    FROM moderator_assignments
-   WHERE pod_id IN (SELECT pod_id FROM _underfilled_pods) AND removed_at IS NULL;
-  RAISE NOTICE 'After: % open pod_memberships | % open moderator_assignments', memberships_after, assignments_after;
-END $$;
-
--- -----------------------------------------------------------------------------
--- DEFAULT: rollback so this script is safe to dry-run.
--- After reviewing the report, change `ROLLBACK` to `COMMIT` and re-run.
--- -----------------------------------------------------------------------------
-
-ROLLBACK;
--- COMMIT;
+-- Expect pods_dissolved to match the row count from Query 1. If it's 0,
+-- nothing matched `target_pods` at commit time (e.g. cycle status or
+-- headcounts changed between the two runs) — re-run Query 1 to check.
