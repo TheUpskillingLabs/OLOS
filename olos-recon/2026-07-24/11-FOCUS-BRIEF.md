@@ -1,5 +1,7 @@
 # 11 — Focus Brief: where the team is, what's being built, and where the co-lead should point himself
 
+> **⚠ 2026-08-09 addendum — read `14-RERUN-BRIEF-2026-08-09.md` after this file.** The window 07-25→08-04 materially changed three premises here: (1) the team collapsed to a single operator — from 07-30 every PR is authored *and* merged by inferno-gh/MJ, and Brendan's sensemaking thread (§2's fork) paused with him; (2) the co-lead's enrollment/revocation machinery was rewritten without him (migrations 00099/00100, "owner decision O2" dropping his 00030 index) — §5's "bounded C" is now the **first** priority, as ratification work on his own domain; (3) all activity stops 08-04, so the opening alignment conversation is "where did the team go," before any focus-area choice. §5's recommendation (A enabled by minimal B) stands, but B's business case is now empirical — see the failure-mode catalog in `14` §4.
+
 *Synthesis of `09-PLATFORM-TRAJECTORY.md` and `10-AGENT-LANDSCAPE.md` on top of the seven audit lanes. Purpose: fill the returning co-lead's knowledge gaps and guide him to scope one area of focus that helps the team. Updated for events through 2026-07-25 (~14:30Z): PR #302 merged; prod survey backfill assumed done per the owner [UNVERIFIED in-repo — one confirmation question remains, not a workstream].*
 
 ---
