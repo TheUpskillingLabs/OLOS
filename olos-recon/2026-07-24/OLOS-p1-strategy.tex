@@ -1,0 +1,150 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\PassOptionsToPackage{hyphens}{url}
+\usepackage{url}
+\Urlmuskip=0mu plus 2mu
+\emergencystretch=1.5em
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue!50!black]{hyperref}
+
+\setlist{nosep,leftmargin=1.4em}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{12pt}{5pt}
+\titlespacing*{\subsection}{0pt}{8pt}{3pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\newcommand{\gh}[1]{\mbox{\##1}}
+\newcommand{\sev}[1]{\textbf{#1}}
+
+\begin{document}
+
+{\LARGE\bfseries OLOS --- P1 \& Hotfix-Debt Strategy}\\[2pt]
+{\large Evidence, reasoning, and a sequenced remediation plan \hfill \normalsize 2026-08-09}
+
+\vspace{2pt}\hrule\vspace{6pt}
+
+\section{Purpose and method}
+This document compiles (a) the open and \emph{should-be-open} P1 issues, (b) the debt accrued through the July--August hotfix cycle, and (c) a forward strategy sized for a two-to-four-person volunteer team. Every claim cites a commit SHA, PR/issue number, or \path{file:line}; all evidence is reproducible from the read-only audit on branch \path{claude/olos-reentry-audit-8bglhk} (\path{olos-recon/2026-07-24/}, lane files \path{01}--\path{14}). Citations marked \emph{unverified} could not be confirmed from the repository or GitHub alone. Nothing here has been changed in the codebase; this is analysis only.
+
+\section{The P1 queue}
+Two P1s are open and untouched since 2026-07-11; four more meet the P1 bar but were never filed. Each entry: evidence, why it is high priority, and the recommended fix.
+
+\subsection{\gh{213} --- Revocation enforcement has never fired \hfill \sev{severity: high, effort: S}}
+\textbf{Evidence.} The cron schedule was removed ``temporarily'' on 2026-05-31 (commit \texttt{4361f91}, ``fix(ops): temporarily remove revocation-check cron schedule''); \path{vercel.json} today registers five crons and no \path{revocation-check}; the route exists and was rewritten twice, most recently in \gh{348} where it became the \emph{sole} writer of the \texttt{inactive} enrollment status (migration \path{00099_enrollment_registered_status.sql}: the reconciler is narrowed to \texttt{registered}$\leftrightarrow$\texttt{active} transitions). Open p1 \gh{213}, unassigned, its own body now stale (it cites a deleted cron and docs that exist only on an unmerged branch).
+\textbf{Why now.} After \gh{348}, no code path in the system moves anyone to \texttt{inactive}. Enrollment enforcement is fully dark on a live cohort, and drift compounds until the next cycle boundary.
+\textbf{Fix.} Decide cadence and labs semantics (the warn$\rightarrow$revoke counts pod memberships lab-agnostically --- confirm against the sub-cohort model in \path{docs/LOCAL_LABS.md}); add the \path{vercel.json} entry behind a dry-run flag; run one cohort week in dry-run, review output, then enable. Pairs with \S2.4.
+
+\subsection{\gh{212} --- Metro-blind registration routing \hfill \sev{severity: high, effort: S--M}}
+\textbf{Evidence.} Open p1 \gh{212} cites \path{docs/EVOLUTION.md}, migrations 00038/00039, and \texttt{getRegistrationCycle()} in \path{lib/cycles/registration.ts} --- \emph{none of which exist on mainline}: the docs live only on the unmerged branch \path{claude/olos-dev-pod-project-creation-uz3wez}, the migration numbers mean different files on \texttt{dev}, and a repo-wide grep finds no \texttt{getRegistrationCycle} (audit lane \path{06-lane-docs.md}).
+\textbf{Why now.} The underlying concern --- registration ignoring the participant's lab --- is a correctness issue for the next cohort's routing, but the issue as written cannot be executed against current code.
+\textbf{Fix.} Re-anchor the issue to the real funnel (\path{app/api/registrations/funnel/route.ts}) and the shipped labs model (00062/00067/00068); then make the product call it defers: show HQ-open cycles only, or HQ-open plus local with labels.
+
+\subsection{Unfiled: blind-voting authorship leak \hfill \sev{severity: high, effort: S}}
+\textbf{Evidence.} Flagged in \gh{117}'s closing comment (id 4941719186, 2026-07-11): \texttt{GET /api/pods/\allowbreak[pod\_id]/\allowbreak solution-proposals} is \texttt{withAuth}-only and returns \texttt{participant\_id} on every proposal, so any authenticated pod member can derive who submitted what during blind voting; the comment itself says it ``may deserve extraction as its own small p1 fix.'' No issue was ever filed; none of the 14 open issues covers it (lane \path{02-lane-issues.md} \S1). By contrast, the new proposal gallery deliberately preserves no-author-attribution (\texttt{app/(dashboard)/cycles/\allowbreak[cycle\_id]/\allowbreak proposals/\allowbreak page.tsx:24}) --- the convention exists; this endpoint predates it.
+\textbf{Why now.} Voting integrity on a live platform; the finding is already 4 weeks old and survives only in a closed issue's comment.
+\textbf{Fix.} File it; strip or alias \texttt{participant\_id} from the member-facing payload during the voting window (admin/moderator surfaces may keep it). One route, unit-testable.
+
+\subsection{Unfiled: cron authentication fails open \hfill \sev{severity: high (config-dependent), effort: S}}
+\textbf{Evidence.} All six cron routes compare the header to \texttt{Bearer \$\{process.env.CRON\_SECRET\}} with no unset guard (e.g.\ \path{app/api/cron/learning-log-reminder/route.ts:35}); if the env var is missing, the literal string \texttt{Bearer undefined} authenticates a route that runs with the service-role client and sends email. \texttt{CRON\_SECRET} is absent from \path{.env.local.example} and from \path{docs/environments.md}'s env lists (lane \path{07-lane-ops.md} \S3), so leaving it unset in a new environment is the default outcome. Whether it is set in Vercel prod is \emph{unverified}.
+\textbf{Fix.} Three lines per route (or one shared guard): 401 when \texttt{CRON\_SECRET} is unset; add the var to \path{.env.local.example}; confirm it is set in both Vercel environments. Do this before \S2.1 schedules a seventh cron.
+
+\subsection{Unfiled: erasure RPC cannot erase role-holders \hfill \sev{severity: high, effort: S}}
+\textbf{Evidence.} \path{docs/AUTH_UNIFICATION_RUNBOOK.md:171-178}: \texttt{delete\_participant()} omits \texttt{lab\_leads} and \texttt{project\_roles}, so erasing anyone holding those roles fails on foreign keys --- ``Fix \ldots{} before relying on erasure in prod.'' Consciously deferred, never tracked (lane \path{06-lane-docs.md}, ADR-4). Related, from the prod cutover record (unmerged branch \path{claude/dev-prod-migration-plan-5pumez}, commit \texttt{8a967dd}): \texttt{participant\_erasures} was created without row-level security anywhere in the chain (\path{supabase/migrations/00058_admin_roles_and_erasure.sql:74}) while \path{00015_grant_role_privileges.sql} default-grants broad access on future tables; prod was hand-fixed at cutover, but the fix exists in no migration, so dev/local/fresh builds regress.
+\textbf{Why now.} Right-to-erasure is the compliance backstop for a live alpha holding real participant data; today it would fail exactly for the most involved participants.
+\textbf{Fix.} One migration adding the two deletes to the RPC \emph{and} codifying the prod-only fixes (\texttt{participant\_erasures} RLS; \texttt{participants\_insert} tightened to \texttt{auth\_user\_id = auth.uid()} --- the chain version at \path{00002:55} is \texttt{WITH CHECK (true)}). File the tracking issue first.
+
+\subsection{Ratify or contest ``owner decision O2'' \hfill \sev{severity: medium-high, effort: decision only}}
+\textbf{Evidence.} Migration \path{00100_access_revocations_fresh_rows.sql} (landed in \gh{348}) drops the 00030 idempotency unique index on \texttt{access\_revocations} so re-revocations write fresh audit rows; the rationale exists only as ``owner decision O2'' in a PR body (lane \path{13-lane-code-0809.md} \S1). Open issue \gh{125} --- move \texttt{reactivated} rows out of the table, options A/B/C --- assumed the index that no longer exists and is now doubly stale.
+\textbf{Fix.} A 30-minute ratification: confirm O2 (then resolve \gh{125} accordingly and document the semantics in \path{SCHEMA.md}, which does not yet note 00100) or contest it (then a follow-up migration restores a scoped constraint). Either outcome closes \gh{125}.
+
+\section{Hotfix-accrued debt: the catalog}
+The 07-25$\rightarrow$08-04 window shipped 58 PRs (\gh{303}--\gh{360}) with zero reviews and, from \gh{318} onward, a single person authoring \emph{and} merging everything (lane \path{12-lane-github-0809.md} \S3). Each debt item below names the failure, the receipts, the cost paid, and the structural cause.
+
+\subsection{The re-land tax}
+\gh{311}, \gh{312}, \gh{313} sat unreviewed 4--6 days, went stale against fast-moving \texttt{dev}, were closed unmerged, and were re-ported as \gh{342}, \gh{344}, \gh{348} --- with migrations renumbered because \emph{all three had claimed 00092}. The original \gh{313} carried a defect that would have \textbf{mass-revoked the live cohort}; it was caught during the re-port, not by review (\gh{348} body). \textbf{Cost:} three features built twice; a near-miss on live data. \textbf{Cause:} no review loop to land work while fresh; no reviewer besides the author exists.
+
+\subsection{Squash-promote history split, paid twice}
+\gh{325}'s squash promotion split \texttt{dev}/\texttt{main} histories; repair PR \gh{328} (``rejoin histories after squash promotions'') was itself accidentally squash-merged and needed \gh{330} minutes later; promote style then switched permanently to merge commits (main first-parent from \gh{327} on). \textbf{Cost:} two repair PRs, plus a later \path{sync-main-into-dev-2} branch. \textbf{Cause:} promote procedure lives in oral tradition; the lesson is encoded nowhere (\path{docs/environments.md} still describes the old flow).
+
+\subsection{Premature merges losing work}
+\gh{335} was squash-merged 44 seconds after opening with only 2 of its 4 commits pushed; a user-reported fix ``never reached dev'' until \gh{337} cherry-picked it; \gh{336} was closed as ``Old.'' Separately, merges race CI: \gh{339} merged 72 seconds \emph{before} its CI run finished; \gh{354} went open-to-merge in 8 seconds; the same branch (\path{fix/luma-copy-polish}) was merged three times in one day (\gh{338}/\gh{339}/\gh{340}). \textbf{Cost:} lost commits, rescue cherry-picks, unreviewable history. \textbf{Cause:} merge is faster than the pipeline and nothing makes the pipeline blocking; CI cannot gate a merge that beats it.
+
+\subsection{Out-of-band database changes}
+Migration 00099's content was applied to the dev database on 2026-07-31 under its \emph{old} number (00092) before the file was renumbered; the dev ledger and the chain disagree again, and prod's state for 00092--00100 is unrecorded (lane \path{13-lane-code-0809.md} \S1). This is the same drift species that reached ``prod eleven migrations behind'' on 07-06 (\path{scripts/ops/prod-migration-repair-2026-07-06.sql}) and forced the 07-11 prod reset-and-rebuild --- an event whose only record still sits on an unmerged branch (\texttt{8a967dd}). \gh{77} (auto-apply migrations in CI), designed 2026-05-20 as the fix, remains open and untouched. \textbf{Cost:} July's reset; the current landmine. \textbf{Cause:} manual apply ritual with no ledger reconciliation step and no automation.
+
+\subsection{Live-data surgery by one-off}
+An underfilled-pods closure for the \emph{active} cycle was ``handled with a manual one-off''; the SQL sits on unmerged branch \path{claude/close-underfilled-pods-fqq3g1} (commits through 08-04), never touches \texttt{cycle\_enrollments}, and its own commit trail logs feedback \#14 requesting a real admin/cron path (lane \path{13-lane-code-0809.md} \S5). An earlier unmerged one-off (\texttt{24610cf}) would remove four participants from the current cycle. \textbf{Cost:} unauditable partial operations against live participant data. \textbf{Cause:} missing admin tooling for mid-cycle pod lifecycle events.
+
+\subsection{The tracker is a changelog, not a planning surface}
+One issue opened in twelve days (\gh{357}, filed 23 seconds before its own fix PR \gh{358}, whose ``Fixes \#.'' link is broken --- the issue is still open despite being fixed); zero issues closed; meanwhile $\sim$18 decision-carrying statements shipped inside merged PR bodies with no ratification step (catalog: lane \path{12-lane-github-0809.md} \S4; ``O2'' above is the exemplar). CODEOWNERS still requests review from an absent member and omits the person doing all the merging. \textbf{Cost:} decisions invisible to anyone not reading every PR; stale p1s; broken auto-close. \textbf{Cause:} at this speed, issues cost more than PRs --- unless something (a template section, a weekly sweep) harvests decisions out of PR bodies.
+
+\subsection{Provenance hygiene}
+One commit from an unconfigured identity \texttt{t <t@t>} (\texttt{263a0e4}, 07-31); a shared org account (``HQ'') merging directly to \texttt{main} with no PR (\texttt{5247a3e}, 08-03, against the checked-in rule from \texttt{5640b08}/\gh{257}); and, from the earlier window, 90 agent commits on \texttt{dev} with no attributable human. \textbf{Cost:} unanswerable ``who decided this'' questions --- the exact question this audit spent most of its effort on. \textbf{Cause:} no enforcement, shared credentials, unconfigured machines.
+
+\section{Root cause, in one paragraph}
+Every item in \S3 is a symptom of one structural fact: \textbf{a single operator working at high speed with advisory-only guardrails}. CI exists but does not gate; the branch rule exists but is not enforced; CODEOWNERS exists but points at the wrong people; the tracker exists but costs too much at this tempo; review exists as a concept the team built tooling for (agent reviewer roles, PR-template verify sections, after-the-fact audits) and never as a practice. The team repeatedly \emph{noticed} --- they wrote the rule (\gh{257}), built the migration-number guard, switched promote styles after \gh{328} --- but each lesson was learned by incident and encoded only partially. The strategy below therefore prioritizes \emph{enforcement flips and decision-harvesting} over process ceremony: things that work when exactly one person is pushing code at 2am.
+
+\section{Forward strategy}
+Sized for the actual team; each phase is independently valuable.
+
+\subsection{Phase 0 --- the enforcement flip (about two days, this week)}
+\begin{enumerate}
+  \item Enable branch protection on \texttt{dev} and \texttt{main}: PRs required, CI required to \emph{complete and pass} before merge. This alone retires failure modes \S3.2, \S3.3, and the direct-to-main lane (\S3.7). The rule already exists on paper (\gh{257}); this makes it real.
+  \item Fix CODEOWNERS: add the active release manager; remove or annotate the absent member so review requests stop routing into a void.
+  \item File the four missing issues (\S2.3--\S2.5 plus ledger reconciliation), close fixed-but-open \gh{357}, and re-anchor \gh{212}.
+  \item Hold one 90-minute ratification session: O2 (\S2.6), \gh{125}, \gh{213} cadence and labs semantics, the \gh{302} pending-observations visibility default, and the 18 PR-body decisions. Output: a one-page decisions log committed to \path{docs/}.
+\end{enumerate}
+
+\subsection{Phase 1 --- before the next cycle boundary (one to two weeks of part-time work)}
+\begin{enumerate}
+  \item \textbf{Ledger reconciliation}: confirm dev's applied history for 00092$\rightarrow$00099; confirm prod's state for 00092--00100; record both in \path{docs/environments.md}; merge the prod-reset record (\texttt{8a967dd}) to mainline.
+  \item \textbf{Ship \gh{77}} (auto-apply migrations on merge, dev first) --- the standing fix for \S3.4, designed in May, roughly a day of work.
+  \item \textbf{Revocation live}: \S2.4's fail-closed guard, then \S2.1's dry-run week, then enable. Enrollment enforcement stops being dark.
+  \item \textbf{Erasure migration} (\S2.5): FK deletes + codified prod-only fixes, so every environment converges.
+  \item \textbf{Underfilled-pods admin path} (feedback \#14): turn the one-off SQL into an owner-gated, audited admin action (the \texttt{owner\_actions} pattern from 00078 already exists for exactly this).
+  \item \textbf{Blind-voting leak fix} (\S2.3): one route, one test.
+\end{enumerate}
+
+\subsection{Phase 2 --- structural (ongoing, low ceremony)}
+\begin{enumerate}
+  \item \textbf{Decision harvesting}: a ``Decisions'' section in the PR template that must be either ``none'' or copied into \path{docs/decisions/} at merge; a monthly 30-minute ratification sweep. This meets the team where decisions actually happen (PR bodies) instead of demanding issue-first discipline that twelve days of evidence says will not stick.
+  \item \textbf{Scoped human review}: require one human review only for PRs touching \path{lib/auth/}, \path{supabase/migrations/}, or participant-data surfaces; self-merge stays for copy, content, and UI polish. Narrow enough to survive a one-operator week; wide enough to have caught \gh{313}.
+  \item \textbf{Resolve the sensemaking fork} (\gh{185} in-app port vs the \gh{302} working-folder bridge) with explicit switch criteria --- this is the biggest architecture decision currently drifting, and it determines where the next quarter of build effort goes.
+  \item \textbf{Hygiene cadence}: the 60-branch cleanup that happened this window becomes a monthly habit; git identities configured on all machines; the shared HQ account restricted to release operations via PRs.
+\end{enumerate}
+
+\section{Priority matrix}
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{@{}lXllll@{}}
+\toprule
+\# & Item & Evidence anchor & Severity & Effort & Phase \\
+\midrule
+1 & Branch protection + CI gating & \gh{354}, \gh{339}, \texttt{5247a3e} & high & S & 0 \\
+2 & Ratification session (O2, \gh{125}, \gh{213}, \gh{302}, 18 items) & \path{00100}, lane 12 \S4 & high & S & 0 \\
+3 & File missing p1s; fix tracker state & cmt.\ 4941719186; \gh{357} & high & S & 0 \\
+4 & Ledger reconciliation (dev 00092/00099; prod 00092--00100) & lane 13 \S1 & high & S & 1 \\
+5 & Revocation cron fail-closed + dry-run + enable & \texttt{4361f91}; \path{vercel.json} & high & S--M & 1 \\
+6 & Erasure FK + codify prod-only fixes & runbook:171--178; \path{00058:74} & high & S & 1 \\
+7 & \gh{77} auto-apply migrations & \gh{110} cmt.; repair SQL 07-06 & high & M & 1 \\
+8 & Blind-voting leak fix & cmt.\ 4941719186 & med-high & S & 1 \\
+9 & Underfilled-pods admin path & feedback \#14; branch \path{fqq3g1} & med & M & 1 \\
+10 & Decision-harvesting practice & lane 12 \S4 & med & S & 2 \\
+11 & Scoped review policy & \gh{313} near-miss & med & S & 2 \\
+12 & Sensemaking fork decision & \gh{185} vs \gh{302} & med & decision & 2 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Reproducing the evidence}
+Full lane reports with command-level provenance: \path{olos-recon/2026-07-24/} on branch \path{claude/olos-reentry-audit-8bglhk} --- \path{12-lane-github-0809.md} (PR stream, failure modes, review state, decision catalog), \path{13-lane-code-0809.md} (migrations 00092--00100, auth surface, unmerged branches), \path{14-RERUN-BRIEF-2026-08-09.md} (window synthesis), and lanes \path{01}--\path{07} for the June--July baseline. The branch is reference-only: never merged, safe to archive or delete.
+
+\end{document}

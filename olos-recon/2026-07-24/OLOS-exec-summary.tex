@@ -1,0 +1,62 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue!50!black]{hyperref}
+
+\setlist{nosep,leftmargin=1.4em}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{9pt}{4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\newcommand{\gh}[1]{\mbox{\##1}}
+\newcommand{\ev}[1]{{\footnotesize\textcolor{black!60}{[#1]}}}
+
+\begin{document}
+
+{\LARGE\bfseries OLOS --- State \& Trajectory}\\[2pt]
+{\large Executive summary for review \hfill \normalsize 2026-08-09}
+
+\vspace{2pt}\hrule\vspace{6pt}
+
+{\itshape This is my reconstructed understanding after being away since mid-June, drawn from a read-only audit of the repository and GitHub through 2026-08-09 (full evidence on branch \path{claude/olos-reentry-audit-8bglhk}, directory \path{olos-recon/2026-07-24/}). Please flag anything that contradicts what you know --- especially in \S6.}
+
+\section{What we are building}
+Three nested identities, each stated in our own docs. \textbf{Near term:} ``the build-cycle operating system'' --- field observations $\rightarrow$ problem statements $\rightarrow$ votes $\rightarrow$ pods $\rightarrow$ projects $\rightarrow$ weekly Learning Logs $\rightarrow$ showcase, replacing forms and spreadsheets \ev{README}. \textbf{Mid term:} ``The Labs runs like open source'' --- Sectors as durable problem-domain communities, Cycles as incubator cohorts, Local Labs as the place-based tenancy spine, the org running its own machinery via org cycles/workstreams \ev{SECTOR\_MODEL, LOCAL\_LABS, ORG\_CYCLES}. \textbf{Long term: Project Ortelius} --- ``the legitimate, participatory, consented, open civic counterpart to Foundry'': a provenance-complete, consent-governed corpus of community sensemaking, with declared lead buyers of a frontier AI lab plus civic leaders (owner decision 2026-07-05) \ev{ORTELIUS\_NORTHSTAR}. Intended outcome, layered: members shipping civic projects in teams $\rightarrow$ a compounding sector commons $\rightarrow$ a clean, consented sensemaking corpus.
+
+\section{Where the system stands}
+Everything is \textbf{live in production alpha with real participant data}; \texttt{dev} and \texttt{main} are fully merged (promotion is near-daily). The chain is at \textbf{100 migrations}; roughly two-thirds of it and 74 of 118 API routes postdate mid-June. \textbf{Built:} the full cycle engine (verified end-to-end), Learning/Leadership Logs (replaced Pulse in July), the social layer, labs/sectors/org-cycle structure, public CMS with two-way Luma event sync, owner console, view-as debugging lens, member task system. \textbf{One slice deep:} sensemaking --- field-survey intake, results, and citable per-observation anchors exist; the entire Ortelius graph spine (extracts, swipes, canvas, embeddings, \path{asset_links}) has \textbf{zero migrations}. The Frame-Creation canvas (``Triangulator'') lives in a second repo (\path{TheUpskillingLabs/triangles}); the current cohort does sensemaking \emph{there}, in per-team GitHub working folders that deep-link back to OLOS survey rows (PR \gh{302}). An in-app port plan exists but has sat unmerged since 07-06 (PR \gh{185}). Which path wins is our biggest open architecture fork.
+
+\section{How the team operates}
+Development is agent-driven: roughly half of all commits are Claude-authored, steered through Claude Code sessions and the GitHub App; five agent roles are checked into \path{.claude/agents/}; the product itself deliberately runs almost no AI (one Haiku call for pod/project names; everything else is copy-prompt/BYO-LLM behind the Ortelius consent gate). Process reality: \textbf{zero formal reviews exist across all $\sim$360 PRs}, $\sim$97--100\% self-merge, no branch protection, and CODEOWNERS still routes every review request to me (absent since June). Since 07-30 the stream collapsed to a \textbf{single operator} --- every PR from \gh{318} to \gh{359} was authored \emph{and} merged by MJ, with HQ assisting on branches; Brendan's last merges are 07-25, amguzzi's 07-27. \textbf{All activity stops 2026-08-04} with the tree clean. I do not know from the repo whether this is a planned pause or reallocation.
+
+\section{Direction of the last three weeks}
+The center of gravity moved from building structure to \textbf{operating the live Civics \& Elections cohort}: an events rework around Luma (anchor events, member-only visibility tiers, synced About text; the bespoke hackathon page retired --- ``Luma owns the copy,'' \gh{337}); a consolidated member task system (\gh{342}); the view-as simulation for debugging member issues (\gh{344}, security invariants verified); poderator tooling (\gh{350}--\gh{359}); and --- notably --- a \textbf{rewrite of the enrollment/revocation machinery I built} (\gh{348}: new \texttt{registered} enrollment status; the revocation cron becomes the sole writer of \texttt{inactive}; migration 00100 drops my 00030 idempotency index under ``owner decision O2,'' which I intend to ratify or contest). The sensemaking thread paused when Brendan did.
+
+\section{Top risks as I see them}
+\begin{itemize}
+  \item \textbf{Enforcement is dark:} the revocation cron has never been scheduled (removed ``temporarily'' 05-31; open p1 \gh{213}) --- and after \gh{348} it is now the \emph{only} writer of \texttt{inactive}.
+  \item \textbf{Ledger drift recurred:} migration 00099 was applied to the dev DB out-of-band under its old number (00092); prod's application state for 00092--00100 is unrecorded. Same species of drift that forced the 07-11 prod reset-and-rebuild (which itself is documented only on an unmerged branch).
+  \item \textbf{Review vacuum has a measured cost:} stale unreviewed PRs required re-lands with renumbered migrations (\gh{311}/\gh{312}/\gh{313} $\rightarrow$ \gh{342}/\gh{344}/\gh{348}); the original \gh{313} carried a defect that would have mass-revoked the live cohort; merges now race CI (\gh{354}: 8 seconds open-to-merge).
+  \item \textbf{Decisions live in PR bodies:} $\sim$18 decision-carrying statements shipped unratified in merged PRs this window; the issue tracker recorded one issue in twelve days.
+  \item \textbf{Known security follow-ups unfiled:} blind-voting authorship leak (flagged in \gh{117}'s closure), erasure RPC FK gap, cron auth failing open when \texttt{CRON\_SECRET} is unset, two prod-only fixes never codified as migrations.
+\end{itemize}
+
+\section{What I need you to confirm or correct}
+\begin{enumerate}
+  \item Is the 08-04 stop a planned pause? Where are Brendan and amguzzi focused now --- \path{triangles}, or elsewhere?
+  \item Prod state: has prod received migrations 00092--00100, and was dev's ledger reconciled after the 00099-as-00092 out-of-band apply? Who holds the Supabase/Vercel dashboards?
+  \item Decision O2 (dropping the revocation idempotency index) and the pending-observations visibility default (\gh{302}): do these stand as deliberate calls?
+  \item The sensemaking fork: is the GitHub working-folder bridge the model for this cohort only, with the in-app port (\gh{185}) still intended --- and what would trigger the switch?
+  \item Is the revocation cron off by policy or by drift, and what cadence/labs semantics do we want when it goes live (\gh{213})?
+\end{enumerate}
+
+\vspace{4pt}\hrule\vspace{3pt}
+{\footnotesize Companion document: \emph{OLOS P1 \& Hotfix-Debt Strategy} (same audit branch) --- per-item evidence, reasoning, and a sequenced remediation plan.}
+
+\end{document}
