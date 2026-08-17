@@ -1,0 +1,131 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\PassOptionsToPackage{hyphens}{url}
+\usepackage{url}
+\Urlmuskip=0mu plus 2mu
+\emergencystretch=1.5em
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue!50!black]{hyperref}
+
+\setlist{nosep,leftmargin=1.4em}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\titlespacing*{\subsection}{0pt}{6pt}{2pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\newcommand{\gh}[1]{\mbox{\##1}}
+\newcommand{\tbox}[1]{\hfill {\normalsize\normalfont\itshape #1}}
+\newcommand{\push}[2]{\item \textbf{#1} $\Rightarrow$ #2}
+
+\begin{document}
+
+{\LARGE\bfseries OLOS Tech Sync --- Meeting Notes \& Agenda}\\[2pt]
+{\large Monday call \hfill \normalsize 60 minutes $\cdot$ prepared 2026-08-10}
+
+\vspace{2pt}\hrule\vspace{6pt}
+
+{\footnotesize Pre-reads: \emph{Executive Summary} (2 pp.), \emph{P1 \& Hotfix-Debt Strategy} (5 pp.), both on branch \path{claude/olos-reentry-audit-8bglhk}. Every evidence claim below is cited in those documents; this one exists to run the meeting.}
+
+\section{Opening: one backlog, one split \tbox{5 min}}
+\begin{itemize}
+  \item \textbf{We merge the two backlogs into one scaffold.} Madhu's sprint candidates (08-02 CSV, 16 items) and the audit's P1/debt findings are the same story from two directions. The audit re-prices about half the CSV: item~8 (survey results) is \emph{mostly shipped} by \gh{302} --- the gap is an approve/moderation UI; item~1 (event audience view) is cheaper than estimated (Luma rework already syncs guest lists into \texttt{event\_rsvps}); item~4 (public problem statements) is a policy decision before it is a build; items~13/15/16 are the productization of the enrollment/revocation machinery just reworked in \gh{348}.
+  \item \textbf{Proposed ownership split.} Madhu $\rightarrow$ \textbf{Slack} (CSV item~9; issue \gh{189} already scopes the use cases, and he holds all Slack-adjacent context). Aaron $\rightarrow$ \textbf{GitHub/Ortelius} (items~10+3; inseparable from the Triangulator fork, which is his conversation with Brendan) \emph{plus} the \textbf{enrollment \& enforcement track} (\gh{213}, \gh{212}, items 13/15/16 --- his old machinery). Stability/enforcement work goes to Aaron because it collides with nobody's active lanes.
+  \item \textbf{Framing for the sprint:} July--August ran as a single-operator, zero-review pipeline; the measured costs (re-land tax, \gh{313} near-miss, CI-racing merges) are why ``stability'' below means enforcement flips and six named fixes --- not another audit document.
+\end{itemize}
+
+\section{Confirm or correct the picture \tbox{8 min}}
+\begin{itemize}
+  \item 08-04 stop = planned sprint-planning pause? Where are Brendan and amguzzi focused now?
+  \item Prod state: are migrations 00092--00100 applied? Was dev's ledger reconciled after 00099 was applied out-of-band as 00092? Who holds Supabase/Vercel?
+  \item Do ``decision O2'' (dropping the revocation idempotency index) and \gh{302}'s pending-observations visibility default stand?
+  \item Sensemaking fork: is the GitHub working-folder bridge cohort-only, with the in-app port (\gh{185}) still intended?
+  \item Is the revocation cron off by policy or drift?
+\end{itemize}
+
+\section{Stability track: pushes and what each accomplishes \tbox{10 min}}
+\begin{itemize}
+  \push{Enable branch protection + require CI completion on \texttt{dev}/\texttt{main}}{ends direct-to-main merges, CI-racing merges (\gh{354}: 8\,s open-to-merge), and most of the re-land tax; makes the \gh{257} rule real. (Hours, needs admin.)}
+  \push{Update CODEOWNERS (add Madhu; adjust Aaron's entry)}{review requests reach people who can actually respond.}
+  \push{File the four missing issues; close fixed-but-open \gh{357}}{blind-voting authorship leak, cron-auth fail-open, erasure FK gap, and ledger reconciliation become tracked work instead of folklore.}
+  \push{Merge \gh{286} (VIBE\_SCAN, open since 07-17)}{the 38-finding stability backlog becomes visible on mainline; tiers 2--3 become sprintable line items --- this \emph{is} the ``another code review'' ask, already done and going stale.}
+  \push{Cron auth fail-closed + \texttt{CRON\_SECRET} in \path{.env.local.example}}{no environment can authenticate with \texttt{Bearer undefined}; safe to add the revocation cron next.}
+  \push{Ledger reconciliation write-up in \path{docs/environments.md}}{prod's true migration state (00092--00100) is recorded; prevents a second reset-and-rebuild.}
+\end{itemize}
+
+\section{Ratification block: five decisions to log \tbox{15 min}}
+\begin{enumerate}
+  \item \textbf{O2}: keep fresh-row revocation audit rows (then close \gh{125} accordingly) or restore a scoped uniqueness constraint?
+  \item \textbf{\gh{302} visibility}: participants continue to see pending survey observations (marked ``awaiting review''), or revert to approved-only until the approve UI ships?
+  \item \textbf{\gh{213}}: revocation cron cadence (daily?) and labs semantics (pod counts are lab-agnostic --- acceptable?); dry-run first, one cohort week.
+  \item \textbf{Demographics (item 6)}: which fields, collected when, under which consent version --- and does the pending attorney review gate this?
+  \item \textbf{Public problem statements (item 4)}: expose the gallery publicly? If yes: anonymity rules and which phases.
+\end{enumerate}
+\emph{Output: one line each in a decisions log committed to \path{docs/}.}
+
+\section{Sprint scaffold: tracks, pushes, outcomes \tbox{12 min}}
+
+\subsection{Track 0 --- Stability \& enforcement (Aaron; prerequisite)}
+Covered in \S3; roughly two--three days total, zero collision with active lanes.
+
+\subsection{Track 1 --- Enrollment \& enforcement (Aaron)}
+\begin{itemize}
+  \push{\gh{213} dry-run push, then enable}{first revocation warnings visible with no data risk; enrollment enforcement stops being dark (the \gh{348} cron is now the only writer of \texttt{inactive}).}
+  \push{Item 13 gating-rule push}{participants between registration and pod formation are correctly gated (or exempted) under the new \texttt{registered} status --- decided, tested, documented.}
+  \push{Items 15/16 as owner-console actions}{ban / drop-from-cycle become audited one-click operations on the existing \texttt{owner\_actions} RPC pattern --- retiring the one-off-SQL mode (feedback \#14, \texttt{24610cf}).}
+\end{itemize}
+
+\subsection{Track 2 --- Integration strategy one-pagers (the P1 split; due before next sprint planning)}
+\begin{itemize}
+  \push{Madhu: Slack one-pager (item 9 / \gh{189})}{a scoped, sequenced build plan --- which slice first (channel-per-pod, reminders, verification), bot vs.\ webhook, app ownership.}
+  \push{Aaron: GitHub/Ortelius one-pager (items 10+3, after the Brendan conversation)}{a build plan that serves the Triangulator bridge, public Project Pages, and the first slice of provenance --- instead of a generic integration nobody's workflow uses.}
+\end{itemize}
+
+\subsection{Track 3 --- Member-visible quick wins (Madhu's lane)}
+\begin{itemize}
+  \push{Item 1 push}{organizers see attendees + subscribers + RSVPs in one view (reads data the Luma sync already lands).}
+  \push{Item 2 push}{``My events'' appears on the member dashboard.}
+  \push{Item 8 remainder push}{an approve/moderation UI --- the 17-pending queue becomes curatable and the visibility default becomes honest.}
+  \push{Item 11 push (after the cron fix)}{Pod Squad emails go out automatically and are audited via the (currently unused) \texttt{email\_log} table.}
+\end{itemize}
+
+\subsection{Parked (named, not forgotten)}
+Items 5 \& 7 await Iliana's sprint structure; items 12 \& 14 need scoping; item 6 and item 4 are decisions (\S4), not builds.
+
+\section{Key strategy questions (who does what, and how) \tbox{7 min}}
+\subsection{Capacity and roles}
+\begin{itemize}
+  \item Who is actually building this sprint --- is Madhu still the only regular pusher, and how many hours does each of us realistically have?
+  \item Is Brendan's focus \path{triangles} for this cohort? Can he give Aaron 30 minutes this week on the triangles\gh{72} contract?
+  \item Does Aaron's move out of Programming \& Events free him for Tracks 0--1 immediately, and who inherits anything he drops?
+  \item Who holds Supabase, Vercel, the Slack workspace, and the GitHub org --- and should any of that access be broadened as part of Track 0?
+\end{itemize}
+\subsection{How we work (the smallest rules that stick)}
+\begin{itemize}
+  \item Review policy: is ``one human review only for PRs touching auth, migrations, or participant data'' the right scope --- and who is the default second reviewer while we are effectively two builders?
+  \item Decision harvesting: PR-template ``Decisions'' section + a monthly 30-minute ratification sweep --- sufficient, or do P1s go issue-first again?
+  \item Agent workflow: direct agent pushes to \texttt{dev} end when branch protection lands --- does anyone's current workflow depend on them?
+\end{itemize}
+\subsection{Per-P1 shaping}
+\begin{itemize}
+  \item \textbf{Slack:} which single use case proves the integration (pod channel auto-create at formation vs.\ log reminders)? Who owns the Slack app? What is the consent posture for notifications?
+  \item \textbf{GitHub/Ortelius:} does the Triangulator stay the canvas (OLOS links out) or move in-app (\gh{185})? Repo-per-pod provisioning or curated hand-pasted links? Where does provenance live first --- \texttt{github\_repo\_url} columns or the initial \texttt{asset\_links} slice? What do public Project Pages expose, under which license and consent?
+  \item \textbf{Enrollment:} confirm the target state machine (\texttt{registered} $\rightarrow$ \texttt{active} $\rightarrow$ \texttt{inactive}) and who besides the cron may ever write \texttt{inactive}.
+\end{itemize}
+
+\section{Close: owners and dates \tbox{3 min}}
+\begin{itemize}
+  \item Each track: one named owner, one deliverable, one date (suggested: Track 0 done this week; one-pagers before next sprint planning; Track 1 dry-run started within two weeks).
+  \item Standing 30-minute ratification sweep on the calendar (monthly).
+  \item Next checkpoint call agreed.
+\end{itemize}
+
+\vspace{4pt}\hrule\vspace{3pt}
+{\footnotesize Evidence for every claim: \emph{P1 \& Hotfix-Debt Strategy} \S2--\S3 and audit lanes \path{12}--\path{14} on the audit branch. This document is agenda + notes; decisions land in the log, work lands in issues.}
+
+\end{document}
