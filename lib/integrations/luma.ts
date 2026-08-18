@@ -241,6 +241,76 @@ export async function addLumaGuest(
   }
 }
 
+/* How long after an event ends its guest list keeps being mirrored.
+
+   The original rule was `start_at > now`, which dropped an event from the
+   mirror the moment it STARTED rather than when it ended. Day-of walk-up
+   registrations — the ones that actually record who turned up — were
+   therefore never captured for any event, at any sync cadence. Keeping a
+   grace window past the end means the final guest list lands after the doors
+   close, and then the event goes quiet for good. */
+export const GUEST_MIRROR_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/* Whether an event is still inside the guest-mirror window. Events with no
+   end_at (Luma allows it) are treated as ending when they start. */
+export function inGuestMirrorWindow(
+  ev: { start_at: string; end_at?: string | null },
+  now: number = Date.now()
+): boolean {
+  const start = new Date(ev.start_at).getTime();
+  if (Number.isNaN(start)) return false;
+  if (start > now) return true;
+  const parsedEnd = ev.end_at ? new Date(ev.end_at).getTime() : NaN;
+  const end = Number.isNaN(parsedEnd) ? start : parsedEnd;
+  return end > now - GUEST_MIRROR_GRACE_MS;
+}
+
+/* Split a guest list by whether the email belongs to a known member.
+
+   The two halves are written with DIFFERENT upsert semantics (see the mirror
+   block in syncLumaEvents), which is the whole reason this is a split rather
+   than one array with a nullable field: a bulk PostgREST upsert applies the
+   union of keys across rows, so mixing resolved and unresolved guests in one
+   call would write participant_id = NULL over rows that already have one. */
+export function splitGuestsByIdentity(
+  guests: { email: string }[],
+  participantIdByEmail: Map<string, number>
+): {
+  resolved: { email: string; participant_id: number }[];
+  unresolved: { email: string }[];
+} {
+  const resolved: { email: string; participant_id: number }[] = [];
+  const unresolved: { email: string }[] = [];
+  for (const g of guests) {
+    const participantId = participantIdByEmail.get(g.email.toLowerCase());
+    if (participantId === undefined) unresolved.push({ email: g.email });
+    else resolved.push({ email: g.email, participant_id: participantId });
+  }
+  return { resolved, unresolved };
+}
+
+/* Look up participant ids for a batch of guest emails, chunked so a large
+   guest list can never blow the query-string length limit on `.in()`. */
+async function participantIdsByEmail(
+  supabase: SupabaseClient,
+  emails: string[]
+): Promise<Map<string, number>> {
+  const byEmail = new Map<string, number>();
+  const unique = [...new Set(emails.map((e) => e.toLowerCase()))];
+  for (let i = 0; i < unique.length; i += 200) {
+    const { data } = await supabase
+      .from("participants")
+      .select("id, email")
+      .in("email", unique.slice(i, i + 200));
+    for (const row of data ?? []) {
+      if (typeof row.email === "string") {
+        byEmail.set(row.email.toLowerCase(), row.id as number);
+      }
+    }
+  }
+  return byEmail;
+}
+
 /* Pull an event's guest list (paginated, defensive shape like list-events). */
 export async function fetchLumaGuests(
   eventApiId: string
@@ -289,6 +359,9 @@ export interface LumaSyncSummary {
   updated: number;
   archived: number;
   guests_mirrored: number;
+  /** Of those, how many resolved to a member account by email. The gap
+      between this and guests_mirrored is the non-member audience. */
+  guests_attributed: number;
   /** Per-event detail fetches (descriptions live only there): ok vs failed.
       Failures are deliberate non-errors — the sync must survive them — but
       they must be VISIBLE, or an empty `about` column debugs like a ghost
@@ -308,6 +381,7 @@ export async function syncLumaEvents(
     updated: 0,
     archived: 0,
     guests_mirrored: 0,
+    guests_attributed: 0,
     details_ok: 0,
     details_failed: 0,
     errors: [],
@@ -478,7 +552,9 @@ export async function syncLumaEvents(
     }
   }
 
-  // Mirror Luma's guest lists into event_rsvps for upcoming events, so a
+  // Mirror Luma's guest lists into event_rsvps for every event still inside
+  // the grace window (inGuestMirrorWindow — upcoming, plus recently ended so
+  // day-of registrations are not lost the instant the doors open), so a
   // registration made on Luma directly shows as "You're going" in-app —
   // registration parity runs both ways. Additive only: rows are never
   // deleted here (an in-app RSVP whose Luma forward failed must survive).
@@ -494,11 +570,12 @@ export async function syncLumaEvents(
   const idByApiId = new Map(
     (lumaRows ?? []).map((r) => [r.api_id as string, r.id as number])
   );
-  const upcoming = lumaEvents.filter(
-    (ev) => new Date(ev.start_at).getTime() > Date.now() && idByApiId.has(ev.api_id)
+  const mirrorable = lumaEvents.filter(
+    (ev) => inGuestMirrorWindow(ev) && idByApiId.has(ev.api_id)
   );
-  for (const ev of upcoming) {
+  for (const ev of mirrorable) {
     try {
+      const eventId = idByApiId.get(ev.api_id) as number;
       const guests = await fetchLumaGuests(ev.api_id);
       const registered = guests.filter(
         (g) =>
@@ -506,15 +583,54 @@ export async function syncLumaEvents(
           ["approved", "going"].includes(g.approval_status)
       );
       if (registered.length === 0) continue;
-      const { error } = await supabase.from("event_rsvps").upsert(
-        registered.map((g) => ({
-          event_id: idByApiId.get(ev.api_id),
-          email: g.email,
-        })),
-        { onConflict: "event_id,email", ignoreDuplicates: true }
+
+      // Attribute what we can to member accounts. Without this every mirrored
+      // row is email-only, which is why getPodWorkshops (and any member-facing
+      // "workshops you're registered for" view) silently misses everyone who
+      // registered on Luma's page instead of in-app — the majority path, since
+      // the public event page deliberately sends anonymous visitors to Luma.
+      // Migration 00101 backfills the rows that predate this.
+      const byEmail = await participantIdsByEmail(
+        supabase,
+        registered.map((g) => g.email)
       );
-      if (error) throw new Error(error.message);
+      const { resolved, unresolved } = splitGuestsByIdentity(
+        registered,
+        byEmail
+      );
+
+      // Two writes, two deliberately different conflict rules.
+      //
+      // Members get a real upsert, so a row that was mirrored before this
+      // shipped picks up its participant_id on the next tick instead of
+      // staying unattributed forever. ignoreDuplicates here would make the
+      // whole fix a silent no-op on every row that already exists, which is
+      // nearly all of them.
+      if (resolved.length > 0) {
+        const { error } = await supabase.from("event_rsvps").upsert(
+          resolved.map((g) => ({
+            event_id: eventId,
+            email: g.email,
+            participant_id: g.participant_id,
+          })),
+          { onConflict: "event_id,email" }
+        );
+        if (error) throw new Error(error.message);
+      }
+
+      // Everyone else stays insert-if-absent, exactly as before. An
+      // unresolved guest carries no information an existing row doesn't
+      // already have, so updating from it could only ever lose something.
+      if (unresolved.length > 0) {
+        const { error } = await supabase.from("event_rsvps").upsert(
+          unresolved.map((g) => ({ event_id: eventId, email: g.email })),
+          { onConflict: "event_id,email", ignoreDuplicates: true }
+        );
+        if (error) throw new Error(error.message);
+      }
+
       summary.guests_mirrored += registered.length;
+      summary.guests_attributed += resolved.length;
     } catch (e) {
       summary.errors.push(
         `guests ${ev.api_id} (${ev.name}): ${e instanceof Error ? e.message : String(e)}`
