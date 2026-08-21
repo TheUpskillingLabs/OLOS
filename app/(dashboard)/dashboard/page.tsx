@@ -38,6 +38,12 @@ import { ensurePageFollowsSeeded } from "@/lib/follows/seed";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
 import {
+  getMemberLogCompliance,
+  mostUrgentCompliance,
+} from "@/lib/learning-logs/compliance";
+import { logComplianceCopy } from "@/lib/learning-logs/compliance-logic";
+import ComplianceNudge from "./compliance-nudge";
+import {
   pendingBaselineCycles,
   BASELINE_QUESTIONS,
   AI_USAGE_OPTIONS,
@@ -286,6 +292,20 @@ export default async function DashboardPage() {
   // logCycles is the same eligibleLogCycles() result the gate would compute
   // internally, so pass it through instead of a redundant round trip.
   const logGate = await learningLogGate(participant.id, logCycles);
+
+  // Learning Log compliance (soft nudge — lib/learning-logs/compliance.ts).
+  // Non-blocking: for the active-open cycle the member is most behind on, this
+  // yields a dismissible card copy when they're due, behind, or at the
+  // revocation threshold. Distinct from logGate, which drives the hard weekly
+  // lock; this only speaks to members the lock doesn't already (e.g. one week
+  // behind, before any lock). null when there's nothing worth nudging.
+  const compliance = mostUrgentCompliance(
+    await getMemberLogCompliance(participant.id)
+  );
+  const complianceCopy =
+    compliance && compliance.nudge
+      ? logComplianceCopy(compliance, { cycleName: compliance.cycleName })
+      : null;
 
   // Leadership Log (docs/ORG_CYCLES.md §4a) — the org lead tiers' weekly
   // reflection, non-blocking. Resolve the scopes this member leads, then fetch
@@ -777,6 +797,16 @@ export default async function DashboardPage() {
           compact
         />
       </div>
+      {!journal && complianceCopy && compliance && (
+        <ComplianceNudge
+          status={compliance.status}
+          tone={complianceCopy.tone}
+          headline={complianceCopy.headline}
+          body={complianceCopy.body}
+          cta={complianceCopy.cta}
+        />
+      )}
+      <div id="log-composer" />
       <FeedComposer
         avatarUrl={avatarUrl}
         initials={initials}
