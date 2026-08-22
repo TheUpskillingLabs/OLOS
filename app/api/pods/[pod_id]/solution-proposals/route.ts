@@ -47,11 +47,10 @@ export const POST = withAuth(
     const {
       name,
       summary,
-      description,
-      pod_problem_link,
-      why_now,
-      mvp_scope,
-      skills_wanted,
+      refined_problem_statement,
+      project_hypothesis,
+      target_users,
+      the_value,
     } = body;
 
     const { data: pod } = await auth.supabase
@@ -88,11 +87,10 @@ export const POST = withAuth(
     // cycle, but editable until solution_proposal_close (per ISSUE-W2-001 D3).
     // Migration 00016 added the unique index that's our conflict target.
     const proposalData = {
-      description,
-      ...(pod_problem_link ? { pod_problem_link } : {}),
-      ...(why_now ? { why_now } : {}),
-      ...(mvp_scope ? { mvp_scope } : {}),
-      ...(skills_wanted ? { skills_wanted } : {}),
+      refined_problem_statement,
+      project_hypothesis,
+      target_users,
+      the_value,
     };
 
     const { data, error } = await auth.supabase

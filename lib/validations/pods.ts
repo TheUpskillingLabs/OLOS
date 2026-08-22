@@ -11,11 +11,23 @@ export const nameUpdateSchema = z.object({
     ),
 });
 
-// Rich solution-proposal payload — W2-001 (#74). name + summary land in
-// dedicated columns; description and four optional context fields nest into
-// proposal_data JSONB. Migration 00016 added these columns and the
-// (cycle_id, participant_id) unique index that enforces one-submission-per-
-// cycle at the DB layer.
+// Solution-proposal (project pitch) payload — Civics & Elections project
+// submissions (2026-08). name + summary land in dedicated columns; the four
+// pitch questions nest into proposal_data JSONB (schema-less, so no migration).
+// All four are required and capped at 1500 chars (~300 words). Migration 00016
+// added name/summary and the (cycle_id, participant_id) unique index that
+// enforces one submission per participant per cycle at the DB layer.
+//
+// NOTE: the legacy keys (description, pod_problem_link, why_now, mvp_scope,
+// skills_wanted) are retired here; rows written under the old form keep them
+// harmlessly in proposal_data, and read sites fall back to them for legacy rows.
+const PITCH_MAX = 1500;
+const pitchField = (label: string) =>
+  z
+    .string()
+    .min(1, `${label} is required`)
+    .max(PITCH_MAX, `${label} must be ${PITCH_MAX} characters or fewer`);
+
 export const solutionProposalSchema = z.object({
   name: z
     .string()
@@ -25,14 +37,10 @@ export const solutionProposalSchema = z.object({
     .string()
     .min(1, "Summary is required")
     .max(200, "Summary must be 200 characters or fewer"),
-  description: z
-    .string()
-    .min(1, "Description is required")
-    .max(4000, "Description must be 4000 characters or fewer"),
-  pod_problem_link: z.string().max(2000).optional(),
-  why_now: z.string().max(2000).optional(),
-  mvp_scope: z.string().max(2000).optional(),
-  skills_wanted: z.string().max(2000).optional(),
+  refined_problem_statement: pitchField("Refined problem statement"),
+  project_hypothesis: pitchField("Project hypothesis"),
+  target_users: pitchField("Target users"),
+  the_value: pitchField("The value"),
 });
 
 export type SolutionProposalInput = z.infer<typeof solutionProposalSchema>;
