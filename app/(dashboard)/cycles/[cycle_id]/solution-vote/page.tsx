@@ -95,6 +95,12 @@ export default async function SolutionVotePage({
           Allocate your votes to the projects you want your pod to build. Submit
           your full ballot at once.
         </p>
+        <Link
+          href={`/cycles/${cycle.id}/solution-gallery`}
+          className="mt-2 inline-block text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline"
+        >
+          Read the full proposals in the gallery &rarr;
+        </Link>
       </div>
 
       {!isOpen ? (

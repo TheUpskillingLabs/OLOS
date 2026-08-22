@@ -15,11 +15,14 @@ export const GET = withAuth(
 
     const { data, error } = await auth.supabase
       .from("solution_proposals")
-      .select(
-        "id, participant_id, name, summary, proposal_data, proposal_text, created_at"
-      )
+      // Member-safe payload: NO participant_id and NO created_at. Any pod member
+      // can call this (withAuth, no role gate), so returning the submitter id or
+      // timestamp would leak who submitted what during blind voting (audit P1:
+      // blind-voting authorship leak). Poderator/admin surfaces read
+      // solution_proposals server-side with the full row instead.
+      .select("id, name, summary, proposal_data, proposal_text")
       .eq("pod_id", podId)
-      .order("created_at");
+      .order("id");
 
     if (error) {
       return dbError(error);
