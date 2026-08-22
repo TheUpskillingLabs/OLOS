@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 
 interface Proposal {
   id: number;
-  participant_id: number;
+  // participant_id intentionally absent: the member-facing endpoint no longer
+  // returns it (blind-voting authorship integrity).
   name: string | null;
   summary: string | null;
   proposal_data: Record<string, string> | null;
