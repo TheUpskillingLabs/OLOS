@@ -21,17 +21,23 @@ export type InitialProposal = {
 
 function hydrateInitialValues(initial: InitialProposal | null): FormData {
   if (!initial) {
-    return { name: "", summary: "", description: "", pod_problem_link: "", why_now: "", mvp_scope: "", skills_wanted: "" };
+    return {
+      name: "",
+      summary: "",
+      refined_problem_statement: "",
+      project_hypothesis: "",
+      target_users: "",
+      the_value: "",
+    };
   }
   const data = initial.proposal_data ?? {};
   return {
     name: initial.name ?? "",
     summary: initial.summary ?? "",
-    description: data.description ?? initial.proposal_text ?? "",
-    pod_problem_link: data.pod_problem_link ?? "",
-    why_now: data.why_now ?? "",
-    mvp_scope: data.mvp_scope ?? "",
-    skills_wanted: data.skills_wanted ?? "",
+    refined_problem_statement: data.refined_problem_statement ?? "",
+    project_hypothesis: data.project_hypothesis ?? "",
+    target_users: data.target_users ?? "",
+    the_value: data.the_value ?? "",
   };
 }
 
@@ -80,11 +86,10 @@ export default function ProposalForm({
         body: JSON.stringify({
           name: data.name.trim(),
           summary: data.summary.trim(),
-          description: data.description.trim(),
-          pod_problem_link: data.pod_problem_link?.trim() || undefined,
-          why_now: data.why_now?.trim() || undefined,
-          mvp_scope: data.mvp_scope?.trim() || undefined,
-          skills_wanted: data.skills_wanted?.trim() || undefined,
+          refined_problem_statement: data.refined_problem_statement.trim(),
+          project_hypothesis: data.project_hypothesis.trim(),
+          target_users: data.target_users.trim(),
+          the_value: data.the_value.trim(),
         }),
       });
 
@@ -173,24 +178,20 @@ export default function ProposalForm({
           <Input {...register("summary")} disabled={fieldDisabled} invalid={!!errors.summary} />
         </FormField>
 
-        <FormField name="description" label="Description" helper="The pitch." required charCount={`${(watched.description ?? "").length}/4000`}>
-          <Textarea {...register("description")} rows={5} disabled={fieldDisabled} invalid={!!errors.description} />
+        <FormField name="refined_problem_statement" label="Refined problem statement" helper="The status quo and current pain points." required charCount={`${(watched.refined_problem_statement ?? "").length}/1500`}>
+          <Textarea {...register("refined_problem_statement")} rows={5} disabled={fieldDisabled} invalid={!!errors.refined_problem_statement} />
         </FormField>
 
-        <FormField name="pod_problem_link" label="How does this address your pod's problem?" charCount={`${(watched.pod_problem_link ?? "").length}/2000`}>
-          <Textarea {...register("pod_problem_link")} rows={3} disabled={fieldDisabled} invalid={!!errors.pod_problem_link} />
+        <FormField name="project_hypothesis" label="Project hypothesis" helper="Your proposed high-level concept statement." required charCount={`${(watched.project_hypothesis ?? "").length}/1500`}>
+          <Textarea {...register("project_hypothesis")} rows={5} disabled={fieldDisabled} invalid={!!errors.project_hypothesis} />
         </FormField>
 
-        <FormField name="why_now" label="Why does this matter now?" charCount={`${(watched.why_now ?? "").length}/2000`}>
-          <Textarea {...register("why_now")} rows={3} disabled={fieldDisabled} invalid={!!errors.why_now} />
+        <FormField name="target_users" label="Target users" helper="Common characteristics and needs of who you're solving for." required charCount={`${(watched.target_users ?? "").length}/1500`}>
+          <Textarea {...register("target_users")} rows={5} disabled={fieldDisabled} invalid={!!errors.target_users} />
         </FormField>
 
-        <FormField name="mvp_scope" label="What does an MVP look like in 6–10 weeks?" charCount={`${(watched.mvp_scope ?? "").length}/2000`}>
-          <Textarea {...register("mvp_scope")} rows={3} disabled={fieldDisabled} invalid={!!errors.mvp_scope} />
-        </FormField>
-
-        <FormField name="skills_wanted" label="Skills or collaborators you'd want on the team" charCount={`${(watched.skills_wanted ?? "").length}/2000`}>
-          <Textarea {...register("skills_wanted")} rows={3} disabled={fieldDisabled} invalid={!!errors.skills_wanted} />
+        <FormField name="the_value" label="The value" helper="How your hypothetical solution makes things better." required charCount={`${(watched.the_value ?? "").length}/1500`}>
+          <Textarea {...register("the_value")} rows={5} disabled={fieldDisabled} invalid={!!errors.the_value} />
         </FormField>
 
         {serverError && (

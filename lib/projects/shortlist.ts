@@ -51,18 +51,34 @@ export function computeShortlistCap(
 
 /**
  * Submissions store their pitch in proposal_data (proposal_text is legacy and
- * typically null for UI-submitted proposals), so seed from
- * proposal_data.description first and fall back through other fields.
+ * typically null for UI-submitted proposals). Current project pitches use the
+ * four-question shape (project_hypothesis is the concept statement); older rows
+ * used `description`. Seed from `description` first (legacy precedence, kept for
+ * back-compat), then the new hypothesis/problem fields, then remaining fallbacks.
  */
 export function extractProposalText(
   proposal_text: string | null,
   proposal_data: unknown
 ): string {
   const pd = (proposal_data ?? null) as
-    | { description?: string; summary?: string; title?: string; name?: string }
+    | {
+        description?: string;
+        project_hypothesis?: string;
+        refined_problem_statement?: string;
+        summary?: string;
+        title?: string;
+        name?: string;
+      }
     | null;
   return (
-    pd?.description || pd?.summary || pd?.title || pd?.name || proposal_text || ""
+    pd?.description ||
+    pd?.project_hypothesis ||
+    pd?.refined_problem_statement ||
+    pd?.summary ||
+    pd?.title ||
+    pd?.name ||
+    proposal_text ||
+    ""
   );
 }
 

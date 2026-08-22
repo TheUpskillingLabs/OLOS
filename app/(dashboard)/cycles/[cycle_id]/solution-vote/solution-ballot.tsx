@@ -229,8 +229,13 @@ export default function SolutionBallot({
         <div className="space-y-3">
           {proposals.map((p) => {
             const count = allocations[p.id] || 0;
-            const description =
-              p.proposal_data?.description ?? p.proposal_text ?? "";
+            // New project pitches store the concept in proposal_data.project_hypothesis;
+            // legacy rows fall back to the old description / proposal_text.
+            const pitch =
+              p.proposal_data?.project_hypothesis ??
+              p.proposal_data?.description ??
+              p.proposal_text ??
+              "";
             return (
               <div
                 key={p.id}
@@ -244,9 +249,9 @@ export default function SolutionBallot({
                     {p.summary && (
                       <p className="mt-1 text-sm text-charcoal">{p.summary}</p>
                     )}
-                    {description && (
+                    {pitch && (
                       <p className="mt-2 whitespace-pre-line text-sm text-meta">
-                        {description}
+                        {pitch}
                       </p>
                     )}
                   </div>
