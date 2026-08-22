@@ -255,6 +255,30 @@ export default async function ModeratorPage({
         </div>
       )}
 
+      {cycleFilter && (
+        <div className="mb-8 rounded-card border border-ink/10 bg-white p-5 shadow-card">
+          <div className="lbl mb-1.5">Projects</div>
+          <p className="mb-3 text-sm text-charcoal">
+            Review submitted project pitches, see who still needs to submit, and
+            track voting.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Link
+              href={`/moderator/cycles/${cycleFilter}/submissions`}
+              className="text-sm font-semibold text-teal-deep hover:underline"
+            >
+              Submissions &amp; outreach &rarr;
+            </Link>
+            <Link
+              href={`/moderator/cycles/${cycleFilter}/vote-progress`}
+              className="text-sm font-semibold text-teal-deep hover:underline"
+            >
+              Vote progress &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
+
       {cards.length === 0 ? (
         <EmptyState
           icon={Users}

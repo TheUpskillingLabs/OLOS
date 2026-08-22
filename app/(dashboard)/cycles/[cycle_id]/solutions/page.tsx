@@ -153,6 +153,7 @@ export default async function SolutionsPage({
             initialProposal={initialProposal}
             submissionOpen={submissionOpen}
             closeAt={closeAt?.toISOString() ?? null}
+            galleryHref={`/cycles/${cycle.id}/solution-gallery`}
           />
         </>
       )}

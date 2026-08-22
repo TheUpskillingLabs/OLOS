@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,11 +47,13 @@ export default function ProposalForm({
   initialProposal,
   submissionOpen,
   closeAt,
+  galleryHref,
 }: {
   pods: { id: number; name: string | null }[];
   initialProposal: InitialProposal | null;
   submissionOpen: boolean;
   closeAt: string | null;
+  galleryHref: string;
 }) {
   const [selectedPodId, setSelectedPodId] = useState(
     initialProposal?.pod_id ?? pods[0]?.id ?? 0
@@ -141,6 +144,14 @@ export default function ProposalForm({
             Edit submission
           </button>
         )}
+        <div>
+          <Link
+            href={galleryHref}
+            className="text-sm font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:underline focus-visible:underline"
+          >
+            See the project gallery &rarr;
+          </Link>
+        </div>
       </div>
     );
   }
