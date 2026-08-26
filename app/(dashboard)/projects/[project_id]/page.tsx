@@ -4,6 +4,10 @@ import { notFound } from "next/navigation";
 import { resolveUserRoles, isAdmin, isModeratorForPod, isOwner } from "@/lib/auth/roles";
 import { isProjectDri } from "@/lib/auth/projects";
 import { StatusBadge } from "@/app/components/ui";
+import {
+  SolutionProposalDetails,
+  hasSolutionDetails,
+} from "@/app/components/solution-proposal-details";
 import OwnerLifecycle from "@/app/components/owner-lifecycle";
 import { podNoun } from "@/lib/cycle/labels";
 import { one } from "@/lib/supabase/embed";
@@ -60,6 +64,23 @@ export default async function ProjectDetailPage({
     .select("id, name")
     .eq("id", project.pod_id)
     .single();
+
+  // The pitch this project was promoted from. Member-safe columns only — no
+  // participant_id, no created_at — matching the gallery's anonymized
+  // discipline; the poderator submissions view is the attributed surface.
+  // Org projects have no proposal (solution_proposal_id is nullable, 00060).
+  let proposal: {
+    summary: string | null;
+    proposal_data: Record<string, string> | null;
+  } | null = null;
+  if (project.solution_proposal_id) {
+    const { data } = await supabase
+      .from("solution_proposals")
+      .select("summary, proposal_data")
+      .eq("id", project.solution_proposal_id)
+      .maybeSingle();
+    proposal = data;
+  }
 
   // Get project members
   const { data: memberships } = await supabase
@@ -281,6 +302,21 @@ export default async function ProjectDetailPage({
           )}
         </div>
       </div>
+
+      {(proposal?.summary ||
+        hasSolutionDetails(proposal?.proposal_data ?? null)) && (
+        <div className="mb-8 max-w-3xl">
+          <h2 className="t-h3 text-ink">The pitch</h2>
+          <div className="mt-3 rounded-card border border-ink/10 bg-white p-4 shadow-card">
+            {proposal?.summary && (
+              <p className="text-sm text-charcoal">{proposal.summary}</p>
+            )}
+            <SolutionProposalDetails
+              data={proposal?.proposal_data ?? null}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="mb-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
