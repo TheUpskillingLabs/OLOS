@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
+import {
+  SolutionProposalDetails,
+  hasSolutionDetails,
+} from "@/app/components/solution-proposal-details";
 
 interface Project {
   id: number;
@@ -9,6 +14,8 @@ interface Project {
   status: string;
   pod_id: number;
   member_count: number;
+  summary: string | null;
+  proposal_data: Record<string, string> | null;
 }
 
 export default function ProjectRegistration({
@@ -133,10 +140,14 @@ export default function ProjectRegistration({
         </p>
       )}
 
-      {/* One flat list — registration is cycle-wide, so the originating pod
-          is irrelevant to the pick. Names link to the project page so members
-          can read the pitch before joining. */}
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* One flat single-column list — registration is cycle-wide, so the
+          originating pod is irrelevant to the pick, and picking is a reading
+          task: each card carries the pitch summary with the full four answers
+          one disclosure away, so the decision and the Join button live on the
+          same screen. Single column (not a grid) because an expanded pitch
+          would stretch its grid-row neighbor; it also matches the gallery
+          members already read these pitches in. */}
+      <div className="max-w-3xl space-y-3">
         {projects.map((project) => {
           const isRegistered = currentProjectId === project.id;
           const memberCount = projectCounts[project.id] || 0;
@@ -151,7 +162,7 @@ export default function ProjectRegistration({
               }`}
             >
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <Link
                     href={`/projects/${project.id}`}
                     className="font-semibold tracking-tight text-ink transition-colors duration-150 hover:text-teal-deep hover:underline focus-visible:underline"
@@ -187,6 +198,21 @@ export default function ProjectRegistration({
                   </button>
                 )}
               </div>
+              {project.summary && (
+                <p className="mt-2 text-sm text-charcoal">{project.summary}</p>
+              )}
+              {hasSolutionDetails(project.proposal_data) && (
+                <details className="group mt-2">
+                  <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-semibold tracking-tight text-teal-deep transition-colors duration-150 hover:text-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+                    <ChevronDown
+                      className="h-3.5 w-3.5 transition-transform duration-150 group-open:rotate-180"
+                      aria-hidden
+                    />
+                    Read the full pitch
+                  </summary>
+                  <SolutionProposalDetails data={project.proposal_data} />
+                </details>
+              )}
             </div>
           );
         })}
