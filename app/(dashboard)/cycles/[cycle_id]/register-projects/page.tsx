@@ -45,9 +45,11 @@ export default async function RegisterProjectsPage({
   const user = await effectiveUser();
 
   // Project registration is cycle-wide (not pod-scoped). The eligibility
-  // gate is an active cycle_enrollment row, mirroring the server check in
-  // app/api/projects/[project_id]/register/route.ts.
-  let enrollmentActive = false;
+  // gate is a cycle_enrollment row in good standing — 'registered' or
+  // 'active' — mirroring the server check in
+  // app/api/projects/[project_id]/register/route.ts ('active' means "has an
+  // active pod", so gating on it alone would lock out podless members).
+  let enrollmentEligible = false;
   let currentProjectId: number | null = null;
 
   if (user) {
@@ -65,7 +67,8 @@ export default async function RegisterProjectsPage({
         .eq("participant_id", participant.id)
         .maybeSingle();
 
-      enrollmentActive = enrollment?.status === "active";
+      enrollmentEligible =
+        enrollment?.status === "registered" || enrollment?.status === "active";
 
       const { data: existingReg } = await supabase
         .from("project_memberships")
@@ -78,15 +81,6 @@ export default async function RegisterProjectsPage({
       currentProjectId = existingReg?.project_id ?? null;
     }
   }
-
-  // All pods in this cycle — needed to label projects with their originating
-  // pod name in the grouped view (a participant may see projects from pods
-  // they're not in).
-  const { data: allPods } = await supabase
-    .from("pods")
-    .select("id, name")
-    .eq("cycle_id", cycleId);
-  const cyclePods = allPods ?? [];
 
   // Fetch all projects in this cycle (any pod).
   let projects: { id: number; name: string | null; status: string; pod_id: number; member_count: number }[] = [];
@@ -149,10 +143,10 @@ export default async function RegisterProjectsPage({
               </p>
             )}
         </div>
-      ) : !enrollmentActive ? (
+      ) : !enrollmentEligible ? (
         <div className="rounded-card border border-ink/10 bg-white p-6 shadow-card">
           <p className="text-charcoal">
-            You are not an active participant in this cycle.
+            You are not registered for this cycle.
           </p>
           <Link
             href={`/cycles/${cycle.id}`}
@@ -163,7 +157,6 @@ export default async function RegisterProjectsPage({
         </div>
       ) : (
         <ProjectRegistration
-          pods={cyclePods}
           projects={projects}
           initialCurrentProjectId={currentProjectId}
           projectMax={config?.project_max ?? 7}
