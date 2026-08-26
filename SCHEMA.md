@@ -395,6 +395,8 @@ erDiagram
 
 Mirrors the pod layer one level down. Solution proposals are submitted within pods, voted on, and top proposals become projects. Participants self-register into projects (max 1 active project per cycle).
 
+> Both project-registration caps are DB-enforced, not just app-checked: the `one_active_project_per_cycle` partial unique index (00001) guarantees one active project per participant per cycle, and the `project_membership_cap` trigger (migration `00101`) rejects a join — INSERT of an active row, or reactivation of a withdrawn one — once a project holds `cycle_config.project_max` active members (row-locks the project so concurrent joins serialize; a missing config row or NULL `project_max` means uncapped, matching the app check).
+
 ```mermaid
 erDiagram
     cycles {
