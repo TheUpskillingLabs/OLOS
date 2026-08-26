@@ -2,6 +2,7 @@ import Link from "next/link";
 import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ChevronLeft } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { one } from "@/lib/supabase/embed";
 import { notFound } from "next/navigation";
 import ProjectRegistration from "./project-registration";
 import { effectiveUser } from "@/lib/auth/simulation";
@@ -82,11 +83,25 @@ export default async function RegisterProjectsPage({
     }
   }
 
-  // Fetch all projects in this cycle (any pod).
-  let projects: { id: number; name: string | null; status: string; pod_id: number; member_count: number }[] = [];
+  // Fetch all projects in this cycle (any pod), with the pitch each one was
+  // promoted from so members can read what they'd be joining. Member-safe
+  // proposal columns only — no participant_id, no created_at — matching the
+  // gallery's anonymized-by-construction discipline (vote on ideas, not
+  // people; the same applies to joining them).
+  let projects: {
+    id: number;
+    name: string | null;
+    status: string;
+    pod_id: number;
+    member_count: number;
+    summary: string | null;
+    proposal_data: Record<string, string> | null;
+  }[] = [];
   const { data: projectData } = await supabase
     .from("projects")
-    .select("id, name, status, pod_id")
+    .select(
+      "id, name, status, pod_id, solution_proposals(summary, proposal_data)"
+    )
     .eq("cycle_id", cycleId)
     .order("created_at");
 
@@ -103,13 +118,23 @@ export default async function RegisterProjectsPage({
       countMap[m.project_id] = (countMap[m.project_id] || 0) + 1;
     }
 
-    projects = projectData.map((p) => ({
-      id: p.id,
-      name: p.name,
-      status: p.status,
-      pod_id: p.pod_id,
-      member_count: countMap[p.id] || 0,
-    }));
+    projects = projectData.map((p) => {
+      const proposal = one(
+        p.solution_proposals as
+          | { summary: string | null; proposal_data: Record<string, string> | null }
+          | { summary: string | null; proposal_data: Record<string, string> | null }[]
+          | null
+      );
+      return {
+        id: p.id,
+        name: p.name,
+        status: p.status,
+        pod_id: p.pod_id,
+        member_count: countMap[p.id] || 0,
+        summary: proposal?.summary ?? null,
+        proposal_data: proposal?.proposal_data ?? null,
+      };
+    });
   }
 
   return (
