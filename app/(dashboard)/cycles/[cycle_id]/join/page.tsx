@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
-import { windowOpen, fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { checkPodJoinWindow } from "@/lib/auth/windows";
 import { registrationWindow } from "@/lib/cycles/schedule";
 import CycleCeremony from "./ceremony";
 import { cycleInfoContent } from "@/lib/cycles/info";
@@ -126,11 +127,12 @@ export default async function JoinCyclePage({
     .eq("cycle_id", cycleId)
     .maybeSingle();
 
-  // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
-  const podRegistrationOpen = windowOpen(
-    config?.pod_registration_open,
-    config?.pod_registration_close
-  );
+  // Join-window resolution goes through the canonical helper so the ceremony
+  // CTA agrees with the pod register route: open during pod formation AND
+  // during the pod_active_join overlay, so a late registrant's confirmation
+  // screen still points them at choosing a pod instead of a dead end.
+  const joinWindow = await checkPodJoinWindow(serviceClient, cycleId);
+  const podRegistrationOpen = joinWindow.open;
 
   const fullName = `${participant.first_name} ${participant.last_name}`.trim();
   const info = cycleInfoContent({

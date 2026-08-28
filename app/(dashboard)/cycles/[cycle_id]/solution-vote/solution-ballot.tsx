@@ -15,9 +15,15 @@ interface Proposal {
 export default function SolutionBallot({
   pods,
   voteBudget,
+  votedPodIds = [],
 }: {
   pods: { id: number; name: string | null }[];
   voteBudget: number;
+  /** Pods this member has already balloted in (server-resolved), so the
+      ballot opens in its submitted state instead of letting them build a
+      second allocation the server would 409. The 409 handler below stays as
+      the race-condition backstop. */
+  votedPodIds?: number[];
 }) {
   const [selectedPodId, setSelectedPodId] = useState(pods[0]?.id ?? 0);
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -26,7 +32,14 @@ export default function SolutionBallot({
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [alreadyVoted, setAlreadyVoted] = useState(false);
+  const [alreadyVoted, setAlreadyVoted] = useState(
+    votedPodIds.includes(pods[0]?.id ?? 0)
+  );
+
+  // Whether the member already balloted in the currently selected pod —
+  // derived as a boolean so the effect below re-runs on pod switch without
+  // depending on the array prop's identity.
+  const votedForSelected = votedPodIds.includes(selectedPodId);
 
   useEffect(() => {
     if (!selectedPodId) return;
@@ -38,7 +51,7 @@ export default function SolutionBallot({
       setAllocations({});
       setError("");
       setSubmitted(false);
-      setAlreadyVoted(false);
+      setAlreadyVoted(votedForSelected);
       try {
         const [proposalsRes, votesRes] = await Promise.all([
           fetch(`/api/pods/${selectedPodId}/solution-proposals`),
@@ -66,7 +79,7 @@ export default function SolutionBallot({
         setLoading(false);
       }
     })();
-  }, [selectedPodId]);
+  }, [selectedPodId, votedForSelected]);
 
   function bump(proposalId: number, delta: number) {
     setAllocations((prev) => {

@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
-import { checkWindow } from "@/lib/auth/windows";
+import { checkPodJoinWindow } from "@/lib/auth/windows";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -68,8 +68,10 @@ export const POST = withAuth(
       return NextResponse.json({ error: "Pod is not accepting registrations" }, { status: 400 });
     }
 
-    // Check window
-    const window = await checkWindow(auth.supabase, pod.cycle_id, "pod_registration");
+    // Check window — pod_forming OR the pod_active_join overlay (stage 2:
+    // late registrants self-serve into a pod instead of stranding at
+    // 'registered' until an admin adds them by hand).
+    const window = await checkPodJoinWindow(auth.supabase, pod.cycle_id);
     if (!window.open) {
       return NextResponse.json({ error: window.message }, { status: 403 });
     }
@@ -215,7 +217,9 @@ export const DELETE = withAuth(
       return NextResponse.json({ error: "Pod not found" }, { status: 404 });
     }
 
-    const window = await checkWindow(auth.supabase, pod.cycle_id, "pod_registration");
+    // Same join-window contract as POST: leaving is symmetric with joining,
+    // and the soft delete below stamps inactive_at so the leave is audited.
+    const window = await checkPodJoinWindow(auth.supabase, pod.cycle_id);
     if (!window.open) {
       return NextResponse.json({ error: window.message }, { status: 403 });
     }

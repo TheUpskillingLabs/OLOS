@@ -5,6 +5,7 @@ import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 import { dbError } from "@/lib/api/errors";
 import { parseIntParam } from "@/lib/api/params";
 import { rejectOrgCycle } from "@/lib/cycle/guards";
+import { one } from "@/lib/supabase/embed";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const POST = withAuth(
@@ -195,10 +196,9 @@ export const DELETE = withAuth(
       return NextResponse.json({ error: "Not a registered participant" }, { status: 403 });
     }
 
-    // Get project for window check
     const { data: project } = await auth.supabase
       .from("projects")
-      .select("cycle_id, status")
+      .select("cycle_id, status, cycles(status)")
       .eq("id", projectId)
       .single();
 
@@ -206,9 +206,19 @@ export const DELETE = withAuth(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    const window = await checkWindow(auth.supabase, project.cycle_id, "project_registration");
-    if (!window.open) {
-      return NextResponse.json({ error: window.message }, { status: 403 });
+    // Withdrawal is NOT window-gated (ratified 2026-08-27, success-team
+    // feedback): members must be able to leave a project at any point while
+    // the cycle is live — teams occasionally reshuffle after kickoff, and the
+    // old project_registration gate left "trapped" members only an admin-SQL
+    // exit. JOINS stay window-gated (POST above); the leave is audited via
+    // left_at. Once the cycle is archived/closed the roster is historical
+    // record and withdraw locks with it.
+    const cycle = one(project.cycles as { status: string } | { status: string }[] | null);
+    if (!cycle || !["active", "closing"].includes(cycle.status)) {
+      return NextResponse.json(
+        { error: "This cycle has ended — its project rosters are archived." },
+        { status: 403 }
+      );
     }
 
     // Service client for the same reason as the register write above.
