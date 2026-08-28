@@ -18,6 +18,8 @@ import ContributorsSection from "./contributors-section";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
 import { resolvePageContext } from "@/lib/pages/server";
 import { effectiveUser } from "@/lib/auth/simulation";
+import { checkWindow } from "@/lib/auth/windows";
+import WithdrawButton from "./withdraw-button";
 
 // Matches projects_status_check (00037): forming/active/inactive.
 type ProjectStatus = "active" | "forming" | "inactive";
@@ -65,6 +67,17 @@ export default async function ProjectDetailPage({
     .eq("id", project.pod_id)
     .single();
 
+  // While the registration window is open, the breadcrumb grows a "Project
+  // registration" crumb (success-team feedback: clicking into a project left
+  // no path back to the list to change your selection). Resolved through
+  // checkWindow so the crumb appears exactly when the register page accepts
+  // joins — phases-first, same as the write gate.
+  const regWindow = await checkWindow(
+    serviceClient,
+    project.cycle_id,
+    "project_registration"
+  );
+
   // The pitch this project was promoted from. Member-safe columns only — no
   // participant_id, no created_at — matching the gallery's anonymized
   // discipline; the poderator submissions view is the attributed surface.
@@ -82,8 +95,14 @@ export default async function ProjectDetailPage({
     proposal = data;
   }
 
-  // Get project members
-  const { data: memberships } = await supabase
+  // Get project members. Service client, deliberately: the user client's
+  // participants RLS only resolves names for the viewer and shared-POD
+  // peers (00020) — but since direct registration (2026-08-26) project teams
+  // are cycle-wide, and a poderator often moderates without holding a pod
+  // membership at all, so teammates' embeds came back null (rows rendered
+  // with empty names). Authorization is the canSeeMembers gate below —
+  // gating is server-side app code here, per the established pattern.
+  const { data: memberships } = await serviceClient
     .from("project_memberships")
     .select(
       "participant_id, registered_at, left_at, participants(first_name, last_name, preferred_name)"
@@ -123,6 +142,14 @@ export default async function ProjectDetailPage({
         activeMembers.some(
           (m) => m.participant_id === userRoles.participantId
         )));
+
+  // Self-serve exit (ratified 2026-08-27): an active member can withdraw from
+  // the project page itself, any time the cycle is live. The DELETE route is
+  // the enforcement point (cycle-status gate + left_at audit stamp); this
+  // flag only decides whether the button renders.
+  const viewerIsActiveMember =
+    userRoles?.participantId != null &&
+    activeMembers.some((m) => m.participant_id === userRoles.participantId);
 
   // Fetch pulse check data for project members
   let pulseCheckData: {
@@ -281,6 +308,19 @@ export default async function ProjectDetailPage({
           >
             {pod?.name || `${podNoun(mode)} ${project.pod_id}`}
           </Link>
+          {regWindow.open && (
+            <>
+              <span className="text-meta-soft" aria-hidden>
+                /
+              </span>
+              <Link
+                href={`/cycles/${project.cycle_id}/register-projects`}
+                className="transition-colors duration-150 hover:text-teal-deep"
+              >
+                Project registration
+              </Link>
+            </>
+          )}
         </nav>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -291,15 +331,18 @@ export default async function ProjectDetailPage({
               <StatusBadge variant={projectVariant}>{project.status}</StatusBadge>
             </span>
           </div>
-          {userRoles?.participantId != null && (
-            <FollowButton
-              type="project"
-              id={project.id}
-              initialFollowing={pageCtx.following}
-              size="sm"
-              refreshOnChange
-            />
-          )}
+          <div className="flex items-center gap-2">
+            {viewerIsActiveMember && <WithdrawButton projectId={project.id} />}
+            {userRoles?.participantId != null && (
+              <FollowButton
+                type="project"
+                id={project.id}
+                initialFollowing={pageCtx.following}
+                size="sm"
+                refreshOnChange
+              />
+            )}
+          </div>
         </div>
       </div>
 

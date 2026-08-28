@@ -128,7 +128,9 @@ export default async function ModeratorVoteProgressPage({
     <div>
       <div className="mb-8">
         <Link
-          href="/moderator"
+          // ?view=all skips the returning-poderator auto-redirect, which would
+          // otherwise bounce this back-link straight into the last-viewed pod.
+          href="/moderator?view=all"
           className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />

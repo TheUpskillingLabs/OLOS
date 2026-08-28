@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { windowOpen, parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { parseWindow, fmtLabDateTime } from "@/lib/cycles/lab-time";
 import { ArrowRight } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { checkPodJoinWindow } from "@/lib/auth/windows";
 import { effectiveUser } from "@/lib/auth/simulation";
 import { notFound } from "next/navigation";
 import PodRegistration from "./pod-registration";
@@ -26,14 +27,14 @@ export default async function RegisterPodsPage({
 
   if (!cycle) notFound();
 
-  // Naive window columns are UTC instants; entry + display are lab-local
-  // (lib/cycles/lab-time.ts).
+  // Same gate as the join route (lib/auth/windows.ts): pod_forming OR the
+  // pod_active_join overlay, so this page and the POST it drives can never
+  // disagree — the old windowOpen(config columns) check here ignored phase
+  // rows and the late-join overlay entirely.
   const now = new Date();
-  const isOpen = windowOpen(
-    config?.pod_registration_open,
-    config?.pod_registration_close,
-    now
-  );
+  const joinWindow = await checkPodJoinWindow(createServiceClient(), cycleId);
+  const isOpen = joinWindow.open;
+  const isLateJoin = joinWindow.via === "pod_active_join";
 
   const podLimit = config?.pod_limit ?? 1;
   const single = podLimit === 1;
@@ -68,9 +69,11 @@ export default async function RegisterPodsPage({
           {single ? "Choose your pod" : "Choose your pods"}
         </h1>
         <p className="mt-2 text-sm text-meta">
-          {single
-            ? "Join the pod working on the problem that interests you most."
-            : `Join up to ${podLimit} pods to explore problems that interest you.`}
+          {isLateJoin
+            ? "The cycle is underway — you can still join a pod and jump in."
+            : single
+              ? "Join the pod working on the problem that interests you most."
+              : `Join up to ${podLimit} pods to explore problems that interest you.`}
         </p>
       </div>
 

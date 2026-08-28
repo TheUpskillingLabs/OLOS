@@ -140,6 +140,29 @@ export default async function ModeratorSubmissionsPage({
     }
   }
 
+  // Project-registration status (2026-08 direct-registration phase): which
+  // project each member has joined, if any — the registration-window
+  // counterpart to the "Submitted" flag. Active memberships only
+  // (left_at IS NULL), so a withdraw immediately reads as unregistered.
+  const projectByParticipant = new Map<number, string>();
+  if (rosterIds.length > 0) {
+    const { data: pms } = await serviceClient
+      .from("project_memberships")
+      .select("participant_id, projects:project_id(name)")
+      .eq("cycle_id", cycleId)
+      .in("participant_id", rosterIds)
+      .is("left_at", null);
+    for (const pm of pms ?? []) {
+      const proj = embedded(
+        pm.projects as { name: string | null } | { name: string | null }[] | null
+      );
+      projectByParticipant.set(
+        pm.participant_id as number,
+        proj?.name ?? "Unnamed project"
+      );
+    }
+  }
+
   const roster = rosterIds
     .map((id) => {
       const p = rosterMap.get(id) as ParticipantLite;
@@ -148,11 +171,14 @@ export default async function ModeratorSubmissionsPage({
         name: displayName(p),
         email: p.email,
         submitted: submittedIds.has(id),
+        project: projectByParticipant.get(id) ?? null,
         lastLog: lastLogByParticipant.get(id) ?? null,
       };
     })
     .sort((a, b) => {
-      // Outreach order: non-submitters first, then least-recently-active first.
+      // Outreach order for the current phase: not-in-a-project first, then
+      // non-submitters, then least-recently-active.
+      if (!!a.project !== !!b.project) return a.project ? 1 : -1;
       if (a.submitted !== b.submitted) return a.submitted ? 1 : -1;
       const at = a.lastLog ? new Date(a.lastLog).getTime() : 0;
       const bt = b.lastLog ? new Date(b.lastLog).getTime() : 0;
@@ -160,12 +186,15 @@ export default async function ModeratorSubmissionsPage({
     });
 
   const submittedCount = roster.filter((r) => r.submitted).length;
+  const registeredCount = roster.filter((r) => r.project).length;
 
   return (
     <div className="max-w-3xl">
       <div className="mb-8">
         <Link
-          href="/moderator"
+          // ?view=all skips the returning-poderator auto-redirect, which would
+          // otherwise bounce this back-link straight into the last-viewed pod.
+          href="/moderator?view=all"
           className="inline-flex items-center gap-1.5 text-sm text-meta transition-colors duration-150 hover:text-teal-deep"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
@@ -174,7 +203,8 @@ export default async function ModeratorSubmissionsPage({
         <h1 className="t-h1 mt-2 text-ink">Project submissions</h1>
         <p className="mt-1 text-sm text-charcoal">
           {cycle.name} — {proposals.length} submitted ·{" "}
-          {submittedCount}/{roster.length} members submitted.{" "}
+          {submittedCount}/{roster.length} members submitted ·{" "}
+          {registeredCount}/{roster.length} in a project.{" "}
           <Link
             href={`/moderator/cycles/${cycle.id}/vote-progress`}
             className="font-semibold text-teal-deep hover:underline"
@@ -230,6 +260,7 @@ export default async function ModeratorSubmissionsPage({
                   <tr className="border-b border-ink/10 text-left text-meta">
                     <th className="px-4 py-2 font-medium">Member</th>
                     <th className="px-4 py-2 font-medium">Submitted</th>
+                    <th className="px-4 py-2 font-medium">Project</th>
                     <th className="px-4 py-2 font-medium">Last Learning Log</th>
                     <th className="px-4 py-2 font-medium">Email</th>
                   </tr>
@@ -237,7 +268,7 @@ export default async function ModeratorSubmissionsPage({
                 <tbody>
                   {roster.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-meta">
+                      <td colSpan={5} className="px-4 py-6 text-center text-meta">
                         No pod members in scope.
                       </td>
                     </tr>
@@ -250,6 +281,13 @@ export default async function ModeratorSubmissionsPage({
                             <span className="text-teal-deep">✓</span>
                           ) : (
                             <span className="font-semibold text-red">Not yet</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-charcoal">
+                          {r.project ?? (
+                            <span className="font-semibold text-red">
+                              Not registered
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-2 tabular-nums text-charcoal">
