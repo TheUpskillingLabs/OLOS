@@ -88,3 +88,50 @@ export async function checkWindow(
 
   return { open: true, message: "" };
 }
+
+/**
+ * Stage 2 of the calendar overhaul (the TODO at the top of this file): the
+ * pod-JOIN window. Pod formation (`pod_forming`) is the primary window, but the
+ * `pod_active_join` OVERLAY phase keeps self-serve joining open for people who
+ * register after formation closes — last cycle those late registrants landed at
+ * enrollment status 'registered' with no pod and no way in except a manual
+ * admin add. Joins/leaves remain fully audited either way: pod_memberships
+ * stamps joined_at on insert and inactive_at on leave (soft delete), and the
+ * reconciler flips the enrollment registered↔active.
+ *
+ * `via` tells UI callers which window admitted the member, so late-join copy
+ * can differ from formation copy. The closed message reuses pod_registration's.
+ */
+export async function checkPodJoinWindow(
+  supabase: SupabaseClient,
+  cycleId: number
+): Promise<{ open: boolean; message: string; via: "pod_forming" | "pod_active_join" | null }> {
+  const forming = await checkWindow(supabase, cycleId, "pod_registration");
+  if (forming.open) return { open: true, message: "", via: "pod_forming" };
+
+  // checkWindow already rejected org cycles with its own message — never
+  // reopen an org cycle through the overlay.
+  if (forming.message === "This action isn't available for organization cycles.") {
+    return { open: false, message: forming.message, via: null };
+  }
+
+  const { data: phase } = await supabase
+    .from("cycle_phases")
+    .select("starts_at, ends_at")
+    .eq("cycle_id", cycleId)
+    .eq("phase_key", "pod_active_join")
+    .maybeSingle();
+
+  if (phase) {
+    const starts = parseWindow(phase.starts_at);
+    const ends = parseWindow(phase.ends_at);
+    const now = new Date();
+    // [starts_at, ends_at) — same close-exclusive contract as the phases path
+    // in checkWindow above.
+    if (starts && ends && now >= starts && now < ends) {
+      return { open: true, message: "", via: "pod_active_join" };
+    }
+  }
+
+  return { open: false, message: forming.message, via: null };
+}

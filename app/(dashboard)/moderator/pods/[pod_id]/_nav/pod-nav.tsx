@@ -233,6 +233,39 @@ export function PodNav({
             </li>
           </>
         )}
+        {/* Cycle-scoped project surfaces. These lived only behind a card on
+            the All pods landing, which the returning-poderator auto-redirect
+            skips — so a poderator whose last view was a pod could never find
+            them (discoverability gap, 2026-08). Linked from every pod's nav,
+            scoped to that pod's own cycle. */}
+        {currentPodCycle !== null && (
+          <>
+            <li aria-hidden className="mx-3 my-2 border-t border-ink/10" />
+            {[
+              {
+                label: "Project submissions",
+                href: `/moderator/cycles/${currentPodCycle}/submissions`,
+              },
+              {
+                label: "Vote progress",
+                href: `/moderator/cycles/${currentPodCycle}/vote-progress`,
+              },
+            ].map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className={`flex items-center gap-2 rounded-card px-3 py-2 text-sm transition-colors ${
+                    pathname.startsWith(link.href)
+                      ? "bg-teal/10 font-semibold text-teal-deep"
+                      : "font-medium text-slate hover:bg-teal/5 hover:text-ink"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </>
+        )}
       </ul>
     </nav>
   );

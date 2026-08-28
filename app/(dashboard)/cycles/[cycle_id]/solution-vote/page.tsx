@@ -44,6 +44,7 @@ export default async function SolutionVotePage({
 
   let myPods: { id: number; name: string | null }[] = [];
   let hasSubmitted = false;
+  let votedPodIds: number[] = [];
 
   if (user) {
     const { data: participant } = await supabase
@@ -75,6 +76,18 @@ export default async function SolutionVotePage({
         .eq("participant_id", participant.id)
         .maybeSingle();
       hasSubmitted = !!ownProposal;
+
+      // Pods this member has ALREADY balloted in, resolved server-side so the
+      // ballot can open in its submitted state instead of letting them
+      // allocate a whole second ballot only to be 409'd at submit (votes are
+      // per (voter, proposal, pod); serviceClient because project_votes reads
+      // are admin-scoped under RLS).
+      const { data: myVotes } = await serviceClient
+        .from("project_votes")
+        .select("pod_id")
+        .eq("cycle_id", cycleId)
+        .eq("voter_id", participant.id);
+      votedPodIds = [...new Set((myVotes ?? []).map((v) => v.pod_id as number))];
     }
   }
 
@@ -140,6 +153,7 @@ export default async function SolutionVotePage({
         <SolutionBallot
           pods={myPods}
           voteBudget={config?.project_submitter_votes ?? 0}
+          votedPodIds={votedPodIds}
         />
       )}
     </div>
