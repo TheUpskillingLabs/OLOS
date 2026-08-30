@@ -5,41 +5,57 @@ import { Sparkles, X } from "lucide-react";
 import type { PulseComment } from "@/lib/moderator/pod-insights";
 
 /**
- * AI-assisted summary block (PRD §7.10.3).
+ * AI-assisted summary blocks (PRD §7.10.3).
  *
- * OLOS does not run an LLM. This block bundles recent pulse comments
- * (initials only) with the canonical prompt from cycle_config.ai_summary_prompt
- * and lets the poderator copy the bundle to their own AI tool.
+ * OLOS does not run an LLM. These blocks bundle recent member responses with
+ * a canonical prompt and let the poderator copy the bundle into their own AI
+ * tool (ChatGPT, Claude, …).
  *
- * Same component used on both All pods (cross-pod scope) and per-pod
- * surfaces — the scope only changes what `comments` and `rangeLabel`
- * are passed in.
+ * Two exports:
+ *   - CopyBundleBlock — the generic presenter: any labeled items + a
+ *     prebuilt bundle string. The Learning Log insights section feeds it.
+ *   - AISummaryBlock — the original pulse-typed wrapper, kept with its exact
+ *     prop shape so the pulse-insights and cross-pod call sites are
+ *     untouched. It maps pulse comments into items and builds its bundle
+ *     from cycle_config.ai_summary_prompt (with the historical fallback).
  *
  * Two paths to clipboard:
  *   1. "Copy prompt + responses" — one-click copy, no preview
- *   2. "Preview" — opens a modal showing the full bundle (full prompt +
- *      every included comment, not just the first 4); modal has its own
- *      Copy button so the user can confirm what's about to paste into
- *      their AI tool before sending it.
+ *   2. "Preview" — a modal showing the full bundle (not just the first 4
+ *      items) with its own Copy button, so the user can confirm what's about
+ *      to paste into their AI tool before sending it.
  */
-export function AISummaryBlock({
-  scope,
-  prompt,
-  comments,
+
+export interface BundleItem {
+  key: string;
+  /** The bracketed attribution, e.g. "AB · Aug 22" or "Member C · Aug 22 · weekly". */
+  label: string;
+  /** The response text (may be multi-line). */
+  text: string;
+}
+
+export function CopyBundleBlock({
+  title,
+  description,
+  itemsLabel,
+  scopeLabel,
+  emptyMessage,
+  items,
+  bundle,
   rangeLabel,
 }: {
-  scope: "pod" | "all-pods";
-  prompt: string | null;
-  comments: PulseComment[];
+  title: string;
+  description: string;
+  /** e.g. "Pulse comments" / "Learning Log entries" — the preview strip label. */
+  itemsLabel: string;
+  scopeLabel: string;
+  emptyMessage: string;
+  items: BundleItem[];
+  bundle: string;
   rangeLabel: string;
 }) {
   const [copied, setCopied] = React.useState(false);
   const [previewOpen, setPreviewOpen] = React.useState(false);
-
-  const fallbackPrompt =
-    "Summarize the themes across these pulse comments. Flag members or topics worth attention this week. Cite specific responses. Be descriptive, not judgmental.";
-
-  const bundle = buildBundle(prompt ?? fallbackPrompt, comments);
 
   const onCopy = async () => {
     try {
@@ -47,51 +63,38 @@ export function AISummaryBlock({
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
-      // Clipboard failed (no permission or unsupported); render textarea
-      // fallback inline next render. For now, just no-op.
+      // Clipboard failed (no permission or unsupported); the Preview modal's
+      // selectable textarea is the fallback path.
     }
   };
-
-  const scopeLabel =
-    scope === "pod" ? "this pod" : "all your pods combined";
 
   return (
     <div className="rounded-card border border-teal/25 bg-teal/[0.04] p-5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <div className="lbl lbl-teal mb-1">
-            AI-assisted summary
-          </div>
-          <div className="text-sm text-charcoal">
-            Bundle recent pulse comments with a ready-to-use prompt and
-            paste into ChatGPT, Claude, or your AI tool of choice.
-          </div>
+          <div className="lbl lbl-teal mb-1">{title}</div>
+          <div className="text-sm text-charcoal">{description}</div>
         </div>
         <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-teal-deep" />
       </div>
 
       <div className="mb-3 max-h-48 overflow-y-auto rounded-card border border-ink/10 bg-white p-4">
         <div className="mb-2 text-[10px] uppercase tracking-widest text-meta">
-          Pulse comments · {rangeLabel} · {comments.length} response
-          {comments.length === 1 ? "" : "s"} from {scopeLabel}
+          {itemsLabel} · {rangeLabel} · {items.length} response
+          {items.length === 1 ? "" : "s"} from {scopeLabel}
         </div>
-        {comments.length === 0 ? (
-          <div className="text-xs text-meta">
-            No free-text comments in this range yet.
-          </div>
+        {items.length === 0 ? (
+          <div className="text-xs text-meta">{emptyMessage}</div>
         ) : (
           <div className="space-y-2.5 text-xs text-charcoal">
-            {comments.slice(0, 4).map((c, idx) => (
-              <div key={`${c.participant_id}:${c.scheduled_date}:${idx}`}>
-                <span className="text-meta">
-                  [{c.initials} · {formatWeek(c.scheduled_date)}]
-                </span>{" "}
-                {c.text}
+            {items.slice(0, 4).map((c) => (
+              <div key={c.key} className="whitespace-pre-line">
+                <span className="text-meta">[{c.label}]</span> {c.text}
               </div>
             ))}
-            {comments.length > 4 && (
+            {items.length > 4 && (
               <div className="italic text-meta">
-                …{comments.length - 4} more comments included in the copy
+                …{items.length - 4} more included in the copy
               </div>
             )}
           </div>
@@ -101,14 +104,14 @@ export function AISummaryBlock({
       <div className="flex items-center gap-2">
         <button
           onClick={() => setPreviewOpen(true)}
-          disabled={comments.length === 0}
+          disabled={items.length === 0}
           className="rounded-card border border-ink/10 bg-white px-3 py-1.5 text-xs font-medium text-charcoal transition-colors hover:bg-ink/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Preview
         </button>
         <button
           onClick={onCopy}
-          disabled={comments.length === 0}
+          disabled={items.length === 0}
           className="rounded-card bg-teal-deep px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal disabled:cursor-not-allowed disabled:opacity-40"
         >
           {copied ? "Copied!" : "Copy prompt + responses"}
@@ -121,18 +124,56 @@ export function AISummaryBlock({
         bundle={bundle}
         rangeLabel={rangeLabel}
         scopeLabel={scopeLabel}
-        commentCount={comments.length}
+        itemCount={items.length}
       />
     </div>
   );
 }
 
+/** The original pulse-typed block. Prop shape unchanged — do not churn the
+    pulse-insights / cross-pod call sites. */
+export function AISummaryBlock({
+  scope,
+  prompt,
+  comments,
+  rangeLabel,
+}: {
+  scope: "pod" | "all-pods";
+  prompt: string | null;
+  comments: PulseComment[];
+  rangeLabel: string;
+}) {
+  const fallbackPrompt =
+    "Summarize the themes across these pulse comments. Flag members or topics worth attention this week. Cite specific responses. Be descriptive, not judgmental.";
+
+  const items: BundleItem[] = comments.map((c, idx) => ({
+    key: `${c.participant_id}:${c.scheduled_date}:${idx}`,
+    label: `${c.initials} · ${formatWeek(c.scheduled_date)}`,
+    text: c.text,
+  }));
+
+  const header = (prompt ?? fallbackPrompt).trim();
+  const body = items.map((i) => `[${i.label}] ${i.text}`).join("\n\n");
+  const bundle = `${header}\n\n---\n\n${body}\n`;
+
+  return (
+    <CopyBundleBlock
+      title="AI-assisted summary"
+      description="Bundle recent pulse comments with a ready-to-use prompt and paste into ChatGPT, Claude, or your AI tool of choice."
+      itemsLabel="Pulse comments"
+      scopeLabel={scope === "pod" ? "this pod" : "all your pods combined"}
+      emptyMessage="No free-text comments in this range yet."
+      items={items}
+      bundle={bundle}
+      rangeLabel={rangeLabel}
+    />
+  );
+}
+
 /**
- * Modal preview of the AI-summary bundle. Uses the native <dialog>
- * element — backdrop styling is in app/globals.css. The dialog renders
- * the full text (not truncated to 4 comments like the inline preview)
- * in a read-only textarea, with its own Copy button so the user can
- * confirm before pasting.
+ * Modal preview of a copy bundle. Native <dialog>; backdrop styling in
+ * app/globals.css. Renders the full text in a read-only textarea with its
+ * own Copy button so the user can confirm before pasting.
  */
 function PreviewDialog({
   open,
@@ -140,14 +181,14 @@ function PreviewDialog({
   bundle,
   rangeLabel,
   scopeLabel,
-  commentCount,
+  itemCount,
 }: {
   open: boolean;
   onClose: () => void;
   bundle: string;
   rangeLabel: string;
   scopeLabel: string;
-  commentCount: number;
+  itemCount: number;
 }) {
   const dialogRef = React.useRef<HTMLDialogElement>(null);
   const [dialogCopied, setDialogCopied] = React.useState(false);
@@ -184,12 +225,10 @@ function PreviewDialog({
     >
       <div className="flex items-start justify-between gap-4 border-b border-ink/10 px-5 py-4">
         <div>
-          <div className="lbl lbl-teal mb-1">
-            AI summary bundle
-          </div>
+          <div className="lbl lbl-teal mb-1">AI summary bundle</div>
           <div className="text-xs text-slate">
-            {rangeLabel} · {commentCount} response
-            {commentCount === 1 ? "" : "s"} from {scopeLabel}
+            {rangeLabel} · {itemCount} response
+            {itemCount === 1 ? "" : "s"} from {scopeLabel}
           </div>
         </div>
         <button
@@ -226,17 +265,6 @@ function PreviewDialog({
       </div>
     </dialog>
   );
-}
-
-function buildBundle(prompt: string, comments: PulseComment[]): string {
-  const header = prompt.trim();
-  const body = comments
-    .map(
-      (c) =>
-        `[${c.initials} · ${formatWeek(c.scheduled_date)}] ${c.text}`
-    )
-    .join("\n\n");
-  return `${header}\n\n---\n\n${body}\n`;
 }
 
 function formatWeek(iso: string): string {

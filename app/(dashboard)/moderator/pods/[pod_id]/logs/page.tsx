@@ -11,6 +11,7 @@ import PodSquadSections from "../pod-squad-sections";
 import PodMilestoneLogs from "../pod-milestone-logs";
 import { RecentLogsFeed } from "../recent-logs-feed";
 import { RangeToggle } from "../_nav/range-toggle";
+import { LogInsightsSection } from "../log-insights-section";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,21 @@ export default async function PodLogsPage({
           <RecentLogsFeed podId={ctx.podId} since={since} />
         </div>
       </section>
+
+      <LogInsightsSection
+        cycleId={ctx.detail.cycle_id}
+        memberIds={ctx.detail.members
+          .filter((m) => !m.is_staff_or_test && !m.is_inactive)
+          .map((m) => m.participant_id)}
+        since={since}
+        rangeLabel={
+          range === "week"
+            ? "last 7 days"
+            : range === "4w"
+              ? "last 4 weeks"
+              : "full cycle"
+        }
+      />
 
       <PodMilestoneLogs cycleId={ctx.detail.cycle_id} members={ctx.detail.members} />
     </div>
