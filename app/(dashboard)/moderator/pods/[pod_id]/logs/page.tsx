@@ -5,13 +5,13 @@
 // health lookback and the feed floor; the compliance strip is always the
 // current gate window.
 
+import Link from "next/link";
 import { getPodContext } from "@/lib/moderator/pod-context";
 import { parseRange, rangeSince } from "@/lib/moderator/range";
 import PodSquadSections from "../pod-squad-sections";
 import PodMilestoneLogs from "../pod-milestone-logs";
 import { RecentLogsFeed } from "../recent-logs-feed";
 import { RangeToggle } from "../_nav/range-toggle";
-import { LogInsightsSection } from "../log-insights-section";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,18 @@ export default async function PodLogsPage({
       />
 
       <section className="mb-6 rounded-card border border-ink/10 bg-white p-5 shadow-card">
-        <h2 className="t-h3 text-ink">Log entries</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="t-h3 text-ink">Log entries</h2>
+          {/* The AI-assisted summary lives on the Insights page (its nav
+              destination) — one canonical home, pointed to from here where
+              a poderator is most likely to want it. */}
+          <Link
+            href={`/moderator/pods/${ctx.podId}/insights`}
+            className="text-xs font-semibold text-teal-deep hover:underline"
+          >
+            AI-assisted summary &rarr;
+          </Link>
+        </div>
         <p className="mt-1 text-xs text-meta">
           Newest first, within the selected range.
         </p>
@@ -55,21 +66,6 @@ export default async function PodLogsPage({
           <RecentLogsFeed podId={ctx.podId} since={since} />
         </div>
       </section>
-
-      <LogInsightsSection
-        cycleId={ctx.detail.cycle_id}
-        memberIds={ctx.detail.members
-          .filter((m) => !m.is_staff_or_test && !m.is_inactive)
-          .map((m) => m.participant_id)}
-        since={since}
-        rangeLabel={
-          range === "week"
-            ? "last 7 days"
-            : range === "4w"
-              ? "last 4 weeks"
-              : "full cycle"
-        }
-      />
 
       <PodMilestoneLogs cycleId={ctx.detail.cycle_id} members={ctx.detail.members} />
     </div>
