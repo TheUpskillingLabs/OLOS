@@ -6,6 +6,7 @@ import { resolveUserRoles, isAdmin, isModerator } from "@/lib/auth/roles";
 import { effectiveUser } from "@/lib/auth/simulation";
 import { fmtLabDateTime, fmtDateOnly } from "@/lib/cycles/lab-time";
 import { SolutionProposalDetails } from "@/app/components/solution-proposal-details";
+import RosterExport from "./roster-export";
 
 // Poderator "Project submissions & outreach" — cycle-scoped and fully
 // attributed (the counterpart to the anonymized member gallery). Shows every
@@ -250,6 +251,74 @@ export default async function ModeratorSubmissionsPage({
                 })}
               </div>
             )}
+          </section>
+
+          <section className="mb-8">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="t-h3 text-ink">Project rosters</h2>
+              <RosterExport
+                rows={roster.map((r) => ({
+                  name: r.name,
+                  project: r.project,
+                  submitted: r.submitted,
+                  lastLog: r.lastLog,
+                  email: r.email,
+                }))}
+                cycleName={cycle.name}
+              />
+            </div>
+            {(() => {
+              // Group by project, unregistered last — the shareable "where
+              // everything is at" view. Groups derive from the same roster
+              // rows the outreach table uses, so the two can never disagree.
+              const groups = new Map<string, typeof roster>();
+              for (const r of roster) {
+                const key = r.project ?? "Not registered";
+                if (!groups.has(key)) groups.set(key, []);
+                (groups.get(key) as typeof roster).push(r);
+              }
+              const ordered = [...groups.entries()].sort((a, b) => {
+                if (a[0] === "Not registered") return 1;
+                if (b[0] === "Not registered") return -1;
+                return a[0].localeCompare(b[0]);
+              });
+              return (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {ordered.map(([projectName, members]) => (
+                    <div
+                      key={projectName}
+                      className={`rounded-card border bg-white p-4 shadow-card ${
+                        projectName === "Not registered"
+                          ? "border-red/20"
+                          : "border-ink/10"
+                      }`}
+                    >
+                      <p className="flex items-baseline justify-between gap-2">
+                        <span
+                          className={`font-semibold tracking-tight ${
+                            projectName === "Not registered"
+                              ? "text-red"
+                              : "text-ink"
+                          }`}
+                        >
+                          {projectName}
+                        </span>
+                        <span className="text-xs tabular-nums text-meta">
+                          {members.length}
+                        </span>
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {members.map((m) => (
+                          <li key={m.id} className="text-sm text-charcoal">
+                            {m.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </section>
 
           <section>
