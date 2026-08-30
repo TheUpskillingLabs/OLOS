@@ -107,9 +107,13 @@ export function PodNav({
     ...(showPulseInsights
       ? [
           {
-            label: "Pulse Insights",
-            suffix: "/pulse-insights",
-            badge: badges.pulsesEmpty ? { text: "—", tone: "dim" as const } : null,
+            // The unified Insights page (AI-assisted log summary as the
+            // hero; pulse history renders inside it only when the pod has
+            // any). Same visibility rule as the old Pulse Insights item —
+            // org workstreams hide it.
+            label: "Insights",
+            suffix: "/insights",
+            badge: null,
           },
         ]
       : []),
