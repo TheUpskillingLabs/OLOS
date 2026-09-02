@@ -43,6 +43,18 @@ export const BASELINE_QUESTIONS: BaselineQuestion[] = [
       "How do you see your own role in work changing, and what do you want it to look like?",
     type: "text",
   },
+  /* Adapted from Chen et al. 2015 (BPNSF), whose autonomy-satisfaction item
+     reads "I feel a sense of choice and freedom in the things I undertake."
+     We narrow "things" to "work" and stop there — deliberately.
+
+     Do NOT add a qualifier scoping this to labs work ("...in your work here",
+     "...in the work you do through the labs"). The unscoped "work" is the
+     point: the measure is a member's sense of autonomy across their working
+     life, paid work included, not their experience of the programme. The
+     labs succeed if this number goes UP overall, not if it reads high only
+     within the labs — a scoped item could rise while the thing we actually
+     care about stayed flat. Re-measured cycle-over-cycle (one baseline per
+     participant per cycle), which is what makes the comparison meaningful. */
   {
     key: "autonomy",
     prompt: "I feel a sense of choice and freedom in the work I undertake.",
