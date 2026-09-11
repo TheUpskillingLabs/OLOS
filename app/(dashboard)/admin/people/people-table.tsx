@@ -121,6 +121,11 @@ export default function PeopleTable({
                       {r}
                     </span>
                   ))}
+                  {p.is_banned && (
+                    <span className="inline-flex items-center rounded-sm bg-red/10 px-2.5 py-0.5 text-xs font-medium text-red">
+                      banned
+                    </span>
+                  )}
                   {p.is_test && (
                     <span className="inline-flex items-center rounded-sm border border-dashed border-ink/30 px-2.5 py-0.5 text-xs font-medium text-meta">
                       tester
@@ -132,7 +137,7 @@ export default function PeopleTable({
                       core contributor
                     </span>
                   )}
-                  {roles.length === 0 && !p.is_test && !p.is_staff && (
+                  {roles.length === 0 && !p.is_test && !p.is_staff && !p.is_banned && (
                     <span className="text-xs text-meta">—</span>
                   )}
                 </div>

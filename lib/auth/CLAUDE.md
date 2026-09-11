@@ -193,6 +193,49 @@ Maps 1:1 onto the spec's required JWT claim set:
 
 ---
 
+## Bans — the first gate in the callback (migration `00102`)
+
+**If you touch the callback, keep the ban check first.** It runs immediately after
+the email is resolved and *before* the `participants` lookup, because the whole
+point of the blocklist is that it applies whether or not a participants row still
+exists.
+
+Why a ban is not archive or delete:
+
+| | blocks sign-in? | why not |
+|---|---|---|
+| `archive` (00079) | **no** | The callback only asks "is there a participants row for this email?" An archived person signs in fine, just with no roles. |
+| `delete_participant` (00058/00079) | **no** | The row and the `auth.users` row go, but `/register` re-creates both for the same Google account. That is a reset. |
+| `ban` (00102) | **yes** | Keyed on `lower(email)` in `participant_bans`, so it survives deletion and re-registration. |
+
+Three enforcement points, and all three matter:
+
+1. **`app/api/auth/callback/route.ts`** — `isEmailBanned()` → `signOut()` →
+   `/login?error=banned`. Same shape as the `no_account` branch.
+2. **`app/api/registrations/funnel/route.ts`** — refuses the insert. Without this,
+   a ban is one `/register` away from being undone.
+3. **`auth.users.banned_until`** — set by `lib/owner/ban.ts` through the Supabase
+   admin API. Independent of the app entirely: GoTrue refuses both new sign-ins
+   and refresh-token exchanges, so a live session dies at its next refresh
+   (usually within the hour) rather than at cookie expiry.
+
+`lib/auth/bans.ts` **fails open** on a query error. A ban is a door lock, not a
+liveness dependency — a transient DB blip must not lock every member out of
+sign-in. Layer 3 is inside GoTrue and keeps holding regardless.
+
+Deliberately **not** enforced in `proxy.ts`: a DB round trip in the edge path on
+every request is too expensive, and layer 3 already covers live sessions.
+
+The funnel's 403 says only "This email address can't be registered." It does not
+mention a ban — a registration form is unauthenticated, and confirming "yes, that
+address is banned" to anyone who types it leaks a moderation decision about a
+third party. The banned person themselves is told plainly at sign-in.
+
+**What a ban cannot do:** a brand-new Google account on a different email walks
+straight back in. `participant_bans.google_id` closes the same-account case only.
+
+---
+
 ## Member-view simulation — "View as" (July 2026)
 
 [`lib/auth/simulation.ts`](./simulation.ts) lets an admin render the **member**

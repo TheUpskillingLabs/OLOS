@@ -12,6 +12,10 @@ export type Person = {
   roles: string[];
   cycles: { cycle_id: number; cycle_name: string; status: string; mode: string | null }[];
   moderator_pods: { pod_id: number; pod_name: string; mode: string | null }[];
+  /** Active ban on this email (participant_bans, 00102): they cannot sign in
+      and cannot re-register. Shown as a badge so a banned person is visible in
+      the list without opening each profile. */
+  is_banned: boolean;
   /** Eligible as a read-only "View as" target (lib/auth/simulation.ts): has
       signed in at least once, and holds no owner/admin/developer role. */
   can_simulate: boolean;

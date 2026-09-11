@@ -7,6 +7,7 @@ import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration"
 import { findOrCreateWaitlistLab } from "@/lib/labs/membership";
 import { getMemberRecruitingCycle } from "@/lib/cycle/active";
 import { fulfillInvitation } from "@/lib/auth/invitations";
+import { isEmailBanned } from "@/lib/auth/bans";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
 import {
   registrationConfirmationHtml,
@@ -41,6 +42,21 @@ export async function POST(request: NextRequest) {
   if (body.auth_user_id !== user.id) {
     return NextResponse.json(
       { error: "auth_user_id does not match the authenticated session" },
+      { status: 403 }
+    );
+  }
+
+  // THE BAN GATE (migration 00102). Without this, a ban is one /register away
+  // from being undone: the blocklist is keyed on email precisely so it outlives
+  // the participants row, and this is the door that row-deletion opens.
+  //
+  // The response says nothing about a ban. A registration form is an
+  // unauthenticated surface, and confirming "yes, that address is banned" to
+  // anyone who types it leaks a moderation decision about a third party. The
+  // person themselves is told plainly at sign-in (/login?error=banned).
+  if (await isEmailBanned(supabase, body.email)) {
+    return NextResponse.json(
+      { error: "This email address can't be registered." },
       { status: 403 }
     );
   }

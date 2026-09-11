@@ -90,6 +90,18 @@ export default async function AdminPeoplePage({
     });
   }
 
+  // Active bans (participant_bans, 00102), keyed on lower(email) because that is
+  // what the blocklist is keyed on — a ban is against an address, not a row, so it
+  // survives deletion and re-registration. One query for the whole list; matched
+  // in memory rather than per-person.
+  const { data: bans } = await serviceClient
+    .from("participant_bans")
+    .select("email")
+    .is("revoked_at", null);
+  const bannedEmails = new Set(
+    (bans ?? []).map((b) => (b.email as string).toLowerCase())
+  );
+
   const people: Person[] = (participants ?? []).map((p) => ({
     id: p.id,
     first_name: p.first_name,
@@ -105,6 +117,7 @@ export default async function AdminPeoplePage({
     // No auth_user_id means they have never signed in; every member page
     // resolves identity by that column, so simulating them would render an
     // empty app rather than their view.
+    is_banned: bannedEmails.has((p.email ?? "").toLowerCase()),
     can_simulate: !!p.auth_user_id && !hasAuthorityRole.has(p.id),
   }));
 
