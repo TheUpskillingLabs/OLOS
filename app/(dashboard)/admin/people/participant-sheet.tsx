@@ -7,6 +7,7 @@ import { moderatorNoun } from "@/lib/cycle/labels";
 import type { Permission } from "@/lib/auth/permissions";
 import PermissionsEditor from "./permissions-editor";
 import AdminNameEditForm from "./admin-name-edit-form";
+import OwnerDangerZone from "./owner-danger-zone";
 import type { Person } from "./types";
 
 /** Why "View as" is unavailable, shown as text and repeated as the tooltip. */
@@ -21,16 +22,28 @@ const SIMULATE_BLOCKED_REASON =
  *
  * The full-page editor at /admin/participants/[id]/permissions stays as a
  * deep-link fallback.
+ *
+ * Owner lifecycle actions (ban / archive / reset / delete) render at the bottom
+ * for owners. They live HERE, not only on the deep-link page: this drawer is the
+ * surface People & Access actually opens, and an action nobody can reach is an
+ * action that does not exist.
  */
 export default function ParticipantSheet({
   person,
   canManageRoles,
   canSimulate,
+  viewerIsOwner = false,
+  viewerParticipantId = null,
+  apexOwnerIds = [],
   onClose,
 }: {
   person: Person | null;
   canManageRoles: boolean;
   canSimulate: boolean;
+  /** Renders the owner-only Danger zone (ban / archive / reset / delete). */
+  viewerIsOwner?: boolean;
+  viewerParticipantId?: number | null;
+  apexOwnerIds?: number[];
   onClose: () => void;
 }) {
   // One participant-keyed result. State is only set inside the async callback
@@ -276,6 +289,22 @@ export default function ParticipantSheet({
               initialIsStaff={person.is_staff}
             />
           ) : null}
+
+          {viewerIsOwner && (
+            <OwnerDangerZone
+              participantId={person.id}
+              email={person.email}
+              displayName={displayName}
+              banned={person.is_banned}
+              locked={
+                viewerParticipantId === person.id
+                  ? "This is your own profile — it can't be modified from this console."
+                  : apexOwnerIds.includes(person.id)
+                    ? "This is the primary owner and can't be modified from this console."
+                    : null
+              }
+            />
+          )}
         </div>
       )}
     </Sheet>

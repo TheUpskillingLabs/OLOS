@@ -102,6 +102,21 @@ export default async function AdminPeoplePage({
     (bans ?? []).map((b) => (b.email as string).toLowerCase())
   );
 
+  // Owner lifecycle context for the drill-in drawer's Danger zone. The rooted
+  // (apex) owner — a participant_roles owner grant with granted_by NULL (00066) —
+  // and the acting owner's own profile are both locked out of these actions. The
+  // API and the DB re-check independently; this only decides what to render.
+  const viewerIsOwner = isOwner(userRoles);
+  const { data: apexOwners } = viewerIsOwner
+    ? await serviceClient
+        .from("participant_roles")
+        .select("participant_id")
+        .eq("role", "owner")
+        .is("granted_by", null)
+        .is("revoked_at", null)
+    : { data: [] as { participant_id: number }[] };
+  const apexOwnerIds = (apexOwners ?? []).map((r) => r.participant_id);
+
   const people: Person[] = (participants ?? []).map((p) => ({
     id: p.id,
     first_name: p.first_name,
@@ -192,6 +207,9 @@ export default async function AdminPeoplePage({
             people={people}
             canManageRoles={canManageRoles}
             canSimulate={canSimulate}
+            viewerIsOwner={viewerIsOwner}
+            viewerParticipantId={userRoles.participantId}
+            apexOwnerIds={apexOwnerIds}
           />
         }
         invitationsPanel={
