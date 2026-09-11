@@ -24,6 +24,8 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     reset: { kind: "rpc", fn: "reset_participant" },
     // Hard delete = GDPR erasure (00058, hardened in 00079).
     delete: { kind: "rpc", fn: "delete_participant" },
+    // Ban = archive + email blocklist + auth lock (00102). Participants only.
+    ban: { kind: "helper", fn: "banParticipant", unbanFn: "unbanParticipant" },
     guards: ["apexOwner", "self"],
   },
 
@@ -40,6 +42,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     // Reset = wipe the cohort to a pristine draft + default config (00080).
     reset: { kind: "rpc", fn: "reset_cycle" },
     delete: null,
+    ban: null,
     guards: [],
   },
 
@@ -52,6 +55,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     archive: { kind: "helper", fn: "archivePod" }, // status 'dissolved' + close memberships
     reset: { kind: "rpc", fn: "reset_pod" }, // drop projects/solutions/members → 'forming'
     delete: null,
+    ban: null,
     guards: [],
   },
 
@@ -64,6 +68,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     archive: { kind: "status", column: "status", archivedValue: "inactive" },
     reset: { kind: "rpc", fn: "reset_project" }, // drop members/roles → 'forming'
     delete: null,
+    ban: null,
     guards: [],
   },
 
@@ -80,6 +85,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     archive: { kind: "timestamp", column: "archived_at" },
     reset: null,
     delete: null,
+    ban: null,
     guards: ["defaultMetro"],
   },
 
@@ -92,6 +98,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     archive: { kind: "status", column: "status", archivedValue: "archived" },
     reset: null,
     delete: null,
+    ban: null,
     guards: [],
   },
 
@@ -104,6 +111,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     archive: { kind: "status", column: "status", archivedValue: "archived" },
     reset: null,
     delete: null,
+    ban: null,
     guards: [],
   },
 
@@ -116,6 +124,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     archive: { kind: "status", column: "status", archivedValue: "archived" },
     reset: null,
     delete: null,
+    ban: null,
     guards: [],
   },
 
@@ -130,6 +139,7 @@ export const OWNER_REGISTRY: Partial<Record<OwnerEntityKey, LifecycleDescriptor>
     archive: { kind: "status", column: "status", archivedValue: "hidden" },
     reset: null,
     delete: null,
+    ban: null,
     guards: [],
   },
 };
@@ -149,10 +159,11 @@ export function getLifecycleDescriptor(
   return isOwnerEntityKey(key) ? OWNER_REGISTRY[key] ?? null : null;
 }
 
-/** The verbs a descriptor supports, in Archive → Reset → Delete order. */
+/** The verbs a descriptor supports, in Archive → Ban → Reset → Delete order. */
 export function supportedActions(d: LifecycleDescriptor): OwnerAction[] {
   const actions: OwnerAction[] = [];
   if (d.archive) actions.push("archive");
+  if (d.ban) actions.push("ban", "unban");
   if (d.reset) actions.push("reset");
   if (d.delete) actions.push("delete");
   return actions;

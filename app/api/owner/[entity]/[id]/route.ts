@@ -8,12 +8,13 @@ import { getLifecycleDescriptor } from "@/lib/owner/registry";
 import type { LifecycleDescriptor, OwnerAction } from "@/lib/owner/types";
 import { checkOwnerGuards } from "@/lib/owner/guards";
 import { archiveParticipant, archiveCycle, archivePod } from "@/lib/owner/archive";
+import { banParticipant, unbanParticipant } from "@/lib/owner/ban";
 import { ownerActionSchema, ownerDeleteSchema } from "@/lib/validations/owner";
 
 // Owner lifecycle management — the generalized, registry-driven surface.
 //
 //   DELETE /api/owner/{entity}/{id}          → hard delete (RPC; participants only)
-//   POST   /api/owner/{entity}/{id} {action} → archive | reset
+//   POST   /api/owner/{entity}/{id} {action} → archive | reset | ban | unban
 //
 // The entity must be allowlisted in lib/owner/registry.ts (unknown → 404) and the
 // verb must be supported by its descriptor (unsupported → 405). Phase 1 shipped
@@ -29,6 +30,17 @@ const ARCHIVE_HELPERS: Record<string, ArchiveHelper> = {
   archiveParticipant,
   archiveCycle,
   archivePod,
+};
+
+// Ban helpers take the acting owner, because the blocklist row records who set it.
+type BanHelper = (
+  client: ReturnType<typeof createServiceClient>,
+  id: number,
+  opts: { reason?: string | null; actorParticipantId?: number | null }
+) => Promise<unknown>;
+const BAN_HELPERS: Record<string, BanHelper> = {
+  banParticipant,
+  unbanParticipant,
 };
 
 interface OwnerContext {
@@ -71,12 +83,17 @@ async function resolve(
 }
 
 /**
- * Confirmation policy. Destructive actions (reset, delete) require a non-empty
- * `confirm`, and — when the entity has a reliable label — an exact match. Archive
- * (reversible) only checks a supplied confirm. Returns an error message or null.
+ * Confirmation policy. Actions that require deliberation (reset, delete, ban)
+ * require a non-empty `confirm`, and — when the entity has a reliable label — an
+ * exact match. Archive and unban (both reversible and non-destructive) only check
+ * a supplied confirm. Returns an error message or null.
+ *
+ * Ban is typed-confirm despite being reversible: unlike archive it locks a real
+ * person out of their account, and a mis-click on the wrong row in a list of
+ * hundreds is the failure worth an extra step.
  */
 function confirmProblem(action: OwnerAction, confirm: string | undefined, label: string | null): string | null {
-  const destructive = action === "reset" || action === "delete";
+  const destructive = action === "reset" || action === "delete" || action === "ban";
   const typed = confirm != null && confirm.length > 0;
   if (destructive && !typed) return "Confirmation is required for this action.";
   if (typed && label != null && confirm !== label) return "Confirmation text does not match.";
@@ -191,6 +208,40 @@ export const POST = withOwnerAuth(async (request: NextRequest, auth, params) => 
       detail,
     });
     return NextResponse.json({ ok: true, action: "archive", detail });
+  }
+
+  if (body.action === "ban" || body.action === "unban") {
+    if (!descriptor.ban) {
+      return NextResponse.json({ error: "Ban is not supported for this entity." }, { status: 405 });
+    }
+    const fn = body.action === "ban" ? descriptor.ban.fn : descriptor.ban.unbanFn;
+    const helper = BAN_HELPERS[fn];
+    if (!helper) return NextResponse.json({ error: "Ban is not available." }, { status: 500 });
+
+    let detail: unknown;
+    try {
+      detail = await helper(service, targetId, {
+        reason: body.reason ?? null,
+        actorParticipantId: auth.user.participantId,
+      });
+    } catch (e) {
+      return dbError(e, `owner-${body.action}-${descriptor.key}`);
+    }
+
+    // Ban runs on the service client, so — like archive — it writes its own audit
+    // row. 'ban'/'unban' are their own verbs in owner_actions as of 00102; they
+    // are deliberately not logged as 'archive'.
+    await service.from("owner_actions").insert({
+      actor_participant_id: auth.user.participantId,
+      actor_email: ctx.actorEmail,
+      entity_type: descriptor.key,
+      entity_id: String(targetId),
+      entity_label: ctx.label,
+      action: body.action,
+      reason: body.reason ?? null,
+      detail,
+    });
+    return NextResponse.json({ ok: true, action: body.action, detail });
   }
 
   // action === "reset"

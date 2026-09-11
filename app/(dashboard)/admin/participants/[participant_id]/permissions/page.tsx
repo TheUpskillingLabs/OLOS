@@ -47,9 +47,24 @@ export default async function ParticipantPermissionsPage({
 
   const canManageRoles = userRoles.permissions.includes("roles:write");
 
-  // Owner-only lifecycle actions (archive / reset / delete). Locked for the
+  // Owner-only lifecycle actions (ban / archive / reset / delete). Locked for the
   // acting owner's own profile and for the rooted primary owner (00066).
   const viewerIsOwner = isOwner(userRoles);
+
+  // Is there an active ban on this email (00102)? Read on the service client:
+  // participant_bans is owner-only by RLS, and this decides which button the
+  // Danger Zone shows. Keyed on email, not participant_id, because that is what
+  // the blocklist is keyed on — a re-registered person inherits the ban.
+  let isBanned = false;
+  if (viewerIsOwner && participant.email) {
+    const { data: banRow } = await serviceClient
+      .from("participant_bans")
+      .select("id")
+      .ilike("email", participant.email.replace(/[\\%_]/g, "\\$&"))
+      .is("revoked_at", null)
+      .maybeSingle();
+    isBanned = !!banRow;
+  }
   let lockReason: string | null = null;
   if (viewerIsOwner) {
     if (userRoles.participantId === participantId) {
@@ -129,6 +144,7 @@ export default async function ParticipantPermissionsPage({
           email={participant.email ?? ""}
           displayName={displayName}
           locked={lockReason}
+          banned={isBanned}
         />
       )}
     </div>

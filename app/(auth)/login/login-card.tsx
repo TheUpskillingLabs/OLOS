@@ -125,6 +125,33 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
     </div>
   );
 
+  // Explicit, not a silent "no account": a banned person is told plainly that
+  // they don't have access, rather than being sent round the join loop that the
+  // no_account copy points at. No reason is shown and no contact route is
+  // offered — the decision is not litigated on the login page.
+  const banned = searchParams.get("error") === "banned";
+
+  const bannedAlert = banned && (
+    <div
+      style={{
+        background: "var(--paper)",
+        border: "1px solid rgba(225,29,42,.35)",
+        borderLeft: "3px solid var(--red)",
+        borderRadius: "var(--r)",
+        padding: "14px 16px",
+        marginBottom: 24,
+      }}
+      role="alert"
+    >
+      <p className="t-body" style={{ fontWeight: 600, marginBottom: 4 }}>
+        You don&rsquo;t have access to this app.
+      </p>
+      <p className="t-small">
+        This account can&rsquo;t sign in to The Upskilling Labs.
+      </p>
+    </div>
+  );
+
   const failedAlert = authFailed && (
     <div
       className="t-small"
@@ -222,6 +249,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
           {invitedTag}
           {failedAlert}
           {noAccountAlert}
+          {bannedAlert}
           <h2 className="t-h2" style={{ marginBottom: 8 }}>
             Sign in with Google
           </h2>
@@ -245,6 +273,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
           Use your Google account to sign in to The Upskilling Labs.
         </p>
         {noAccountAlert}
+        {bannedAlert}
         <div style={{ marginBottom: 10 }}>{googleButton}</div>
         {finePrint}
       </>
@@ -264,6 +293,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
             {invitedTag}
             {failedAlert}
             {noAccountAlert}
+            {bannedAlert}
             <h2 className="t-h1" style={{ marginBottom: 16 }}>
               Sign in with Google
             </h2>
@@ -302,6 +332,7 @@ export default function LoginCard({ inModal = false }: { inModal?: boolean }) {
               Use your Google account to sign in to The Upskilling Labs.
             </p>
             {noAccountAlert}
+            {bannedAlert}
             {googleButton}
             <div style={{ marginTop: 20 }}>{finePrint}</div>
           </div>

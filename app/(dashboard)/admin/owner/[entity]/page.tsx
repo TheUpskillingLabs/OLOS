@@ -36,7 +36,14 @@ export default async function OwnerEntityListPage({
     .order(descriptor.idColumn, { ascending: false })
     .limit(100)) as unknown as { data: Record<string, unknown>[] | null };
 
-  const actions = supportedActions(descriptor);
+  // Ban/unban are deliberately withheld from this generic row list. They are
+  // the one verb aimed at a PERSON rather than a record, and picking the wrong
+  // row out of hundreds here locks a real member out of their account. Banning
+  // lives on the individual's own page (People & Access → the person → Danger
+  // zone), where the name, email and roles are all in view before you act.
+  const actions = supportedActions(descriptor).filter(
+    (a) => a !== "ban" && a !== "unban"
+  );
   const list = rows ?? [];
 
   return (

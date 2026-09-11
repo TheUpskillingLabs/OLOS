@@ -90,6 +90,33 @@ export default async function AdminPeoplePage({
     });
   }
 
+  // Active bans (participant_bans, 00102), keyed on lower(email) because that is
+  // what the blocklist is keyed on — a ban is against an address, not a row, so it
+  // survives deletion and re-registration. One query for the whole list; matched
+  // in memory rather than per-person.
+  const { data: bans } = await serviceClient
+    .from("participant_bans")
+    .select("email")
+    .is("revoked_at", null);
+  const bannedEmails = new Set(
+    (bans ?? []).map((b) => (b.email as string).toLowerCase())
+  );
+
+  // Owner lifecycle context for the drill-in drawer's Danger zone. The rooted
+  // (apex) owner — a participant_roles owner grant with granted_by NULL (00066) —
+  // and the acting owner's own profile are both locked out of these actions. The
+  // API and the DB re-check independently; this only decides what to render.
+  const viewerIsOwner = isOwner(userRoles);
+  const { data: apexOwners } = viewerIsOwner
+    ? await serviceClient
+        .from("participant_roles")
+        .select("participant_id")
+        .eq("role", "owner")
+        .is("granted_by", null)
+        .is("revoked_at", null)
+    : { data: [] as { participant_id: number }[] };
+  const apexOwnerIds = (apexOwners ?? []).map((r) => r.participant_id);
+
   const people: Person[] = (participants ?? []).map((p) => ({
     id: p.id,
     first_name: p.first_name,
@@ -105,6 +132,7 @@ export default async function AdminPeoplePage({
     // No auth_user_id means they have never signed in; every member page
     // resolves identity by that column, so simulating them would render an
     // empty app rather than their view.
+    is_banned: bannedEmails.has((p.email ?? "").toLowerCase()),
     can_simulate: !!p.auth_user_id && !hasAuthorityRole.has(p.id),
   }));
 
@@ -179,6 +207,9 @@ export default async function AdminPeoplePage({
             people={people}
             canManageRoles={canManageRoles}
             canSimulate={canSimulate}
+            viewerIsOwner={viewerIsOwner}
+            viewerParticipantId={userRoles.participantId}
+            apexOwnerIds={apexOwnerIds}
           />
         }
         invitationsPanel={

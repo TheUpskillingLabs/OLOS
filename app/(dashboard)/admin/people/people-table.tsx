@@ -24,10 +24,18 @@ export default function PeopleTable({
   people,
   canManageRoles,
   canSimulate,
+  viewerIsOwner = false,
+  viewerParticipantId = null,
+  apexOwnerIds = [],
 }: {
   people: Person[];
   canManageRoles: boolean;
   canSimulate: boolean;
+  /** Owner-only lifecycle actions (ban / archive / reset / delete) in the drawer. */
+  viewerIsOwner?: boolean;
+  viewerParticipantId?: number | null;
+  /** Rooted owner(s) (00066) — never actionable from this console. */
+  apexOwnerIds?: number[];
 }) {
   const [search, setSearch] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
@@ -121,6 +129,11 @@ export default function PeopleTable({
                       {r}
                     </span>
                   ))}
+                  {p.is_banned && (
+                    <span className="inline-flex items-center rounded-sm bg-red/10 px-2.5 py-0.5 text-xs font-medium text-red">
+                      banned
+                    </span>
+                  )}
                   {p.is_test && (
                     <span className="inline-flex items-center rounded-sm border border-dashed border-ink/30 px-2.5 py-0.5 text-xs font-medium text-meta">
                       tester
@@ -132,7 +145,7 @@ export default function PeopleTable({
                       core contributor
                     </span>
                   )}
-                  {roles.length === 0 && !p.is_test && !p.is_staff && (
+                  {roles.length === 0 && !p.is_test && !p.is_staff && !p.is_banned && (
                     <span className="text-xs text-meta">—</span>
                   )}
                 </div>
@@ -222,6 +235,9 @@ export default function PeopleTable({
         person={selected}
         canManageRoles={canManageRoles}
         canSimulate={canSimulate}
+        viewerIsOwner={viewerIsOwner}
+        viewerParticipantId={viewerParticipantId}
+        apexOwnerIds={apexOwnerIds}
         onClose={() => setSelectedId(null)}
       />
     </div>
