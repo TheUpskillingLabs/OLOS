@@ -3,6 +3,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { escapeEmailForIlike } from "@/lib/auth/email";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { fulfillInvitation } from "@/lib/auth/invitations";
+import { isEmailBanned } from "@/lib/auth/bans";
 
 // The login door sets auth_intent=login before kicking off OAuth (the join
 // door sets "join") — see app/(auth)/login/login-card.tsx. An unknown Google
@@ -37,6 +38,24 @@ export async function GET(request: Request) {
 
         if (!email) {
           return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+        }
+
+        // THE BAN GATE. Before anything else: a blocklisted email never gets
+        // an app session, whether or not a participants row still exists for
+        // it (migration 00102 keys the blocklist on email precisely so a
+        // deleted person cannot re-enter). Sign the Supabase session back out
+        // so a retry starts clean, exactly as the no_account branch does.
+        //
+        // auth.users.banned_until (set by lib/owner/ban.ts) normally stops
+        // these attempts inside GoTrue before they ever reach this handler.
+        // This gate is the layer that still holds when there is no auth.users
+        // row to lock — a banned person who never signed in, or who comes back
+        // after an erasure with the same address.
+        if (await isEmailBanned(serviceClient, email)) {
+          await supabase.auth.signOut();
+          return clearIntentCookie(
+            NextResponse.redirect(`${origin}/login?error=banned`),
+          );
         }
 
         // Case-insensitive lookup against the unique-on-lower(email) index

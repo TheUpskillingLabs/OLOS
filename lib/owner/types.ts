@@ -22,8 +22,8 @@ export type OwnerEntityKey =
   | "announcements"
   | "spotlights";
 
-/** The three owner verbs. */
-export type OwnerAction = "archive" | "reset" | "delete";
+/** The owner verbs. */
+export type OwnerAction = "archive" | "reset" | "delete" | "ban" | "unban";
 
 /**
  * How an entity's ARCHIVE (soft, reversible) is implemented:
@@ -43,6 +43,15 @@ export type ResetSpec = { kind: "rpc"; fn: string };
 /** Hard delete is a SECURITY DEFINER RPC (participants only). */
 export type DeleteSpec = { kind: "rpc"; fn: string };
 
+/**
+ * Ban (participants only) is always a named TS helper pair in ban.ts: it composes
+ * archive with a participant_bans row and an auth.users lock, so it is multi-table
+ * and multi-service in the same way archiveParticipant is. Declaring it here rather
+ * than reusing ArchiveSpec keeps "archive" and "ban" distinct verbs in the audit log
+ * and in the UI — they are not the same action with a different label.
+ */
+export type BanSpec = { kind: "helper"; fn: string; unbanFn: string };
+
 /** Guardrails enforced in the API layer (the DB RPCs re-check independently). */
 export type GuardKey = "apexOwner" | "self" | "activeCycle" | "defaultMetro";
 
@@ -57,5 +66,7 @@ export interface LifecycleDescriptor {
   archive: ArchiveSpec | null;
   reset: ResetSpec | null;
   delete: DeleteSpec | null;
+  /** Null for every entity but `participants` — you ban a person, not a pod. */
+  ban: BanSpec | null;
   guards: GuardKey[];
 }

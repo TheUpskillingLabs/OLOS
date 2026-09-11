@@ -5,7 +5,7 @@ import { z } from "zod";
 // belt-and-suspenders check on top of type-to-confirm in the UI. `reason` is an
 // optional free-text note recorded in the owner_actions audit log.
 export const ownerActionSchema = z.object({
-  action: z.enum(["archive", "reset"]),
+  action: z.enum(["archive", "reset", "ban", "unban"]),
   reason: z.string().trim().max(500).optional(),
   confirm: z.string().max(320).optional(),
 });

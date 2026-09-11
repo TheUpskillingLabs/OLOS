@@ -212,6 +212,8 @@ Participants join cycles via `cycle_enrollments`. Authority (owner/admin/develop
 
 > **`cycle_enrollments.status` — membership vs. pod-activation (migration `00099`).** The status splits two axes. `registered` = committed member with no active pod yet (the self-service resting state and column default; grants the `participant` role and can submit learning logs). `active` = member **with** an active pod (unchanged meaning; only these members are under the weekly-log cadence). `inactive` = the one true exit — was `active`, fell behind the weekly logs — and always carries an `access_revocations` audit row. `revoked` = hard erasure/archive (`lib/owner/archive.ts`). The reconciler (`lib/enrollment/reconciler.ts`) owns only `registered ⇄ active` (promote on a pod becoming active, demote to `registered` on leaving the last pod) and **never** writes `inactive`; the engagement cron / admin sweep are the sole writers of `inactive`. A member who never joins a pod stays `registered` indefinitely; an `inactive` member auto-recovers on their next qualifying log. (`interested`/`stepped_back`/`completed` remain in the CHECK vocabulary from earlier migrations but are not written by the current flow.)
 
+> **Archive is not a ban (migration `00102`).** `lib/owner/archive.ts` revokes every role, enrollment and membership, but the OAuth callback only asks whether a `participants` row exists for the email — so an archived person still signs in, with no roles. Deleting them is worse: the `/register` funnel re-creates the row for the same Google account. A ban is therefore its own thing, `participant_bans`, keyed on email so it survives both. It is enforced at three points: the auth callback (`app/api/auth/callback/route.ts`), the registration funnel (`app/api/registrations/funnel/route.ts`), and `auth.users.banned_until` inside GoTrue. Deliberately **not** enforced in `proxy.ts` — a DB round trip in the edge path on every request is too expensive, and `banned_until` already kills live sessions at their next token refresh.
+
 ```mermaid
 erDiagram
     participants {
@@ -907,14 +909,15 @@ erDiagram
 |---|---|---|
 | `cycles` | Core | Root entity; a single build cohort |
 | `cycle_config` | Core | All tunable thresholds & window timestamps |
-| `participants` | Core | System-wide identity & profile. `archived_at` (00079) = owner-archived (deactivated) profile; NULL = active |
+| `participants` | Core | System-wide identity & profile. `archived_at` (00079) = owner-archived (deactivated) profile; NULL = active. Note archive alone does **not** block sign-in — see `participant_bans` (00102) |
 | `option_lists` | Core | Seed data for multiselect fields |
 | `participant_options` | Core | Junction: participant ↔ multiselect choices |
 | `cycle_enrollments` | Enrollment | Participant ↔ cycle membership + status |
 | `user_roles` | Roles | Elevated roles (owner, admin, observer) |
 | `moderator_assignments` | Roles | Pod-scoped moderator grants per cycle |
 | `access_revocations` | Audit | Log of revocations with scope & reason |
-| `owner_actions` | Audit | Owner lifecycle log (00078): every archive/reset/delete an owner runs on an entity — actor, entity type/id/label, action, reason, detail. Owner-only readable; written by the destructive RPCs in-transaction and by the archive API path |
+| `owner_actions` | Audit | Owner lifecycle log (00078): every archive/reset/delete/ban/unban an owner runs on an entity — actor, entity type/id/label, action, reason, detail. `action` vocabulary widened to include `ban`/`unban` in 00102. Owner-only readable; written by the destructive RPCs in-transaction and by the archive/ban API paths |
+| `participant_bans` | Audit | App-level blocklist (00102). Keyed on `lower(email)` — **not** `participant_id` — so a ban outlives the participants row and a deleted person cannot re-register. One active ban per email (partial unique index `WHERE revoked_at IS NULL`); an unban stamps `revoked_at` rather than deleting, so the history survives. Read by the OAuth callback and the registration funnel via `is_banned_email()`; `auth.users.banned_until` is the independent second layer |
 | `pulse_checks` | Engagement | Weekly check-in responses (flexible JSONB) |
 | `problem_statements` | Pod Layer | Submitted problems, one per participant per cycle |
 | `votes` | Pod Layer | Budget-based votes on problem statements |
