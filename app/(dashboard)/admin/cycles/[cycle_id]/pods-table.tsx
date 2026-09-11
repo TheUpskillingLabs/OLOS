@@ -135,6 +135,19 @@ export default function PodsTable({
             className: "text-meta tabular-nums",
             cell: (p) => p.members.length,
           },
+          // Projects sit inside the Manage drawer, so without a count here
+          // there is nothing on the surface to suggest a pod HAS projects —
+          // the drawer reads as membership-only. Mirrors the Members column.
+          ...(mode !== "org"
+            ? [
+                {
+                  key: "projects",
+                  header: "Projects",
+                  className: "text-meta tabular-nums",
+                  cell: (p: PodAdminRow) => p.projectCount,
+                },
+              ]
+            : []),
           {
             key: "moderators",
             header: moderatorNoun(mode, true),
