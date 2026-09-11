@@ -24,10 +24,18 @@ export default function PeopleTable({
   people,
   canManageRoles,
   canSimulate,
+  viewerIsOwner = false,
+  viewerParticipantId = null,
+  apexOwnerIds = [],
 }: {
   people: Person[];
   canManageRoles: boolean;
   canSimulate: boolean;
+  /** Owner-only lifecycle actions (ban / archive / reset / delete) in the drawer. */
+  viewerIsOwner?: boolean;
+  viewerParticipantId?: number | null;
+  /** Rooted owner(s) (00066) — never actionable from this console. */
+  apexOwnerIds?: number[];
 }) {
   const [search, setSearch] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
@@ -227,6 +235,9 @@ export default function PeopleTable({
         person={selected}
         canManageRoles={canManageRoles}
         canSimulate={canSimulate}
+        viewerIsOwner={viewerIsOwner}
+        viewerParticipantId={viewerParticipantId}
+        apexOwnerIds={apexOwnerIds}
         onClose={() => setSelectedId(null)}
       />
     </div>
