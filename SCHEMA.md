@@ -393,6 +393,8 @@ erDiagram
 
 ---
 
+> **Admin placement on projects (migration `00103`).** `projects.pod_id` is NOT NULL, so a project lives in exactly one pod and joining a project must imply joining its pod. Combined with `one_active_project_per_cycle` (at most one active project per person per cycle), `UNIQUE(participant_id, project_id)` (rejoining REACTIVATES, never inserts a second row), the `project_max` cap trigger (`00101`), and `cycle_config.pod_limit` (default 1, so a cross-pod move must close the old pod membership), both admin operations are multi-table and invariant-bound. They therefore live in SECURITY DEFINER RPCs — `admin_add_to_project` and `admin_move_project` — so a cap rejection on the project can't strand someone in a pod they were only added to for that project. A move derives its SOURCE project server-side from the participant's one active membership, so a stale roster in the browser can't move the wrong row. `00103` also adds a transaction-scoped `app.admin_cap_override` GUC that ONLY those RPCs set (owner decision: admins may exceed `project_max` with confirmation); every other path still hits `00101`'s hard wall.
+
 ## ERD — Project Layer (Phases 5–7)
 
 Mirrors the pod layer one level down. Solution proposals are submitted within pods, voted on, and top proposals become projects. Participants self-register into projects (max 1 active project per cycle).
@@ -917,6 +919,7 @@ erDiagram
 | `moderator_assignments` | Roles | Pod-scoped moderator grants per cycle |
 | `access_revocations` | Audit | Log of revocations with scope & reason |
 | `owner_actions` | Audit | Owner lifecycle log (00078): every archive/reset/delete/ban/unban an owner runs on an entity — actor, entity type/id/label, action, reason, detail. `action` vocabulary widened to include `ban`/`unban` in 00102. Owner-only readable; written by the destructive RPCs in-transaction and by the archive/ban API paths |
+| `admin_actions` | Audit | Admin roster-edit log (00103): project add / move — actor, participant, from/to project and pod, whether `project_max` was overridden, reason. Admin-readable; written only inside the `admin_add_to_project` / `admin_move_project` RPCs. Sibling to `owner_actions`, which stays owner-only lifecycle verbs |
 | `participant_bans` | Audit | App-level blocklist (00102). Keyed on `lower(email)` — **not** `participant_id` — so a ban outlives the participants row and a deleted person cannot re-register. One active ban per email (partial unique index `WHERE revoked_at IS NULL`); an unban stamps `revoked_at` rather than deleting, so the history survives. Read by the OAuth callback and the registration funnel via `is_banned_email()`; `auth.users.banned_until` is the independent second layer |
 | `pulse_checks` | Engagement | Weekly check-in responses (flexible JSONB) |
 | `problem_statements` | Pod Layer | Submitted problems, one per participant per cycle |

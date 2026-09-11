@@ -31,6 +31,15 @@ export type PodModerator = {
   name: string;
   assigned_at: string;
 };
+export type ProjectAdminRow = {
+  id: number;
+  name: string | null;
+  status: string;
+  pod_id: number;
+  /** ACTIVE members only (left_at IS NULL) — matches what the project_max cap
+   * counts, so the fill shown here can't promise room the DB then refuses. */
+  members: PodMember[];
+};
 export type PodAdminRow = {
   id: number;
   name: string | null;
@@ -39,6 +48,10 @@ export type PodAdminRow = {
   moderators: PodModerator[];
   /** Existing projects for this pod — gates the Finalize-projects action. */
   projectCount: number;
+  /** This pod's projects with their rosters (00103 admin add / move).
+   * Optional: consumers that don't load rosters (the lab page) fall back to
+   * the plain "projects have been finalized" note. */
+  projects?: ProjectAdminRow[];
 };
 type ParticipantOption = {
   participant_id: number;
@@ -64,6 +77,8 @@ export default function PodsTable({
   moderatorCandidates,
   mode,
   isOwner = false,
+  allProjects = [],
+  projectMax = null,
 }: {
   cycleId: number;
   pods: PodAdminRow[];
@@ -74,6 +89,11 @@ export default function PodsTable({
   moderatorCandidates?: ParticipantOption[];
   mode?: string | null;
   isOwner?: boolean;
+  /** Every project in the cycle — the Move picker's destination list. A move
+   * is usually cross-pod, which is why this isn't scoped to one pod. */
+  allProjects?: ProjectAdminRow[];
+  /** cycle_config.project_max; null means uncapped. */
+  projectMax?: number | null;
 }) {
   const [managePodId, setManagePodId] = React.useState<number | null>(null);
   const managePod = pods.find((p) => p.id === managePodId) ?? null;
@@ -115,6 +135,19 @@ export default function PodsTable({
             className: "text-meta tabular-nums",
             cell: (p) => p.members.length,
           },
+          // Projects sit inside the Manage drawer, so without a count here
+          // there is nothing on the surface to suggest a pod HAS projects —
+          // the drawer reads as membership-only. Mirrors the Members column.
+          ...(mode !== "org"
+            ? [
+                {
+                  key: "projects",
+                  header: "Projects",
+                  className: "text-meta tabular-nums",
+                  cell: (p: PodAdminRow) => p.projectCount,
+                },
+              ]
+            : []),
           {
             key: "moderators",
             header: moderatorNoun(mode, true),
@@ -167,6 +200,8 @@ export default function PodsTable({
             participants={participants}
             mode={mode}
             isOwner={isOwner}
+            allProjects={allProjects}
+            projectMax={projectMax}
           />
         )}
       </Sheet>
@@ -179,11 +214,15 @@ function PodManagePanel({
   participants,
   mode,
   isOwner = false,
+  allProjects = [],
+  projectMax = null,
 }: {
   pod: PodAdminRow;
   participants: ParticipantOption[];
   mode?: string | null;
   isOwner?: boolean;
+  allProjects?: ProjectAdminRow[];
+  projectMax?: number | null;
 }) {
   const router = useRouter();
   const isOrg = mode === "org";
@@ -192,6 +231,13 @@ function PodManagePanel({
   const [selectedId, setSelectedId] = React.useState("");
   const [roleValue, setRoleValue] = React.useState<"member" | "co_lead">("member");
   const [search, setSearch] = React.useState("");
+  // Per-project "add participant" selections, keyed by project id.
+  const [projectSel, setProjectSel] = React.useState<Record<number, string>>({});
+  // The person currently being moved, and where to.
+  const [moving, setMoving] = React.useState<
+    { participantId: number; name: string; fromProjectId: number } | null
+  >(null);
+  const [moveTo, setMoveTo] = React.useState("");
 
   const memberIds = new Set(pod.members.map((m) => m.participant_id));
   const addable = participants.filter((p) => !memberIds.has(p.participant_id));
@@ -275,6 +321,69 @@ function PodManagePanel({
     call(`/api/admin/pods/${pod.id}/memberships/${participantId}`, "DELETE");
   };
 
+  // ── Project roster controls (00103) ────────────────────────────────────
+  // Adding someone to a project also puts them in that project's pod, and a
+  // move carries the pod with it when the destination is in another pod. Both
+  // happen inside one RPC transaction, so the two rosters can never disagree.
+
+  /** null = uncapped. */
+  const isFull = (proj: ProjectAdminRow) =>
+    projectMax != null && proj.members.length >= projectMax;
+
+  const fill = (proj: ProjectAdminRow) =>
+    projectMax != null ? `${proj.members.length}/${projectMax}` : `${proj.members.length}`;
+
+  const addToProject = (proj: ProjectAdminRow) => {
+    const raw = projectSel[proj.id];
+    if (!raw) return;
+    let override = false;
+    if (isFull(proj)) {
+      // Owner decision (2026-09-11): admins may exceed project_max, but only
+      // deliberately. The cap is enforced in the database (00101), so this
+      // flag is what opens the transaction-scoped override in the RPC.
+      if (
+        !confirm(
+          `${proj.name ?? `Project ${proj.id}`} is already at its limit of ${projectMax}. Add anyway and exceed the limit?`,
+        )
+      )
+        return;
+      override = true;
+    }
+    call(`/api/admin/projects/${proj.id}/memberships`, "POST", {
+      action: "add",
+      participant_id: parseInt(raw, 10),
+      override,
+    });
+    setProjectSel((prev) => ({ ...prev, [proj.id]: "" }));
+  };
+
+  const confirmMove = () => {
+    if (!moving || !moveTo) return;
+    const toId = parseInt(moveTo, 10);
+    const target = allProjects.find((p) => p.id === toId);
+    if (!target) return;
+    let override = false;
+    if (isFull(target)) {
+      if (
+        !confirm(
+          `${target.name ?? `Project ${target.id}`} is already at its limit of ${projectMax}. Move anyway and exceed the limit?`,
+        )
+      )
+        return;
+      override = true;
+    }
+    // The destination project is the route target; the SOURCE is derived
+    // server-side from the participant's one active membership, so a stale
+    // roster in this tab can't move the wrong row.
+    call(`/api/admin/projects/${toId}/memberships`, "POST", {
+      action: "move",
+      participant_id: moving.participantId,
+      override,
+    });
+    setMoving(null);
+    setMoveTo("");
+  };
+
   return (
     <div className="space-y-8 p-6">
       {error && (
@@ -308,7 +417,143 @@ function PodManagePanel({
       {mode !== "org" && (
         <section>
           <h3 className="lbl mb-3">Projects ({pod.projectCount})</h3>
-          {pod.projectCount > 0 ? (
+          {pod.projectCount > 0 && (pod.projects?.length ?? 0) > 0 ? (
+            <div className="space-y-5">
+              {(pod.projects ?? []).map((proj) => {
+                const addable = participants.filter(
+                  (p) => !proj.members.some((m) => m.participant_id === p.participant_id),
+                );
+                return (
+                  <div
+                    key={proj.id}
+                    className="rounded-card border border-ink/10 p-3"
+                  >
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-ink">
+                        {proj.name ?? `Project ${proj.id}`}
+                      </span>
+                      <span
+                        className={`text-xs tabular-nums ${isFull(proj) ? "font-medium text-red" : "text-meta"}`}
+                      >
+                        {fill(proj)}
+                        {isFull(proj) ? " · full" : ""}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      {proj.members.map((m) => (
+                        <div
+                          key={m.participant_id}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <span className="text-charcoal">{m.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMoving({
+                                participantId: m.participant_id,
+                                name: m.name,
+                                fromProjectId: proj.id,
+                              });
+                              setMoveTo("");
+                            }}
+                            disabled={busy}
+                            className="text-xs font-medium text-teal-deep transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Move
+                          </button>
+                        </div>
+                      ))}
+                      {proj.members.length === 0 && (
+                        <p className="text-xs text-meta">No one on this project yet.</p>
+                      )}
+                    </div>
+
+                    {/* Moving someone off THIS project: the destination list is
+                        every other project in the cycle, since a move is
+                        usually into another pod. */}
+                    {moving?.fromProjectId === proj.id && (
+                      <div className="mt-3 rounded-card bg-ink/[0.03] p-3">
+                        <p className="mb-2 text-xs text-meta">
+                          Move <span className="font-medium text-ink">{moving.name}</span> to:
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            value={moveTo}
+                            onChange={(e) => setMoveTo(e.target.value)}
+                            aria-label="Destination project"
+                            className="flex-1 rounded-card border border-ink/10 bg-white px-2 py-1.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                          >
+                            <option value="">Choose a project…</option>
+                            {allProjects
+                              .filter((p) => p.id !== proj.id)
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name ?? `Project ${p.id}`}
+                                  {p.pod_id !== pod.id ? " (other pod)" : ""} — {fill(p)}
+                                  {isFull(p) ? " full" : ""}
+                                </option>
+                              ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={confirmMove}
+                            disabled={busy || !moveTo}
+                            className="btn btn-ghost px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Move
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMoving(null)}
+                            disabled={busy}
+                            className="text-xs text-meta disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[11px] text-meta">
+                          Moving to a project in another pod moves their pod
+                          membership too.
+                        </p>
+                      </div>
+                    )}
+
+                    {addable.length > 0 && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <select
+                          value={projectSel[proj.id] ?? ""}
+                          onChange={(e) =>
+                            setProjectSel((prev) => ({ ...prev, [proj.id]: e.target.value }))
+                          }
+                          aria-label={`Add participant to ${proj.name ?? `project ${proj.id}`}`}
+                          className="flex-1 rounded-card border border-ink/10 bg-white px-2 py-1.5 text-base text-ink transition-colors duration-150 focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal"
+                        >
+                          <option value="">Add participant…</option>
+                          {addable.map((p) => (
+                            <option key={p.participant_id} value={p.participant_id}>
+                              {p.email ? `${p.name} — ${p.email}` : p.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => addToProject(proj)}
+                          disabled={busy || !projectSel[proj.id]}
+                          className="btn btn-ghost px-3 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isFull(proj) ? "Add over limit" : "Add"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <p className="text-[11px] text-meta">
+                Adding someone to a project also adds them to this pod.
+              </p>
+            </div>
+          ) : pod.projectCount > 0 ? (
             <p className="text-sm text-meta">
               Projects have been finalized for this pod.
             </p>
