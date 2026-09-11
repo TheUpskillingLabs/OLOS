@@ -18,7 +18,7 @@ import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
 import RevocationsSection from "./revocations-section";
 import TestingControls from "./testing-controls";
-import PodsTable, { type PodAdminRow } from "./pods-table";
+import PodsTable, { type PodAdminRow, type ProjectAdminRow } from "./pods-table";
 import WorkstreamsPanel, {
   type WorkstreamAdminRow,
   type PriorOrgCycleOption,
@@ -251,14 +251,58 @@ export default async function AdminCycleDetailPage({
   const { data: cycleProjects } = podIds.length
     ? await serviceClient
         .from("projects")
-        .select("id, pod_id")
+        .select("id, pod_id, name, status")
         .in("pod_id", podIds)
-    : { data: [] as { id: number; pod_id: number }[] };
+    : { data: [] as { id: number; pod_id: number; name: string | null; status: string }[] };
 
   const projectCountByPod: Record<number, number> = {};
   for (const proj of cycleProjects ?? []) {
     projectCountByPod[proj.pod_id] = (projectCountByPod[proj.pod_id] ?? 0) + 1;
   }
+
+  // Project rosters for the pod Manage drawer's Add / Move controls (00103).
+  // Only ACTIVE memberships (left_at IS NULL) — a left member is history, and
+  // the fill counts shown in the Move picker have to match what the
+  // project_max cap actually counts, or the UI would promise room that the
+  // trigger then refuses.
+  const projectIds = (cycleProjects ?? []).map((p) => p.id);
+  const { data: projectMemberships } = projectIds.length
+    ? await serviceClient
+        .from("project_memberships")
+        .select("participant_id, project_id")
+        .in("project_id", projectIds)
+        .is("left_at", null)
+    : { data: [] as { participant_id: number; project_id: number }[] };
+
+  const membersByProject: Record<number, { participant_id: number; name: string }[]> = {};
+  for (const pm of projectMemberships ?? []) {
+    (membersByProject[pm.project_id] ??= []).push({
+      participant_id: pm.participant_id,
+      name: nameByParticipant.get(pm.participant_id) ?? `Participant ${pm.participant_id}`,
+    });
+  }
+
+  const projectsByPod: Record<number, ProjectAdminRow[]> = {};
+  for (const proj of cycleProjects ?? []) {
+    (projectsByPod[proj.pod_id] ??= []).push({
+      id: proj.id,
+      name: proj.name,
+      status: proj.status,
+      pod_id: proj.pod_id,
+      members: membersByProject[proj.id] ?? [],
+    });
+  }
+
+  // Every project in the cycle, for the Move picker — destinations are often
+  // in a different pod, which is the whole reason a move is not just an edit
+  // inside one pod's drawer.
+  const allCycleProjects: ProjectAdminRow[] = (cycleProjects ?? []).map((proj) => ({
+    id: proj.id,
+    name: proj.name,
+    status: proj.status,
+    pod_id: proj.pod_id,
+    members: membersByProject[proj.id] ?? [],
+  }));
 
   const podAdminRows: PodAdminRow[] = (pods ?? []).map((pod) => ({
     id: pod.id,
@@ -267,6 +311,7 @@ export default async function AdminCycleDetailPage({
     members: membersByPod[pod.id] ?? [],
     moderators: moderatorsByPod[pod.id] ?? [],
     projectCount: projectCountByPod[pod.id] ?? 0,
+    projects: projectsByPod[pod.id] ?? [],
   }));
 
   // Formation-tab workstreams roster — org cycles only (docs/ORG_CYCLES.md
@@ -522,6 +567,8 @@ export default async function AdminCycleDetailPage({
           }
           mode={cycle.mode}
           isOwner={isOwner(userRoles)}
+          allProjects={allCycleProjects}
+          projectMax={(config?.project_max as number | null) ?? null}
         />
       </section>
     </div>
