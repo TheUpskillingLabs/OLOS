@@ -143,6 +143,9 @@ route under `app/api/cron/`.
 
 ## Where to go deeper
 
+- [`docs/USER_JOURNEY.md`](USER_JOURNEY.md) — what a person actually
+  experiences, stage by stage, across the three tracks (Upskiller, Poderator,
+  Organizer)
 - [`SCHEMA.md`](../SCHEMA.md) — every table, with ERDs
 - [`DESIGN_SYSTEM.md`](../DESIGN_SYSTEM.md) — tokens, components, and the copy voice
 - [`docs/environments.md`](environments.md) — local/dev/prod, env vars, deploy
