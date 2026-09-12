@@ -49,15 +49,24 @@ all: the `setup:slack` checklist row is dismissal-based (issue #189).
 2. **Names come from per-tier templates**, editable in admin. Defaults are the existing
    hand convention: cycle `{cycle_code}` (`#c03`), pod and project
    `{cycle_code}-{abbrev}` (`#c03-effortvsimpact`, `#c03-blah`).
-3. **`cycles.slack_code VARCHAR(12) UNIQUE`**, set by an admin, suggested as `c` plus a
-   zero-padded ordinal. Never derived from `cycles.id`, which is a surrogate key that
-   skips values and does not mean what a person means by "cycle 3". A text code also
-   expresses sub-cohorts (`c03a`), which a padded integer cannot, and sub-cohorts already
-   exist in the schema (`00067_hq_open_cycle_sub_cohorts.sql`).
-4. **No lab token in channel names.** The lab is already reachable through
-   `cycles.lab_id` (`00062_local_labs.sql`) and is surfaced as a filter column in admin,
-   not encoded in the name. The `UNIQUE` on `slack_code` is what keeps a second lab's
-   cycle 3 from colliding: someone types `dc03`.
+3. **Cycles are numbered per lab, and the ordinal is its own column.**
+   `cycles.lab_cycle_number SMALLINT`, unique per `(lab_id, lab_cycle_number)`: "cycle 3"
+   means the third cycle of that lab, not the third overall. Separately,
+   **`cycles.slack_code VARCHAR(12) UNIQUE`** holds the channel-name token, hand-editable,
+   suggested from the lab and the ordinal: the default lab (`metros.is_default`) gets `c`
+   plus the zero-padded number (`c03`), and every other lab gets its own short prefix in
+   place of the `c` (`dc03`), read from a new `metros.slack_prefix VARCHAR(6)`. Never
+   derived from `cycles.id`, a surrogate key that skips values and does not mean what a
+   person means by "cycle 3". Text also expresses sub-cohorts (`c03a`), which a padded
+   integer cannot, and those already exist in the schema
+   (`00067_hq_open_cycle_sub_cohorts.sql`).
+4. **No lab token in the channel name template.** The lab reaches the name only through
+   the code; otherwise it stays data, `cycles.lab_id` (`00062_local_labs.sql`), surfaced
+   as a filter column in admin. Because numbering is per lab, two labs will both have a
+   cycle 3, and the Slack namespace is flat across a workspace. So the two constraints do
+   two different jobs: `(lab_id, lab_cycle_number)` carries what the program means, and
+   the global `UNIQUE` on `slack_code` is what forces the second lab's code to be `dc03`
+   rather than silently colliding.
 5. **`slack_abbrev` on `pods` and `projects`**, auto-suggested by a squashing normalizer
    (lowercase, drop everything outside `[a-z0-9]`, insert no separators, strip no
    stopwords, truncate at 20 with a warning rather than a hard cut), then hand-editable.
@@ -114,16 +123,19 @@ that would reopen the question:
 
 ## Consequences
 
-- A migration adds `cycles.slack_code` (unique), `pods.slack_abbrev`,
-  `projects.slack_abbrev`, `cycles.slack_channel_id`, and the three identity columns on
-  `participants`. Visibility config goes on `cycle_config`.
+- A migration adds `cycles.lab_cycle_number` (unique with `lab_id`), `cycles.slack_code`
+  (globally unique), `cycles.slack_channel_id`, `metros.slack_prefix`, `pods.slack_abbrev`,
+  `projects.slack_abbrev`, and the three identity columns on `participants`. Visibility
+  config goes on `cycle_config`.
 - Scopes needed: `groups:write` for private channels, `channels:manage` for public and for
   rename, `users:read.email` for the lookup, `chat:write` once anything posts.
   `SLACK_BOT_TOKEN` is server-only and must never become a `NEXT_PUBLIC_` variable.
 - Private channels cannot be discovered or rejoined by members, so anyone who leaves needs
   a re-invite. The reconciler covers this only for as long as it keeps running.
-- The `UNIQUE` on `slack_code` means labs cannot number cycles independently unless their
-  codes differ. That is deliberate and is the cost of keeping the lab out of the name.
+- Labs number cycles independently, so every lab after the default one needs a
+  `slack_prefix` set before its first channel is created. Forgetting it means the second
+  lab's `c03` hits the unique index, which is the intended failure: loud, and before
+  anything is created in Slack.
 - A pod and a project can want the same abbreviation, since both tiers use the same
   template. The admin preview flags it and a person picks another; no code resolves it.
 - Rate limits are not a constraint at this scale, roughly ten to fifteen channels a cycle.
@@ -136,9 +148,11 @@ that would reopen the question:
 ## What is not decided
 
 - **One workspace, or one per lab?** Everything here assumes a single workspace for the
-  Labs. `docs/requirements/per-lab-configuration.md` anticipates per-lab Slack. Per-lab
-  workspaces would mean a bot token per lab and would make decision 4 and the unique
-  constraint unnecessary. Settled by whoever decides lab autonomy, not by this note.
+  Labs. `docs/requirements/per-lab-configuration.md` anticipates per-lab Slack. This got
+  more load-bearing once numbering went per lab (decision 3): with one workspace, every
+  lab after the default needs a prefix, while with a workspace per lab `#c03` is free for
+  all of them and the global unique constraint becomes unnecessary. Settled by whoever
+  decides lab autonomy, not by this note.
 - **Is `team_join` worth an inbound route?** A cron reconcile means someone who joins
   Slack at 10am may not land in their channels until the next run. Hourly is probably
   fine. Inbound would need a public route, request signature verification and a 3-second
