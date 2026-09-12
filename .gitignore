@@ -79,3 +79,9 @@ scripts/dev/
 # Claude Code: per-developer local settings (e.g. the experimental agent-teams
 # flag). The shared .claude/settings.json and .claude/agents/ ARE tracked.
 .claude/settings.local.json
+
+# Obsidian: per-developer vault UI state in docs/vault/. Notes and any
+# shared plugin config ARE tracked; only local workspace/cache state is not.
+docs/vault/.obsidian/workspace*.json
+docs/vault/.obsidian/cache
+docs/vault/.trash/
