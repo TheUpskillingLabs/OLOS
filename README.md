@@ -57,7 +57,7 @@ Environment setup, the shared dev Supabase project, and login are documented in
 | `proxy.ts` | Edge middleware — the auth gate + public-path allowlist |
 | `supabase/migrations/` | SQL migrations — the source of truth for the database schema |
 | `scripts/` | Operational + migration scripts (see the `CLAUDE.md` in each) |
-| `docs/` | Architecture, roadmap, environments, PRDs, and audit docs |
+| `docs/` | Architecture, roadmap, environments, PRDs, and audit docs, plus the decision vault at [`docs/vault/`](docs/vault/) |
 | `public/` | Static assets |
 
 ## Branch & PR model
@@ -74,6 +74,7 @@ in [CONTRIBUTING.md](CONTRIBUTING.md) and [`docs/environments.md`](docs/environm
 - **[SCHEMA.md](SCHEMA.md)** — database schema reference (ERDs + table summary)
 - **[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** — the design system (tokens, components, voice)
 - **[docs/OLOS-roadmap.md](docs/OLOS-roadmap.md)** — what's being built, in what order
+- **[docs/vault/](docs/vault/)** — the decision vault: why the build is the way it is, and where it has moved away from the spec ([conventions](docs/vault/CLAUDE.md))
 
 Deeper, area-specific context lives in the `CLAUDE.md` files next to the code they
 describe (e.g. [`lib/auth/CLAUDE.md`](lib/auth/CLAUDE.md), [`supabase/CLAUDE.md`](supabase/CLAUDE.md)).
