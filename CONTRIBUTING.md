@@ -65,9 +65,17 @@ All work happens on **`dev`**. `main` is production.
 1. **Branch off `dev`:** `git checkout dev && git pull && git checkout -b your-feature`.
 2. **Make focused commits.** Keep a PR to one logical change — small PRs get
    reviewed faster.
-3. **Open a PR into `dev`** (not `main`). Fill in the PR template.
+3. **Open a PR into `dev`** (not `main`). Title it like a Conventional Commit
+   (`feat(scope): …`, `fix(…)`, `docs(…)`) and fill in the PR template — including
+   the **Docs & decisions** section: a `CHANGELOG.md` line under *Unreleased* for any
+   code change, and a note in `docs/vault/` when a choice was made or the build moved
+   off a spec. The full contract is
+   [docs/roadmap/documentation-framework.md](docs/roadmap/documentation-framework.md).
 4. **CI must be green.** Every PR runs `lint` + `test` + `build` (see
-   [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Red CI won't be merged.
+   [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) and the documentation
+   checks in [`.github/workflows/docs-check.yml`](.github/workflows/docs-check.yml)
+   (changelog line, `SCHEMA.md` with migrations, relative links, doc map). Red CI
+   won't be merged. Run `npm run check:docs` locally to catch the doc checks early.
 5. **A maintainer reviews and squash-merges.** `dev` then auto-deploys to a Vercel
    preview.
 6. **`dev` → `main`** (production) is promoted by a maintainer, not per-PR — see
@@ -130,9 +138,11 @@ up yet.
 
 ## Where to start
 
-Work is planned in [docs/OLOS-roadmap.md](docs/OLOS-roadmap.md) (organized by
-`§`-anchored sections that issues reference), and current status is tracked in
-[docs/audit/PROGRESS.md](docs/audit/PROGRESS.md).
+Work is planned in [docs/roadmap/](docs/roadmap/README.md) — start with the sprint
+plan ([docs/roadmap/next-sprint.md](docs/roadmap/next-sprint.md)) and the September
+2026 audit. The doc map at [docs/README.md](docs/README.md) says which of the older
+documents (the April roadmap, the July audit) are historical. What has shipped is in
+[CHANGELOG.md](CHANGELOG.md).
 
 Good first contributions are labeled **`good first issue`** on the
 [issue tracker](https://github.com/TheUpskillingLabs/OLOS/issues). Suggested labels

@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "check:migrations": "node scripts/check-migration-numbers.mjs",
     "verify:cycle": "node scripts/verify/cycle-e2e.mjs",
-    "seed:test-cycle": "node scripts/ops/seed-test-cycle.mjs"
+    "seed:test-cycle": "node scripts/ops/seed-test-cycle.mjs",
+    "check:docs": "node scripts/check-doc-links.mjs && node scripts/check-vault-frontmatter.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
