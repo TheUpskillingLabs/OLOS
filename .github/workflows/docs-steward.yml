@@ -1,0 +1,83 @@
+# docs-steward — the judgment half of the documentation contract
+# (docs/roadmap/documentation-framework.md §7.2). Weekly, Claude reads the week's
+# merges and files ONE issue with documentation drift. It never pushes or edits.
+#
+# Inert until `ANTHROPIC_API_KEY` is set in the repository secrets. Verify the
+# action's current inputs against https://github.com/anthropics/claude-code-action
+# before the first run — the `prompt` / `claude_args` interface is the v1 shape.
+#
+# Alternative with no GitHub secret: run the same prompt as a Claude Routine from
+# Claude Code on the web (a scheduled trigger that spawns a fresh session with this
+# repo attached). The prompt below is written to work in either host.
+name: docs-steward
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # Mondays 13:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  id-token: write
+
+jobs:
+  steward:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for API key
+        id: gate
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "ANTHROPIC_API_KEY not set — steward is inert. Set the secret to enable."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          fetch-depth: 0
+
+      - name: Run the docs steward
+        if: steps.gate.outputs.enabled == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--allowedTools Bash(gh:*),Bash(git:*),Read,Grep,Glob --max-turns 40"
+          prompt: |
+            You are the OLOS documentation steward. Read docs/roadmap/documentation-framework.md
+            §7.2 first — it defines this job. You have read-only access to the repo plus `gh` for
+            issues. You NEVER push commits or edit files. Your only output is one GitHub issue.
+
+            Do, in order:
+            1. `gh pr list --state merged --base dev --search "merged:>=$(date -u -d '7 days ago' +%F)" --json number,title,body,files,mergedAt`
+               (fall back to `git log --merges --since='7 days ago'` if gh search fails).
+            2. For each merged PR:
+               a. If it touched app/, lib/, supabase/, proxy.ts or vercel.json: confirm a
+                  CHANGELOG.md line mentions (#<number>). If not, record "missing changelog line".
+               b. If its title/body/diff shows a decision (words like "instead of", "we chose",
+                  "decided", "policy", a new CHECK constraint, a removed route, a new cron):
+                  confirm a note exists under docs/vault/ (decisions/ or divergence/) that
+                  references it. If not, record "decision without vault note" with a one-line
+                  suggested title.
+               c. If it added a migration: confirm SCHEMA.md changed in the PR and, if the
+                  migration touches cycle_enrollments/pods/projects/cycles status, that
+                  docs/reference/state-machines.md (if it exists) was updated.
+               d. If it added or removed a route under app/ or a folder under lib/: confirm
+                  docs/ARCHITECTURE.md still describes the tree (grep the path).
+            3. Scan docs/**/*.md (excluding docs/archive, docs/marketing-site, docs/legal, docs/vault)
+               for a "Last verified" row older than 90 days on a doc whose Status is Canonical,
+               and for cited repo paths (app/…, lib/…, supabase/migrations/…) that no longer exist.
+            4. Read docs/roadmap/next-sprint.md §8 and compare with open issues/PRs for the
+               current milestone; note items whose state is stale.
+            5. Check for open PRs idle > 14 days and issues labeled needs-triage older than 7 days.
+            6. Create ONE issue titled "Docs steward — week of <YYYY-MM-DD>" (if one with that
+               title exists, add a comment instead). Body: findings grouped High / Medium / Low,
+               each with file/PR reference and a one-line suggested fix, then a short
+               "nothing to report" section listing what you checked and found clean. Label it
+               `docs` and `needs-triage`. Keep it under 300 lines. Do not open any other issue.

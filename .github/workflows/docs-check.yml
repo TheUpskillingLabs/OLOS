@@ -1,0 +1,82 @@
+# docs-check — the mechanical half of the documentation contract
+# (docs/roadmap/documentation-framework.md §7.1). Runs beside ci.yml on every PR.
+# Every rule demands the PRESENCE of a doc change, never judges its content, and
+# every rule has a labeled opt-out that the PR must justify in its body.
+name: docs-check
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Collect changed files
+        id: changed
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > changed.txt
+          echo "changed files:"; cat changed.txt
+          {
+            echo "md<<EOF"; grep -E '\.md$' changed.txt || true; echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: PR title follows Conventional Commits
+        run: |
+          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|docs|chore|refactor|ops|test|perf|ci|build|revert|content|merge)(\([a-z0-9._/ -]+\))?!?: .+'; then
+            echo "::error::PR title must be Conventional-Commit shaped, e.g. 'feat(admin): add insights page'. Got: $PR_TITLE"
+            exit 1
+          fi
+
+      - name: Migration changed ⇒ SCHEMA.md changed
+        run: |
+          if grep -qE '^supabase/migrations/.+\.sql$' changed.txt && ! grep -qx 'SCHEMA.md' changed.txt; then
+            if echo "$LABELS" | grep -q 'schema-doc-exempt'; then echo "exempt by label"; exit 0; fi
+            echo "::error::A migration changed but SCHEMA.md did not. Update SCHEMA.md or add the 'schema-doc-exempt' label with a reason in the PR body."
+            exit 1
+          fi
+
+      - name: Code changed ⇒ CHANGELOG.md line under Unreleased
+        run: |
+          if grep -qE '^(app/|lib/|supabase/|proxy\.ts$|vercel\.json$)' changed.txt && ! grep -qx 'CHANGELOG.md' changed.txt; then
+            if echo "$LABELS" | grep -q 'skip-changelog'; then echo "skipped by label"; exit 0; fi
+            echo "::error::Code changed but CHANGELOG.md did not. Add one line under '## [Unreleased]' ending in (#PR), or add the 'skip-changelog' label with a reason."
+            exit 1
+          fi
+
+      - name: New doc under docs/ ⇒ listed in docs/README.md
+        run: |
+          added=$(git diff --name-only --diff-filter=A "origin/${{ github.base_ref }}...HEAD" | grep -E '^docs/.+\.md$' | grep -vE '^docs/(vault|archive|marketing-site|legal)/' || true)
+          if [ -n "$added" ] && ! grep -qx 'docs/README.md' changed.txt; then
+            echo "::error::New doc(s) added without updating the doc map docs/README.md:"; echo "$added"
+            exit 1
+          fi
+
+      - name: Relative links resolve (changed Markdown only)
+        if: steps.changed.outputs.md != ''
+        run: |
+          files=$(grep -E '\.md$' changed.txt | xargs -I{} sh -c 'test -f "{}" && echo "{}"' || true)
+          if [ -n "$files" ]; then node scripts/check-doc-links.mjs $files; else echo "no surviving markdown files"; fi
+
+      - name: Vault frontmatter valid
+        run: node scripts/check-vault-frontmatter.mjs
+
+      - name: Migration numbers unique
+        run: npm run check:migrations
