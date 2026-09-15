@@ -62,7 +62,7 @@ Only two cron routes exist (`app/api/cron/pulse-check-reminder/route.ts`, `app/a
 
 ### 1.6 Placeholder names
 
-`scripts/migration/migrate.py:711-716` (Pass 1 — missing first/last names) and `:884-885` (Pass 1.5 — orphan-email stubs) write `first_name='Unknown'` / `last_name='Unknown'`. Three prod participants have these values today. The dashboard layout (`app/(dashboard)/layout.tsx`) renders `Welcome, Unknown` and avatar initials `UU`. There is **no PATCH route** on `/api/participants/[participant_id]/route.ts` (verified in moderator-admin-tooling map gap #3), no admin name-edit UI, no self-edit UI, and no submit-endpoint guard. The launch plan at `docs/launch-plan-2026-05-31.md` describes the intended fix; nothing is implemented in this branch yet beyond the plan doc itself.
+`scripts/migration/migrate.py:711-716` (Pass 1 — missing first/last names) and `:884-885` (Pass 1.5 — orphan-email stubs) write `first_name='Unknown'` / `last_name='Unknown'`. Three prod participants have these values today. The dashboard layout (`app/(dashboard)/layout.tsx`) renders `Welcome, Unknown` and avatar initials `UU`. There is **no PATCH route** on `/api/participants/[participant_id]/route.ts` (verified in moderator-admin-tooling map gap #3), no admin name-edit UI, no self-edit UI, and no submit-endpoint guard. The launch plan at `docs/archive/launch-plan-2026-05-31.md` describes the intended fix; nothing is implemented in this branch yet beyond the plan doc itself.
 
 ---
 
