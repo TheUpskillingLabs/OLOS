@@ -112,7 +112,12 @@ loss of assignment takes effect immediately (PRD §8).
 
 ## New DB tables
 
-Next migration number: **00023** (latest at time of writing is
+> **Historical note (2026-09-15):** the tables below shipped as `00023`–`00027` and the
+> dashboard has since been re-pointed from pulse checks to Learning Logs (Phase 1,
+> `00040`; Insights page PRs #379/#381). Never take a migration number from this file —
+> run `ls supabase/migrations | tail -1`. The PRD decisions in §10 still govern.
+
+Next migration number (at time of writing): **00023** (latest at time of writing is
 `00022_pod_memberships_select_hide_soft_deleted.sql`; 00019–00022 were
 consumed by the RLS soft-delete fixes in PR #110/#111). Split into
 logical migration files; don't bundle everything in one.

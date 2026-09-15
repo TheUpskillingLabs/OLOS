@@ -166,6 +166,20 @@ Alternatively, if the Supabase CLI is linked to prod:
 SUPABASE_DB_PASSWORD=<prod db password> supabase db push --linked
 ```
 
+### ⚠ Ledger drift (verified 2026-08-21, open — issue #361)
+
+The repo chain `00001`–`00103` is **physically applied** to both dev and prod (schema
+fingerprints match), but `supabase_migrations.schema_migrations` records only a mix of
+numeric and timestamp versions because `00086`–`00100` were applied out of band. Until
+the ledger is reconciled (metadata-only SQL drafted in #361; Sprint 0 item 0.4 in
+[`docs/roadmap/next-sprint.md`](roadmap/next-sprint.md)):
+
+- **Do not run `supabase db push` against either project.** It would try to re-run
+  applied migrations, and `00099`'s backfill is not idempotent.
+- Apply new migrations by pasting the file into Studio → SQL Editor, then insert the
+  ledger row by hand, per the repair pattern in `scripts/ops/*-migration-repair-2026-07-06.sql`.
+- Record each prod apply in the promotion's `CHANGELOG.md` section under **Ops**.
+
 ### Checking which migrations have been applied
 
 Supabase tracks applied migrations in the `supabase_migrations` table. To see what's live on prod, run this in Supabase Studio → SQL Editor:

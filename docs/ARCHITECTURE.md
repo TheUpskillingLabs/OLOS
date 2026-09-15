@@ -71,13 +71,19 @@ Grouped by domain. The important ones:
 | `lib/moderator/` | Poderator-dashboard data (health bands, nudges) |
 | `lib/integrations/` | External resource provisioning (Slack, Drive, GitHub, Groups) |
 | `lib/email/` | Resend HTTP dispatch + templates |
-| `lib/llm/` | Anthropic API calls (e.g. pod/project name generation) |
+| `lib/llm/` | Anthropic API calls (e.g. pod/project name generation) — the one ratified in-app LLM use |
 | `lib/validations/` | Zod schemas shared by API routes and forms |
+| `lib/tasks/` | The member task queue — the one place that knows what a member's dashboard tasks are (`assemble.ts`), plus dismissals and admin `custom_tasks` |
+| `lib/labs/`, `lib/lab/` | Local Lab membership gate (`requireActiveLabMembership`), waitlist find-or-create, lab-lead scoping |
+| `lib/owner/` | Owner console: archive / reset / delete / ban, the entity registry, `owner_actions` audit |
+| `lib/follows/`, `lib/updates/`, `lib/directory/` | The social layer — follow graph + suggestions, the updates feed, directory queries with the display-column allowlist |
+| `lib/export/`, `lib/admin/` | CSV contact exports at cycle / pod / project / lab / people scopes |
+| `lib/leadership-logs/`, `lib/pages/`, `lib/announcements/` | The org-tier log cascade, polymorphic page admins/posts, dashboard announcements |
 
 ### `supabase/` — the database
 
 `supabase/migrations/` holds the numbered SQL migrations (currently through
-`00052`). `supabase/config.toml` configures the local stack; `supabase/seed.sql`
+`00103`; check `ls supabase/migrations | tail -1` — this line drifts). `supabase/config.toml` configures the local stack; `supabase/seed.sql`
 seeds a starter cycle on `db reset`. See [`supabase/CLAUDE.md`](../supabase/CLAUDE.md)
 for migration conventions (numbering, idempotency, RLS, consolidation policy).
 
@@ -135,9 +141,13 @@ empty-until-real — content appears only when genuinely published.
 
 ### Scheduled jobs
 
-Three Vercel crons (`vercel.json`): the Learning-Log window (Fri 21:00), the
-Learning-Log reminder (daily 09:00), and a Luma events sync (every 6h). Each is a
-route under `app/api/cron/`.
+Five Vercel crons (`vercel.json`): the Learning-Log window (Fri 21:00 UTC) and
+reminder (daily 09:00), the Leadership-Log window (Wed 13:00) and reminder (daily
+09:00), and a Luma events sync (every 6h). Two more cron routes exist but are
+**deliberately unscheduled** — `revocation-check` (issue #213) and
+`learning-log-compliance-nudge` (#362, dry-run by default). Each is a route under
+`app/api/cron/`; the current inventory and their status live in
+[`docs/roadmap/2026-09-audit.md`](roadmap/2026-09-audit.md) §4.2.
 
 ---
 
@@ -146,7 +156,9 @@ route under `app/api/cron/`.
 - [`SCHEMA.md`](../SCHEMA.md) — every table, with ERDs
 - [`DESIGN_SYSTEM.md`](../DESIGN_SYSTEM.md) — tokens, components, and the copy voice
 - [`docs/environments.md`](environments.md) — local/dev/prod, env vars, deploy
-- [`docs/OLOS-roadmap.md`](OLOS-roadmap.md) — planned work, `§`-anchored
+- [`docs/roadmap/README.md`](roadmap/README.md) — the current plan of record (audit, sprint plan, personas, data strategy); [`docs/OLOS-roadmap.md`](OLOS-roadmap.md) is the historical April plan, kept for its `§`-anchors
+- [`docs/README.md`](README.md) — the doc map: which documents are canonical, plan-of-record, historical, or archived
+- [`CHANGELOG.md`](../CHANGELOG.md) — what shipped in each `dev → main` promotion
 - The `CLAUDE.md` next to any area you're editing — these are the densest,
   most current per-area references (they're written for AI agents, but they're the
   real source of truth for conventions in that folder).

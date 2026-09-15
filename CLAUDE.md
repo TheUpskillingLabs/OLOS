@@ -9,6 +9,8 @@
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the codebase is organized (App Router, `lib/`, migrations, core concepts).
 - [CONTRIBUTING.md](CONTRIBUTING.md) — setup, the branch/PR workflow, and the "Working in parallel" rules (file ownership, claiming migration numbers).
 - [docs/agent-teams.md](docs/agent-teams.md) — running Claude Code agent teams on this repo (roles in `.claude/agents/`, ownership map, spawn prompts).
+- [docs/roadmap/README.md](docs/roadmap/README.md) — the current plan of record: the September 2026 audit, the sprint plan, personas, the documentation contract, and the data strategy. Read `documentation-framework.md` there before opening a PR — every PR needs a `CHANGELOG.md` line and, when a choice was made, a decision note.
+- [docs/README.md](docs/README.md) — the doc map: which of the ~80 documents are canonical, plan-of-record, historical, or archived.
 
 ## Subdocs
 

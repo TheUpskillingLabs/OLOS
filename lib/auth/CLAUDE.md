@@ -444,7 +444,7 @@ with a fake invite cookie + token row).
 The spec says "no participants row → return 404, complete registration
 first." The implementation instead redirects to a built-in `/register` page
 (see [`app/(auth)/register/page.tsx`](../../app/(auth)/register/page.tsx))
-which posts to [`/api/registrations`](../../app/api/registrations/route.ts).
+which posts to [`/api/registrations/funnel`](../../app/api/registrations/funnel/route.ts) (the earlier `/api/registrations` and `/api/registrations/short` routes were deleted in July 2026; the funnel is the only registration write path).
 This is **a deliberate deviation**:
 
 - The spec's 404 path assumes registration happens in a separate channel
