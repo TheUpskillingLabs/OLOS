@@ -4,6 +4,7 @@
 //
 // Usage
 //   node scripts/publish-artifacts.mjs --out <dir> [--tag v2026.10.10] [--dry-run]
+//   --force            rewrite unchanged files too (refresh every provenance header)
 //   node scripts/publish-artifacts.mjs --prune-plan            # files eligible for the sweep PR
 //
 // --out is a checkout of the knowledge repo (or any directory for a dry run). The script
@@ -25,12 +26,18 @@ const flag = (k) => args.includes(k);
 const OUT = opt("--out");
 const TAG = opt("--tag");
 const DRY = flag("--dry-run");
+const FORCE = flag("--force"); // rewrite every file even when its content is unchanged (refreshes provenance headers)
 const PRUNE_PLAN = flag("--prune-plan");
 
 const root = process.cwd();
 const manifest = JSON.parse(readFileSync(join(root, "docs/publish.manifest.json"), "utf8"));
 const sha = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
 const shortSha = sha.slice(0, 7);
+// Provenance names HEAD, so publishing from a dirty tree would pin links to a commit that
+// does not contain what was copied. CI always runs on a clean checkout; warn by hand.
+if (execSync("git status --porcelain -- docs CHANGELOG.md SCHEMA.md", { encoding: "utf8" }).trim()) {
+  console.warn(`! uncommitted changes under docs/, CHANGELOG.md, or SCHEMA.md: provenance will name ${shortSha}, which may not contain them — commit first`);
+}
 const today = new Date().toISOString().slice(0, 10);
 const OLOS_URL = "https://github.com/TheUpskillingLabs/OLOS";
 
@@ -95,7 +102,7 @@ function normalized(text) {
   return String(text).replace(HEADER_RE, "").replace(GENERATED_RE, "").replace(SHA_RE, "/$1/SHA$2");
 }
 function unchangedMarkdown(target, out) {
-  return existsSync(target) && normalized(readFileSync(target, "utf8")) === normalized(out);
+  return !FORCE && existsSync(target) && normalized(readFileSync(target, "utf8")) === normalized(out);
 }
 
 function latestChangelogSection(text) {
