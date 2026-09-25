@@ -18,7 +18,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, readdirSync, copyFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
-import { dirname, join, relative, resolve, posix } from "node:path";
+import { dirname, join, relative, posix } from "node:path";
 
 const args = process.argv.slice(2);
 const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
@@ -64,7 +64,6 @@ for (const rule of manifest.rules) {
     pairs.push({ src: srcAbs, rel: rule.source, dest: rule.dest, mode: rule.mode, rule });
   }
 }
-const publishedRel = new Set(pairs.map((p) => p.rel));
 const destByRel = new Map(pairs.filter((p) => p.mode !== "snapshot").map((p) => [p.rel, p.dest]));
 
 // 2. Transform Markdown: provenance header + link rewriting.
