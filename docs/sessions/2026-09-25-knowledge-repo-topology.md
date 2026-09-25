@@ -33,8 +33,9 @@
   manifest); provenance header present; link to `DESIGN_SYSTEM.md` rewritten to a
   sha-pinned OLOS URL; in-set links kept relative; release snapshot carries only the
   newest section; prune plan lists the archive and corpus files.
-- `npm run check:docs`, `npm run check:migrations`, workflow YAML parse, unit suite —
-  results recorded in the PR's Verify section.
+- `npm run check:docs` (107 Markdown files, all relative links resolve), `npm run
+  check:migrations` (103 unique), workflow YAML + manifest JSON parse, `eslint` clean on
+  the scripts, `vitest`: 68 files / 627 tests passed.
 
 ## Decisions made → where they live
 
@@ -49,7 +50,7 @@
 - Everything in topology §8 (people, timelines, scope, governance cadence, privacy
   posture, curriculum ownership, tooling). D1 (next cycle date) by Oct 2 decides whether
   the Showcase slice exists.
-- The executive-meeting ticket: see the issue linked in `next-sprint.md` §8.
+- The executive-meeting ticket is [#392](https://github.com/TheUpskillingLabs/OLOS/issues/392) (`priority/p1`): agenda, pre-reads, and the decisions to leave with.
 
 ## Next
 
