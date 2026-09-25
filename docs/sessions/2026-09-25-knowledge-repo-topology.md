@@ -29,6 +29,20 @@
   Sep 15 and Sep 25 sessions; `docs-check` exempts the inbox from the doc-map rule.
 - Wired the topology into `documentation-framework.md` (§3.3, §7.3), both READMEs,
   `CLAUDE.md`, and the changelog.
+- **Filed the issue tracker for the phase** (later the same day): the executive-meeting
+  ticket [#392](https://github.com/TheUpskillingLabs/OLOS/issues/392); eight epics [#393](https://github.com/TheUpskillingLabs/OLOS/issues/393)–[#400](https://github.com/TheUpskillingLabs/OLOS/issues/400) (Sprint 0, Workstreams
+  A–D, Sprint 2, the research & design practice, the onboarding curriculum); 58
+  sub-issues [#401](https://github.com/TheUpskillingLabs/OLOS/issues/401)–[#458](https://github.com/TheUpskillingLabs/OLOS/issues/458) attached to their epics, each with context,
+  scope, acceptance, dependencies, size, and a branch name off `dev`. The map is
+  `next-sprint.md` §10 (replacing the issue-seed table). Labels: only the first
+  creation auto-created labels (`epic`, `persona/pre-registrant`); `area/database`,
+  `area/docs`, the other `persona/*`, and `needs-decision` do not exist yet, so those
+  issues carry the existing labels only — the taxonomy and milestones are [#402](https://github.com/TheUpskillingLabs/OLOS/issues/402).
+- Hand-authored the team spaces in Docs-repository: `program/curriculum/` (readiness
+  ladder v0 with all nine steps populated, M0 welcome, M1 Slack, M2 GitHub, M3 AI
+  assistant, the pod `CONTEXT.md` template), `program/research/` (process on the cycle
+  calendar, ethics, six templates), `program/design/` (wireframe rule, tool
+  recommendation, checklist), `governance/` (meetings template, decisions log).
 
 ## What was verified
 
@@ -59,3 +73,7 @@
 
 - Open the planning PR into `dev`; merge #391; set the token; first publish and sweep;
   hold the executive meeting before Sprint 1.
+- Create the missing labels and the three milestones (#402), then re-label the
+  sub-issues; decide D1 by Oct 2 so the Showcase slice (#414, #416, #453) is on or off.
+- Name the research/design lead (#443) and run the curriculum session (#450) — both
+  gate Sprint 1 content.

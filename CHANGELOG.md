@@ -40,6 +40,10 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Docs
 
+- Issue map: the executive-meeting ticket #392, epics #393–#400, and sub-issues #401–#458
+  filed from the sprint plan; `docs/roadmap/next-sprint.md` §10 now maps every item to its
+  issue, §2–§4 headers carry the re-baselined dates, §8 records the label state; the
+  Sep 25 session report records the filing. (planning PR, 2026-09-25)
 - `docs/roadmap/documentation-topology.md` (two repositories, one contract);
   `docs/sessions/` convention + reports for the Sep 15 and Sep 25 sessions; sprint dates
   re-baselined; audit addendum (F15, `docs-archive`). (planning PR, 2026-09-25)
