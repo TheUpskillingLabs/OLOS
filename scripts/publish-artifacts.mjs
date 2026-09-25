@@ -16,7 +16,6 @@
 //   snapshot      only when --tag is given: copy to a dated/tagged filename. With
 //                 "section": "latest", copy just the newest dated section of CHANGELOG.md.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, readdirSync, copyFileSync } from "node:fs";
-import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
 import { dirname, join, relative, posix } from "node:path";
 
@@ -85,6 +84,20 @@ function transformMarkdown(text, rel, dest) {
   return header + body;
 }
 
+// A published file is rewritten only when its content changed. Bodies are compared with
+// the provenance header, the generated-copy line, and the publishing sha removed, so the
+// knowledge repo's history shows real edits only; an unchanged file keeps its links pinned
+// to the sha that last changed it.
+const HEADER_RE = /^<!-- Published from[^\n]*-->\n\n/;
+const GENERATED_RE = /^> \*\*Generated copy\.\*\*[^\n]*\n/m;
+const SHA_RE = /\/(blob|commit)\/[0-9a-f]{40}(\/|\))/g;
+function normalized(text) {
+  return String(text).replace(HEADER_RE, "").replace(GENERATED_RE, "").replace(SHA_RE, "/$1/SHA$2");
+}
+function unchangedMarkdown(target, out) {
+  return existsSync(target) && normalized(readFileSync(target, "utf8")) === normalized(out);
+}
+
 function latestChangelogSection(text) {
   const m = text.match(/\n## \[\d{4}\.\d{2}\.\d{2}\][\s\S]*?(?=\n## \[|\n---\n|$)/);
   return m ? m[0].trim() + "\n" : text;
@@ -98,14 +111,10 @@ if (PRUNE_PLAN) {
     const target = join(OUT, p.dest);
     if (!existsSync(target)) continue;
     if (p.rule.keepIndex && /(^|\/)README\.md$/.test(p.rel)) continue;
-    const expected = p.src.endsWith(".md") ? transformMarkdown(readFileSync(p.src, "utf8"), p.rel, p.dest) : readFileSync(p.src);
-    const a = createHash("sha256").update(expected).digest("hex");
-    const b = createHash("sha256").update(readFileSync(target)).digest("hex");
-    // The provenance header carries the publishing sha, so compare bodies only.
-    const strip = (buf) => Buffer.isBuffer(buf) ? buf : Buffer.from(String(buf).replace(/^<!-- Published from[^\n]*-->\n\n/, ""));
-    const a2 = createHash("sha256").update(strip(expected)).digest("hex");
-    const b2 = createHash("sha256").update(strip(readFileSync(target, p.src.endsWith(".md") ? "utf8" : null))).digest("hex");
-    if (a === b || a2 === b2) eligible.push(p.rel);
+    const same = p.src.endsWith(".md")
+      ? unchangedMarkdown(target, transformMarkdown(readFileSync(p.src, "utf8"), p.rel, p.dest))
+      : readFileSync(target).equals(readFileSync(p.src));
+    if (same) eligible.push(p.rel);
   }
   console.log(eligible.join("\n"));
   process.exit(0);
@@ -114,7 +123,13 @@ if (PRUNE_PLAN) {
 // 4. Publish.
 if (!OUT) { console.error("--out <dir> is required"); process.exit(2); }
 let written = 0;
+let unchanged = 0;
 const index = [];
+const folders = manifest.folders || {};
+// A folder listed in `folders` gets a generated README (the meta-documentation). When
+// OLOS publishes its own README into that folder, the generated file embeds it instead
+// of the two overwriting each other.
+const sourceReadmes = new Map();
 for (const p of pairs) {
   const target = join(OUT, p.dest);
   mkdirSync(dirname(target), { recursive: true });
@@ -122,16 +137,25 @@ for (const p of pairs) {
     let text = readFileSync(p.src, "utf8");
     if (p.mode === "snapshot" && p.rule.section === "latest") text = latestChangelogSection(text);
     const out = transformMarkdown(text, p.rel, p.dest);
-    if (!DRY) writeFileSync(target, out);
-  } else if (!DRY) {
-    copyFileSync(p.src, target);
+    const folder = posix.dirname(p.dest) + "/";
+    if (posix.basename(p.dest) === "README.md" && folders[folder]) {
+      sourceReadmes.set(folder, { rel: p.rel, body: out.replace(HEADER_RE, "").trimEnd() });
+      index.push({ rel: p.rel, dest: p.dest, mode: p.mode });
+      continue;
+    }
+    if (unchangedMarkdown(target, out)) unchanged++;
+    else { written++; if (!DRY) writeFileSync(target, out); }
+  } else if (existsSync(target) && readFileSync(target).equals(readFileSync(p.src))) {
+    unchanged++;
+  } else {
+    written++;
+    if (!DRY) copyFileSync(p.src, target);
   }
-  written++;
   index.push({ rel: p.rel, dest: p.dest, mode: p.mode });
 }
 // Per-folder README.md — the meta-documentation (manifest `folders`): what is here and
-// why it matters, plus a file table with provenance. Written only for listed folders.
-const folders = manifest.folders || {};
+// why it matters, plus a file table with provenance, plus the folder's own OLOS README
+// when one is published. Written only for listed folders.
 for (const [folder, meta] of Object.entries(folders)) {
   const inFolder = index.filter((i) => i.dest.startsWith(folder));
   const direct = inFolder.filter((i) => !i.dest.slice(folder.length).includes("/"));
@@ -141,6 +165,7 @@ for (const [folder, meta] of Object.entries(folders)) {
     const name = i.dest.slice(folder.length);
     return `| [\`${name}\`](${encodeURI(name)}) | [\`${i.rel}\`](${OLOS_URL}/blob/${sha}/${i.rel}) | ${i.mode} |`;
   });
+  const src = sourceReadmes.get(folder);
   const subs = subdirs.map((d) => { const meta2 = folders[folder + d + "/"]; return `- [\`${d}/\`](${d}/)${meta2 ? " — " + meta2.title : ""}`; });
   const md = [
     `# ${meta.title}`, "",
@@ -148,10 +173,12 @@ for (const [folder, meta] of Object.entries(folders)) {
     "## What this is, and why it matters", "", meta.relevance, "",
     ...(subs.length ? ["## Folders", "", ...subs, ""] : []),
     ...(rows.length ? ["## Files", "", "| File | Source in OLOS | Mode |", "|---|---|---|", ...rows, ""] : []),
+    ...(src ? ["---", "", `## From OLOS \`${src.rel}\``, "", `> The folder's own README in OLOS, published with it. Edit it there.`, "", src.body, ""] : []),
   ].join("\n");
   const target = join(OUT, folder, "README.md");
   mkdirSync(dirname(target), { recursive: true });
-  if (!DRY) writeFileSync(target, md);
+  if (unchangedMarkdown(target, md)) unchanged++;
+  else { written++; if (!DRY) writeFileSync(target, md); }
 }
 
 // PUBLISHED.md — the human index of what came from OLOS and when.
@@ -169,4 +196,4 @@ const lines = [
   "",
 ];
 if (!DRY) { mkdirSync(join(OUT, "olos"), { recursive: true }); writeFileSync(join(OUT, "olos/PUBLISHED.md"), lines.join("\n")); }
-console.log(`${DRY ? "(dry run) " : ""}published ${written} file(s) from ${shortSha} → ${OUT}${TAG ? ` [tag ${TAG}]` : ""}`);
+console.log(`${DRY ? "(dry run) " : ""}published ${written} file(s) from ${shortSha} → ${OUT} (${unchanged} unchanged, left as published)${TAG ? ` [tag ${TAG}]` : ""}`);

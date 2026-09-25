@@ -29,14 +29,14 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   (inert until `ANTHROPIC_API_KEY` is set), `npm run check:docs`, PR template **Docs &
   decisions** section, *Decision needed* issue template, `persona/` labels proposed.
   (planning PR — number assigned on open)
-
-### Ops
-
 - Knowledge-repo bridge: `.github/workflows/publish-artifacts.yml` (publish on merge to
   `dev`, dated snapshots on release tags, monthly sweep PR), `scripts/publish-artifacts.mjs`,
   `docs/publish.manifest.json`; inert until `KNOWLEDGE_REPO_TOKEN` is set; destination `TheUpskillingLabs/Docs-repository`;
   the publisher writes a README in every generated folder (manifest `folders`). `docs-check`
   exempts `docs/sessions/` from the doc-map rule. (planning PR, 2026-09-25)
+- Publisher rewrites a file only when its content changed (header, generated line, and
+  publishing sha ignored in the comparison), so the knowledge repo's history shows real
+  edits; the prune plan uses the same comparison. (planning PR, 2026-09-25)
 
 ### Docs
 

@@ -103,7 +103,7 @@ Rules going forward:
 **`TheUpskillingLabs/Docs-repository`** (private; every team member gets read, the docs
 owner and owner get write; the publish bot gets write). Three top-level spaces with
 different authorship rules, and a **README in every folder that says what is there and
-why it matters** — generated for `olos/**` from the manifest's `folders` map, hand-written
+why it matters** — generated for `olos/**` from the manifest's `folders` map (a folder's own OLOS README is embedded below the generated table, and a file is rewritten only when its content changed), hand-written
 for `program/**` and `governance/**`.
 
 ```
