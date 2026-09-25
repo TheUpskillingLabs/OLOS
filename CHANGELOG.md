@@ -30,8 +30,18 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   decisions** section, *Decision needed* issue template, `persona/` labels proposed.
   (planning PR — number assigned on open)
 
+### Ops
+
+- Knowledge-repo bridge: `.github/workflows/publish-artifacts.yml` (publish on merge to
+  `dev`, dated snapshots on release tags, monthly sweep PR), `scripts/publish-artifacts.mjs`,
+  `docs/publish.manifest.json`; inert until `KNOWLEDGE_REPO_TOKEN` is set. `docs-check`
+  exempts `docs/sessions/` from the doc-map rule. (planning PR, 2026-09-25)
+
 ### Docs
 
+- `docs/roadmap/documentation-topology.md` (two repositories, one contract);
+  `docs/sessions/` convention + reports for the Sep 15 and Sep 25 sessions; sprint dates
+  re-baselined; audit addendum (F15, `docs-archive`). (planning PR, 2026-09-25)
 - `docs/roadmap/`: September 2026 audit, next-sprint plan (Sprint 0/1/2), pre-registration
   persona, personas & journeys, documentation framework, data strategy, curriculum-session
   brief. `docs/README.md` doc map; `docs/archive/` for session artifacts (10 files moved);

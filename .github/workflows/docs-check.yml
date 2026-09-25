@@ -63,7 +63,7 @@ jobs:
 
       - name: New doc under docs/ ⇒ listed in docs/README.md
         run: |
-          added=$(git diff --name-only --diff-filter=A "origin/${{ github.base_ref }}...HEAD" | grep -E '^docs/.+\.md$' | grep -vE '^docs/(vault|archive|marketing-site|legal)/' || true)
+          added=$(git diff --name-only --diff-filter=A "origin/${{ github.base_ref }}...HEAD" | grep -E '^docs/.+\.md$' | grep -vE '^docs/(vault|archive|sessions|marketing-site|legal)/' || true)
           if [ -n "$added" ] && ! grep -qx 'docs/README.md' changed.txt; then
             echo "::error::New doc(s) added without updating the doc map docs/README.md:"; echo "$added"
             exit 1
