@@ -121,7 +121,7 @@ reports are here. Not listed individually in this map.
 ## `publish.manifest.json` — what leaves OLOS
 
 The list of paths the `publish-artifacts` workflow copies to the private team repo
-(`TheUpskillingLabs/docs-archive` by default), with modes `mirror`, `mirror+prune`, and
+(`TheUpskillingLabs/Docs-repository`), with modes `mirror`, `mirror+prune`, and
 `snapshot`. Design: [`roadmap/documentation-topology.md`](roadmap/documentation-topology.md).
 
 ## `archive/` — session artifacts and superseded plans

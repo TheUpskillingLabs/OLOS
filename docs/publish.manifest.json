@@ -1,6 +1,6 @@
 {
-  "_comment": "What OLOS publishes to the team knowledge repository and how. Design: docs/roadmap/documentation-topology.md. `knowledgeRepo` is the default; the workflow's KNOWLEDGE_REPO repository variable overrides it. modes: mirror = copy on every merge to dev, keep in OLOS \u00b7 mirror+prune = copy, then the monthly sweep PR removes it from OLOS once the knowledge repo holds the same content \u00b7 snapshot = copy on each release tag as a dated file. `neverPublish` is documentation of intent: the publisher only ever reads paths listed in `rules`.",
-  "knowledgeRepo": "TheUpskillingLabs/docs-archive",
+  "_comment": "What OLOS publishes to the team knowledge repository (TheUpskillingLabs/Docs-repository) and how. Design: docs/roadmap/documentation-topology.md. `knowledgeRepo` is the default; the workflow's KNOWLEDGE_REPO repository variable overrides it. modes: mirror = copy on every merge to dev, keep in OLOS \u00b7 mirror+prune = copy, then the monthly sweep PR removes it from OLOS once the knowledge repo holds the same content \u00b7 snapshot = copy on each release tag as a dated file. `folders` supplies the meta-documentation: the publisher writes a README.md in each listed folder (title, relevance, file table with provenance). `neverPublish` is documentation of intent: the publisher only ever reads paths listed in `rules`.",
+  "knowledgeRepo": "TheUpskillingLabs/Docs-repository",
   "rules": [
     {
       "source": "docs/sessions/",
@@ -150,5 +150,63 @@
     "docs/legal/**",
     "lib/**",
     "app/**"
-  ]
+  ],
+  "folders": {
+    "olos/": {
+      "title": "OLOS \u2014 published from the code repository",
+      "relevance": "Everything under this folder is generated from TheUpskillingLabs/OLOS by the publish-artifacts workflow. It is the team-facing copy of the plan, the decisions, the reference docs, and the artifacts of completed work. Edit in OLOS by pull request; never here."
+    },
+    "olos/roadmap/": {
+      "title": "Roadmap \u2014 the plan of record",
+      "relevance": "The current phase's audit, sprint plan, personas, documentation contract, data strategy, and curriculum brief. Read `next-sprint.md` for what is happening now and `README.md` for the reading order. This is the alignment layer: deadlines, workstreams, and owner decisions live here."
+    },
+    "olos/decisions/": {
+      "title": "Decisions \u2014 the vault",
+      "relevance": "Decision records (ADRs), spec divergences, and workflows from `docs/vault/` in OLOS (PR #391). Why the build is the way it is. A decision that stops holding is superseded, never deleted."
+    },
+    "olos/reference/": {
+      "title": "Reference \u2014 how OLOS is shaped",
+      "relevance": "The explanation docs an engineer or agent reads before touching an area: architecture, the sector/lab/org models, the sensemaking flow, the Ortelius north star, and the May 2026 state-machine postmortem. Current unless the status header says otherwise."
+    },
+    "olos/requirements/": {
+      "title": "Requirements \u2014 design docs for buildable slices",
+      "relevance": "Requirement and design documents for work in flight or recently shipped (cycle timeline, pod registration, permissions, moderator insights). Check each file's status header; several are re-baselines of June drafts."
+    },
+    "olos/audits/2026-07/": {
+      "title": "Audits \u2014 July 2026 (prototype \u2192 OLOS)",
+      "relevance": "The point-in-time audit set from 2026-07-04/07: design intent, gap audit, data architecture principles, the Phase 0\u20137 improvement roadmap, its progress snapshot, and the social-layer analysis. Superseded as the plan by `../../roadmap/2026-09-audit.md`; `DATA_ARCHITECTURE.md` \u00a72 remains the data constitution."
+    },
+    "olos/feedback/": {
+      "title": "Feedback \u2014 the running intake log",
+      "relevance": "Hands-on testing feedback about the app, triaged against code (\u2705 addressed \u00b7 \ud83e\udded needs a product call). Append in OLOS; read here."
+    },
+    "olos/sessions/": {
+      "title": "Sessions \u2014 the artifacts of completed work",
+      "relevance": "One report per substantive work session (Claude Code, pairing, work day): what was asked, done, verified, decided, and left open. Chronological by filename. This is the trail of what was completed and when."
+    },
+    "olos/archive/": {
+      "title": "Archive \u2014 finished and superseded",
+      "relevance": "Session artifacts, historical PRDs, design specs, and superseded plans. Accurate on their date; kept for provenance. Nothing here is current guidance."
+    },
+    "olos/schema/": {
+      "title": "Schema \u2014 the database, readable",
+      "relevance": "`SCHEMA.md` (ERDs + table summary, generated from the migrations) and a dated snapshot per release tag under `snapshots/`, so the shape of the database at any promotion can be compared."
+    },
+    "olos/releases/": {
+      "title": "Releases \u2014 what shipped at each promotion",
+      "relevance": "One changelog section per `dev \u2192 main` promotion, named by CalVer tag. The Ops group in each lists the migrations applied to production."
+    },
+    "program/marketing-site-corpus/": {
+      "title": "Marketing-site corpus",
+      "relevance": "The legacy Squarespace export (2026-07-06 snapshot), kept as a copy source for public pages and FAQs. Not final copy."
+    },
+    "program/work-days/": {
+      "title": "Work days \u2014 sprints and hackathons",
+      "relevance": "Retros and proto-requirements from the in-person Sensemaking Sprint and Hackathon, plus hand-written run-of-shows. The physical prototype of what OLOS digitizes."
+    },
+    "olos/audits/": {
+      "title": "Audits \u2014 point-in-time",
+      "relevance": "One dated folder per audit set. An audit is never edited after its date; a newer audit supersedes it. The September 2026 audit lives in `../roadmap/2026-09-audit.md` because it is part of the current plan."
+    }
+  }
 }
