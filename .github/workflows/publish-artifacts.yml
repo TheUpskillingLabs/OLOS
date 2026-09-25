@@ -1,0 +1,126 @@
+# publish-artifacts — the OLOS → knowledge-repo bridge
+# (docs/roadmap/documentation-topology.md §4). Two jobs:
+#
+#   publish  on every push to `dev` and every release tag: copy the paths listed in
+#            docs/publish.manifest.json into the knowledge repo (provenance-stamped,
+#            links rewritten), commit there, push. Tags also write dated snapshots.
+#   sweep    monthly (and on manual dispatch with sweep=true): compute which
+#            `mirror+prune` files the knowledge repo already holds verbatim and open a
+#            pull request on OLOS that removes them — branch discipline holds, a human
+#            merges the deletion.
+#
+# Inert until the repository secret KNOWLEDGE_REPO_TOKEN is set (a fine-grained PAT or
+# GitHub App token with contents:write on the knowledge repo). The knowledge repo
+# defaults to the manifest's `knowledgeRepo`; the repository variable KNOWLEDGE_REPO
+# overrides it.
+name: publish-artifacts
+
+on:
+  push:
+    branches: [dev]
+    tags: ["v*"]
+  schedule:
+    - cron: "0 14 1 * *" # 1st of the month, 14:00 UTC — sweep plan
+  workflow_dispatch:
+    inputs:
+      sweep:
+        description: "Open the sweep PR instead of publishing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  KNOWLEDGE_REPO: ${{ vars.KNOWLEDGE_REPO || 'TheUpskillingLabs/docs-archive' }}
+
+jobs:
+  publish:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.sweep)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for token
+        id: gate
+        env:
+          TOKEN: ${{ secrets.KNOWLEDGE_REPO_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "KNOWLEDGE_REPO_TOKEN not set — publish is inert."; echo "enabled=false" >> "$GITHUB_OUTPUT"; else echo "enabled=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          node-version: 22
+      - name: Check out the knowledge repo
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.KNOWLEDGE_REPO }}
+          token: ${{ secrets.KNOWLEDGE_REPO_TOKEN }}
+          path: knowledge
+      - name: Publish
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          TAG=""
+          case "$GITHUB_REF" in refs/tags/*) TAG="--tag ${GITHUB_REF#refs/tags/}";; esac
+          node scripts/publish-artifacts.mjs --out knowledge $TAG
+      - name: Commit and push to the knowledge repo
+        if: steps.gate.outputs.enabled == 'true'
+        working-directory: knowledge
+        run: |
+          git config user.name "olos-publish[bot]"
+          git config user.email "olos-publish@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
+          SUBJECT=$(git -C .. log -1 --format=%s)
+          git commit -m "publish(olos): ${GITHUB_SHA::7} — ${SUBJECT}" -m "Source: https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          git push
+
+  sweep:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.sweep)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for token
+        id: gate
+        env:
+          TOKEN: ${{ secrets.KNOWLEDGE_REPO_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "KNOWLEDGE_REPO_TOKEN not set — sweep is inert."; echo "enabled=false" >> "$GITHUB_OUTPUT"; else echo "enabled=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          ref: dev
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          node-version: 22
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          repository: ${{ env.KNOWLEDGE_REPO }}
+          token: ${{ secrets.KNOWLEDGE_REPO_TOKEN }}
+          path: knowledge
+      - name: Open the sweep PR
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/publish-artifacts.mjs --out knowledge --prune-plan > prune.txt
+          if [ ! -s prune.txt ]; then echo "nothing to sweep"; exit 0; fi
+          DATE=$(date -u +%F)
+          BRANCH="chore/docs-sweep-$DATE"
+          git config user.name "olos-publish[bot]"
+          git config user.email "olos-publish@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          xargs -a prune.txt git rm -q --
+          git commit -m "chore(docs): sweep $(wc -l < prune.txt) published artifact(s) out of OLOS" \
+            -m "These files are held verbatim by ${KNOWLEDGE_REPO} (see olos/PUBLISHED.md there). Removing them from OLOS per docs/roadmap/documentation-topology.md §4. Review, then merge." \
+            -m "$(sed 's/^/- /' prune.txt)"
+          git push -u origin "$BRANCH"
+          gh pr create --base dev --head "$BRANCH" --label skip-changelog \
+            --title "chore(docs): sweep published artifacts out of OLOS ($DATE)" \
+            --body "$(printf 'Monthly sweep (documentation-topology.md §4). Every file below is held verbatim in %s; this PR removes the OLOS copy.\n\n%s\n\n_Note: PRs opened with the workflow token do not trigger other workflows; run docs-check by pushing an empty follow-up or re-running it manually before merge._\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_' "$KNOWLEDGE_REPO" "$(sed 's/^/- `/; s/$/`/' prune.txt)")"

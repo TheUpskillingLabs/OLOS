@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Canonical index for the planning layer. The documents it lists are **proposals** until the owner ratifies the decisions in [`next-sprint.md`](next-sprint.md) §7 |
 | **Owner** | Lead architect / product |
-| **Last verified** | 2026-09-15 against `main@226445a` |
+| **Last verified** | 2026-09-25 against `main@226445a` (unchanged since 2026-09-10) |
 
 This folder is where OLOS's *next* work is planned. It supersedes
 [`docs/OLOS-roadmap.md`](../OLOS-roadmap.md) (April 2026, Waves 1–3 — kept for its
@@ -24,6 +24,7 @@ lives in [`CHANGELOG.md`](../../CHANGELOG.md).
 | 5 | [`documentation-framework.md`](documentation-framework.md) | The docs-and-workflow contract: vault, doc map, changelog, issues, PR definition of done, enforcement | contribute anything at all |
 | 6 | [`data-strategy.md`](data-strategy.md) | Reining in the pipelines: ledger, state machines, activity spine, metrics layer, email accounting, catalog | touch schema, crons, email, or metrics |
 | 7 | [`onboarding-curriculum-brief.md`](onboarding-curriculum-brief.md) | Hand-off for the curriculum session: the persona prompt, knowledge packet, module map, tool stack, deliverables | are running that session or wiring its output into OLOS |
+| 8 | [`documentation-topology.md`](documentation-topology.md) | Two repositories, one contract: what stays in OLOS, what publishes to the private team repo, the bridge workflow, session reports, the auditable decision trail, and what the team must decide | are setting up the knowledge repo, writing a session report, or preparing the executive meeting |
 
 ## Conventions for this folder
 

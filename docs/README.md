@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Canonical index. `docs-check` fails a PR that adds a doc under `docs/` without listing it here |
 | **Owner** | Docs owner (see [`roadmap/documentation-framework.md`](roadmap/documentation-framework.md) §9) |
-| **Last verified** | 2026-09-15 against `main@226445a` |
+| **Last verified** | 2026-09-25 against `main@226445a` |
 
 Eighty-odd documents, four kinds, six statuses. **Kind** is the Diátaxis question the
 doc answers (tutorial · how-to · reference · explanation). **Status** is ours:
@@ -48,6 +48,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 | [`roadmap/documentation-framework.md`](roadmap/documentation-framework.md) | reference / how-to | Proposal |
 | [`roadmap/data-strategy.md`](roadmap/data-strategy.md) | explanation | Proposal |
 | [`roadmap/onboarding-curriculum-brief.md`](roadmap/onboarding-curriculum-brief.md) | how-to (hand-off) | Proposal |
+| [`roadmap/documentation-topology.md`](roadmap/documentation-topology.md) | explanation / how-to | Proposal — the two-repo contract and the publish bridge |
 
 ## Reference and explanation (docs root)
 
@@ -110,10 +111,24 @@ Proposed in PR #391 (Obsidian-compatible, MADR-shaped). Conventions in
 `docs/vault/CLAUDE.md` once merged. The framework adopts it as the single decision
 register ([`roadmap/documentation-framework.md`](roadmap/documentation-framework.md) §2).
 
+## `sessions/` — session reports (an inbox)
+
+One report per substantive session, written in the PR that carries the work
+([`sessions/README.md`](sessions/README.md) has the template). Published to the team
+knowledge repo on merge and swept out of OLOS monthly, so only the current sprint's
+reports are here. Not listed individually in this map.
+
+## `publish.manifest.json` — what leaves OLOS
+
+The list of paths the `publish-artifacts` workflow copies to the private team repo
+(`TheUpskillingLabs/docs-archive` by default), with modes `mirror`, `mirror+prune`, and
+`snapshot`. Design: [`roadmap/documentation-topology.md`](roadmap/documentation-topology.md).
+
 ## `archive/` — session artifacts and superseded plans
 
 Moved here 2026-09-15; see [`archive/README.md`](archive/README.md). Frozen: links inside
-them are not checked.
+them are not checked. Published to the knowledge repo and swept out of OLOS by the
+monthly sweep PR, so this folder empties over time.
 
 ## Content corpora (not engineering docs)
 

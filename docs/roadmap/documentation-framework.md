@@ -141,7 +141,8 @@ whose cited paths no longer exist.
 | `docs/vault/` | decisions, divergences, workflows | PR #391 conventions |
 | `docs/requirements/` | requirements and design docs for buildable slices | status header mandatory |
 | `docs/audit/` | point-in-time audits | dated, never edited after their date except to add a superseded banner |
-| `docs/archive/` | session artifacts, superseded plans | moved, not deleted; `docs/archive/README.md` says why |
+| `docs/archive/` | session artifacts, superseded plans | moved, not deleted; **published to the knowledge repo and swept out of OLOS monthly** ([`documentation-topology.md`](documentation-topology.md) §4) |
+| `docs/sessions/` | session reports — the artifact of one unit of work | an inbox: written in the PR, published on merge, swept monthly ([`docs/sessions/README.md`](../sessions/README.md)) |
 | `docs/*.md` (root) | reference and explanation docs | existing names stay; add status headers opportunistically |
 | `docs/legal/`, `docs/marketing-site/` | content corpora | not engineering docs; excluded from steward checks |
 | `CHANGELOG.md` | what shipped when | §6 |
@@ -295,7 +296,17 @@ Code on the web instead of GitHub Actions, the same prompt works as a **Claude R
 (a scheduled trigger that spawns a fresh session with the repo attached); the workflow
 file documents both.
 
-### 7.3 What we deliberately do not enforce
+### 7.3 `publish-artifacts` — the bridge to the team knowledge repo
+
+`.github/workflows/publish-artifacts.yml` copies the paths in `docs/publish.manifest.json`
+to the private team repository on every merge to `dev` (provenance-stamped, links
+rewritten, `olos/PUBLISHED.md` index), writes dated snapshots of `SCHEMA.md` and the
+changelog on every release tag, and once a month opens a **sweep PR** on OLOS that
+removes the `mirror+prune` files the knowledge repo already holds. Design, layout, and
+setup: [`documentation-topology.md`](documentation-topology.md). Inert until the
+`KNOWLEDGE_REPO_TOKEN` secret is set.
+
+### 7.4 What we deliberately do not enforce
 
 Prose style, document length, a minimum number of ADRs per sprint, or "every PR must
 have an ADR". Over-enforcement produces empty notes. The vault's own rule stands: write

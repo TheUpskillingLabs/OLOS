@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Proposal — the plan of record for the next phase once the owner ratifies the decisions in §7; the status table in §8 is updated at the weekly triage |
 | **Owner** | Lead architect (plan); maintainers (delivery); success team (copy and curriculum) |
-| **Last verified** | 2026-09-15 against `main@226445a` |
+| **Last verified** | 2026-09-25 against `main@226445a` — **re-baselined**: nothing merged since 2026-09-10, Sprint 0 never started, dates shifted two weeks (see §1) |
 | **Inputs** | [`2026-09-audit.md`](2026-09-audit.md), [`documentation-framework.md`](documentation-framework.md), [`data-strategy.md`](data-strategy.md), [`personas-and-journeys.md`](personas-and-journeys.md), [`pre-registration-persona.md`](pre-registration-persona.md) |
 | **Board** | GitHub Project (to create): *OLOS — Next phase*, milestones `Sprint 0 — Hygiene`, `Sprint 1 — Pre-registration`, `Sprint 2 — Activity spine` |
 
@@ -31,11 +31,18 @@ Three sprints, sized to a small team with Claude Code as a multiplier and organi
 the file-ownership zones in `docs/agent-teams.md` so work parallelizes without
 collisions.
 
-| Sprint | Dates (proposed) | Goal | Hard date |
+| Sprint | Dates (re-baselined 2026-09-25) | Goal | Hard date |
 |---|---|---|---|
-| **0 — Hygiene & decisions** | Sep 15 → Sep 26 | Framework adopted; ledger reconciled; decisions recorded; backlog triaged | — |
-| **1 — Pre-registration & the loop** | Sep 29 → Oct 24 | Between-cycles experience live; poderator outreach log; admin insights v1 | **Oct 10**: A1/A4/A3-v1 on prod, before the Showcase |
-| **2 — Activity spine & scale** | Oct 27 → Dec 5 | Event instrumentation; one calendar; alumni/mentor pathways; Slack identity | next cycle's T-6w |
+| **0 — Hygiene & decisions** | Mon Sep 28 → Fri Oct 9 | Framework adopted; knowledge-repo bridge live; ledger reconciled; decisions recorded; backlog triaged; executive meeting held | **Oct 2**: D1 (next cycle date + theme) decided, or the Showcase slice below is off the table |
+| **1 — Pre-registration & the loop** | Mon Oct 12 → Fri Nov 20 | Between-cycles experience live; poderator outreach log; admin insights v1 | **Oct 13 Showcase slice** (only if D1 lands by Oct 2): A4 public cohort page announcing the next cycle + the T-8w "what the cohort built" email. Otherwise **Nov 6**: A1/A2/A3-v1 on prod, ≥ 6 weeks before the next kickoff |
+| **2 — Activity spine & scale** | Mon Nov 30 → Fri Jan 22 | Event instrumentation; one calendar; alumni/mentor pathways; Slack identity | next cycle's T-6w |
+
+> **Why the shift.** The Sep 15 plan assumed Sprint 0 started the day it was written.
+> Ten days later nothing has merged (the planning PR is not yet opened, PR #391 is still
+> open, no labels or milestones exist), so the dates move two weeks and the Oct 10
+> target becomes an explicit, decision-gated *Showcase slice*. The between-cycles
+> window still opens Oct 13; the persona is served fully by Nov 6, which is early
+> enough if the next kickoff is January or later.
 
 ---
 
@@ -56,10 +63,14 @@ No product features. Everything here removes a blocker or a recurring cost.
 | 0.9 | Fix stale canonical lines (`ARCHITECTURE.md`, `environments.md`, `poderator-dashboard/CLAUDE.md`, `ORG_CYCLES.md` §6); banner `PROGRESS.md` | docs | s | F12 |
 | 0.10 | Set the **next cycle's kickoff date and theme** (owner decision) — the drip is keyed to it | owner | — | §7 D1 |
 | 0.11 | First docs-steward run; first weekly triage | maintainers | — | framework §7 |
+| 0.12 | **Knowledge-repo bridge**: confirm `TheUpskillingLabs/docs-archive` as the destination (or name another), add the token, first `publish-artifacts` run, first sweep PR | owner + docs owner | s | [`documentation-topology.md`](documentation-topology.md) §7 |
+| 0.13 | **Executive meeting** on project setup, context documents, and the auditable decision trail — held before Sprint 1; outcomes recorded as vault notes | owner | — | the `priority/p1` ticket filed 2026-09-25 (see §8) |
+| 0.14 | Session reports for every substantive session from now on (`docs/sessions/`) | everyone | — | topology §5 |
 
 **Exit criteria.** `docs-check` green on every open PR; steward issue exists; every
 open issue typed, labeled, and in a milestone or `p3`; `schema_migrations` lists
-`00001`–`00103` on both databases; kickoff date decided.
+`00001`–`00103` on both databases; kickoff date decided; the knowledge repo holds its
+first publish and the executive meeting has happened.
 
 ---
 
@@ -74,14 +85,14 @@ Spec: [`pre-registration-persona.md`](pre-registration-persona.md) §4–§8.
 
 | Epic | Scope | Zone | Size | By |
 |---|---|---|---|---|
-| **A1 Between-cycles dashboard mode** | the two lists; new task kinds; `CycleRegisterCard` states extended; empty-row rules; social-proof counts with floor | frontend + backend (`lib/tasks`) | l | Oct 10 |
-| **A2 Readiness ladder** | verified steps (lab, pre-register, GitHub handle, directory card) + manual ticks (dates, LLM, primer, videos) persisted in `task_dismissals`; Slack step lands with ADR-0003 identity (Sprint 2) | frontend + backend | m | Oct 17 |
-| **A3 Pre-cycle drip v1** | `scheduled_messages` table + admin form + daily cron; `email_log` helper shared by all senders; dry-run default; consent-gated; the T-8w "what the cohort built + next theme" message ready for Showcase day | backend + migrations | l | v1 (table, cron, first 3 messages) Oct 10; full set Oct 24 |
-| **A4 Public cohort page v2** | `/c/[cycle_id]` with theme, dates, what-you-build, FAQ, lab picker, counts, share; `/build-cycles` reads the DB | frontend | m | Oct 10 |
-| **A5 Alumni & contributor pathways** | `projects.seeking_contributors` + DRI toggle; alumni interest capture (mentor / poderator / volunteer) → admin filter + export; alumni state at close-out | backend + frontend | m | Oct 24 |
-| **A6 Waitlist v2** | three optional fields; lab-less dashboard copy; city count | backend + frontend | s | Oct 24 |
-| **A7 Pipeline metric** | `v_preregistration_pipeline` + insights block (with C2) | migrations | s | Oct 24 |
-| **A8 Copy & content** | ladder copy, drip copy, theme primer, two onboarding videos (M0, M1) | success team via the curriculum session | — | primer + M0 by Oct 10 |
+| **A1 Between-cycles dashboard mode** | the two lists; new task kinds; `CycleRegisterCard` states extended; empty-row rules; social-proof counts with floor | frontend + backend (`lib/tasks`) | l | Nov 6 |
+| **A2 Readiness ladder** | verified steps (lab, pre-register, GitHub handle, directory card) + manual ticks (dates, LLM, primer, videos) persisted in `task_dismissals`; Slack step lands with ADR-0003 identity (Sprint 2) | frontend + backend | m | Nov 6 |
+| **A3 Pre-cycle drip v1** | `scheduled_messages` table + admin form + daily cron; `email_log` helper shared by all senders; dry-run default; consent-gated; the T-8w "what the cohort built + next theme" message ready for Showcase day | backend + migrations | l | Showcase slice: one message by Oct 13 (if D1 by Oct 2); v1 (table, cron, first 3 messages) Nov 6; full set Nov 20 |
+| **A4 Public cohort page v2** | `/c/[cycle_id]` with theme, dates, what-you-build, FAQ, lab picker, counts, share; `/build-cycles` reads the DB | frontend | m | Showcase slice: Oct 13 (if D1 by Oct 2); otherwise Nov 6 |
+| **A5 Alumni & contributor pathways** | `projects.seeking_contributors` + DRI toggle; alumni interest capture (mentor / poderator / volunteer) → admin filter + export; alumni state at close-out | backend + frontend | m | Nov 20 |
+| **A6 Waitlist v2** | three optional fields; lab-less dashboard copy; city count | backend + frontend | s | Nov 20 |
+| **A7 Pipeline metric** | `v_preregistration_pipeline` + insights block (with C2) | migrations | s | Nov 20 |
+| **A8 Copy & content** | ladder copy, drip copy, theme primer, two onboarding videos (M0, M1) | success team via the curriculum session | — | theme primer + Showcase email copy by Oct 9; M0 by Nov 6 |
 
 **Acceptance:** [`pre-registration-persona.md`](pre-registration-persona.md) §8, items
 1–6. Item 7 (the conversion metric) is measured at the next kickoff.
@@ -198,15 +209,23 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 | D9 | `seeking_contributors` on graduated projects — who toggles | any DRI; admins | A5 |
 | D10 | Docs owner (framework §9) | the maintainer running the feedback lists | 0.2 |
 | D11 | Activity-event retroactivity (S2) | backfill agreements/pods/projects; not logs | S2.1 |
+| D12 | Knowledge repository: reuse the existing private `TheUpskillingLabs/docs-archive`, or create a new one; who administers it; token vs GitHub App | reuse `docs-archive` (already private, already on the team org); fine-grained PAT held by the owner until an App is worth it | 0.12 |
+| D13 | Executive meeting date and attendees (project setup, context documents, auditable trail) | week of Oct 5, before Sprint 1; outcomes become vault notes | 0.13 |
 
 ---
 
 ## 8. Status (update at the weekly triage)
 
-| Item | State | Note |
+| Item | State | Note (2026-09-25) |
 |---|---|---|
-| Sprint 0 | proposed | awaiting ratification of §7 D1, D2, D10 |
-| Sprint 1 | proposed | |
+| Planning PR (`claude/olos-roadmap-documentation-yjebim`) | pushed, **not yet opened as a PR** | blocks everything below; open it into `dev` |
+| PR #391 (vault) / #390 | still open | merge #391, close #390 (0.1) |
+| Labels, milestones, board | not created | 0.2 |
+| Ledger reconciliation | not started | 0.4 |
+| Knowledge-repo bridge | designed + dry-run verified; token not set | 0.12; D12 |
+| Executive meeting | ticket filed 2026-09-25 | 0.13; D13 |
+| Sprint 0 | re-baselined to Sep 28 → Oct 9 | awaiting ratification of §7 D1, D2, D10, D12, D13 |
+| Sprint 1 | proposed | Showcase slice is decision-gated (D1 by Oct 2) |
 | Sprint 2 | proposed | |
 
 ---

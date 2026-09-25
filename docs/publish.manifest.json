@@ -1,0 +1,154 @@
+{
+  "_comment": "What OLOS publishes to the team knowledge repository and how. Design: docs/roadmap/documentation-topology.md. `knowledgeRepo` is the default; the workflow's KNOWLEDGE_REPO repository variable overrides it. modes: mirror = copy on every merge to dev, keep in OLOS \u00b7 mirror+prune = copy, then the monthly sweep PR removes it from OLOS once the knowledge repo holds the same content \u00b7 snapshot = copy on each release tag as a dated file. `neverPublish` is documentation of intent: the publisher only ever reads paths listed in `rules`.",
+  "knowledgeRepo": "TheUpskillingLabs/docs-archive",
+  "rules": [
+    {
+      "source": "docs/sessions/",
+      "dest": "olos/sessions/",
+      "mode": "mirror+prune",
+      "keepIndex": true
+    },
+    {
+      "source": "docs/archive/",
+      "dest": "olos/archive/",
+      "mode": "mirror+prune",
+      "keepIndex": true
+    },
+    {
+      "source": "docs/audit/",
+      "dest": "olos/audits/2026-07/",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/roadmap/",
+      "dest": "olos/roadmap/",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "dest": "olos/reference/ARCHITECTURE.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/SECTOR_MODEL.md",
+      "dest": "olos/reference/SECTOR_MODEL.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/LOCAL_LABS.md",
+      "dest": "olos/reference/LOCAL_LABS.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/ORG_CYCLES.md",
+      "dest": "olos/reference/ORG_CYCLES.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/SENSEMAKING_FLOW.md",
+      "dest": "olos/reference/SENSEMAKING_FLOW.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/ORTELIUS_KNOWLEDGE_GRAPH.md",
+      "dest": "olos/reference/ORTELIUS_KNOWLEDGE_GRAPH.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/ORTELIUS_NORTHSTAR.md",
+      "dest": "olos/reference/ORTELIUS_NORTHSTAR.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/architecture-review-onboarding-state-machine.md",
+      "dest": "olos/reference/architecture-review-onboarding-state-machine.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/feedback-running-list.md",
+      "dest": "olos/feedback/feedback-running-list.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/work-day-improvements.md",
+      "dest": "program/work-days/work-day-improvements.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/PRD-login-and-cycle-onboarding.md",
+      "dest": "olos/archive/prds/PRD-login-and-cycle-onboarding.md",
+      "mode": "mirror+prune"
+    },
+    {
+      "source": "docs/PRD-moderator-dashboard.md",
+      "dest": "olos/archive/prds/PRD-moderator-dashboard.md",
+      "mode": "mirror+prune"
+    },
+    {
+      "source": "docs/PRD-moderator-dashboard-mockups.html",
+      "dest": "olos/archive/prds/PRD-moderator-dashboard-mockups.html",
+      "mode": "mirror+prune"
+    },
+    {
+      "source": "docs/superpowers/specs/2026-05-22-poderator-dashboard-design.md",
+      "dest": "olos/archive/prds/2026-05-22-poderator-dashboard-design.md",
+      "mode": "mirror+prune"
+    },
+    {
+      "source": "docs/PROTO_TRANSLATION_PLAN.md",
+      "dest": "olos/archive/plans/PROTO_TRANSLATION_PLAN.md",
+      "mode": "mirror+prune"
+    },
+    {
+      "source": "docs/proposals/luma-driven-event-pages.md",
+      "dest": "olos/archive/plans/luma-driven-event-pages.md",
+      "mode": "mirror+prune"
+    },
+    {
+      "source": "docs/vault/",
+      "dest": "olos/decisions/",
+      "mode": "mirror",
+      "optional": true
+    },
+    {
+      "source": "docs/requirements/",
+      "dest": "olos/requirements/",
+      "mode": "mirror"
+    },
+    {
+      "source": "docs/marketing-site/",
+      "dest": "program/marketing-site-corpus/",
+      "mode": "mirror+prune",
+      "keepIndex": true
+    },
+    {
+      "source": "CHANGELOG.md",
+      "dest": "olos/CHANGELOG.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "SCHEMA.md",
+      "dest": "olos/schema/SCHEMA.md",
+      "mode": "mirror"
+    },
+    {
+      "source": "SCHEMA.md",
+      "dest": "olos/schema/snapshots/SCHEMA-{tag}.md",
+      "mode": "snapshot"
+    },
+    {
+      "source": "CHANGELOG.md",
+      "dest": "olos/releases/{tag}.md",
+      "mode": "snapshot",
+      "section": "latest"
+    }
+  ],
+  "neverPublish": [
+    "**/.env*",
+    "supabase/migrations/**",
+    "scripts/**",
+    "docs/legal/**",
+    "lib/**",
+    "app/**"
+  ]
+}

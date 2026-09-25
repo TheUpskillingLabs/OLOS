@@ -11,6 +11,7 @@
 - [docs/agent-teams.md](docs/agent-teams.md) — running Claude Code agent teams on this repo (roles in `.claude/agents/`, ownership map, spawn prompts).
 - [docs/roadmap/README.md](docs/roadmap/README.md) — the current plan of record: the September 2026 audit, the sprint plan, personas, the documentation contract, and the data strategy. Read `documentation-framework.md` there before opening a PR — every PR needs a `CHANGELOG.md` line and, when a choice was made, a decision note.
 - [docs/README.md](docs/README.md) — the doc map: which of the ~80 documents are canonical, plan-of-record, historical, or archived.
+- [docs/roadmap/documentation-topology.md](docs/roadmap/documentation-topology.md) — what stays in OLOS and what publishes to the private team knowledge repo (`docs/publish.manifest.json`). **End every substantive session with a report in `docs/sessions/`** (template in its README) — it is the artifact of what was completed and travels to the team repo on merge.
 
 ## Subdocs
 
