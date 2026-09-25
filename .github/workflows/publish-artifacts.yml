@@ -33,7 +33,7 @@ permissions:
   pull-requests: write
 
 env:
-  KNOWLEDGE_REPO: ${{ vars.KNOWLEDGE_REPO || 'TheUpskillingLabs/docs-archive' }}
+  KNOWLEDGE_REPO: ${{ vars.KNOWLEDGE_REPO || 'TheUpskillingLabs/Docs-repository' }}
 
 jobs:
   publish:

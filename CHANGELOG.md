@@ -34,7 +34,8 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 - Knowledge-repo bridge: `.github/workflows/publish-artifacts.yml` (publish on merge to
   `dev`, dated snapshots on release tags, monthly sweep PR), `scripts/publish-artifacts.mjs`,
-  `docs/publish.manifest.json`; inert until `KNOWLEDGE_REPO_TOKEN` is set. `docs-check`
+  `docs/publish.manifest.json`; inert until `KNOWLEDGE_REPO_TOKEN` is set; destination `TheUpskillingLabs/Docs-repository`;
+  the publisher writes a README in every generated folder (manifest `folders`). `docs-check`
   exempts `docs/sessions/` from the doc-map rule. (planning PR, 2026-09-25)
 
 ### Docs

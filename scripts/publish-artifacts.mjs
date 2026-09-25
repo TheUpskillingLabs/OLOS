@@ -129,6 +129,31 @@ for (const p of pairs) {
   written++;
   index.push({ rel: p.rel, dest: p.dest, mode: p.mode });
 }
+// Per-folder README.md — the meta-documentation (manifest `folders`): what is here and
+// why it matters, plus a file table with provenance. Written only for listed folders.
+const folders = manifest.folders || {};
+for (const [folder, meta] of Object.entries(folders)) {
+  const inFolder = index.filter((i) => i.dest.startsWith(folder));
+  const direct = inFolder.filter((i) => !i.dest.slice(folder.length).includes("/"));
+  const subdirs = [...new Set(inFolder.filter((i) => i.dest.slice(folder.length).includes("/")).map((i) => i.dest.slice(folder.length).split("/")[0]))].sort();
+  if (!inFolder.length && !Object.keys(folders).some((f) => f !== folder && f.startsWith(folder))) continue;
+  const rows = direct.sort((a, b) => a.dest.localeCompare(b.dest)).map((i) => {
+    const name = i.dest.slice(folder.length);
+    return `| [\`${name}\`](${encodeURI(name)}) | [\`${i.rel}\`](${OLOS_URL}/blob/${sha}/${i.rel}) | ${i.mode} |`;
+  });
+  const subs = subdirs.map((d) => { const meta2 = folders[folder + d + "/"]; return `- [\`${d}/\`](${d}/)${meta2 ? " — " + meta2.title : ""}`; });
+  const md = [
+    `# ${meta.title}`, "",
+    `> **Generated copy.** Published from [TheUpskillingLabs/OLOS](${OLOS_URL}) at [\`${shortSha}\`](${OLOS_URL}/commit/${sha}) on ${today}. Edit the source in OLOS by pull request; this file and everything listed here is overwritten on the next publish.`, "",
+    "## What this is, and why it matters", "", meta.relevance, "",
+    ...(subs.length ? ["## Folders", "", ...subs, ""] : []),
+    ...(rows.length ? ["## Files", "", "| File | Source in OLOS | Mode |", "|---|---|---|", ...rows, ""] : []),
+  ].join("\n");
+  const target = join(OUT, folder, "README.md");
+  mkdirSync(dirname(target), { recursive: true });
+  if (!DRY) writeFileSync(target, md);
+}
+
 // PUBLISHED.md — the human index of what came from OLOS and when.
 const byDest = new Map();
 for (const i of index) byDest.set(i.dest, i);

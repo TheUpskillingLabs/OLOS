@@ -16,8 +16,11 @@
   decisions D12–D13, and a dated status table. Appended the audit addendum (F15: no
   team-facing home; F16-class input: OLOS is public — see topology §2.3).
 - Found the org's existing private `TheUpskillingLabs/docs-archive` (README from
-  2026-06-18 describing exactly this archive; no files ever pushed) and designed around
-  reusing it: `docs/roadmap/documentation-topology.md`.
+  2026-06-18 describing exactly this archive; no files ever pushed). Later the same day
+  the owner created `TheUpskillingLabs/Docs-repository` as the destination; the topology
+  (`docs/roadmap/documentation-topology.md`) targets it. First publish plus the
+  hand-authored `program/` (curriculum, research, design) and `governance/` spaces were
+  pushed there by hand; the publisher now writes a README in every generated folder.
 - Built the bridge: `docs/publish.manifest.json` (rules + modes), `scripts/publish-artifacts.mjs`
   (provenance headers, sha-pinned link rewriting, `PUBLISHED.md`, snapshots, prune plan),
   `.github/workflows/publish-artifacts.yml` (publish on `dev`/tags; monthly sweep PR);
@@ -41,7 +44,7 @@
 
 | Decision | Recorded in |
 |---|---|
-| Reuse `docs-archive` as the knowledge repo; one-way publish; sweep by PR | topology §1–§4 — **needs D12 ratification + a vault note** |
+| `Docs-repository` is the knowledge repo (owner, 2026-09-25); one-way publish; sweep by PR | topology §1–§4 — needs a vault note |
 | Session reports are the unit of "what was completed" | `docs/sessions/README.md`; `CLAUDE.md` |
 | OLOS is public, so internal detail moves to the private repo | topology §2.3 — needs a vault note and the steward check |
 

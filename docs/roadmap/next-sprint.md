@@ -63,7 +63,7 @@ No product features. Everything here removes a blocker or a recurring cost.
 | 0.9 | Fix stale canonical lines (`ARCHITECTURE.md`, `environments.md`, `poderator-dashboard/CLAUDE.md`, `ORG_CYCLES.md` §6); banner `PROGRESS.md` | docs | s | F12 |
 | 0.10 | Set the **next cycle's kickoff date and theme** (owner decision) — the drip is keyed to it | owner | — | §7 D1 |
 | 0.11 | First docs-steward run; first weekly triage | maintainers | — | framework §7 |
-| 0.12 | **Knowledge-repo bridge**: confirm `TheUpskillingLabs/docs-archive` as the destination (or name another), add the token, first `publish-artifacts` run, first sweep PR | owner + docs owner | s | [`documentation-topology.md`](documentation-topology.md) §7 |
+| 0.12 | **Knowledge-repo bridge**: destination is `TheUpskillingLabs/Docs-repository` (first publish pushed by hand 2026-09-25); add the token, first automated `publish-artifacts` run, first sweep PR | owner + docs owner | s | [`documentation-topology.md`](documentation-topology.md) §7 |
 | 0.13 | **Executive meeting** on project setup, context documents, and the auditable decision trail — held before Sprint 1; outcomes recorded as vault notes | owner | — | [#392](https://github.com/TheUpskillingLabs/OLOS/issues/392) (`priority/p1`, filed 2026-09-25) |
 | 0.14 | Session reports for every substantive session from now on (`docs/sessions/`) | everyone | — | topology §5 |
 
@@ -209,7 +209,7 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 | D9 | `seeking_contributors` on graduated projects — who toggles | any DRI; admins | A5 |
 | D10 | Docs owner (framework §9) | the maintainer running the feedback lists | 0.2 |
 | D11 | Activity-event retroactivity (S2) | backfill agreements/pods/projects; not logs | S2.1 |
-| D12 | Knowledge repository: reuse the existing private `TheUpskillingLabs/docs-archive`, or create a new one; who administers it; token vs GitHub App | reuse `docs-archive` (already private, already on the team org); fine-grained PAT held by the owner until an App is worth it | 0.12 |
+| D12 | Knowledge repository — **decided 2026-09-25: `TheUpskillingLabs/Docs-repository`** (created by the owner; first publish pushed by hand). Remaining: who administers it; the publish token (fine-grained PAT vs GitHub App); archive `docs-archive` | PAT held by the owner until an App is worth it | 0.12 |
 | D13 | Executive meeting date and attendees (project setup, context documents, auditable trail) | week of Oct 5, before Sprint 1; outcomes become vault notes | 0.13 |
 
 ---
@@ -222,7 +222,7 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 | PR #391 (vault) / #390 | still open | merge #391, close #390 (0.1) |
 | Labels, milestones, board | not created | 0.2 |
 | Ledger reconciliation | not started | 0.4 |
-| Knowledge-repo bridge | designed + dry-run verified; token not set | 0.12; D12 |
+| Knowledge-repo bridge | destination decided (`Docs-repository`); first publish + `program/` + `governance/` pushed by hand; token not set, workflow inert | 0.12; D12 |
 | Executive meeting | [#392](https://github.com/TheUpskillingLabs/OLOS/issues/392) filed 2026-09-25; agenda + pre-reads in the issue | 0.13; D13 — propose week of Oct 5 |
 | Sprint 0 | re-baselined to Sep 28 → Oct 9 | awaiting ratification of §7 D1, D2, D10, D12, D13 |
 | Sprint 1 | proposed | Showcase slice is decision-gated (D1 by Oct 2) |
