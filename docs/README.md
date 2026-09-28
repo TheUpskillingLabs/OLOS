@@ -49,6 +49,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 | [`roadmap/data-strategy.md`](roadmap/data-strategy.md) | explanation | Proposal |
 | [`roadmap/onboarding-curriculum-brief.md`](roadmap/onboarding-curriculum-brief.md) | how-to (hand-off) | Proposal |
 | [`roadmap/documentation-topology.md`](roadmap/documentation-topology.md) | explanation / how-to | Proposal — the two-repo contract and the publish bridge |
+| [`roadmap/handoff-2026-09-28-onboarding-journeys.md`](roadmap/handoff-2026-09-28-onboarding-journeys.md) | how-to (hand-off) | Hand-off — the context and lane plan for the public pages, the pre-cycle member, the weekly rhythm, the Poderator goal, and the three ways into a cycle |
 
 ## Reference and explanation (docs root)
 

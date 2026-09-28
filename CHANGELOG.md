@@ -40,6 +40,12 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Docs
 
+- Hand-off brief `docs/roadmap/handoff-2026-09-28-onboarding-journeys.md`: the code read on 2026-09-28
+  (public, member, success-team, Poderator, enrollment, cycle surfaces), the decided design, the
+  behavioral evidence base, frame innovation mapped to the calendar with three ways in, six lanes
+  (U public pages, M between-cycles dashboard, L learning shelf, S weekly messages, P Poderator
+  goal, C Cycle v2) with an Ultracode workflow skeleton; issues #459–#471 filed; session report.
+  (planning PR, 2026-09-28)
 - Issue map: the executive-meeting ticket #392, epics #393–#400, and sub-issues #401–#458
   filed from the sprint plan; `docs/roadmap/next-sprint.md` §10 now maps every item to its
   issue, §2–§4 headers carry the re-baselined dates, §8 records the label state; the

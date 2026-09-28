@@ -25,6 +25,7 @@ lives in [`CHANGELOG.md`](../../CHANGELOG.md).
 | 6 | [`data-strategy.md`](data-strategy.md) | Reining in the pipelines: ledger, state machines, activity spine, metrics layer, email accounting, catalog | touch schema, crons, email, or metrics |
 | 7 | [`onboarding-curriculum-brief.md`](onboarding-curriculum-brief.md) | Hand-off for the curriculum session: the persona prompt, knowledge packet, module map, tool stack, deliverables | are running that session or wiring its output into OLOS |
 | 8 | [`documentation-topology.md`](documentation-topology.md) | Two repositories, one contract: what stays in OLOS, what publishes to the private team repo, the bridge workflow, session reports, the auditable decision trail, and what the team must decide | are setting up the knowledge repo, writing a session report, or preparing the executive meeting |
+| 9 | [`handoff-2026-09-28-onboarding-journeys.md`](handoff-2026-09-28-onboarding-journeys.md) | Hand-off brief for the next agent(s): what exists today (read from the code), what is decided, the behavioral evidence and the frame-innovation mapping, six implementation lanes with copy decks and acceptance, an Ultracode workflow skeleton, the issue map, and the open decisions | are building the public pages, the between-cycles dashboard, the learning shelf, the weekly-message table, the Poderator weekly goal, or Cycle v2 |
 
 ## Conventions for this folder
 
