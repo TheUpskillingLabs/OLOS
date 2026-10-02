@@ -82,12 +82,16 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 | [`PRD-moderator-dashboard.md`](PRD-moderator-dashboard.md), [`PRD-moderator-dashboard-mockups.html`](PRD-moderator-dashboard-mockups.html), [`superpowers/specs/2026-05-22-poderator-dashboard-design.md`](superpowers/specs/2026-05-22-poderator-dashboard-design.md) | Historical (built; re-pointed to Learning Logs) | §10 decisions still govern |
 | [`PRD-login-and-cycle-onboarding.md`](PRD-login-and-cycle-onboarding.md) | Historical (bannered) | superseded by the funnel + ceremony |
 | [`poderator-dashboard/CLAUDE.md`](poderator-dashboard/CLAUDE.md) | Canonical area context | migration numbers in it are historical |
+| [`poderator-dashboard/README.md`](poderator-dashboard/README.md) | Folder README | the human companion to the `CLAUDE.md`: the `/moderator` routes, the docs that describe them, the open issues |
+| [`superpowers/README.md`](superpowers/README.md) | Folder README | one historical design spec; where new design work goes now |
 | [`proposals/luma-driven-event-pages.md`](proposals/luma-driven-event-pages.md) | Historical | phases 1–4 done |
+| [`proposals/README.md`](proposals/README.md) | Folder README | one historical plan; where a new proposal goes instead |
 
 ## `requirements/`
 
 | File | Status |
 |---|---|
+| [`requirements/README.md`](requirements/README.md) | Folder README — what each doc is; a requirements doc vs a PRD vs a vault note |
 | [`requirements/cycle-timeline.md`](requirements/cycle-timeline.md) | Plan of record — Stage 1 (`00086`) shipped; Stage 2 sweep pending |
 | [`requirements/pod-registration.md`](requirements/pod-registration.md) | Plan of record — D-10 window and `registered` status (`00099`) shipped |
 | [`requirements/permissions-redesign.md`](requirements/permissions-redesign.md) | Plan of record — finishing the `participant_roles` unification |
@@ -100,6 +104,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 
 | File | Date | Status |
 |---|---|---|
+| [`audit/README.md`](audit/README.md) | 2026-10-02 | Folder README — the never-edit-after-date rule and what superseded what |
 | [`audit/DATA_ARCHITECTURE.md`](audit/DATA_ARCHITECTURE.md) | 2026-07-04 | Canonical principles (§2); hardening batch shipped |
 | [`audit/DESIGN_INTENT.md`](audit/DESIGN_INTENT.md) | 2026-07-04 | Reference — the prototype's intent and the constitution rules |
 | [`audit/GAP_AUDIT.md`](audit/GAP_AUDIT.md) | 2026-07-04 | Historical |
@@ -134,6 +139,7 @@ monthly sweep PR, so this folder empties over time.
 
 ## Content corpora (not engineering docs)
 
-- [`legal/`](legal/) — Code of Conduct, Privacy Policy, Terms (rendered by the public pages).
+- [`legal/`](legal/) — Code of Conduct, Privacy Policy, Terms (rendered by the public pages). Files: [`legal/CODE_OF_CONDUCT.md`](legal/CODE_OF_CONDUCT.md), [`legal/PRIVACY_POLICY.md`](legal/PRIVACY_POLICY.md), [`legal/TERMS_OF_SERVICE.md`](legal/TERMS_OF_SERVICE.md).
+  Folder README: [`legal/README.md`](legal/README.md).
 - [`marketing-site/`](marketing-site/) — the legacy Squarespace export, a reference corpus
   for copy (see its [`README.md`](marketing-site/README.md)).

@@ -40,6 +40,12 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Docs
 
+- Folder READMEs for human readers: `app/` (root, `(public)`, `(dashboard)`, `(auth)`, `api/`,
+  `components/`), `lib/`, `supabase/`, `scripts/`, `.github/`, `.claude/`, and
+  `docs/{audit,requirements,proposals,legal,superpowers,poderator-dashboard}/` — what is there,
+  how it fits, the rules, and the open issues (dated snapshot plus the live label link); the root
+  `README.md` layout table and `docs/ARCHITECTURE.md` link them. Planning branch rebased onto
+  `dev` (13 commits, no inherited merge commits). (planning PR, 2026-10-02)
 - Onboarding as part of the update process: `ONBOARDING.md` (the one-page SOP), a
   "Start here" table in `README.md`, an orientation block in `AGENTS.md` shared by people
   and agents, the lifecycle table in `docs/roadmap/README.md` (when each planning document

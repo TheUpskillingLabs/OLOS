@@ -64,15 +64,21 @@ Environment setup, the shared dev Supabase project, and login are documented in
 
 ## Repo layout
 
-| Path | What it is |
-|---|---|
-| `app/` | Next.js App Router — route groups `(public)`, `(dashboard)`, `(auth)`, the `api/` route handlers, and shared `components/` |
-| `lib/` | Server + shared logic (auth, content, cycle, enrollment, learning-logs, participants, moderator, integrations, email, supabase clients, validations) |
-| `proxy.ts` | Edge middleware — the auth gate + public-path allowlist |
-| `supabase/migrations/` | SQL migrations — the source of truth for the database schema |
-| `scripts/` | Operational + migration scripts (see the `CLAUDE.md` in each) |
-| `docs/` | Architecture, environments, the roadmap (`docs/roadmap/`), PRDs, audits, session reports; the map is `docs/README.md` |
-| `public/` | Static assets |
+Every folder below has a `README.md` for human readers: what is in it, how it fits, the
+rules that apply, and the open issues against it (a dated snapshot plus the live link;
+refreshed at each sprint boundary). Agent conventions live in the `CLAUDE.md` next to it.
+
+| Path | What it is | Folder README |
+|---|---|---|
+| `app/` | Next.js App Router — route groups `(public)`, `(dashboard)`, `(auth)`, `(survey)`, the `api/` route handlers, the public cohort page `c/`, and shared `components/` | [`app/README.md`](app/README.md) · [`(public)`](app/(public)/README.md) · [`(dashboard)`](app/(dashboard)/README.md) · [`(auth)`](app/(auth)/README.md) · [`api/`](app/api/README.md) · [`components/`](app/components/README.md) |
+| `lib/` | Server + shared logic (auth, content, cycle, enrollment, learning-logs, participants, moderator, integrations, email, supabase clients, validations) | [`lib/README.md`](lib/README.md) · [`lib/auth/CLAUDE.md`](lib/auth/CLAUDE.md) |
+| `proxy.ts` | Edge middleware — the auth gate + public-path allowlist | described in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| `supabase/` | SQL migrations — the source of truth for the database schema; `config.toml`, `seed.sql` | [`supabase/README.md`](supabase/README.md) · [`supabase/CLAUDE.md`](supabase/CLAUDE.md) |
+| `scripts/` | Operational, migration, verification, and docs-tooling scripts | [`scripts/README.md`](scripts/README.md) |
+| `docs/` | Architecture, environments, the roadmap (`docs/roadmap/`), PRDs, requirements, audits, session reports, legal copy | [`docs/README.md`](docs/README.md) (the doc map) · [`docs/roadmap/README.md`](docs/roadmap/README.md) |
+| `.github/` | CI, the docs checks, the weekly docs steward, the knowledge-repo publisher; issue and PR templates; `CODEOWNERS` | [`.github/README.md`](.github/README.md) |
+| `.claude/` | Claude Code agent roles, the session-start hook, settings | [`.claude/README.md`](.claude/README.md) · [`docs/agent-teams.md`](docs/agent-teams.md) |
+| `public/` | Static assets | — |
 
 ## Branch & PR model
 

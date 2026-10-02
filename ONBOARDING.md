@@ -35,6 +35,7 @@ first". It is deliberately short; every row links to the document that holds the
 | What are we building, and when? | [`docs/roadmap/next-sprint.md`](docs/roadmap/next-sprint.md); the [issue tracker](https://github.com/TheUpskillingLabs/OLOS/issues) is the live view, organised as epics (`epic` label) with sub-issues |
 | Why is it built this way? | `docs/vault/` (decision records, MADR shape) once [#391](https://github.com/TheUpskillingLabs/OLOS/pull/391) merges; until then the decision tables in the PRDs and `docs/roadmap/2026-09-audit.md` §3 |
 | How is the code organised? | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md); the `CLAUDE.md` next to each area |
+| What is in this folder, and what is open against it? | the `README.md` in the folder: every top-level folder and route group has one (what is there, how it fits, the rules, the open issues as a dated snapshot with the live link beside it) |
 | What does the database look like? | [`SCHEMA.md`](SCHEMA.md); migrations in `supabase/migrations/` (claim a number on your issue before writing one) |
 | Who are we building for? | [`docs/roadmap/personas-and-journeys.md`](docs/roadmap/personas-and-journeys.md); the sprint's persona is [`docs/roadmap/pre-registration-persona.md`](docs/roadmap/pre-registration-persona.md) |
 | What does "done" mean? | [`docs/roadmap/documentation-framework.md`](docs/roadmap/documentation-framework.md) §5 and the PR template; CI (`lint`, `test`, `build`) and `docs-check` enforce the mechanical half |

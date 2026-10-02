@@ -29,6 +29,13 @@ Auth + Storage). Everything runs in one deployment:
 
 ## Directory map
 
+Each folder below also has a `README.md` for human readers (what is in it, how it fits,
+the open issues against it): [`app/`](../app/README.md), [`app/(public)/`](../app/(public)/README.md),
+[`app/(dashboard)/`](../app/(dashboard)/README.md), [`app/api/`](../app/api/README.md),
+[`app/components/`](../app/components/README.md), [`lib/`](../lib/README.md),
+[`supabase/`](../supabase/README.md), [`scripts/`](../scripts/README.md),
+[`.github/`](../.github/README.md). This page stays the ten-minute overview.
+
 ### `app/` — the App Router
 
 Route groups (the parenthesized folders don't appear in URLs; they just group

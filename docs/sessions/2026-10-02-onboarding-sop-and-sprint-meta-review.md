@@ -36,6 +36,17 @@
   links in reading order. Shared as a Claude Doc
   (<https://claude.ai/code/artifact/aa0d9358-7f6e-4cbf-8c0b-67427a563f0b>) and copied
   to the knowledge repo as `governance/executive-summaries/2026-10-02-olos-executive-summary.md`.
+- **Rebase (later the same day, on the owner's go-ahead).** `git rebase --onto origin/dev 226445a`:
+  the branch now carries 13 commits and no inherited merge commits; the tree is byte-identical
+  to the pre-rebase head `6934bc2`; force-pushed with lease to `8c0c1e6`.
+- **Folder READMEs** (seventeen, written by five parallel agents against a shared spec, every
+  claim verified against the code): `app/`, `app/(public)/`, `app/(dashboard)/`, `app/(auth)/`,
+  `app/api/`, `app/components/`, `lib/`, `supabase/`, `scripts/`, `.github/`, `.claude/`,
+  `docs/audit/`, `docs/requirements/`, `docs/proposals/`, `docs/legal/`, `docs/superpowers/`,
+  `docs/poderator-dashboard/`. Each: what is there, how it fits, the rules, the open issues
+  (dated snapshot + live label link), what to run before changing it. The root `README.md`
+  layout table and `docs/ARCHITECTURE.md` link them; `ONBOARDING.md` points at them; the
+  doc map lists the six under `docs/` and the three legal files.
 - **Commit-structure review.** A recommendation (not applied): see the decision table and
   the PR description draft handed to the owner.
 
@@ -48,6 +59,9 @@
   commits; `git diff origin/dev origin/main` is empty, so rebasing onto `origin/dev` is
   conflict-free.
 - Issue bodies name no real person; the volunteer is "a volunteer developer".
+- After the README pass: `npm run check:docs` green over 125 Markdown files; every file under
+  `docs/` (outside archive, sessions, marketing-site) is named in the doc map; the new READMEs
+  carry no real names and no model identifiers.
 
 ## Decisions made → where they live
 
@@ -63,6 +77,31 @@
 - D1 (next cycle date + theme) was due today; it gates the Showcase slice of #414.
 - D10 (the docs owner) — the sprint-boundary refresh needs a named owner.
 - Rebase before opening the PR (recommended), or rely on squash-merge alone.
+
+## Found on the way (not fixed here; filed or commented where an issue exists)
+
+- Six cron routes, not five, fail open without `CRON_SECRET` (the unscheduled
+  `revocation-check` too) — commented on #407.
+- Stale canonical lines: `docs/ARCHITECTURE.md` ("~76 route handlers" vs 131; `lib/integrations/`
+  described as Slack/Drive/GitHub but holds only `luma.ts`; `(survey)/` and `c/` missing from the
+  route-group table; `scripts/` "each subfolder has a CLAUDE.md"); `docs/environments.md` still
+  says `supabase db push --linked` above the block that forbids it and cites #361 instead of #404;
+  `supabase/CLAUDE.md`, `lib/auth/CLAUDE.md`, `docs/poderator-dashboard/CLAUDE.md` carry closed-issue
+  status sections; `requirements/moderator-insights-logs.md` is still "Draft" although #379/#381
+  shipped 2026-08-30 — commented on #409.
+- #212 names a function (`getRegistrationCycle`) that does not exist — commented on #212.
+- Personal data in committed files of a public repo (a default ops email in a migration script,
+  real first names in a spotlights seed header, a maintainer name and a personal email in
+  `docs/environments.md`; alumni quoted by full name on `/donate`) — filed as [#475](https://github.com/TheUpskillingLabs/OLOS/issues/475).
+- `/sectors/[slug]` and `/workstreams/[slug]` live in `app/(public)/` but are not in `proxy.ts`
+  `publicPaths`, so signed-out visitors are sent to `/login`; `lib/content/org-pages.ts` treats
+  them as dashboard deep links — decide whether that is intended (noted in the `(public)` README).
+- `lib/llm/` is one function naming new pods and projects from member-written text at finalize,
+  admin-only, with a fallback when no key is set; `docs/ARCHITECTURE.md` calls it the one ratified
+  in-app LLM use. The hand-off brief's constitution says no in-app LLM — a vault note should
+  record the exception or retire it.
+- Legal pages are hand-copied JSX mirroring `docs/legal/*.md`; nothing enforces sync.
+- Twelve API routes have no in-repo caller (listed with "(verify)" in `app/api/README.md`).
 
 ## Next
 
