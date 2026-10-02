@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-10-02 |
 | **Ran by** | dev (Claude Code session, lead-architect role) |
-| **Branch / PR** | `claude/olos-roadmap-documentation-yjebim` · planning PR ([#401](https://github.com/TheUpskillingLabs/OLOS/issues/401)) not yet opened |
+| **Branch / PR** | `claude/olos-roadmap-documentation-yjebim` · planning PR [#476](https://github.com/TheUpskillingLabs/OLOS/pull/476) into `dev` (closes [#401](https://github.com/TheUpskillingLabs/OLOS/issues/401)) |
 | **Asked** | Review the branch about to merge so the uses of its documents are clear and the commit is structured cleanly; plan the document cleanup; open a ticket for a volunteer developer joining to build the outward-facing pages; make onboarding part of the update process by embedding the reading order in `README.md` / `AGENTS.md`; write a two-page executive summary of the recent changes and the next sprint, with links to the context documents and issues; open the next sprint's tickets so they can be reviewed. |
 
 ## What was done
@@ -105,7 +105,7 @@
 
 ## Next
 
-- Owner: open the planning PR into `dev` (#401) with the draft description; merge #391;
+- Owner: review and squash-merge #476; merge #391;
   decide D1/D10/D12/D13; the volunteer developer starts at #472.
 - Docs owner: at the Sprint 1 boundary (Oct 12), run the §9.1 refresh for the first time
   and re-date `ONBOARDING.md`.

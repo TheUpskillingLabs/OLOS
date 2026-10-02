@@ -28,15 +28,15 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   doc map, relative links, vault frontmatter, PR title), `docs-steward` weekly Claude workflow
   (inert until `ANTHROPIC_API_KEY` is set), `npm run check:docs`, PR template **Docs &
   decisions** section, *Decision needed* issue template, `persona/` labels proposed.
-  (planning PR — number assigned on open)
+  (#476)
 - Knowledge-repo bridge: `.github/workflows/publish-artifacts.yml` (publish on merge to
   `dev`, dated snapshots on release tags, monthly sweep PR), `scripts/publish-artifacts.mjs`,
   `docs/publish.manifest.json`; inert until `KNOWLEDGE_REPO_TOKEN` is set; destination `TheUpskillingLabs/Docs-repository`;
   the publisher writes a README in every generated folder (manifest `folders`). `docs-check`
-  exempts `docs/sessions/` from the doc-map rule. (planning PR, 2026-09-25)
+  exempts `docs/sessions/` from the doc-map rule. (#476)
 - Publisher rewrites a file only when its content changed (header, generated line, and
   publishing sha ignored in the comparison), so the knowledge repo's history shows real
-  edits; the prune plan uses the same comparison. (planning PR, 2026-09-25)
+  edits; the prune plan uses the same comparison. (#476)
 
 ### Docs
 
@@ -45,32 +45,32 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   `docs/{audit,requirements,proposals,legal,superpowers,poderator-dashboard}/` — what is there,
   how it fits, the rules, and the open issues (dated snapshot plus the live label link); the root
   `README.md` layout table and `docs/ARCHITECTURE.md` link them. Planning branch rebased onto
-  `dev` (13 commits, no inherited merge commits). (planning PR, 2026-10-02)
+  `dev` (13 commits, no inherited merge commits). (#476)
 - Onboarding as part of the update process: `ONBOARDING.md` (the one-page SOP), a
   "Start here" table in `README.md`, an orientation block in `AGENTS.md` shared by people
   and agents, the lifecycle table in `docs/roadmap/README.md` (when each planning document
   retires), and the sprint-boundary refresh rule (framework §9.1) checked by the steward.
-  Onboarding ticket #472 and good first issues #473, #474. (planning PR, 2026-10-02)
+  Onboarding ticket #472 and good first issues #473, #474. (#476)
 - Hand-off brief `docs/roadmap/handoff-2026-09-28-onboarding-journeys.md`: the code read on 2026-09-28
   (public, member, success-team, Poderator, enrollment, cycle surfaces), the decided design, the
   behavioral evidence base, frame innovation mapped to the calendar with three ways in, six lanes
   (U public pages, M between-cycles dashboard, L learning shelf, S weekly messages, P Poderator
   goal, C Cycle v2) with an Ultracode workflow skeleton; issues #459–#471 filed; session report.
-  (planning PR, 2026-09-28)
+  (#476)
 - Issue map: the executive-meeting ticket #392, epics #393–#400, and sub-issues #401–#458
   filed from the sprint plan; `docs/roadmap/next-sprint.md` §10 now maps every item to its
   issue, §2–§4 headers carry the re-baselined dates, §8 records the label state; the
-  Sep 25 session report records the filing. (planning PR, 2026-09-25)
+  Sep 25 session report records the filing. (#476)
 - `docs/roadmap/documentation-topology.md` (two repositories, one contract);
   `docs/sessions/` convention + reports for the Sep 15 and Sep 25 sessions; sprint dates
-  re-baselined; audit addendum (F15, `docs-archive`). (planning PR, 2026-09-25)
+  re-baselined; audit addendum (F15, `docs-archive`). (#476)
 - `docs/roadmap/`: September 2026 audit, next-sprint plan (Sprint 0/1/2), pre-registration
   persona, personas & journeys, documentation framework, data strategy, curriculum-session
   brief. `docs/README.md` doc map; `docs/archive/` for session artifacts (10 files moved);
   historical banners on `OLOS-roadmap.md`, `audit/PROGRESS.md`, `personas.md`,
   `PRD-login-and-cycle-onboarding.md`; stale lines fixed in `ARCHITECTURE.md`,
   `environments.md` (ledger-drift warning), `lib/auth/CLAUDE.md`,
-  `poderator-dashboard/CLAUDE.md`. This changelog seeded. (planning PR)
+  `poderator-dashboard/CLAUDE.md`. This changelog seeded. (#476)
 
 
 ## [2026.09.10] — 2026-09-10

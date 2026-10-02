@@ -218,7 +218,7 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 
 | Item | State | Note (2026-09-25) |
 |---|---|---|
-| Planning PR (`claude/olos-roadmap-documentation-yjebim`) | pushed, **not yet opened as a PR** | blocks everything below; open it into `dev` |
+| Planning PR (`claude/olos-roadmap-documentation-yjebim`) | **opened 2026-10-02 as [#476](https://github.com/TheUpskillingLabs/OLOS/pull/476)** into `dev`, rebased (16 commits, no merge commits) | blocks everything below; merge it, then #391 |
 | PR #391 (vault) / #390 | still open | merge #391, close #390 (0.1) |
 | Labels, milestones, board | partial | `priority/*`, `area/{backend,frontend,ops}`, `size/*`, `epic`, `persona/pre-registrant` exist (created with the first issues); `area/database`, `area/docs`, `persona/{upskiller,poderator,admin,lab-lead,mentor}`, `needs-decision` and the milestones do not — [#402](https://github.com/TheUpskillingLabs/OLOS/issues/402) |
 | Ledger reconciliation | not started | 0.4 |
