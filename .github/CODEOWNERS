@@ -1,3 +1,8 @@
 # Code owners — review requests route here automatically.
 # Any one of the listed owners can approve. See https://docs.github.com/articles/about-code-owners
 * @brendanwhitaker @adm-2k @amguzzi
+
+# Documentation review (docs/roadmap/documentation-framework.md §5). Any one of the
+# owners above can approve; add the named docs owner here once decided (§9), e.g.
+# docs/**  @docs-owner-handle
+# *.md     @docs-owner-handle
