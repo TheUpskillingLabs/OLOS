@@ -6,6 +6,8 @@
 
 ## Orientation
 
+The reading order for any session is in [AGENTS.md](AGENTS.md) (imported above): the current sprint, your issue and its epic, the hand-off brief when your issue is one of its lanes, the doc map, the area `CLAUDE.md`. The links below are the same places, with the Claude-specific notes.
+
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the codebase is organized (App Router, `lib/`, migrations, core concepts).
 - [CONTRIBUTING.md](CONTRIBUTING.md) — setup, the branch/PR workflow, and the "Working in parallel" rules (file ownership, claiming migration numbers).
 - [docs/agent-teams.md](docs/agent-teams.md) — running Claude Code agent teams on this repo (roles in `.claude/agents/`, ownership map, spawn prompts).

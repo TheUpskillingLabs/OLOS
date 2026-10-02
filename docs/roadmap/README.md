@@ -27,6 +27,28 @@ lives in [`CHANGELOG.md`](../../CHANGELOG.md).
 | 8 | [`documentation-topology.md`](documentation-topology.md) | Two repositories, one contract: what stays in OLOS, what publishes to the private team repo, the bridge workflow, session reports, the auditable decision trail, and what the team must decide | are setting up the knowledge repo, writing a session report, or preparing the executive meeting |
 | 9 | [`handoff-2026-09-28-onboarding-journeys.md`](handoff-2026-09-28-onboarding-journeys.md) | Hand-off brief for the next agent(s): what exists today (read from the code), what is decided, the behavioral evidence and the frame-innovation mapping, six implementation lanes with copy decks and acceptance, an Ultracode workflow skeleton, the issue map, and the open decisions | are building the public pages, the between-cycles dashboard, the learning shelf, the weekly-message table, the Poderator weekly goal, or Cycle v2 |
 
+## Lifecycle of these documents (the cleanup plan)
+
+Nine documents is the most this folder should ever hold. Each one has a job and a retirement
+condition; when the condition is met, the document gets a one-line "Historical (bannered
+YYYY-MM-DD)" note, the publish bridge keeps the copy in the knowledge repo, and the monthly
+sweep PR removes it from OLOS once the knowledge repo holds it.
+
+| Document | Its job | Retires when | Goes to |
+|---|---|---|---|
+| `README.md` (this file) | the index and the reading order | never; rewritten per phase | stays |
+| `2026-09-audit.md` | the dated findings this phase started from | the next audit is written (next phase) | knowledge repo `olos/roadmap/`; stays listed as historical |
+| `next-sprint.md` | the plan of record for the phase | the phase closes: its retro goes to `CHANGELOG.md` and the vault; the next sprint doc replaces it | knowledge repo; the old one is bannered |
+| `pre-registration-persona.md`, `personas-and-journeys.md` | living persona and journey definitions | they are living; revised per cycle after the Showcase journey review | stay |
+| `documentation-framework.md`, `documentation-topology.md` | the documentation contract and the two-repo contract | they are the contract; merge into one `docs/documentation-contract.md` once both are ratified | stay (one file) |
+| `data-strategy.md` | the data plan for this phase | its items ship or move to the vault as decisions; the metrics dictionary and data catalog (`docs/reference/`) take over | knowledge repo |
+| `onboarding-curriculum-brief.md` | the hand-off for the curriculum session | the session has run (K1 [#450](https://github.com/TheUpskillingLabs/OLOS/issues/450)) and the modules exist in the knowledge repo | knowledge repo `program/curriculum/` |
+| `handoff-2026-09-28-onboarding-journeys.md` | the hand-off for the next agent(s) building the lanes | the lanes merge; what survives moves into `next-sprint.md` §3 and the vault | knowledge repo |
+
+The same rule applies to the rest of `docs/`: the doc map (`docs/README.md`) names each
+document's status, the sweep PR proposes removals, and nothing is deleted from OLOS before
+the knowledge repo holds it.
+
 ## Conventions for this folder
 
 - One dated audit per phase (`YYYY-MM-audit.md`); never edited after its date except

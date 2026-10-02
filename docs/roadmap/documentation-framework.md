@@ -343,3 +343,21 @@ a decision note when a future reader could reasonably question the choice.
 
 **Decision to make now:** name the docs owner. Recommendation: the maintainer who
 already runs the feedback lists, with the steward doing the reading.
+
+### 9.1 The sprint-boundary refresh (onboarding is part of the update process)
+
+Onboarding is not a separate document set; it is the top of the reading order, and it
+goes stale the day a sprint rolls over. So the PR that re-baselines
+[`next-sprint.md`](next-sprint.md) §8 at a sprint boundary (and the sweep PR at a
+promotion) also refreshes, in the same PR:
+
+| Surface | What is refreshed | Who reads it |
+|---|---|---|
+| [`README.md`](../../README.md) "Start here" | the current sprint file, the current hand-off brief, the sessions folder | people arriving from GitHub |
+| [`AGENTS.md`](../../AGENTS.md) "Orientation" | the same reading order, with the lane list of the current brief | Claude Code and other agents (imported by `CLAUDE.md`) |
+| [`ONBOARDING.md`](../../ONBOARDING.md) | "Last verified", the access runbook links, the good-first-ticket pointer, the rules | a new contributor, on day one |
+| the executive summary (two pages; `governance/executive-summaries/` in the knowledge repo) | what changed since the last boundary, the next sprint, the decisions due, the links | the owner and the executive meeting |
+
+The docs steward checks the first three at each weekly run: the documents they name must
+be the ones `next-sprint.md` §8 lists as current, and `ONBOARDING.md`'s "Last verified"
+must not predate the current sprint's start. Drift is a Medium finding in the steward issue.

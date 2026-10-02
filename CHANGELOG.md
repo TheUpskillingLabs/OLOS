@@ -40,6 +40,11 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Docs
 
+- Onboarding as part of the update process: `ONBOARDING.md` (the one-page SOP), a
+  "Start here" table in `README.md`, an orientation block in `AGENTS.md` shared by people
+  and agents, the lifecycle table in `docs/roadmap/README.md` (when each planning document
+  retires), and the sprint-boundary refresh rule (framework §9.1) checked by the steward.
+  Onboarding ticket #472 and good first issues #473, #474. (planning PR, 2026-10-02)
 - Hand-off brief `docs/roadmap/handoff-2026-09-28-onboarding-journeys.md`: the code read on 2026-09-28
   (public, member, success-team, Poderator, enrollment, cycle surfaces), the decided design, the
   behavioral evidence base, frame innovation mapped to the calendar with three ways in, six lanes

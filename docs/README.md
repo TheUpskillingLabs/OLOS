@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Canonical index. `docs-check` fails a PR that adds a doc under `docs/` without listing it here |
 | **Owner** | Docs owner (see [`roadmap/documentation-framework.md`](roadmap/documentation-framework.md) §9) |
-| **Last verified** | 2026-09-25 against `main@226445a` |
+| **Last verified** | 2026-10-02 against `main@226445a` |
 
 Eighty-odd documents, four kinds, six statuses. **Kind** is the Diátaxis question the
 doc answers (tutorial · how-to · reference · explanation). **Status** is ours:
@@ -17,7 +17,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 
 | If you are… | Read |
 |---|---|
-| new to the repo | [`../README.md`](../README.md) → [`../CONTRIBUTING.md`](../CONTRIBUTING.md) → [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| new to the repo | [`../ONBOARDING.md`](../ONBOARDING.md) → [`../CONTRIBUTING.md`](../CONTRIBUTING.md) → [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | deciding what to build next | [`roadmap/README.md`](roadmap/README.md) |
 | about to open a PR | [`roadmap/documentation-framework.md`](roadmap/documentation-framework.md) §5, then the PR template |
 | touching an area | the `CLAUDE.md` next to it (`lib/auth/`, `supabase/`, `scripts/ops/`, `scripts/migration/`, `docs/poderator-dashboard/`) |
@@ -29,6 +29,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 | File | Kind | Status | Notes |
 |---|---|---|---|
 | [`../README.md`](../README.md) | reference | Canonical | stack, commands, layout |
+| [`../ONBOARDING.md`](../ONBOARDING.md) | how-to (SOP) | Canonical | joining the team: day one, where everything lives, picking up a ticket; refreshed at every sprint boundary |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | tutorial / how-to | Canonical | setup, branch/PR workflow, docs contract |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | reference | Canonical | Keep-a-Changelog, sectioned by `dev → main` promotion |
 | [`../SCHEMA.md`](../SCHEMA.md) | reference | Canonical | ERDs + table summary; the seed of the data catalog |

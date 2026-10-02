@@ -75,6 +75,11 @@ jobs:
                and for cited repo paths (app/…, lib/…, supabase/migrations/…) that no longer exist.
             4. Read docs/roadmap/next-sprint.md §8 and compare with open issues/PRs for the
                current milestone; note items whose state is stale.
+               Then check the onboarding surfaces (framework §9.1): README.md "Start here",
+               AGENTS.md "Orientation", and ONBOARDING.md must name the sprint file and
+               hand-off brief that §8 lists as current, and ONBOARDING.md's "Last verified"
+               must not predate the current sprint's start date; record "onboarding pointers
+               stale" (Medium) otherwise.
             5. Check for open PRs idle > 14 days and issues labeled needs-triage older than 7 days.
             6. Create ONE issue titled "Docs steward — week of <YYYY-MM-DD>" (if one with that
                title exists, add a comment instead). Body: findings grouped High / Medium / Low,
