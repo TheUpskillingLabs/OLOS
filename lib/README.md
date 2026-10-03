@@ -132,6 +132,14 @@ boundary ([`docs/roadmap/documentation-framework.md`](../docs/roadmap/documentat
 - **Schema.** A change that needs a migration: claim the number on the issue first, update
   `SCHEMA.md` in the same PR, and keep the CHECK vocabularies equal to the TypeScript unions
   (#408) — the reconciler and the status unions in `enrollment/` are the sharp edge.
+- **Cycle facts are data** (2026-10-03, [`../docs/requirements/cycle-4-readiness.md`](../docs/requirements/cycle-4-readiness.md) §2).
+  A cycle's dates, length, audience, events, theme and descriptive copy are read from its rows
+  (`cycles`, `cycle_config`, `cycle_phases`, `cycle_events`) through one helper per question,
+  and written through admin API routes with zod validation. Never a constant that names a cycle,
+  a season, or a length ("12 weeks", a literal 13). Lifecycle (`status`) and who may see and join
+  a cycle are separate questions (#478). Any function that turns a date into a week, phase, window
+  or status is tested against a 91-day and a 56-day cycle (#479). The 12-week template stays the
+  default and is not deleted.
 - **Copy** in anything that reaches a member (task copy, email templates, labels): "The Labs"
   (never "TUL"), "Upskiller", "Poderator" (code says `moderator`, copy never does); never
   course / class / student / lesson / module. No names of real participants in fixtures.

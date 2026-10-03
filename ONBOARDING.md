@@ -85,6 +85,9 @@ carries the styling, and the copy rules are short.
 - Copy: "The Upskilling Labs" or "The Labs" (never "TUL"); "Upskiller"; "Poderator".
 - No names of real participants in anything committed — this repository is public.
 - No in-app LLM features; no activity telemetry; nothing that shames a member who is behind.
+- Cycle facts are data, not code: a cycle's dates, length, audience and copy come from its
+  database rows through one helper. Never hard-code "12 weeks" or a cycle's name
+  (`docs/requirements/cycle-4-readiness.md` §2).
 - Secrets never leave this repo's `.env*.local` files or 1Password.
 
 ## Who to ask

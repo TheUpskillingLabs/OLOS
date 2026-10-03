@@ -5,7 +5,7 @@
 | **What this is** | The requirements and design documents for slices of OLOS that are being built or were recently built: the cycle timeline, pod registration, the permissions unification, the Poderator Insights re-pointing, and the records of their re-baselines. |
 | **Zone / owner** | `docs` zone (`docs/**`; [`../agent-teams.md`](../agent-teams.md) "File-ownership map"). Each doc is owned by the feature's engineer and reviewed by product ([`../roadmap/documentation-framework.md`](../roadmap/documentation-framework.md) §9). |
 | **Conventions** | No `CLAUDE.md` here. Every doc opens with the status header (framework §3.2) and names its related code and docs. A doc is re-baselined with a dated note, never silently rewritten, when the code moves past it. Mirrored to the knowledge repo at `olos/requirements/` ([`../publish.manifest.json`](../publish.manifest.json)). |
-| **Last verified** | 2026-10-02 |
+| **Last verified** | 2026-10-03 |
 
 ## What is here
 
@@ -16,6 +16,7 @@ records why.
 | File | Status | What it is |
 |---|---|---|
 | [`cycle-timeline.md`](cycle-timeline.md) | Plan of record — Stage 1 (`00086`) shipped; Stage 2 sweep pending | A cycle owns one ordered, timezone-aware schedule from which every window is derived. Stage 2 is issue #437. |
+| [`cycle-4-readiness.md`](cycle-4-readiness.md) | Proposal — awaiting the decisions in #480 | Cycle 4 is an 8-week internal retrospective: what in OLOS assumes the 12-week shape, why audience is separate from lifecycle (`registration_audience`, `00108`), the run sheet to Kickoff and the Cycle 3 close-out, and the norms (cycle facts are data behind an API; two-fixture tests). Epic #477. |
 | [`pod-registration.md`](pod-registration.md) | Plan of record — D-10 window and `registered` status (`00099`) shipped | Two registration windows keyed to pod phases, the enrollment reconciler, the revocation cron. |
 | [`permissions-redesign.md`](permissions-redesign.md) | Plan of record — finishing the `participant_roles` unification | What remains after migrations `00054`–`00066` made `participant_roles` the source of truth. |
 | [`implementation-plan.md`](implementation-plan.md) | Plan of record — Stages 0–1 executed; later stages unrecorded | The sequenced plan across the slices above (2026-07 re-baseline). |
@@ -45,7 +46,7 @@ and §3):
 The code these docs describe is mapped in [`../ARCHITECTURE.md`](../ARCHITECTURE.md) ("Core
 domain concepts") and the tables in [`../../SCHEMA.md`](../../SCHEMA.md).
 
-## Open issues in this area (snapshot 2026-10-02)
+## Open issues in this area (snapshot 2026-10-03)
 
 Live view: [all open issues](https://github.com/TheUpskillingLabs/OLOS/issues).
 
@@ -54,6 +55,7 @@ Live view: [all open issues](https://github.com/TheUpskillingLabs/OLOS/issues).
 - [#437](https://github.com/TheUpskillingLabs/OLOS/issues/437) — S2.4 — One calendar: Stage 2 page sweep, drop the mirror and legacy columns, retire `anchor-events.ts`, upsert anchors from `cycle_events` (`priority/p2, size/l`)
 - [#378](https://github.com/TheUpskillingLabs/OLOS/issues/378) — Pods→Projects transition: poderator scoping, project-level log views, and switcher rethink
 - [#423](https://github.com/TheUpskillingLabs/OLOS/issues/423) — B4 — Pods→Projects scoping (decide #378 Gap 1) + project-scoped log view and roster + switcher groups (`priority/p1, size/m`)
+- [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) — Cycle 4 readiness: an 8-week internal retrospective on a platform built for 12-week cycles (`epic, priority/p1`); sub-issues [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) registration audience (claims `00108`), [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) real 7-day cycle weeks, [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) decision
 - [#212](https://github.com/TheUpskillingLabs/OLOS/issues/212) — [labs][p1] Registration routing is metro-blind — getRegistrationCycle() ignores the participant's lab (`priority/p1, size/s`)
 
 This list is a snapshot; the live view above is the truth. Refreshed at each sprint boundary

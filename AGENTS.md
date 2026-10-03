@@ -33,6 +33,10 @@ Rules that apply to every change:
   lesson/module in UI; no names of real participants in anything committed (the repo is public).
 - Constitution: no in-app LLM, no activity telemetry, nothing that shames a member who is
   behind, consent-gated messaging. The brief's §4 and §8 spell these out.
+- Cycle facts are data, read through one helper and written through an admin API: never hard-code
+  a cycle's name, season, dates, length ("12 weeks", a literal 13) or audience. Test cycle-time
+  math against a 91-day and a 56-day cycle. The next cycle (Cycle 4) is 8 weeks and internal:
+  `docs/requirements/cycle-4-readiness.md`, epic #477.
 - End every substantive session with a report in `docs/sessions/` (template in its README).
   It is the artifact of what was completed and travels to the team knowledge repo on merge.
 

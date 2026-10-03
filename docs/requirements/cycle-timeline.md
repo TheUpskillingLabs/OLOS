@@ -186,6 +186,12 @@ recomputing downstream; the 24h hardcode goes away. It stays a
 
 ## Cycle template — relative schedule
 
+> **2026-10-03 note.** The table below is the **default** template (the 12-week arc on a
+> 91-day span), not the only cycle shape. Cycle 4 is an 8-week internal retrospective
+> (owner, D1, 2026-10-02). What assumes this template, and how a differently shaped cycle
+> runs from its own `cycle_events` / `cycle_phases` rows without deleting it, is in
+> [`cycle-4-readiness.md`](./cycle-4-readiness.md) (epic #477).
+
 13-week, Tuesday-anchored cycle; events carry per-cycle-overridable offsets
 from start; software windows anchor to events with weekday-snap deadlines.
 **The June dates are confirmed correct (owner, 2026-07-12).** Note:
@@ -374,6 +380,18 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
   start 4:30 PM at MLK Library. To change a public event fact, change it on
   Luma — the sync owns the merged rows.
 
+- **2026-10-03 (proposed; ratify in #480)** — **Cycle length is data.** Cycle 4 runs
+  8 weeks (owner, D1). `getCycleWeek` currently interpolates 13 equal slices of
+  `[start_date, end_date]`, so a 56-day cycle gets ~4.3-day "weeks" while the Friday
+  log-window cron stays calendar-weekly. Proposed: weeks are **7-day weeks from the
+  anchor**, with `weekCount` derived from the span (identical results for any 91-day
+  cycle). Consumers stop hard-coding 12/13, and every cycle-time function is tested
+  against a 91-day and a 56-day fixture (#479). The 12-week template above stays the
+  default; the rail and key dates render from `cycle_events` when a cycle has its own
+  rows (#437). Who may see and join a cycle becomes a field separate from its lifecycle
+  status (`cycles.registration_audience`, migration `00108`, #478). Full reasoning:
+  [`cycle-4-readiness.md`](./cycle-4-readiness.md).
+
 ## Open decisions
 
 - **T-2** — Does the schedule zone come from an explicit HQ `metros` row
@@ -381,3 +399,6 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
   during implementation.)
 - **T-3** — `pulse_checks.scheduled_date` (DATE) "today" derivation: switch to
   schedule-tz "today" during FR-15, or leave as a known minor skew.
+- **T-4** — For a cycle that is not a whole number of weeks, does `weekCount` round
+  (proposed) or floor, and does the Showcase evening sit in the last week or the bucket
+  after it (lane S's "Showcase is bucket 13" ruling, generalised)? Decide in #479.

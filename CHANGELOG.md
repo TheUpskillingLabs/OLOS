@@ -40,6 +40,12 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Docs
 
+- Cycle 4 readiness: `docs/requirements/cycle-4-readiness.md` (the 8-week internal retrospective — what
+  assumes 12 weeks, audience separate from lifecycle, the run sheet, the "cycle facts are data" norms);
+  epic #477 with #478 (`cycles.registration_audience`, claims `00108`), #479 (real 7-day cycle weeks),
+  #480 (decision); D1 shape, status, risk and issue map in `next-sprint.md`; `00108` in the lane brief;
+  a re-baseline note in `cycle-timeline.md`; the rule in `AGENTS.md`, `ONBOARDING.md`, `lib/README.md`.
+  (#PR)
 - Folder READMEs for human readers: `app/` (root, `(public)`, `(dashboard)`, `(auth)`, `api/`,
   `components/`), `lib/`, `supabase/`, `scripts/`, `.github/`, `.claude/`, and
   `docs/{audit,requirements,proposals,legal,superpowers,poderator-dashboard}/` — what is there,

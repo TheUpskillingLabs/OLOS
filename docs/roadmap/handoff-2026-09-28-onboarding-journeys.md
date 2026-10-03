@@ -231,9 +231,9 @@ A completeness pass over the six lane specs found the places where two lanes def
 6. **P** (`feat/poderator-weekly-goal`, migration **`00106`**): after #463 and S PR 1; after a wireframe or waiver is linked from [#461](https://github.com/TheUpskillingLabs/OLOS/issues/461).
 7. **C** (`feat/cycle-v2-three-ways-in`, migration **`00105`**): after U-core and M-core; code ships behind unset config until D-C1 is taken.
 8. **Follow-ons**, each off `dev` after its parent: U-2 (funnel copy, welcome email and route window, `is_staff` in `withMemberCounts`, the lab-count floor); M-2 (GitHub username field, the `?from=signup` ledes, key dates and the `.ics`); S PR 2 (the email channel); [#470](https://github.com/TheUpskillingLabs/OLOS/issues/470) (migration **`00107`**, after A5).
-9. **The D1 gate** (data, not code, week of Oct 5): the `upcoming` cycle row with `end_date` = the Summit date, `cycle_config.theme_description`, six `cycle_events` rows with `luma_api_id` from U's template, a `field_surveys` row for the theme, the Q4 hand-edit of `anchor-events.ts` until #437, and the Luma event names.
+9. **The D1 gate** (data, not code, week of Oct 5; *2026-10-03:* Cycle 4 is 8 weeks and internal, so `end_date` is the 8-week Showcase, the cycle's `registration_audience` is set per [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480), and the run sheet is [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md) §5): the `upcoming` cycle row with `end_date` = the Summit date, `cycle_config.theme_description`, six `cycle_events` rows with `luma_api_id` from U's template, a `field_surveys` row for the theme, the Q4 hand-edit of `anchor-events.ts` until #437, and the Luma event names.
 
-Migrations on dev in this order: 00104 (S) → 00105 (C) → 00106 (P) → 00107 (#470); `npm run check:migrations` on every PR; `SCHEMA.md` in the same PR as each; apply by paste until [#404](https://github.com/TheUpskillingLabs/OLOS/issues/404).
+Migrations on dev in this order: 00104 (S) → 00105 (C) → 00106 (P) → 00107 (#470) → 00108 (registration audience, [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478), claimed 2026-10-03); `npm run check:migrations` on every PR; `SCHEMA.md` in the same PR as each; apply by paste until [#404](https://github.com/TheUpskillingLabs/OLOS/issues/404).
 
 ### 6.2 Rulings on the conflicts between lanes
 
@@ -246,7 +246,7 @@ Migrations on dev in this order: 00104 (S) → 00105 (C) → 00106 (P) → 00107
 | The Register task for a lab-less member (U-2 vs M) | **M owns it**: `labActive = metro_id != null AND metros.status = 'active'`; one param `/local-labs?reason=cycle` with M's band; U-2 drops its copy |
 | The Poderator weekly message's table and reader (S vs P) | **S owns** the table, RLS, selector, week range 0–13, and the seed; P merges after S, deletes its fallback query, and appends its rows to S's seed |
 | The cohort for "the lower side of log submission" (P vs C's reconciler change) | **P owns** the definition (`pulse_status` over the pod roster); C attaches Builders to the pod behind their project so they are shepherded |
-| Migration numbers (S, C, P, L, #470 all naming 00104/00105) | S = 00104, C = 00105, P = 00106, #470 = 00107; L ships none |
+| Migration numbers (S, C, P, L, #470 all naming 00104/00105) | S = 00104, C = 00105, P = 00106, #470 = 00107; L ships none. *Added 2026-10-03:* `00108` = `cycles.registration_audience` ([#478](https://github.com/TheUpskillingLabs/OLOS/issues/478)) |
 | Two grammars for the ladder's `task_dismissals` keys (L numeric steps vs M named steps) | **M owns `prepareTaskKey`** (named steps; account-scoped tool steps); L imports it and its tags token becomes `step:{name}` |
 | Two social-proof helpers (U `social-proof.ts` vs M `cohort-counts.ts`) | **U's file**; M reads its per-lab number from `cycleSignupCountsByLab()` through `aboveFloor()` |
 | The `?from=signup` ledes (U-2 vs M) | **M owns** the ledes and the funnel's redirect edit; U's five ledes are copy input; the waitlisted city comes from `metro_waitlist_signups` |
@@ -293,7 +293,7 @@ Six lanes, each one branch off `origin/dev`, one PR into `dev`, one agent. Each 
 | **P** The Poderator's weekly goal and the safe logs query | `lib/moderator/**`, `app/(dashboard)/moderator/pods/[pod_id]/**`, `app/api/moderator/**`, `lib/validations/moderator.ts`, a migration (claim) — **the single-owner zone** | [#461](https://github.com/TheUpskillingLabs/OLOS/issues/461) (B7); content [#466](https://github.com/TheUpskillingLabs/OLOS/issues/466) (K11); fixes [#463](https://github.com/TheUpskillingLabs/OLOS/issues/463) in-lane; absorbs part of #421 | `feat/poderator-weekly-goal` | m |
 | **C** Cycle v2: the three ways in (decision pack + smallest changes) | `lib/cycles/schedule.ts` + tests, `lib/validations/cycles.ts`, `lib/validations/cycle-agreement.ts`, `app/api/cycles/[cycle_id]/agreement/route.ts`, the ceremony, `cycle-config-form.tsx`, `app/api/pods/[pod_id]/ready-for-builders/**`, the pod page, a migration (claim) | [#459](https://github.com/TheUpskillingLabs/OLOS/issues/459) epic: [#468](https://github.com/TheUpskillingLabs/OLOS/issues/468) decisions, [#469](https://github.com/TheUpskillingLabs/OLOS/issues/469) Builder track, [#470](https://github.com/TheUpskillingLabs/OLOS/issues/470) Contributor requests, [#471](https://github.com/TheUpskillingLabs/OLOS/issues/471) statement review | `feat/cycle-v2-three-ways-in` | m (after the decisions) |
 
-Shared files: the task system (`lib/tasks/**`, `dashboard/page.tsx`, the register card) is M's and merges before S, L, C, and U-2 touch it; `lib/cycles/schedule.ts`, `public.ts`, `anchor.ts`, `social-proof.ts`, and `three-ways-in.tsx` are U's and merge before C and M read them; migration numbers are fixed (S 00104, C 00105, P 00106, #470 00107). The full rulings are §6.2.
+Shared files: the task system (`lib/tasks/**`, `dashboard/page.tsx`, the register card) is M's and merges before S, L, C, and U-2 touch it; `lib/cycles/schedule.ts`, `public.ts`, `anchor.ts`, `social-proof.ts`, and `three-ways-in.tsx` are U's and merge before C and M read them; migration numbers are fixed (S 00104, C 00105, P 00106, #470 00107; 00108 is the registration audience, #478). The full rulings are §6.2.
 
 ### 7.U — Public pages and the sign-up hand-off
 
@@ -563,7 +563,7 @@ Filed 2026-09-25 (the phase's epics and sub-issues, `next-sprint.md` §10) and 2
 
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D1 | The next cycle's kickoff date and theme (by Oct 2 for the Showcase slice) | announce at the Showcase | every dated line in U, S, C; K4; the drip's real send instants; the six `cycle_events` rows |
+| D1 | The next cycle's kickoff date and theme (by Oct 2 for the Showcase slice) | announce at the Showcase | every dated line in U, S, C; K4; the drip's real send instants; the six `cycle_events` rows. **Shape answered 2026-10-02:** Cycle 4 is an 8-week internal retrospective over Cycles 1–3 with no public registration front door; dates, audience and arc open in [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480); what this changes for every lane is in [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md) (epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477)) |
 | D-U2 | One definition of "registration open" for public pages and emails | `registrationWindow()` | U |
 | D-U6 | Soften the two email promises now or wait for the drip | now | U |
 | S1 | Extend `weekly_messages` or build `scheduled_messages` | extend in place; re-scope #416 | S, P (the poderator column), K10 |
