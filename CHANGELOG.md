@@ -24,6 +24,13 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Fixed
 
+- No public front door for the next cycle (Cycle 4 runs internally; the next public cycle opens in 2027,
+  epic #477): the homepage banner, `/build-cycles`, the `/events` footnote, the local lab page, the sign-up
+  "Build Cycles" card, the welcome email and the dashboard's no-cycle state say when the next public
+  cycle opens and point to workshops, events and the Library — no "register for this cycle", no
+  "we'll email you" promise; the year lives in one place (`lib/cycles/next-public-cycle.ts`, tested).
+  The homepage's signed-out "Join The Labs" now uses the join door (`/login?intent=join`), so a new
+  visitor is registered instead of told "no account". (#483)
 - Poderator view: the per-pod log cadence counts a member's weeks from the same floor the member's own
   status uses (later of enrolment and pod join, and the cohort's first log), so a member who joins a pod
   in week 6 is no longer shown as at-risk on arrival; synthesis moved to the pure, tested
