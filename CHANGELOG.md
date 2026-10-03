@@ -22,6 +22,16 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ## [Unreleased]
 
+### Fixed
+
+- No public front door for the next cycle (Cycle 4 runs internally; the next public cycle opens in 2027,
+  epic #477): the homepage banner, `/build-cycles`, the `/events` footnote, the local lab page, the sign-up
+  "Build Cycles" card, the welcome email and the dashboard's no-cycle state say when the next public
+  cycle opens and point to workshops, events and the Library — no "register for this cycle", no
+  "we'll email you" promise; the year lives in one place (`lib/cycles/next-public-cycle.ts`, tested).
+  The homepage's signed-out "Join The Labs" now uses the join door (`/login?intent=join`), so a new
+  visitor is registered instead of told "no account". (#483)
+
 ### Ops
 
 - Documentation contract: `docs-check` workflow (changelog line, `SCHEMA.md` with migrations,

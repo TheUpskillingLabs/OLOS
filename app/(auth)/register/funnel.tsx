@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { nextPublicCycleLine } from "@/lib/cycles/next-public-cycle";
 import {
   HEAR_ABOUT_SOURCES,
   PARTICIPANT_AGREEMENT_VERSION,
@@ -165,9 +166,10 @@ const ROLE_OPTIONS: {
 }[] = [
   {
     v: "cycle",
-    title: "Join a Cycle",
+    title: "Build Cycles",
     badge: "Heart of the Labs",
-    sub: "Join a pod, take on a real problem, and ship something you’re proud of. Three months.",
+    // No cycle is advertised (epic #477): say when the next public one opens.
+    sub: `Join a pod, take on a real problem, and ship something you’re proud of. ${nextPublicCycleLine()} It shows up on your dashboard the day it has dates.`,
   },
   {
     v: "events",
