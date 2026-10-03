@@ -47,7 +47,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   measures); epic #477 with decision #480 and the non-technical ops log #481, #478 deferred, #479 closed;
   D1, status, risk and issue map in `next-sprint.md`; the lane brief's D1 row and gate; a dated note in
   `cycle-timeline.md`; a "cycle facts are data in new code" habit in `AGENTS.md`, `ONBOARDING.md`,
-  `lib/README.md`. (#PR)
+  `lib/README.md`. (#482)
 - Folder READMEs for human readers: `app/` (root, `(public)`, `(dashboard)`, `(auth)`, `api/`,
   `components/`), `lib/`, `supabase/`, `scripts/`, `.github/`, `.claude/`, and
   `docs/{audit,requirements,proposals,legal,superpowers,poderator-dashboard}/` — what is there,
