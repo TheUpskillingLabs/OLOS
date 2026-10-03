@@ -16,7 +16,7 @@ records why.
 | File | Status | What it is |
 |---|---|---|
 | [`cycle-timeline.md`](cycle-timeline.md) | Plan of record — Stage 1 (`00086`) shipped; Stage 2 sweep pending | A cycle owns one ordered, timezone-aware schedule from which every window is derived. Stage 2 is issue #437. |
-| [`cycle-4-readiness.md`](cycle-4-readiness.md) | Proposal — awaiting the decisions in #480 | Cycle 4 is an 8-week internal retrospective: what in OLOS assumes the 12-week shape, why audience is separate from lifecycle (`registration_audience`, `00108`), the run sheet to Kickoff and the Cycle 3 close-out, and the norms (cycle facts are data behind an API; two-fixture tests). Epic #477. |
+| [`cycle-4-readiness.md`](cycle-4-readiness.md) | Proposal — awaiting the decisions in #480 | Cycle 4 is internal: the homepage hot fix (data only), running it live but not public (an org cycle today, or a members-only participant cycle via #478, `00108`), expectation-safe copy, materials and tasks for members while they wait, and the known 12-week limitations (no change planned). Epic #477. |
 | [`pod-registration.md`](pod-registration.md) | Plan of record — D-10 window and `registered` status (`00099`) shipped | Two registration windows keyed to pod phases, the enrollment reconciler, the revocation cron. |
 | [`permissions-redesign.md`](permissions-redesign.md) | Plan of record — finishing the `participant_roles` unification | What remains after migrations `00054`–`00066` made `participant_roles` the source of truth. |
 | [`implementation-plan.md`](implementation-plan.md) | Plan of record — Stages 0–1 executed; later stages unrecorded | The sequenced plan across the slices above (2026-07 re-baseline). |
@@ -55,7 +55,7 @@ Live view: [all open issues](https://github.com/TheUpskillingLabs/OLOS/issues).
 - [#437](https://github.com/TheUpskillingLabs/OLOS/issues/437) — S2.4 — One calendar: Stage 2 page sweep, drop the mirror and legacy columns, retire `anchor-events.ts`, upsert anchors from `cycle_events` (`priority/p2, size/l`)
 - [#378](https://github.com/TheUpskillingLabs/OLOS/issues/378) — Pods→Projects transition: poderator scoping, project-level log views, and switcher rethink
 - [#423](https://github.com/TheUpskillingLabs/OLOS/issues/423) — B4 — Pods→Projects scoping (decide #378 Gap 1) + project-scoped log view and roster + switcher groups (`priority/p1, size/m`)
-- [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) — Cycle 4 readiness: an 8-week internal retrospective on a platform built for 12-week cycles (`epic, priority/p1`); sub-issues [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) registration audience (claims `00108`), [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) real 7-day cycle weeks, [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) decision
+- [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) — Cycle 4 readiness: run an internal cycle without a public front door, and keep expectations honest (`epic, priority/p1`); sub-issues [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) registration audience (claims `00108`), [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) decision
 - [#212](https://github.com/TheUpskillingLabs/OLOS/issues/212) — [labs][p1] Registration routing is metro-blind — getRegistrationCycle() ignores the participant's lab (`priority/p1, size/s`)
 
 This list is a snapshot; the live view above is the truth. Refreshed at each sprint boundary

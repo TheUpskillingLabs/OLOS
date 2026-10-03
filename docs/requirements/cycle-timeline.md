@@ -187,9 +187,8 @@ recomputing downstream; the 24h hardcode goes away. It stays a
 ## Cycle template — relative schedule
 
 > **2026-10-03 note.** The table below is the **default** template (the 12-week arc on a
-> 91-day span), not the only cycle shape. Cycle 4 is an 8-week internal retrospective
-> (owner, D1, 2026-10-02). What assumes this template, and how a differently shaped cycle
-> runs from its own `cycle_events` / `cycle_phases` rows without deleting it, is in
+> 91-day span). Cycle 4 is an internal cycle structured differently (owner, D1); what
+> assumes this template, and the settings Cycle 4 uses instead of code changes, are in
 > [`cycle-4-readiness.md`](./cycle-4-readiness.md) (epic #477).
 
 13-week, Tuesday-anchored cycle; events carry per-cycle-overridable offsets
@@ -380,17 +379,11 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
   start 4:30 PM at MLK Library. To change a public event fact, change it on
   Luma — the sync owns the merged rows.
 
-- **2026-10-03 (proposed; ratify in #480)** — **Cycle length is data.** Cycle 4 runs
-  8 weeks (owner, D1). `getCycleWeek` currently interpolates 13 equal slices of
-  `[start_date, end_date]`, so a 56-day cycle gets ~4.3-day "weeks" while the Friday
-  log-window cron stays calendar-weekly. Proposed: weeks are **7-day weeks from the
-  anchor**, with `weekCount` derived from the span (identical results for any 91-day
-  cycle). Consumers stop hard-coding 12/13, and every cycle-time function is tested
-  against a 91-day and a 56-day fixture (#479). The 12-week template above stays the
-  default; the rail and key dates render from `cycle_events` when a cycle has its own
-  rows (#437). Who may see and join a cycle becomes a field separate from its lifecycle
-  status (`cycles.registration_audience`, migration `00108`, #478). Full reasoning:
-  [`cycle-4-readiness.md`](./cycle-4-readiness.md).
+- **2026-10-03 (owner)** — **No change to how cycle weeks are counted.** Cycle 4 is an
+  internal cycle (about 8 weeks) structured differently; `getCycleWeek`'s 13-slice grid
+  is recorded as a known limitation for cycles that are not about 13 weeks long, and Cycle 4
+  avoids it with settings (log gate paused). #479 closed as not planned. The 12-week
+  template above stays the default. See [`cycle-4-readiness.md`](./cycle-4-readiness.md) §6.
 
 ## Open decisions
 
@@ -399,6 +392,3 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
   during implementation.)
 - **T-3** — `pulse_checks.scheduled_date` (DATE) "today" derivation: switch to
   schedule-tz "today" during FR-15, or leave as a known minor skew.
-- **T-4** — For a cycle that is not a whole number of weeks, does `weekCount` round
-  (proposed) or floor, and does the Showcase evening sit in the last week or the bucket
-  after it (lane S's "Showcase is bucket 13" ruling, generalised)? Decide in #479.

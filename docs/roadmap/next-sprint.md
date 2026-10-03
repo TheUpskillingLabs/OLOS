@@ -198,7 +198,7 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 
 | ID | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D1 | Next cycle kickoff date and theme; announce at the Showcase? | decide in Sprint 0; announce Oct 13. **Shape decided 2026-10-02:** Cycle 4 is an 8-week internal retrospective over Cycles 1–3, with no public registration front door (account signup stays open for workshops). Dates, audience, arc and the Cycle 3 close-out are open in [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) | A3, A4, [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) |
+| D1 | Next cycle kickoff date and theme; announce at the Showcase? | decide in Sprint 0; announce Oct 13. **Shape decided 2026-10-02/03:** Cycle 4 is an internal cycle (about 8 weeks) working with the data and projects of Cycles 1–3, run closed with no public front door (account signup stays open for workshops); the hot fix is keeping it off the homepage. How it runs live (org cycle or members-only), the public copy, and the Cycle 3 close-out are open in [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) | A3, A4, [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) |
 | D2 | Revocation cron vs compliance nudge: who owns `at_risk`; write `inactive` by cron, sweep, or both | nudge owns `behind`; cron owns `at_risk` warn→revoke; schedule cron after one dry-run week | 0.6 |
 | D3 | Pods→Projects poderator scoping (#378) | Option A (cycle-level visibility) for the build phase | B4 |
 | D4 | Social-proof floor and where counts show | ≥ 5 per lab; dashboard + `/c/[id]` | A1, A4 |
@@ -219,7 +219,7 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 | Item | State | Note (2026-09-25) |
 |---|---|---|
 | Planning PR (`claude/olos-roadmap-documentation-yjebim`) | **merged 2026-10-02 as [#476](https://github.com/TheUpskillingLabs/OLOS/pull/476)** at `448fceb` | next: #391 |
-| Cycle 4 readiness (2026-10-03) | epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) filed with [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) (registration audience, claims `00108`), [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) (real 7-day cycle weeks), [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) (decision) | Cycle 4 is 8 weeks and internal; the run sheet and the 12-week inventory are [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md) |
+| Cycle 4 readiness (2026-10-03) | epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) filed with [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) (registration audience, claims `00108`) and [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) (decision); [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) (week counting) closed as not planned | first: the hot fix (Cycle 4 to `draft`, data only); run sheet in [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md) |
 | PR #391 (vault) / #390 | still open | merge #391, close #390 (0.1) |
 | Labels, milestones, board | partial | `priority/*`, `area/{backend,frontend,ops}`, `size/*`, `epic`, `persona/pre-registrant` exist (created with the first issues); `area/database`, `area/docs`, `persona/{upskiller,poderator,admin,lab-lead,mentor}`, `needs-decision` and the milestones do not — [#402](https://github.com/TheUpskillingLabs/OLOS/issues/402) |
 | Ledger reconciliation | not started | 0.4 |
@@ -243,7 +243,7 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 | Drip email lands as spam or over-sends | dry-run default (the compliance-nudge pattern), `email_log` idempotency, consent gate, one CTA per message |
 | Metrics expose individuals | aggregate views; `is_test`/`is_staff` excluded; poderator sees own pods only; lab lead sees counts |
 | Vault and framework become ceremony | the steward reports drift weekly; the retro at day 10 tunes the checks; no ADR quotas |
-| Cycle 4 (8 weeks, internal) runs on surfaces built for 12 weeks: false "behind" statuses from the 13-slice week grid, Cycle 3's dates on the ceremony and key dates, public pages still inviting registration | [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477): real 7-day weeks (#479) and two-fixture tests; key dates from `cycle_events` (#437); audience separate from lifecycle (#478); revocation cron stays unscheduled until #479; UAT on a seeded 8-week cycle before Kickoff |
+| Cycle 4 is internal but public pages and emails still invite or promise a cycle; surfaces built for 12 weeks misread a shorter internal cycle | [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477): hot fix by data (Cycle 4 to `draft`); run it as an org cycle or members-only (#478, #480); expectation-safe copy via #414; pause Cycle 4's log gate and keep the revocation cron unscheduled — no change to week counting (#479 closed) |
 | Ledger reconciliation on prod goes wrong | metadata-only SQL, dev first, fingerprint before/after, vault workflow note |
 
 ---
@@ -283,6 +283,6 @@ needs `area/database`, `area/docs`, the remaining `persona/*`, `needs-decision`,
 
 **Added 2026-10-03.** [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) Cycle 4 readiness (epic,
 `priority/p1`): [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) registration audience (`00108`) ·
-[#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) real 7-day cycle weeks ·
-[#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) decision: Cycle 4 format, audience, Cycle 3 close-out.
+[#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) decision: how Cycle 4 runs internally, the public copy, Cycle 3 close-out ·
+[#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) week counting (closed, not planned).
 Spec: [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md).
