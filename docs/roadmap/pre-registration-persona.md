@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Proposal — the primary persona for Sprint 1 ([`next-sprint.md`](next-sprint.md) workstream A) |
 | **Owner** | Product + success team; lead architect for the feature set |
-| **Last verified** | 2026-09-15 against `main@226445a`; every "today" claim cites a route, table, or file |
+| **Last verified** | 2026-09-15 against `main@226445a`; every "today" claim cites a route, table, or file. §10 added 2026-10-03 against `dev@448fceb` |
 | **Companion** | [`personas-and-journeys.md`](personas-and-journeys.md) §3.2; [`onboarding-curriculum-brief.md`](onboarding-curriculum-brief.md) (the content this experience delivers) |
 
 **The window.** The Summer 2026 cycle ends at the Showcase Summit on **October 13**.
@@ -225,3 +225,67 @@ Out of scope for Sprint 1: in-Slack Learning Log (#189 F), mentor profiles/testi
 | Alumni state at close-out: automatic or opt-in | automatic state, opt-in communications (consent already governs) |
 | Lapsed-member nudge: once, or never | once, 21 days, then silence |
 | Waitlist fields (feedback #11) | the three optional fields above |
+
+---
+
+## 10. Addendum 2026-10-03 — the long gap (no public cycle until 2027)
+
+**What changed.** Cycle 4 runs as an internal org cycle (`mode='org'`, never public), and
+the next **public** Build Cycle opens in **2027** (owner and board, [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480);
+epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477)). Account signup stays
+open. For months, then, every member who is not in the internal cycle is a pre-registrant
+with **no cycle announced**. That state, which §4 treated as a short edge case, is the
+main state this sprint's dashboard must serve. Non-technical follow-through lives in the
+ops log [#481](https://github.com/TheUpskillingLabs/OLOS/issues/481).
+
+### 10.1 The journey through the long gap
+
+| Stage | What the member needs | Touchpoint (today → after this sprint) |
+|---|---|---|
+| Visitor | to see what The Labs is and what's open **now**, without being promised a cycle | homepage, `/events`, `/library`. Copy states the next public cycle opens in 2027 and makes no other promise (#414) |
+| Signs up | a light account, a lab or a city waitlist, and an honest welcome | sign-up funnel and email (lane U-2: no "we'll email you when…" unless sent) |
+| First dashboard visit | "what's happening, when, and what can I do now" | the pinned announcement and member tasks (exist today) → the two lists and the ladder (#412/#413) |
+| Every month | public workshops and events; something to read; one step of readiness | Luma events, Library, refreshed member tasks → "Still open" list, "Before the cycle" shelf (#441), weekly messages (#460) |
+| The 2027 cycle is announced | dates, a pre-registration path, the remaining readiness steps | creating the public cycle flips the dashboard in one page load (§8); the drip in §5 resumes, keyed to the real calendar |
+
+### 10.2 What changes in the design (no new code beyond the lanes)
+
+- **§4.1 "Still open".** Public **workshops and events** become the backbone, with the
+  Library as the fallback so the list is never empty. After Oct 13, "meet the projects"
+  points at past cycles. The field survey shows only while one is open.
+- **§4.2 the ladder.** Rows that need an announced cycle hide while none exists: 2
+  pre-register, 3 save the dates, and 7 the theme primer. Rows 1, 4, 5, 6, 8 and 9 stay
+  useful. Progress counts only the rows shown, and nothing gates on them.
+- **§5 the drip** is keyed to a cycle calendar, so it waits for the 2027 dates.
+  Meanwhile the line of communication is:
+  - one **pinned announcement**, dated and honest ("opens in 2027; we'll post the dates
+    here and on your dashboard the day they're set");
+  - **member tasks** for the month's workshops and events;
+  - the **Luma events**.
+
+  These are refreshed monthly (#481). No email promise until a sender exists.
+- **No time promises in code.** The dashboard's no-cycle copy stays general ("The next
+  public Build Cycle will show up here the day it has a date") and does not hard-code a
+  year or a season. The year lives in the admin-authored announcement. "Check back soon"
+  goes away (it implies soon).
+
+### 10.3 How we'll know between-cycles members are served
+
+Counted from tables, in aggregate, with `is_test` and `is_staff` excluded; any public
+count only at ≥ 5. **Never** page views, time on page, email opens, or task dismissals as
+"engagement" (handoff brief §4.5). First month: record baselines. Set targets after two
+months of data.
+
+| # | Measure | Source |
+|---|---|---|
+| 1 | New accounts per month | `participants.created_at` |
+| 2 | Share of new accounts with a lab or a city waitlist within 7 days | `participants.metro_id`, `metro_waitlist_signups` |
+| 3 | Share with a complete directory card (headline, photo, at least one interest) | `participants.headline`, `profile_image_url`, `role_intents` |
+| 4 | Public workshop and event RSVPs per month by members not in a cycle | `event_rsvps.participant_id` (OLOS RSVPs; registrations taken on Luma are counted in Luma) |
+| 5 | Learning Logs written outside a cycle (the practice log) | `learning_logs.cycle_id IS NULL` |
+| 6 | Readiness steps done (after #413): distribution, verified ✓ vs self-attested ○ | `task_dismissals` `prepare:*` keys plus the verified reads |
+| 7 | When the 2027 cycle is announced: share of between-cycles members who pre-register within 4 weeks, then §8 item 7 | `cycle_agreements`, `cycle_enrollments` |
+
+A7 [#418](https://github.com/TheUpskillingLabs/OLOS/issues/418) (the pipeline view) is
+where these become a query an admin can run. Until then the success team reviews them
+monthly from Supabase Studio (#481).

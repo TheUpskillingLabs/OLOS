@@ -231,7 +231,7 @@ A completeness pass over the six lane specs found the places where two lanes def
 6. **P** (`feat/poderator-weekly-goal`, migration **`00106`**): after #463 and S PR 1; after a wireframe or waiver is linked from [#461](https://github.com/TheUpskillingLabs/OLOS/issues/461).
 7. **C** (`feat/cycle-v2-three-ways-in`, migration **`00105`**): after U-core and M-core; code ships behind unset config until D-C1 is taken.
 8. **Follow-ons**, each off `dev` after its parent: U-2 (funnel copy, welcome email and route window, `is_staff` in `withMemberCounts`, the lab-count floor); M-2 (GitHub username field, the `?from=signup` ledes, key dates and the `.ics`); S PR 2 (the email channel); [#470](https://github.com/TheUpskillingLabs/OLOS/issues/470) (migration **`00107`**, after A5).
-9. **The D1 gate** (data, not code, week of Oct 5): the `upcoming` cycle row with `end_date` = the Summit date, `cycle_config.theme_description`, six `cycle_events` rows with `luma_api_id` from U's template, a `field_surveys` row for the theme, the Q4 hand-edit of `anchor-events.ts` until #437, and the Luma event names.
+9. **The D1 gate** (data, not code, week of Oct 5; *2026-10-03:* Cycle 4 is internal and stays off the public site — the public row moved to `draft` as the hot fix, Cycle 4 run as an org cycle, and no public cycle until 2027 ([#480](https://github.com/TheUpskillingLabs/OLOS/issues/480), ops log [#481](https://github.com/TheUpskillingLabs/OLOS/issues/481)); the run sheet is [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md)): the `upcoming` cycle row with `end_date` = the Summit date, `cycle_config.theme_description`, six `cycle_events` rows with `luma_api_id` from U's template, a `field_surveys` row for the theme, the Q4 hand-edit of `anchor-events.ts` until #437, and the Luma event names.
 
 Migrations on dev in this order: 00104 (S) → 00105 (C) → 00106 (P) → 00107 (#470); `npm run check:migrations` on every PR; `SCHEMA.md` in the same PR as each; apply by paste until [#404](https://github.com/TheUpskillingLabs/OLOS/issues/404).
 
@@ -563,7 +563,7 @@ Filed 2026-09-25 (the phase's epics and sub-issues, `next-sprint.md` §10) and 2
 
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D1 | The next cycle's kickoff date and theme (by Oct 2 for the Showcase slice) | announce at the Showcase | every dated line in U, S, C; K4; the drip's real send instants; the six `cycle_events` rows |
+| D1 | The next cycle's kickoff date and theme (by Oct 2 for the Showcase slice) | announce at the Showcase | every dated line in U, S, C; K4; the drip's real send instants; the six `cycle_events` rows. **Shape answered 2026-10-02/03:** Cycle 4 is an internal cycle (about 8 weeks) on the data and projects of Cycles 1–3, run closed with no public front door; it runs as an org cycle and the next public cycle opens in 2027 (decided 2026-10-03, [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480)); the between-cycles design for the long gap is [`pre-registration-persona.md`](pre-registration-persona.md) §10; what this changes for every lane is in [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md) (epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477)) |
 | D-U2 | One definition of "registration open" for public pages and emails | `registrationWindow()` | U |
 | D-U6 | Soften the two email promises now or wait for the drip | now | U |
 | S1 | Extend `weekly_messages` or build `scheduled_messages` | extend in place; re-scope #416 | S, P (the poderator column), K10 |

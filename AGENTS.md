@@ -33,6 +33,9 @@ Rules that apply to every change:
   lesson/module in UI; no names of real participants in anything committed (the repo is public).
 - Constitution: no in-app LLM, no activity telemetry, nothing that shames a member who is
   behind, consent-gated messaging. The brief's §4 and §8 spell these out.
+- In new code, cycle facts are data: read a cycle's dates, audience, events and copy from its
+  rows through one helper, never as constants naming a cycle or season. Cycle 4 is internal and
+  must not appear on the public site: `docs/requirements/cycle-4-readiness.md`, epic #477.
 - End every substantive session with a report in `docs/sessions/` (template in its README).
   It is the artifact of what was completed and travels to the team knowledge repo on merge.
 
