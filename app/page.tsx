@@ -14,6 +14,7 @@ import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getRecruitingCycle } from "@/lib/cycle/active";
+import { nextPublicCycleLine } from "@/lib/cycles/next-public-cycle";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
 export const metadata = {
@@ -138,16 +139,20 @@ export default async function LandingPage() {
 
   // The registration banner is driven by the recruiting cycle (the upcoming
   // cohort if one is open, else the running one). Signed-in members go straight
-  // to the join ceremony; signed-out visitors enter the funnel at /login. A
-  // signed-in member with no open cycle lands on their dashboard — never
-  // bounced back to /login (the old fail-open).
+  // to the join ceremony (it shows its own "closed" state when registration
+  // isn't open); signed-out visitors enter through the JOIN door
+  // (/login?intent=join) — plain /login tells an unknown Google account "no
+  // account" instead of registering it. A signed-in member with no open cycle
+  // lands on their dashboard — never bounced back to /login (the old fail-open).
+  const recruitingUpcoming = recruitingCycle?.status === "upcoming";
+  const joinDoor = "/login?intent=join";
   const joinCycleHref = recruitingCycle
     ? signedIn
       ? `/cycles/${recruitingCycle.id}/join`
-      : "/login"
+      : joinDoor
     : signedIn
       ? "/dashboard"
-      : "/login";
+      : joinDoor;
   const bannerSeason = seasonYear(recruitingCycle?.start_date ?? null);
   const bannerKickoff = recruitingCycle?.start_date
     ? new Date(recruitingCycle.start_date).toLocaleDateString("en-US", {
@@ -232,8 +237,8 @@ export default async function LandingPage() {
       >
         <div className="container">
           <SectionHead
-            eyebrow="Build Cycles · 4 per year"
-            heading="Join a Build Cycle, solve a real problem"
+            eyebrow="Build Cycles"
+            heading="Solve a real problem with a small team"
           />
           {recruitingCycle ? (
             <div className="cycle-banner s-cover grain on-dark">
@@ -252,9 +257,10 @@ export default async function LandingPage() {
                 <h3 className="t-h2">{recruitingCycle.name}</h3>
                 {bannerKickoff && (
                   <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                    Kicks off {bannerKickoff} — twelve weeks, a group of curious
-                    peers learning AI by tackling problems worth caring about
-                    with solutions worth building.
+                    {recruitingUpcoming ? "Kicks off" : "Under way since"}{" "}
+                    {bannerKickoff} — a group of curious peers learning AI by
+                    tackling problems worth caring about with solutions worth
+                    building.
                   </p>
                 )}
                 {recruitingCycle.mode === "open" && (
@@ -274,18 +280,25 @@ export default async function LandingPage() {
             <div className="cycle-banner s-cover grain on-dark">
               <Orb />
               <div className="cb-body">
-                <span className="cb-status">Next cycle coming soon</span>
+                <span className="cb-status">Between cycles</span>
                 <h3 className="t-h2" style={{ marginTop: 14 }}>
-                  No cycle is open right now
+                  No Build Cycle is open right now
                 </h3>
                 <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                  The next Build Cycle is still being planned. Join The Labs and
-                  we&apos;ll tell you the moment registration opens.
+                  {nextPublicCycleLine()} Until then, workshops and events are
+                  open to everyone, and the Learning Library is free to browse.
                 </p>
               </div>
               <div className="cb-cta">
                 <Link className="btn btn-red btn-lg" href={joinCycleHref}>
                   {signedIn ? "Go to your dashboard" : "Join The Labs"}
+                </Link>
+                <Link
+                  href="/events"
+                  className="t-small"
+                  style={{ display: "block", marginTop: 12, color: "var(--teal)", fontWeight: 600 }}
+                >
+                  See workshops and events →
                 </Link>
               </div>
             </div>

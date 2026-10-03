@@ -1,3 +1,5 @@
+import { nextPublicCycleLine } from "@/lib/cycles/next-public-cycle";
+
 type RegistrationEmailProps = {
   firstName: string;
   cycleName?: string | null;
@@ -56,7 +58,7 @@ export function registrationConfirmationHtml({
         We received your registration to The Upskilling Labs.
       </p>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:rgba(200,210,230,0.75);">
-        There is no Build Cycle currently open for new participants. We will email you when the next cycle opens, and you will be able to join from there.
+        There is no public Build Cycle open right now. ${nextPublicCycleLine()} It will show up on your OLOS dashboard the day it has dates. Until then, workshops and events are open to everyone, and the Learning Library is free to browse.
       </p>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
         Join us on Slack: <a href="${SLACK_INVITE_URL}" style="color:#00b8c8;">${SLACK_INVITE_URL}</a>
@@ -140,7 +142,7 @@ If you didn't register, you can safely ignore this email.`;
 
 We received your registration to The Upskilling Labs.
 
-There is no Build Cycle currently open for new participants. We will email you when the next cycle opens, and you will be able to join from there.
+There is no public Build Cycle open right now. ${nextPublicCycleLine()} It will show up on your OLOS dashboard the day it has dates. Until then, workshops and events are open to everyone, and the Learning Library is free to browse.
 
 Join us on Slack: ${SLACK_INVITE_URL}
 

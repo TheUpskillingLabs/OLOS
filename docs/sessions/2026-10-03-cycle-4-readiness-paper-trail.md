@@ -85,3 +85,20 @@
 
 - #463 on `fix/log-cadence-join-date-floor`, then lane M-core (#412/#413) on
   `feat/between-cycles-dashboard`, designed to `pre-registration-persona.md` §10.
+
+## Later the same session: the copy hot fix
+
+- Docs PR #482 merged into `dev`.
+- On the owner's instruction, a narrow copy hot fix (`fix/public-copy-no-next-cycle`) removed
+  every public invitation to register for a next cycle:
+  - the homepage banner, `/build-cycles`, the `/events` footnote and the local lab page;
+  - the sign-up card and the welcome email;
+  - the dashboard's no-cycle state.
+
+  Each now says the next public cycle opens in 2027 and points to workshops, events and the
+  Library. The year lives in `lib/cycles/next-public-cycle.ts`, tested; it falls back to
+  "being planned" once 2027 has passed. These files sit in the volunteer's reserved lane
+  (#414, #474), and the change is noted there.
+- The same PR fixes the homepage's signed-out "Join The Labs", which went to plain `/login`.
+  Follow-up checks were appended to the ops log #481.
+

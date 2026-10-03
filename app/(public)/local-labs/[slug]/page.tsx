@@ -13,6 +13,7 @@ import JoinActiveButton from "./join-active-button";
 import FollowButton from "@/app/components/follow-button";
 import { resolvePageContext } from "@/lib/pages/server";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
+import { nextPublicCycleYear } from "@/lib/cycles/next-public-cycle";
 
 /* The lab (metro) detail page — the prototype generator's labPage(), both
    branches: the active lab's dark gravity cover (labs/dc) and the waitlist
@@ -157,11 +158,12 @@ export default async function LabPage({
                 </div>
               </div>
               <div>
+                {/* No cycle is named here (epic #477): the next public one. */}
                 <div className="t-h2" style={{ color: "#fff" }}>
-                  Summer 2026
+                  {nextPublicCycleYear() ?? "Being planned"}
                 </div>
                 <div className="t-small" style={{ color: "var(--od2)" }}>
-                  Civic &amp; Elections Cycle in progress
+                  next public Build Cycle
                 </div>
               </div>
             </div>
