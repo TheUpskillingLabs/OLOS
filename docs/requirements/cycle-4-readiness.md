@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Proposal. The shape of Cycle 4 is the owner's and the board's (D1, 2026-10-02/03). The approach below waits on the decisions in [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) |
+| **Status** | Plan of record for Cycle 4. Decided 2026-10-03 (owner, [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480)): Cycle 4 runs as an org cycle, and the next public cycle opens in 2027. Cycle 3's close-out timing and Cycle 4's dates are still open in #480 |
 | **Owner** | Lead architect / product |
 | **Last verified** | 2026-10-03 against `dev@448fceb` |
-| **Tracking** | Epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) · registration audience [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) · decisions [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) · week counting [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) (closed, not planned) |
+| **Tracking** | Epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) · **ops log [#481](https://github.com/TheUpskillingLabs/OLOS/issues/481)** (every non-technical action, appended as the build lands) · decisions [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) · registration audience [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) (backlog) · week counting [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) (closed, not planned) |
 | **Companion** | [`../ORG_CYCLES.md`](../ORG_CYCLES.md) (the internal-cycle track) · [`cycle-timeline.md`](cycle-timeline.md) (the schedule model) · [`../roadmap/handoff-2026-09-28-onboarding-journeys.md`](../roadmap/handoff-2026-09-28-onboarding-journeys.md) (the lanes) |
 
 ## 1. What changed
@@ -22,7 +22,8 @@ The board's framing (2026-10-03):
 
 **The order of work:**
 1. **The hot fix:** Cycle 4 off the main page.
-2. **Live but not public:** Cycle 4 runs while the public cannot register.
+2. **Live but not public:** Cycle 4 runs as an internal org cycle; the public cannot see or
+   register for it. The next **public** cycle opens in **2027**.
 3. **Managing expectations:** nothing public promises a cycle or a notification that
    isn't coming.
 4. **Then** the improvements for members who aren't in a cycle: an engaging dashboard,
@@ -72,10 +73,10 @@ closed as not planned), and the 12-week visuals, which are kept. §6 lists what 
 
 ## 3. Live but not public
 
-A cycle that is running but not advertised can be done two ways. The choice is #480
-item 1.
+A cycle that is running but not advertised can be done two ways. **Decided 2026-10-03:
+Option A** (build less for the same effect). Option B stays in the backlog.
 
-### Option A: an internal "org" cycle (exists today, no code)
+### Option A (chosen): an internal "org" cycle (exists today, no code)
 
 `cycles.mode='org'` is the track The Labs built to run cycles on itself
 ([`../ORG_CYCLES.md`](../ORG_CYCLES.md)): "the org dogfoods the participant cycle
@@ -95,19 +96,19 @@ machinery".
   holding the link. Nothing links there, but the page should 404 for org cycles (lane U's
   spec already says so; #414, the volunteer's area).
 
-### Option B: a participant cycle with members-only registration ([#478](https://github.com/TheUpskillingLabs/OLOS/issues/478), small new code)
+### Option B (backlog): a participant cycle with members-only registration ([#478](https://github.com/TheUpskillingLabs/OLOS/issues/478), small new code)
 
 For a cycle that any member should be able to see on their dashboard and opt into, but
 that the public cannot register for.
 - **The field:** `cycles.registration_audience ∈ public | members | invite`, default
-  `public`, migration **`00108`** (claimed).
+  `public`, one migration; the number is claimed when someone picks the issue up.
 - **One server rule:** the banner, the signup email, the dashboard
   (`selectMemberCycles`), and the join page and agreement API all read it.
 - **Status and audience stay separate.** "Draft" keeps meaning "not ready". Hiding a
   cycle from the public no longer means pretending it is a draft.
 
-It is worth having for future cycles either way. It is on Cycle 4's critical path only
-if #480 chooses B.
+Deferred: kept for the first participant cycle that needs to be visible to members but not
+advertised.
 
 ### Either option
 
@@ -123,7 +124,7 @@ if #480 chooses B.
 
 | Where | Says today | Recommended | Owner |
 |---|---|---|---|
-| Homepage no-cycle banner (`app/page.tsx`) | "Join The Labs and we'll tell you the moment registration opens." | Lane U's general state: "The next Build Cycle is being planned. When it has a date, it appears here… the workshops are on, and the Learning Library is open." | [#414](https://github.com/TheUpskillingLabs/OLOS/issues/414) (volunteer); a hot-fix edit needs the owner's OK and a note on #414 |
+| Homepage no-cycle banner (`app/page.tsx`) | "Join The Labs and we'll tell you the moment registration opens." | Lane U's general state, which may say the next public cycle opens in 2027: "The next public Build Cycle opens in 2027. Until then the workshops are on, and the Learning Library is open." (No notification promise.) | [#414](https://github.com/TheUpskillingLabs/OLOS/issues/414) (volunteer); a hot-fix edit needs the owner's OK and a note on #414 |
 | Homepage section head | "Build Cycles · 4 per year" | The owner decides whether it still holds; describes the usual programme | #414 |
 | `/build-cycles` | "Summer 2026", "Register for this cycle" always shown | The four-state page; "none" while no cycle is public | #414 |
 | `/local-labs/[slug]` | "Summer 2026 · Civic & Elections Cycle in progress" | Reads cycle state | #414 |
@@ -158,7 +159,10 @@ Every member who is not in Cycle 4 is between cycles until the next public cycle
 - Weekly messages with audiences and an email channel
   ([#460](https://github.com/TheUpskillingLabs/OLOS/issues/460)).
 
-None of these name a cycle in code.
+None of these name a cycle in code. The journey through the long gap, the line of
+communication, and the seven measures this sprint is judged on are in
+[`../roadmap/pre-registration-persona.md`](../roadmap/pre-registration-persona.md) §10. The
+monthly refresh and review are on the ops log [#481](https://github.com/TheUpskillingLabs/OLOS/issues/481).
 
 ## 6. Known limitations: what assumes the 12-week shape (no change planned)
 
@@ -178,10 +182,8 @@ with the settings in §3. The 12-week visuals stay as they are.
 ## 7. How this avoids conflicts with the lanes
 
 - **No new code is needed for the hot fix or for Option A.** Option B
-  ([#478](https://github.com/TheUpskillingLabs/OLOS/issues/478)) touches
-  `lib/cycle/active.ts`, the admin cycle page, the cycle API route and validation, and the
-  join/agreement guard. Its migration number `00108` is claimed after S `00104`,
-  C `00105`, P `00106` and #470 `00107`.
+  ([#478](https://github.com/TheUpskillingLabs/OLOS/issues/478), backlog) claims no migration
+  number until someone picks it up, so it doesn't block the lanes' `00104`–`00107`.
 - **Public pages stay with the volunteer.** Copy in `app/(public)/**`, `app/c/**`, the
   homepage banner and `lib/cycles/public*.ts` belongs to the volunteer developer
   ([#414](https://github.com/TheUpskillingLabs/OLOS/issues/414)). Requests go there as
@@ -200,14 +202,12 @@ the items in §6 stay until a lane has a reason to touch them.
 
 ## 9. Decisions
 
-Open, in [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480):
-1. org cycle vs members-only participant cycle;
-2. the log gate;
-3. the homepage no-cycle copy;
-4. the signup email promise;
-5. the timing of Cycle 3's project close-out;
-6. whether past projects reopen to contributors;
-7. Cycle 4's dates.
+Still open, in [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480):
+- the log gate on the org cycle;
+- the timing of Cycle 3's project close-out (before Oct 13);
+- whether past projects reopen to contributors;
+- Cycle 4's dates;
+- the exact public wording (with #414).
 
 Each resolution is recorded here until the vault lands (PR #391), then as a vault note.
 
@@ -216,4 +216,5 @@ Each resolution is recorded here until the vault lands (PR #391), then as a vaul
 | 2026-10-02 | Cycle 4 is internal (about 8 weeks), structured around the data and projects of Cycles 1–3; account signup stays open for workshops | owner (D1, #392) |
 | 2026-10-03 | Run it closed to focus on ourselves and relieve capacity; the hot fix is keeping it off the website's main page | board |
 | 2026-10-03 | Do not change how cycle weeks are counted; no new technical debt for Cycle 4 (#479 closed as not planned) | owner |
-| 2026-10-03 | *Proposed:* hot fix by data (`draft`); Cycle 4 as an org cycle; #478 kept as the general mechanism for members-only participant cycles; general "no cycle open" copy | this document; ratify in #480 |
+| 2026-10-03 | Hot fix by data (the public Cycle 4 row to `draft`); **Cycle 4 runs as an org cycle**; #478 deferred to the backlog (`00108` released); the **next public cycle opens in 2027**, and nothing advertises a next cycle before then; OLOS signup stays open | owner (#480) |
+| 2026-10-03 | Keep a running non-technical ops log, appended as technical work lands, so no check or action is left behind | owner (#481) |

@@ -93,7 +93,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 |---|---|
 | [`requirements/README.md`](requirements/README.md) | Folder README — what each doc is; a requirements doc vs a PRD vs a vault note |
 | [`requirements/cycle-timeline.md`](requirements/cycle-timeline.md) | Plan of record — Stage 1 (`00086`) shipped; Stage 2 sweep pending |
-| [`requirements/cycle-4-readiness.md`](requirements/cycle-4-readiness.md) | Proposal — Cycle 4 (internal, no public front door): the homepage hot fix, running it live but not public (org cycle or members-only), expectation-safe copy, materials while members wait, known 12-week limitations (#477) |
+| [`requirements/cycle-4-readiness.md`](requirements/cycle-4-readiness.md) | Plan of record — Cycle 4 runs as an internal org cycle, next public cycle 2027: the homepage hot fix, expectation-safe copy, materials while members wait, known 12-week limitations (#477; ops log #481) |
 | [`requirements/pod-registration.md`](requirements/pod-registration.md) | Plan of record — D-10 window and `registered` status (`00099`) shipped |
 | [`requirements/permissions-redesign.md`](requirements/permissions-redesign.md) | Plan of record — finishing the `participant_roles` unification |
 | [`requirements/implementation-plan.md`](requirements/implementation-plan.md) | Plan of record — Stages 0–1 executed; later stages unrecorded |
