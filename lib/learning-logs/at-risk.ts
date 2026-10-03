@@ -68,7 +68,7 @@ export function memberCadenceFloor(
  * podded from kickoff therefore floors at week 0, i.e. no floor at all, which
  * keeps the pre-existing behaviour for a member present from the start.
  */
-function floorWeekOf(d: Date, cycleStart: Date, cycleEnd: Date): number {
+export function floorWeekOf(d: Date, cycleStart: Date, cycleEnd: Date): number {
   return Math.max(0, getCycleWeek(d, cycleStart, cycleEnd));
 }
 
