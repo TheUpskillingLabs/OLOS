@@ -30,7 +30,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   cycle opens and point to workshops, events and the Library — no "register for this cycle", no
   "we'll email you" promise; the year lives in one place (`lib/cycles/next-public-cycle.ts`, tested).
   The homepage's signed-out "Join The Labs" now uses the join door (`/login?intent=join`), so a new
-  visitor is registered instead of told "no account". (#PR)
+  visitor is registered instead of told "no account". (#483)
 
 ### Ops
 
