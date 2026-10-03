@@ -16,6 +16,7 @@ records why.
 | File | Status | What it is |
 |---|---|---|
 | [`cycle-timeline.md`](cycle-timeline.md) | Plan of record — Stage 1 (`00086`) shipped; Stage 2 sweep pending | A cycle owns one ordered, timezone-aware schedule from which every window is derived. Stage 2 is issue #437. |
+| [`between-cycles-dashboard.md`](between-cycles-dashboard.md) | Plan of record — building on `feat/between-cycles-dashboard` | The build spec for lane M-core (#412/#413), adjusted for the long gap: who sees what (S0–S4), "Still open", the readiness rows and their visibility, the pinned announcement as the channel, a wireframe, tests, the commit plan and the board demo. |
 | [`cycle-4-readiness.md`](cycle-4-readiness.md) | Plan of record for Cycle 4 (decided 2026-10-03, #480) | Cycle 4 is internal: the homepage hot fix (data only), Cycle 4 run as an org cycle (no code), the next public cycle in 2027 with expectation-safe copy, materials and tasks for members while they wait, and the known 12-week limitations (no change planned). Epic #477; ops log #481. |
 | [`pod-registration.md`](pod-registration.md) | Plan of record — D-10 window and `registered` status (`00099`) shipped | Two registration windows keyed to pod phases, the enrollment reconciler, the revocation cron. |
 | [`permissions-redesign.md`](permissions-redesign.md) | Plan of record — finishing the `participant_roles` unification | What remains after migrations `00054`–`00066` made `participant_roles` the source of truth. |

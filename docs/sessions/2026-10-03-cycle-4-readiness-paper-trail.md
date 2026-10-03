@@ -102,3 +102,15 @@
 - The same PR fixes the homepage's signed-out "Join The Labs", which went to plain `/login`.
   Follow-up checks were appended to the ops log #481.
 
+## Later still: merges and the Sprint 1 kickoff
+
+- #483 (the copy hot fix) merged into `dev`. #484 (#463) was brought up to date with `dev`
+  (a CHANGELOG conflict, both lines kept); it is green and awaits the owner's merge.
+- **Sprint 1 kickoff docs** (this PR):
+  - [`../requirements/between-cycles-dashboard.md`](../requirements/between-cycles-dashboard.md),
+    the build spec for lane M-core, adjusted for the long gap;
+  - the §3 re-baseline in `next-sprint.md`: the owner, branch and status of every primary
+    issue.
+- **Next:** build M-core on `feat/between-cycles-dashboard` in the spec's commit order, with
+  a draft PR open from the first commit.
+

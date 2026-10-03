@@ -97,6 +97,33 @@ Spec: [`pre-registration-persona.md`](pre-registration-persona.md) §4–§8.
 **Acceptance:** [`pre-registration-persona.md`](pre-registration-persona.md) §8, items
 1–6. Item 7 (the conversion metric) is measured at the next kickoff.
 
+#### Re-baseline 2026-10-03 — the long gap
+
+Cycle 4 runs as an internal org cycle and the next public cycle opens in 2027
+([#480](https://github.com/TheUpskillingLabs/OLOS/issues/480); epic
+[#477](https://github.com/TheUpskillingLabs/OLOS/issues/477)). Sprint 1's job is now the
+**between-cycles member in the "no cycle announced" state**: the dashboard, its touchpoints,
+and a clear line of communication. There is no Showcase-day slice to ship: nothing public is
+announced on Oct 13. The design for the long gap is
+[`pre-registration-persona.md`](pre-registration-persona.md) §10, and its measures (§10.3)
+are what this workstream is judged on. Non-technical follow-through is the ops log
+[#481](https://github.com/TheUpskillingLabs/OLOS/issues/481).
+
+| Issue | Owner / lane | Branch | Status 2026-10-03 | What changed |
+|---|---|---|---|---|
+| Public copy hot fix | M (owner-approved, in U's files) | `fix/public-copy-no-next-cycle` | **merged [#483](https://github.com/TheUpskillingLabs/OLOS/pull/483)** | no public front door for a next cycle; the 2027 line lives in `lib/cycles/next-public-cycle.ts` |
+| B9 [#463](https://github.com/TheUpskillingLabs/OLOS/issues/463) cadence floor | M (first step, in P's zone) | `fix/log-cadence-join-date-floor` | PR [#484](https://github.com/TheUpskillingLabs/OLOS/pull/484), CI green | — |
+| **A1 [#412](https://github.com/TheUpskillingLabs/OLOS/issues/412) + A2 [#413](https://github.com/TheUpskillingLabs/OLOS/issues/413)** | **M-core** | `feat/between-cycles-dashboard` | **building**; spec [`../requirements/between-cycles-dashboard.md`](../requirements/between-cycles-dashboard.md) | S0 "no cycle announced" first; rows 2/3/7 hide until a cycle is announced; the pinned announcement is the channel; `github_username` pulled into M-core |
+| A4 [#414](https://github.com/TheUpskillingLabs/OLOS/issues/414) public pages | U (volunteer, reserved) | `feat/public-cohort-page` | not started | the "none" state is the public message until 2027; `/c/[id]` must 404 org cycles; replaces #483's copy |
+| A9 [#460](https://github.com/TheUpskillingLabs/OLOS/issues/460) weekly messages | S | `feat/weekly-messages-audiences` | unassigned | the between-cycles audience is the main audience; T-minus weeks wait for the 2027 dates |
+| A3 [#416](https://github.com/TheUpskillingLabs/OLOS/issues/416) drip | S (re-scoped by #460) | — | **on hold** | keyed to a cycle calendar; resumes with the 2027 dates |
+| S2.8 [#441](https://github.com/TheUpskillingLabs/OLOS/issues/441) "Before the cycle" shelf | L | `feat/curriculum-in-product` | after M-core | member half only; the public `/library` half waits on #473/#414 |
+| A5 [#417](https://github.com/TheUpskillingLabs/OLOS/issues/417) alumni & contributors | — | — | Nov 20 | Cycle 3 alumni from Oct 13; whether past projects reopen is #480 item 6 |
+| A6 [#415](https://github.com/TheUpskillingLabs/OLOS/issues/415) waitlist v2 | — | — | Nov 20 | the waitlist page's "one email when it happens" is a promise to remove or keep (#481) |
+| A7 [#418](https://github.com/TheUpskillingLabs/OLOS/issues/418) pipeline metric | — | — | Nov 20 | becomes the view behind persona §10.3's seven measures |
+| A8 [#419](https://github.com/TheUpskillingLabs/OLOS/issues/419) copy | success team | — | ladder copy via K8 [#457](https://github.com/TheUpskillingLabs/OLOS/issues/457) first | the theme primer waits for 2027; the welcome video (M0) and the pinned announcement come first |
+| Cycle v2 [#459](https://github.com/TheUpskillingLabs/OLOS/issues/459) | C | `feat/cycle-v2-three-ways-in` | *proposed:* Sprint 2 | the three ways in matter for the 2027 cycle; decide at [#392](https://github.com/TheUpskillingLabs/OLOS/issues/392) |
+
 ### Workstream B — Poderator outreach toolkit (persona: poderator)
 
 The constitution holds: OLOS **never sends on a poderator's behalf**. The toolkit makes
@@ -219,6 +246,7 @@ B1/B2 → C3 → the rest. B and C are each independently shippable.
 | Item | State | Note (2026-09-25) |
 |---|---|---|
 | Planning PR (`claude/olos-roadmap-documentation-yjebim`) | **merged 2026-10-02 as [#476](https://github.com/TheUpskillingLabs/OLOS/pull/476)** at `448fceb` | next: #391 |
+| Sprint 1 build (2026-10-03) | docs [#482](https://github.com/TheUpskillingLabs/OLOS/pull/482) and the public copy hot fix [#483](https://github.com/TheUpskillingLabs/OLOS/pull/483) merged; #463 in [#484](https://github.com/TheUpskillingLabs/OLOS/pull/484); M-core on `feat/between-cycles-dashboard` | per-issue status in §3 "Re-baseline 2026-10-03"; build spec [`../requirements/between-cycles-dashboard.md`](../requirements/between-cycles-dashboard.md) |
 | Cycle 4 readiness (2026-10-03) | epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) with [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) (decision; org cycle chosen), the ops log [#481](https://github.com/TheUpskillingLabs/OLOS/issues/481), [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) (audience; deferred, `00108` released), [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) (closed) | first: the hot fix (public Cycle 4 row to `draft`, data only); the between-cycles design for the long gap is [`pre-registration-persona.md`](pre-registration-persona.md) §10; run sheet in [`../requirements/cycle-4-readiness.md`](../requirements/cycle-4-readiness.md) |
 | PR #391 (vault) / #390 | still open | merge #391, close #390 (0.1) |
 | Labels, milestones, board | partial | `priority/*`, `area/{backend,frontend,ops}`, `size/*`, `epic`, `persona/pre-registrant` exist (created with the first issues); `area/database`, `area/docs`, `persona/{upskiller,poderator,admin,lab-lead,mentor}`, `needs-decision` and the milestones do not — [#402](https://github.com/TheUpskillingLabs/OLOS/issues/402) |

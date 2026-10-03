@@ -50,6 +50,10 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Docs
 
+- Sprint 1 kickoff: `docs/requirements/between-cycles-dashboard.md` (the lane M-core build spec for the
+  long gap: states S0–S4, the two lists, readiness-row visibility, the pinned announcement as the channel,
+  wireframe, tests, commit plan, board demo, departures from the brief) and the Sprint 1 re-baseline in
+  `next-sprint.md` §3 (every primary issue's owner, branch and status after the 2026-10-03 decisions). (#485)
 - Cycle 4 readiness: `docs/requirements/cycle-4-readiness.md` (Cycle 4 runs as an internal org cycle and
   the next public cycle opens in 2027: the homepage hot fix by data, expectation-safe copy, materials and
   tasks for members while they wait, the known 12-week limitations with no change planned); the long-gap
