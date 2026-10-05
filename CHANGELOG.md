@@ -24,9 +24,16 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Added
 
-- Between-cycles dashboard (#412, #413; spec `docs/requirements/between-cycles-dashboard.md`): who is between
-  cycles (`lib/tasks/between-cycles.ts`), readiness-step and open-now keys, and the `Task` readiness
-  fields; the two lists and the readiness card follow in this PR. (#486)
+- Between-cycles dashboard (#412, #413; spec `docs/requirements/between-cycles-dashboard.md`): members not in
+  a cycle get **"Still open"** (public workshops and events in the next 30 days, the events calendar, "See
+  what {cycle} built", the open field survey, the newest story, the Learning Library — never empty) and
+  **"Get ready"** (readiness steps shown only when they can be taken; ✓ steps flip on a record, ○ steps
+  are the member's word with Done / Not for me / Undo, persisted in `task_dismissals`; "{n} of {shown}
+  ready"); the pinned announcement leads on phones; the pre-registered card shows readiness instead of a
+  dead end; no Register task without an active lab; one Slack step across both cards; the admin preview
+  shares the rule (`deriveBetweenCycles`); `/api/tasks/dismiss` refuses writes while an admin views as a
+  member; a GitHub username field on `/profile/edit`; the shared copy lint (`lib/tasks/copy-lint.ts`).
+  Departures from brief §7.M: #487. (#486)
 
 ### Fixed
 
