@@ -43,7 +43,7 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
       `id, email, first_name, last_name, preferred_name, headline, bio, handle,
        state, neighborhood, dcpl_card, zip, work_situation, main_focus,
        sector, current_title, linkedin, primary_expertise, ai_tool_familiarity,
-       role_intents, profile_image_url`
+       role_intents, profile_image_url, github_username`
     )
     .eq("auth_user_id", user.id)
     .maybeSingle();
@@ -134,6 +134,7 @@ export default async function ProfileEditPage({ searchParams }: PageProps) {
             sector: participant.sector ?? "",
             current_title: participant.current_title ?? "",
             linkedin: participant.linkedin ?? "",
+            github_username: participant.github_username ?? "",
             primary_expertise: participant.primary_expertise ?? "",
             ai_tool_familiarity: participant.ai_tool_familiarity
               ? String(participant.ai_tool_familiarity)

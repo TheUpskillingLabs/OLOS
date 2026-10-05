@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GITHUB_USERNAME_RE } from "./github-username";
 import { HANDLE_RE } from "@/lib/participants/handle";
 
 // Reject the literal placeholder value 'Unknown' (case-insensitive, trimmed)
@@ -89,6 +90,12 @@ export const participantsUpdateSchema = z
     sector: z.string().max(255).nullable(),
     current_title: z.string().max(255).nullable(),
     linkedin: z.string().max(500).nullable(),
+    // Readiness step 5 (#413): the account the pod's GitHub invite goes to.
+    github_username: z
+      .string()
+      .trim()
+      .regex(GITHUB_USERNAME_RE, "Enter a GitHub username (letters, numbers and single hyphens)")
+      .nullable(),
     primary_expertise: z.string().max(500).nullable(),
 
     // AI background
