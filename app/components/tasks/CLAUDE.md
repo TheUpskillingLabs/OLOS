@@ -35,6 +35,13 @@ one action read as clutter" (2026-07-14).
    callers pass raw stored strings.
 2. **Naming:** the queue is **"Up next"**; the checklist is **"Get set up"**
    (collapsed: "Setup"); cycle-page window sections are **"Open now"**.
+   Between cycles (#412/#413, `docs/requirements/between-cycles-dashboard.md`)
+   the dashboard adds **"Still open"** (`OpenNowList`: things worth doing now,
+   never dismissible, a vertical list on every breakpoint because on that
+   screen the rows ARE the content) and **"Get ready for {cycle}"** /
+   **"Get ready for the next Build Cycle"** (`ReadinessLadderCard`: ✓ steps
+   flip on a record; ○ steps are the member's word — "Done" / "Not for me",
+   both reversible, persisted as `prepare:*` keys in `task_dismissals`).
    Retired: "On your plate", "What's next" (as a heading), "To Do list".
 3. **Window labels** come from `CYCLE_WINDOWS` — `labels.action` verbatim on
    both the dashboard card and the cycle-page row; `labels.short` in

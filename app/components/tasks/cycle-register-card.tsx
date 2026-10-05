@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TASK_COPY } from "@/lib/tasks/definitions";
 import { ArrowRight } from "lucide-react";
 import { fmtDateOnly, fmtLabDateTime } from "@/lib/cycles/lab-time";
 
@@ -26,6 +27,7 @@ export default function CycleRegisterCard({
   state,
   upcoming,
   reopensAt,
+  readiness = null,
 }: {
   cycle: RegisterCardCycle;
   state: "open" | "pre_registered" | "closed";
@@ -33,6 +35,9 @@ export default function CycleRegisterCard({
   upcoming: boolean;
   /** When state === "closed" in the dead zone: the reopen instant (ISO). */
   reopensAt?: string | null;
+  /** Pre-registered: the readiness card's progress (#413), shown instead
+      of the old dead end ("We'll open your next steps here when it starts"). */
+  readiness?: { done: number; shown: number } | null;
 }) {
   if (state === "pre_registered") {
     return (
@@ -48,7 +53,10 @@ export default function CycleRegisterCard({
             {cycle.start_date
               ? ` — it kicks off ${fmtDateOnly(cycle.start_date)}`
               : ""}
-            . We&apos;ll open your next steps here when it starts.
+            .
+            {readiness && readiness.shown > 0
+              ? ` ${TASK_COPY.prepare.progress(readiness.done, readiness.shown)} — the steps are just above.`
+              : ""}
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-base font-semibold tracking-tight text-teal-deep">

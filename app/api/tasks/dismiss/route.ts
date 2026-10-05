@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { z } from "zod";
 import { withAuth, type AuthenticatedRequest } from "@/lib/auth/middleware";
 import { TASK_KEY_MAX_LENGTH, TASK_KEY_PATTERN } from "@/lib/tasks/keys";
+import { simulationContext } from "@/lib/auth/simulation";
 
 /**
  * POST /api/tasks/dismiss — record a member's dismissal of a task instance.
@@ -27,8 +28,22 @@ async function parseBody(request: NextRequest) {
   return bodySchema.safeParse(raw);
 }
 
+/* While an admin is viewing the app as a member ("simulate"), the page
+   shows the member's tasks but this route would write under the ADMIN's
+   own participant id — and a readiness tick is the member's word, not the
+   admin's (handoff brief §6.3). Refuse instead of recording either. */
+async function refuseUnderSimulation(): Promise<NextResponse | null> {
+  if (!(await simulationContext())) return null;
+  return NextResponse.json(
+    { error: "You're viewing as a member — ticks and dismissals aren't recorded." },
+    { status: 409 }
+  );
+}
+
 export const POST = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
+    const refused = await refuseUnderSimulation();
+    if (refused) return refused;
     const parsed = await parseBody(request);
     if (!parsed.success) {
       return NextResponse.json(
@@ -63,6 +78,8 @@ export const POST = withAuth(
 
 export const DELETE = withAuth(
   async (request: NextRequest, auth: AuthenticatedRequest) => {
+    const refused = await refuseUnderSimulation();
+    if (refused) return refused;
     const parsed = await parseBody(request);
     if (!parsed.success) {
       return NextResponse.json(

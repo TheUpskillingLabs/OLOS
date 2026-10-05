@@ -19,11 +19,16 @@ import {
 } from "@/lib/cycle/milestones";
 import { selectMemberCycles } from "@/lib/cycle/active";
 import { dashboardTasks } from "@/lib/tasks/tasks";
-import { SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
+import { SLACK_ROW_SINCE_ISO, TASK_COPY } from "@/lib/tasks/definitions";
+import { deriveBetweenCycles } from "@/lib/tasks/between-cycles";
+import { readinessProgress } from "@/lib/tasks/readiness";
+import { directoryCardDone, lookBackCycle } from "@/lib/tasks/member-facts";
 import {
   TaskList,
   ChecklistCard,
   CycleRegisterCard,
+  OpenNowList,
+  ReadinessLadderCard,
 } from "@/app/components/tasks";
 import CycleCommitments from "./cycle-commitments";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
@@ -79,7 +84,7 @@ export default async function DashboardPage() {
   const serviceClient = createServiceClient();
 
   const [{ data: participant }, { data: cycles }] = await Promise.all([
-    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle, page_follows_seeded, created_at").eq("auth_user_id", user.id).maybeSingle(),
+    serviceClient.from("participants").select("id, preferred_name, first_name, last_name, profile_image_url, bio, headline, metro_id, handle, page_follows_seeded, created_at, github_username, role_intents").eq("auth_user_id", user.id).maybeSingle(),
     serviceClient.from("cycles").select("id, name, slug, sector_id, start_date, end_date, status, mode, lab_id").order("start_date", { ascending: false }),
   ]);
 
@@ -499,6 +504,30 @@ export default async function DashboardPage() {
     !!participant.created_at &&
     Date.parse(participant.created_at) >= Date.parse(SLACK_ROW_SINCE_ISO);
 
+  // Between cycles (#412, #413; docs/requirements/between-cycles-dashboard.md
+  // §1): the one rule the admin preview shares. The running cycle's
+  // registration state only matters when nothing is announced — reuse the
+  // register card's window when it is the same cycle, else read it once.
+  const activeRegState =
+    onboarding && !upcomingCycle && activeCycle && !assignmentOnlyPoderator && !orgActive
+      ? registerCycle?.id === activeCycle.id && regWindow
+        ? regWindow.state
+        : (await registrationWindow(serviceClient, activeCycle.id)).state
+      : null;
+  const betweenCycles = deriveBetweenCycles({
+    onboarding,
+    assignmentOnlyPoderator,
+    orgActive,
+    hasUpcomingCycle: !!upcomingCycle,
+    hasActiveCycle: !!activeCycle,
+    activeRegistrationState: activeRegState,
+  });
+  // The readiness card also shows to an engaged member who has already
+  // pre-registered for the next cycle (the overlap, brief §6.3).
+  const showReadiness =
+    betweenCycles ||
+    (preRegisteredUpcoming && !assignmentOnlyPoderator && !orgActive);
+
   // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
   // default 1). The dashboard is optimized for the one-pod case but honors a
   // higher limit if an admin raises it.
@@ -553,7 +582,39 @@ export default async function DashboardPage() {
         labId: s.labId,
       })),
     engaged: state === "active",
+    metroId: memberLabId,
+    betweenCycles: showReadiness
+      ? {
+          showOpenNow: betweenCycles,
+          showReadiness,
+          upcomingCycle: upcomingCycle
+            ? {
+                id: upcomingCycle.id,
+                name: upcomingCycle.name,
+                slug: upcomingCycle.slug ?? null,
+              }
+            : null,
+          preRegistered: preRegisteredUpcoming,
+          githubUsername:
+            (participant as { github_username?: string | null }).github_username ?? null,
+          directoryCardDone: directoryCardDone(
+            participant as {
+              headline?: string | null;
+              profile_image_url?: string | null;
+              role_intents?: string[] | null;
+            }
+          ),
+          lookBackCycle: lookBackCycle(cycles),
+        }
+      : null,
   });
+  const readiness = readinessProgress(taskData.prepare);
+  const readinessCard = (
+    <ReadinessLadderCard
+      rows={taskData.prepare}
+      heading={TASK_COPY.prepare.headingFor(upcomingCycle?.name ?? null)}
+    />
+  );
 
   // Registration state/confirmation cards for the onboarding states — the
   // actionable "register now" path lives in the Up-next queue (a feature
@@ -567,7 +628,12 @@ export default async function DashboardPage() {
   };
   const registerStateCard = (cycle: CycleCardData) =>
     registerDone && onboarding && upcomingCycle ? (
-      <CycleRegisterCard cycle={cycle} state="pre_registered" upcoming />
+      <CycleRegisterCard
+        cycle={cycle}
+        state="pre_registered"
+        upcoming
+        readiness={taskData.prepare.length > 0 ? readiness : null}
+      />
     ) : !regOpen ? (
       <CycleRegisterCard
         cycle={cycle}
@@ -670,13 +736,16 @@ export default async function DashboardPage() {
   // task group above the feed; on phones a mobile-only flex on .dash-center
   // (globals.css) sends .dash-defer below the feed, so the pinned blocks
   // and the composer lead — the LinkedIn feed-first posture.
-  const centerColumn = (tasks: ReactNode, feed: ReactNode) => (
+  const centerColumn = (tasks: ReactNode, feed: ReactNode, lead?: ReactNode) => (
     <div className="dash-center">
       {checklistIncomplete && checklistBlock}
       <TaskList
         tasks={taskData.queue}
         activeCycleId={activeCycle?.id ?? null}
       />
+      {/* Between cycles the two lists lead on every breakpoint — on this
+          screen they are the content, so they never defer below the feed. */}
+      {lead}
       <div className="dash-defer max-md:mt-8">
         {tasks}
         {mobileDeferExtras}
@@ -784,20 +853,23 @@ export default async function DashboardPage() {
   // just you) and Learning Log (the weekly ritual / journal) — with the log
   // opening by default when the weekly gate is active. `journal` mirrors the
   // matching per-state value the old Learning Log section used.
-  const feedFor = (journal: boolean) => (
+  const feedFor = (journal: boolean, announcementsLed = false) => (
     <section className="space-y-4">
       {/* Phone-only condensed org news above the composer: the full right rail
           is hidden on <768px and announcements have no other mobile surface.
           PYMK moved to the deferred task group below the feed (LinkedIn
-          ordering — discovery follows the feed). */}
-      <div className="flex flex-col gap-4 md:hidden">
-        <AnnouncementsPanel
-          labId={memberLabId}
-          labName={labName}
-          limit={2}
-          compact
-        />
-      </div>
+          ordering — discovery follows the feed). Between cycles the pinned
+          announcement already leads the column (betweenLead), so not twice. */}
+      {!announcementsLed && (
+        <div className="flex flex-col gap-4 md:hidden">
+          <AnnouncementsPanel
+            labId={memberLabId}
+            labName={labName}
+            limit={2}
+            compact
+          />
+        </div>
+      )}
       {!journal && complianceCopy && compliance && (
         <ComplianceNudge
           status={compliance.status}
@@ -833,6 +905,28 @@ export default async function DashboardPage() {
     </section>
   );
 
+  // Between cycles (#412, #413): the line of communication, then the two
+  // lists. The pinned announcement is the success team's channel ("The next
+  // public Build Cycle opens in 2027…", ops log #481): on phones it leads
+  // here; on tablet and desktop the right rail already carries it.
+  // `#dash-tminus` is the reserved slot for lane S's T-minus card.
+  const betweenLead = betweenCycles ? (
+    <>
+      <div className="mb-6 md:hidden">
+        <AnnouncementsPanel
+          labId={memberLabId}
+          labName={labName}
+          limit={1}
+          compact
+        />
+      </div>
+      <div id="dash-tminus" />
+      <OpenNowList tasks={taskData.openNow} />
+      {readinessCard}
+    </>
+  ) : null;
+  const betweenLede = "Here's what's open now, and how to get ready.";
+
   if (state === "no_enrollment" && activeCycle) {
     return (
       <div>
@@ -846,7 +940,9 @@ export default async function DashboardPage() {
               ? "Here's your home base — your workstreams are below."
               : assignmentOnlyPoderator
                 ? "Here's your home base. Your pods are in the Poderator dashboard."
-                : "You're almost in — here's how to get set up."
+                : betweenCycles
+                  ? betweenLede
+                  : "You're almost in — here's how to get set up."
           }
         />
         <div className="dash-12">
@@ -863,7 +959,8 @@ export default async function DashboardPage() {
               {!orgActive && registerCycle && registerStateCard(registerCycle)}
               {leadershipSection}
             </>,
-            feedFor(!orgActive)
+            feedFor(!orgActive, betweenCycles),
+            betweenLead
           )}
           {leftPanel}
           {rightPanel}
@@ -886,9 +983,11 @@ export default async function DashboardPage() {
           lede={
             orgActive
               ? "Here's your home base — your workstreams are below."
-              : upcomingCycle
-                ? "Here's your home base — the next Build Cycle is open for registration below."
-                : "Here's your home base at The Labs. The next Build Cycle will show up right here."
+              : betweenCycles
+                ? betweenLede
+                : upcomingCycle
+                  ? "Here's your home base — the next Build Cycle is open for registration below."
+                  : "Here's your home base at The Labs. The next Build Cycle will show up right here."
           }
         />
         <div className="dash-12">
@@ -908,7 +1007,8 @@ export default async function DashboardPage() {
                 ))}
               {leadershipSection}
             </>,
-            feedFor(!orgActive)
+            feedFor(!orgActive, betweenCycles),
+            betweenLead
           )}
           {leftPanel}
           {rightPanel}
@@ -1047,6 +1147,12 @@ export default async function DashboardPage() {
             {/* Your workstreams — extracted above so the org-only early-return
                 states can render it too. */}
             {workstreamsSection}
+
+            {/* The overlap (brief §6.3): engaged in this cycle and already
+                pre-registered for the next — the readiness card shows here. */}
+            {showReadiness && !betweenCycles && (
+              <div className="mt-8">{readinessCard}</div>
+            )}
 
             {/* Your commitments — the dated anchor events + .ics, always
                 findable. Ends the task group; the feed follows as its own
