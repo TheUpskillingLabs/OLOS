@@ -22,6 +22,12 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ## [Unreleased]
 
+### Added
+
+- Between-cycles dashboard (#412, #413; spec `docs/requirements/between-cycles-dashboard.md`): who is between
+  cycles (`lib/tasks/between-cycles.ts`), readiness-step and open-now keys, and the `Task` readiness
+  fields; the two lists and the readiness card follow in this PR. (#PR)
+
 ### Fixed
 
 - No public front door for the next cycle (Cycle 4 runs internally; the next public cycle opens in 2027,

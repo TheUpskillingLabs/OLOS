@@ -29,7 +29,11 @@ export type TaskKind =
   /** An admin-authored task (custom_tasks, 00097 — /admin/tasks). */
   | "custom"
   /** Account housekeeping checklist rows (profile, follow, Slack). */
-  | "setup";
+  | "setup"
+  /** A readiness-ladder step (the between-cycles "Get ready" card, #413). */
+  | "prepare"
+  /** A "Still open" row — something worth doing now (#412). */
+  | "open_now";
 
 export type TaskTone = "urgent" | "teal" | "default";
 
@@ -69,5 +73,22 @@ export interface Task {
   /** Checklist rows render when done (strikethrough); queue tasks with
       done=true are simply not emitted. */
   done: boolean;
-  surface: "queue" | "checklist";
+  /** Where the task renders: the Up-next queue, the Get-set-up checklist,
+      or the between-cycles surfaces (docs/requirements/between-cycles-dashboard.md):
+      "open_now" = the "Still open" list, "prepare" = the readiness card. */
+  surface: "queue" | "checklist" | "open_now" | "prepare";
+
+  /* ── Readiness-ladder fields ("prepare" rows; optional elsewhere) ── */
+  /** One line: why this step matters (rationale before every ask). */
+  why?: string;
+  /** Rough minutes it takes — shown, never enforced. */
+  minutes?: number;
+  /** ✓ the platform can see it's done (a record), vs ○ the member's word. */
+  verified?: boolean;
+  /** Self-attested steps offer a reversible "Not for me". */
+  skippable?: boolean;
+  /** The member chose "Not for me" (counts toward progress, reversible). */
+  skipped?: boolean;
+  /** The dismissal key that records a skip (`…:skip`), when skippable. */
+  skipKey?: string;
 }

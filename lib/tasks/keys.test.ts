@@ -8,6 +8,9 @@ import {
   whatsNextTaskKey,
   leadershipLogTaskKey,
   TASK_KEY_MAX_LENGTH,
+  prepareTaskKey,
+  prepareSkipKey,
+  openNowTaskKey,
 } from "./keys";
 
 describe("task key builders", () => {
@@ -55,5 +58,45 @@ describe("task key builders", () => {
     expect(isValidTaskKey("window voting")).toBe(false);
     expect(isValidTaskKey("window:voting;drop table")).toBe(false);
     expect(isValidTaskKey("a".repeat(TASK_KEY_MAX_LENGTH + 1))).toBe(false);
+  });
+});
+
+describe("readiness and open-now keys (#412/#413)", () => {
+  it("scopes account steps to the account and cycle steps to the cycle", () => {
+    expect(prepareTaskKey("slack")).toBe("prepare:slack");
+    expect(prepareTaskKey("assistant")).toBe("prepare:assistant");
+    expect(prepareTaskKey("videos")).toBe("prepare:videos");
+    expect(prepareTaskKey("dates", 16)).toBe("prepare:dates:c16");
+    expect(prepareTaskKey("primer", 16)).toBe("prepare:primer:c16");
+    expect(prepareTaskKey("dates", 16)).not.toBe(prepareTaskKey("dates", 17));
+  });
+
+  it("refuses a cycle-scoped step without a cycle", () => {
+    expect(() => prepareTaskKey("dates")).toThrow();
+    expect(() => prepareTaskKey("primer", null)).toThrow();
+  });
+
+  it("keeps the skip on its own key so un-skipping never removes a tick", () => {
+    expect(prepareSkipKey("assistant")).toBe("prepare:assistant:skip");
+    expect(prepareSkipKey("primer", 16)).toBe("prepare:primer:c16:skip");
+    expect(prepareSkipKey("slack")).not.toBe(prepareTaskKey("slack"));
+  });
+
+  it("names open-now rows by kind and source id", () => {
+    expect(openNowTaskKey("library")).toBe("open_now:library");
+    expect(openNowTaskKey("event", "prompting-101")).toBe("open_now:event:prompting-101");
+    expect(openNowTaskKey("look_back", 15)).toBe("open_now:look_back:15");
+  });
+
+  it("every new builder output passes the grammar", () => {
+    const keys = [
+      prepareTaskKey("slack"),
+      prepareTaskKey("dates", 3),
+      prepareSkipKey("primer", 3),
+      prepareSkipKey("videos"),
+      openNowTaskKey("event", "a-slug.v2"),
+      openNowTaskKey("survey", 7),
+    ];
+    for (const k of keys) expect(isValidTaskKey(k), k).toBe(true);
   });
 });

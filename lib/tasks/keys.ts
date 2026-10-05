@@ -72,6 +72,61 @@ export function customTaskKey(customTaskId: number): string {
   return `custom:${customTaskId}`;
 }
 
+/** The readiness-ladder steps (the between-cycles "Get ready" card, #413;
+    docs/requirements/between-cycles-dashboard.md §3). Named, never
+    numbered, so the ladder can reorder or hide rows without rewriting
+    anyone's ticks (handoff brief §6.2: M owns prepareTaskKey; lane L's
+    shelf imports it as `step:{name}`). */
+export type PrepareStep =
+  | "lab"
+  | "register"
+  | "dates"
+  | "slack"
+  | "github"
+  | "assistant"
+  | "primer"
+  | "card"
+  | "videos";
+
+/** Steps whose tick belongs to one cycle (re-asked next cycle); the rest
+    are account-scoped (once set up, always set up). */
+const CYCLE_SCOPED_STEPS: ReadonlySet<PrepareStep> = new Set([
+  "register",
+  "dates",
+  "primer",
+]);
+
+export function isCycleScopedStep(step: PrepareStep): boolean {
+  return CYCLE_SCOPED_STEPS.has(step);
+}
+
+/** A readiness step's occurrence key: `prepare:{step}` (account-scoped) or
+    `prepare:{step}:c{id}` (cycle-scoped). A cycle-scoped step without a
+    cycle id has no occurrence — callers must not ask for one. */
+export function prepareTaskKey(step: PrepareStep, cycleId?: number | null): string {
+  if (isCycleScopedStep(step)) {
+    if (cycleId == null) {
+      throw new Error(`prepareTaskKey: "${step}" is cycle-scoped and needs a cycle id`);
+    }
+    return `prepare:${step}:c${cycleId}`;
+  }
+  return `prepare:${step}`;
+}
+
+/** The "Not for me" record for a self-attested step — its own key, so
+    un-skipping (DELETE) never touches a real tick. */
+export function prepareSkipKey(step: PrepareStep, cycleId?: number | null): string {
+  return `${prepareTaskKey(step, cycleId)}:skip`;
+}
+
+/** The "Still open" rows (#412). Identity only — the rows come and go with
+    their source, so they are never dismissible. */
+export type OpenNowKind = "event" | "look_back" | "survey" | "story" | "library" | "projects";
+
+export function openNowTaskKey(kind: OpenNowKind, id?: string | number | null): string {
+  return id == null || id === "" ? `open_now:${kind}` : `open_now:${kind}:${id}`;
+}
+
 /** A leadership-log scope's weekly duty — per (tier, cycle, pod|lab). Not
     dismissible (submitting resolves it). */
 export function leadershipLogTaskKey(
