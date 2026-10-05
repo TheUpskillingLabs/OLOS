@@ -63,6 +63,111 @@ export const TASK_COPY = {
     slack: { label: "Join the Slack", cta: "Join" },
   },
   windowDetailPrefix: "Open now — closes",
+
+  /* ── The between-cycles surfaces (#412, #413;
+        docs/requirements/between-cycles-dashboard.md §2–§3) ──────────── */
+
+  /** "Get ready" — the readiness card. copy: K8 #457 — placeholder titles
+      and why-lines from docs/roadmap/pre-registration-persona.md §4.2 until
+      the knowledge repo's readiness-ladder.md is wired in verbatim. */
+  prepare: {
+    headingFor: (cycleName: string | null) =>
+      cycleName ? `Get ready for ${cycleName}` : "Get ready for the next Build Cycle",
+    progress: (done: number, shown: number) => `${done} of ${shown} ready`,
+    legend: "✓ we can see it's done · ○ your word is enough",
+    skip: "Not for me",
+    unskip: "Undo",
+    markDone: "Done",
+    unmark: "Undo",
+    steps: {
+      lab: {
+        title: "Join a Local Lab",
+        waitlistTitle: (city: string) => `You're on the ${city} list`,
+        why: "Your lab is where your pod will form.",
+        minutes: 1,
+        cta: "Find your lab",
+      },
+      register: {
+        title: (cycleName: string) => `Pre-register for ${cycleName}`,
+        why: "It saves your place, and the people who register are the ones pods form from.",
+        minutes: 5,
+        cta: "Pre-register",
+      },
+      dates: {
+        title: "Save the key dates",
+        why: "Kickoff, the Sprint, the Hackathon and the Showcase — put them in your calendar now.",
+        minutes: 1,
+        cta: "See the dates",
+      },
+      slack: {
+        title: "Join Slack and say hello in #intros",
+        why: "Everything between sessions happens there.",
+        minutes: 10,
+        cta: "Join Slack",
+      },
+      github: {
+        title: "Add your GitHub username",
+        why: "Your pod's work will live on GitHub — and it's where AI work gets shared.",
+        minutes: 10,
+        cta: "Add it",
+      },
+      assistant: {
+        title: "Set up an AI assistant you can use",
+        why: "You'll bring your own — here's how to pick one and use it safely.",
+        minutes: 15,
+        cta: "Read the guide",
+      },
+      primer: {
+        title: (cycleName: string) => `Read the primer for ${cycleName}`,
+        why: "Why this theme, and what earlier cycles learned.",
+        minutes: 15,
+        cta: "Read it",
+      },
+      card: {
+        title: "Complete your directory card",
+        why: "A headline, a photo, and what you're here for — so future pod-mates can find you.",
+        minutes: 5,
+        cta: "Edit your card",
+      },
+      videos: {
+        title: "Watch the welcome videos",
+        why: "How The Labs works, and how to find your way around OLOS.",
+        minutes: 20,
+        cta: "Watch",
+      },
+    },
+  },
+
+  /** "Still open" — things worth doing now (#412). */
+  openNow: {
+    heading: "Still open",
+    event: { cta: "See details" },
+    allEvents: {
+      title: "All workshops and events",
+      detail: "Free and open to everyone.",
+      cta: "Browse",
+    },
+    lookBack: {
+      title: (cycleName: string) => `See what ${cycleName} built`,
+      detail: "The pods, the projects, and what they learned.",
+      cta: "Look back",
+    },
+    survey: {
+      title: "Add an observation to the field survey",
+      detail: "Tell us about a problem you see near you. It shapes what future cycles work on.",
+      cta: "Take the survey",
+    },
+    story: {
+      title: (storyTitle: string) => `Read: ${storyTitle}`,
+      detail: "A story from a member of The Labs.",
+      cta: "Read",
+    },
+    library: {
+      title: "Browse the Learning Library",
+      detail: "Guides, recordings and templates from past cycles — free to use.",
+      cta: "Browse",
+    },
+  },
 } as const;
 
 /** The Slack checklist row shipped in PR #287 (deployed 2026-07-21) —
