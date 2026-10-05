@@ -8,6 +8,8 @@ import { pendingBaselineCycles } from "@/lib/learning-logs/baseline";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
 import { SLACK_ROW_SINCE_ISO } from "./definitions";
 import { dashboardTasks, type DashboardTasks } from "./tasks";
+import { deriveBetweenCycles } from "./between-cycles";
+import { lookBackCycle, directoryCardDone } from "./member-facts";
 
 /* Admin queue preview (support/debug, /admin/tasks): compute the exact
    queue + checklist a given member sees, without being them. The input
@@ -39,13 +41,13 @@ export async function memberTaskPreview(
   if (!q) return null;
   let { data: participant } = await supabase
     .from("participants")
-    .select("id, email, preferred_name, first_name, last_name, bio, headline, metro_id, created_at")
+    .select("id, email, preferred_name, first_name, last_name, bio, headline, metro_id, created_at, github_username, profile_image_url, role_intents")
     .eq("email", q)
     .maybeSingle();
   if (!participant) {
     const { data: fuzzy } = await supabase
       .from("participants")
-      .select("id, email, preferred_name, first_name, last_name, bio, headline, metro_id, created_at")
+      .select("id, email, preferred_name, first_name, last_name, bio, headline, metro_id, created_at, github_username, profile_image_url, role_intents")
       .or(`email.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%`)
       .limit(1);
     participant = fuzzy?.[0] ?? null;
@@ -56,7 +58,7 @@ export async function memberTaskPreview(
     .from("cycles")
     .select("id, name, slug, sector_id, start_date, end_date, status, mode, lab_id")
     .order("start_date", { ascending: false });
-  const { activeCycle, upcomingCycle } = selectMemberCycles(
+  const { activeCycle, upcomingCycle, orgCycle } = selectMemberCycles(
     cycles,
     participant.metro_id ?? null
   );
@@ -153,11 +155,38 @@ export async function memberTaskPreview(
     else state = "interest_submitted_window_closed";
   }
   const onboarding = state === "no_cycle" || state === "no_enrollment";
-  const registerCycleRow =
-    onboarding && upcomingCycle ? upcomingCycle : activeCycle;
+
+  // The dashboard's carve-outs, mirrored: an assignment-only Poderator and
+  // an active org-cycle member never get the register path or the
+  // between-cycles mode.
+  const [{ count: modAssignments }, orgEnrollmentResult] = await Promise.all([
+    supabase
+      .from("moderator_assignments")
+      .select("id, cycles!inner(status)", { head: true, count: "exact" })
+      .eq("participant_id", participant.id)
+      .is("removed_at", null)
+      .in("cycles.status", ["active", "upcoming"]),
+    orgCycle
+      ? supabase
+          .from("cycle_enrollments")
+          .select("status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", orgCycle.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const assignmentOnlyPoderator = onboarding && (modAssignments ?? 0) > 0;
+  const orgActive =
+    (orgEnrollmentResult.data as { status: string } | null)?.status === "active";
+
+  const registerCycleRow = assignmentOnlyPoderator
+    ? null
+    : onboarding && upcomingCycle
+      ? upcomingCycle
+      : activeCycle;
 
   let preRegisteredUpcoming = false;
-  if (onboarding && upcomingCycle) {
+  if (upcomingCycle) {
     const { count } = await supabase
       .from("cycle_agreements")
       .select("id", { head: true, count: "exact" })
@@ -174,6 +203,23 @@ export async function memberTaskPreview(
       ? await registrationWindow(supabase, registerCycleRow.id)
       : null;
   const regOpen = registerDone || (regWindow?.open ?? false);
+
+  // Between cycles — the same rule the dashboard calls.
+  const activeRegWindow =
+    onboarding && !upcomingCycle && activeCycle
+      ? registerCycleRow?.id === activeCycle.id && regWindow
+        ? regWindow
+        : await registrationWindow(supabase, activeCycle.id)
+      : null;
+  const betweenCycles = deriveBetweenCycles({
+    onboarding,
+    assignmentOnlyPoderator,
+    orgActive,
+    hasUpcomingCycle: !!upcomingCycle,
+    hasActiveCycle: !!activeCycle,
+    activeRegistrationState: activeRegWindow?.state ?? null,
+  });
+  const preRegisteredForUpcoming = upcomingCycle ? preRegisteredUpcoming : false;
 
   const tasks = await dashboardTasks({
     participantId: participant.id,
@@ -222,6 +268,21 @@ export async function memberTaskPreview(
         labId: s.labId,
       })),
     engaged: state === "active",
+    metroId: participant.metro_id ?? null,
+    betweenCycles:
+      betweenCycles || preRegisteredForUpcoming
+        ? {
+            showOpenNow: betweenCycles,
+            showReadiness: true,
+            upcomingCycle: upcomingCycle
+              ? { id: upcomingCycle.id, name: upcomingCycle.name, slug: upcomingCycle.slug ?? null }
+              : null,
+            preRegistered: preRegisteredForUpcoming,
+            githubUsername: participant.github_username ?? null,
+            directoryCardDone: directoryCardDone(participant),
+            lookBackCycle: lookBackCycle(cycles),
+          }
+        : null,
   });
 
   return {
@@ -233,7 +294,7 @@ export async function memberTaskPreview(
         [participant.first_name, participant.last_name].filter(Boolean).join(" ") ||
         `#${participant.id}`,
     },
-    state,
+    state: betweenCycles ? `${state} · between cycles` : state,
     tasks,
   };
 }

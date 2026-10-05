@@ -12,6 +12,8 @@ import type { PendingGate } from "@/lib/learning-logs/gate-logic";
 import { windowDef, type WindowState } from "@/lib/cycles/windows";
 import { parseWindow } from "@/lib/cycles/lab-time";
 import type { Task } from "./types";
+import { buildReadinessRows, type ReadinessInputs } from "./readiness";
+import { buildOpenNowRows, type OpenNowInputs } from "./open-now";
 import { PRIORITY, TASK_COPY, SLACK_INVITE_FALLBACK, CHECKLIST_HIDE_KEY } from "./definitions";
 import {
   windowTaskKey,
@@ -21,6 +23,7 @@ import {
   whatsNextTaskKey,
   leadershipLogTaskKey,
   customTaskKey,
+  prepareTaskKey,
 } from "./keys";
 
 export interface TaskInputs {
@@ -82,6 +85,19 @@ export interface TaskInputs {
 
   /** The member's task_dismissals keys. */
   dismissedKeys: ReadonlySet<string>;
+
+  /* ── Between cycles (#412, #413) — all optional, so every caller that
+        doesn't pass them gets exactly the pre-existing behaviour. ──── */
+  /** metro_id points at an ACTIVE lab. `false` suppresses the Register
+      task: pre-registration needs an active lab (requireActiveLabMembership),
+      and the readiness card's lab step routes the member there instead of a
+      silent redirect (handoff brief §6.2). Omitted = treated as true. */
+  labActive?: boolean;
+  /** The "Get ready" card's inputs — present when the dashboard shows it
+      (between cycles, or engaged-and-pre-registered: the overlap). */
+  readiness?: ReadinessInputs | null;
+  /** The "Still open" list's inputs — present between cycles. */
+  openNow?: OpenNowInputs | null;
 }
 
 /** Deterministic order: priority, then earliest deadline, then defId. */
@@ -122,7 +138,12 @@ export function assembleTasks(input: TaskInputs): Task[] {
   }
 
   /* ── Register / pre-register (leads the actionable list) ───────────── */
-  if (input.registerCycle && input.registerOpen && !input.registerDone) {
+  if (
+    input.registerCycle &&
+    input.registerOpen &&
+    !input.registerDone &&
+    input.labActive !== false
+  ) {
     const rc = input.registerCycle;
     tasks.push({
       defId: "register",
@@ -344,10 +365,22 @@ export function assembleTasks(input: TaskInputs): Task[] {
         tone: "default",
         blocking: false,
         dismissible: true,
-        done: input.dismissedKeys.has(setupTaskKey("slack")),
+        // One Slack step whichever card recorded it (the readiness card's
+        // `prepare:slack` tick counts here too) — never asked twice.
+        done:
+          input.dismissedKeys.has(setupTaskKey("slack")) ||
+          input.dismissedKeys.has(prepareTaskKey("slack")),
         surface: "checklist",
       });
     }
+  }
+
+  /* ── Between cycles: "Still open" + the readiness card ──────────────── */
+  if (input.openNow) tasks.push(...buildOpenNowRows(input.openNow));
+  if (input.readiness) {
+    tasks.push(
+      ...buildReadinessRows(input.readiness, input.dismissedKeys, input.slackInviteUrl)
+    );
   }
 
   /* ── Dismissal filter + deterministic order ─────────────────────────── */
@@ -355,12 +388,17 @@ export function assembleTasks(input: TaskInputs): Task[] {
   // key on a non-dismissible task is inert — defence against stale or
   // forged rows). Checklist rows stay: their dismissal semantics are
   // done-ness (Slack) or the whole-list hide key, handled above.
+  // The readiness rows keep their own order (done first, then ladder
+  // order — buildReadinessRows), so they bypass the queue sort.
+  const prepare = tasks.filter((t) => t.surface === "prepare");
   return tasks
     .filter(
       (t) =>
-        t.surface === "checklist" ||
-        !t.dismissible ||
-        !input.dismissedKeys.has(t.instanceKey)
+        t.surface !== "prepare" &&
+        (t.surface === "checklist" ||
+          !t.dismissible ||
+          !input.dismissedKeys.has(t.instanceKey))
     )
-    .sort(byQueueOrder);
+    .sort(byQueueOrder)
+    .concat(prepare);
 }

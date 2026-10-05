@@ -332,3 +332,49 @@ describe("assembleTasks — ordering", () => {
     ]);
   });
 });
+
+describe("assembleTasks — between cycles (#412, #413)", () => {
+  it("passes nothing new through when the between-cycles inputs are absent", () => {
+    const tasks = assembleTasks(baseInputs());
+    expect(tasks.some((t) => t.surface === "prepare" || t.surface === "open_now")).toBe(false);
+  });
+
+  it("never emits the Register task for a member without an active lab", () => {
+    const reg = {
+      registerCycle: { id: 16, name: "Spring 2027", upcoming: true },
+      registerOpen: true,
+      registerDone: false,
+    };
+    expect(queueIds(baseInputs(reg))).toContain("register");
+    expect(queueIds(baseInputs({ ...reg, labActive: false }))).not.toContain("register");
+  });
+
+  it("counts the readiness card's Slack tick as the checklist's Slack step", () => {
+    const tasks = assembleTasks(
+      baseInputs({ dismissedKeys: new Set(["prepare:slack"]) })
+    );
+    expect(tasks.find((t) => t.defId === "setup:slack")?.done).toBe(true);
+  });
+
+  it("emits the two surfaces, readiness rows last and in their own order", () => {
+    const tasks = assembleTasks(
+      baseInputs({
+        openNow: { events: [], lookBackCycle: null, openSurvey: null, story: null },
+        readiness: {
+          upcomingCycle: null,
+          preRegistered: false,
+          labActive: false,
+          waitlistCity: null,
+          githubUsername: null,
+          directoryCardDone: true,
+          publishedSlugs: new Set(),
+        },
+      })
+    );
+    const openNow = tasks.filter((t) => t.surface === "open_now");
+    const prepare = tasks.filter((t) => t.surface === "prepare");
+    expect(openNow.map((t) => t.defId)).toEqual(["open_now:events", "open_now:library"]);
+    expect(prepare[0].defId).toBe("prepare:card"); // done first
+    expect(tasks.slice(-prepare.length)).toEqual(prepare);
+  });
+});

@@ -27,6 +27,10 @@ export const PRIORITY = {
   whatsNext: 60,
   /** Checklist rows — ordered among themselves, never in the queue. */
   setupBase: 90,
+  /** "Still open" rows, in source order (#412). */
+  openNowBase: 200,
+  /** Readiness steps, in ladder order (#413). */
+  prepareBase: 300,
 } as const;
 
 export const TASK_COPY = {
@@ -158,7 +162,7 @@ export const TASK_COPY = {
       cta: "Take the survey",
     },
     story: {
-      title: (storyTitle: string) => `Read: ${storyTitle}`,
+      title: (memberName: string) => `Read ${memberName}'s story`,
       detail: "A story from a member of The Labs.",
       cta: "Read",
     },

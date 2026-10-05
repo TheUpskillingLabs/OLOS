@@ -7,6 +7,10 @@ import {
 import { dismissedTaskKeys } from "./dismissals";
 import { assembleTasks, type TaskInputs } from "./assemble";
 import type { Task } from "./types";
+import { READINESS_RESOURCE_SLUGS, type ReadinessInputs } from "./readiness";
+import type { OpenNowInputs } from "./open-now";
+import { getEvents } from "@/lib/content/queries";
+import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
 /* The thin Supabase companion to the pure assembler (the gate-logic.ts /
    gate.ts split). The dashboard page already fetches most task signals for
@@ -55,6 +59,26 @@ export interface DashboardTaskContext {
       — the only state the what's-next nudge applies to. */
   engaged: boolean;
 
+  /** participants.metro_id. When passed (even null), the wrapper resolves
+      whether it is an ACTIVE lab and the Register task is suppressed for a
+      member without one (handoff brief §6.2). Omitted = not checked. */
+  metroId?: number | null;
+
+  /** The between-cycles surfaces (#412, #413). Omit (or null) for none. */
+  betweenCycles?: {
+    /** Show "Still open" (the member is between cycles). */
+    showOpenNow: boolean;
+    /** Show the readiness card (between cycles, or engaged and
+        pre-registered for the next cycle — the overlap). */
+    showReadiness: boolean;
+    upcomingCycle: { id: number; name: string; slug: string | null } | null;
+    preRegistered: boolean;
+    githubUsername: string | null;
+    directoryCardDone: boolean;
+    /** The most recent finished open cycle, for "See what {cycle} built". */
+    lookBackCycle: { id: number; name: string } | null;
+  } | null;
+
   now?: Date;
 }
 
@@ -68,6 +92,12 @@ export interface DashboardTasks {
       built from, for callers that also render cycle context. */
   windowStates: WindowState[];
   dismissedKeys: ReadonlySet<string>;
+  /** "Still open" rows ([] unless between cycles). */
+  openNow: Task[];
+  /** Readiness rows, done first ([] unless the card shows). */
+  prepare: Task[];
+  /** Whether metro_id points at an active lab (null when not checked). */
+  labActive: boolean | null;
 }
 
 export async function dashboardTasks(
@@ -76,7 +106,7 @@ export async function dashboardTasks(
   const supabase = createServiceClient();
   const now = ctx.now ?? new Date();
 
-  const [phasesResult, dismissedKeys, whatsNext, customTasks] =
+  const [phasesResult, dismissedKeys, whatsNext, customTasks, between] =
     await Promise.all([
       ctx.activeCycle
         ? supabase
@@ -87,6 +117,7 @@ export async function dashboardTasks(
       dismissedTaskKeys(ctx.participantId),
       resolveWhatsNext(ctx, now),
       resolveCustomTasks(ctx, now),
+      resolveBetweenCycles(ctx, now),
     ]);
 
   const phases = phasesResult.data;
@@ -119,6 +150,9 @@ export async function dashboardTasks(
     whatsNext,
     customTasks,
     dismissedKeys,
+    labActive: between.labActive ?? undefined,
+    readiness: between.readiness,
+    openNow: between.openNow,
   });
 
   return {
@@ -127,7 +161,124 @@ export async function dashboardTasks(
     checklist: tasks.filter((t) => t.surface === "checklist"),
     windowStates,
     dismissedKeys,
+    openNow: tasks.filter((t) => t.surface === "open_now"),
+    prepare: tasks.filter((t) => t.surface === "prepare"),
+    labActive: between.labActive,
   };
+}
+
+/* Between cycles (#412, #413; docs/requirements/between-cycles-dashboard.md
+   §2–§3): the lab check every caller that passes metroId gets, plus the
+   "Still open" and readiness sources — read only when those surfaces show,
+   so the engaged dashboard pays nothing for them. */
+const OPEN_NOW_EVENT_WINDOW_DAYS = 30;
+
+async function resolveBetweenCycles(
+  ctx: DashboardTaskContext,
+  now: Date
+): Promise<{
+  labActive: boolean | null;
+  readiness: ReadinessInputs | null;
+  openNow: OpenNowInputs | null;
+}> {
+  const supabase = createServiceClient();
+  const bc = ctx.betweenCycles ?? null;
+
+  const labActivePromise: Promise<boolean | null> =
+    ctx.metroId === undefined
+      ? Promise.resolve(null)
+      : ctx.metroId === null
+        ? Promise.resolve(false)
+        : Promise.resolve(
+            supabase.from("metros").select("status").eq("id", ctx.metroId).maybeSingle()
+          ).then(({ data }) => data?.status === "active");
+
+  if (!bc || (!bc.showOpenNow && !bc.showReadiness)) {
+    return { labActive: await labActivePromise, readiness: null, openNow: null };
+  }
+
+  const candidateSlugs = [
+    READINESS_RESOURCE_SLUGS.assistant,
+    READINESS_RESOURCE_SLUGS.videos,
+    ...(bc.upcomingCycle?.slug
+      ? [READINESS_RESOURCE_SLUGS.primerFor(bc.upcomingCycle.slug)]
+      : []),
+  ];
+
+  const [labActive, waitlistResult, resourcesResult, events, surveyResult, spotlights] =
+    await Promise.all([
+      labActivePromise,
+      bc.showReadiness
+        ? supabase
+            .from("metro_waitlist_signups")
+            .select("created_at, metros(name)")
+            .eq("participant_id", ctx.participantId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+        : Promise.resolve({ data: null }),
+      bc.showReadiness
+        ? supabase
+            .from("resources")
+            .select("slug")
+            .eq("status", "published")
+            .in("slug", candidateSlugs)
+        : Promise.resolve({ data: null }),
+      bc.showOpenNow ? getEvents() : Promise.resolve([]),
+      bc.showOpenNow
+        ? supabase
+            .from("field_surveys")
+            .select("share_slug, title")
+            .eq("status", "open")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      bc.showOpenNow ? getPublishedSpotlights() : Promise.resolve([]),
+    ]);
+
+  let readiness: ReadinessInputs | null = null;
+  if (bc.showReadiness) {
+    const wl = (waitlistResult.data ?? [])[0] as
+      | { metros: { name: string } | { name: string }[] | null }
+      | undefined;
+    const wlMetro = Array.isArray(wl?.metros) ? wl?.metros[0] : wl?.metros;
+    readiness = {
+      upcomingCycle: bc.upcomingCycle,
+      preRegistered: bc.preRegistered,
+      labActive: labActive === true,
+      waitlistCity: wlMetro?.name ?? null,
+      githubUsername: bc.githubUsername,
+      directoryCardDone: bc.directoryCardDone,
+      publishedSlugs: new Set(
+        ((resourcesResult.data ?? []) as { slug: string }[]).map((r) => r.slug)
+      ),
+    };
+  }
+
+  let openNow: OpenNowInputs | null = null;
+  if (bc.showOpenNow) {
+    const horizon = now.getTime() + OPEN_NOW_EVENT_WINDOW_DAYS * 24 * 3600 * 1000;
+    const upcomingEvents = events
+      .filter((e) => {
+        const t = Date.parse(e.start_at);
+        return t >= now.getTime() && t <= horizon;
+      })
+      .map((e) => ({
+        slug: e.slug,
+        name: e.name,
+        start_at: e.start_at,
+        location_name: e.location_name,
+      }));
+    const story = spotlights.find((s) => !!s.slug);
+    openNow = {
+      events: upcomingEvents,
+      lookBackCycle: bc.lookBackCycle,
+      openSurvey: (surveyResult.data as { share_slug: string; title: string } | null) ?? null,
+      story: story?.slug ? { slug: story.slug, name: story.name } : null,
+    };
+  }
+
+  return { labActive, readiness, openNow };
 }
 
 /* Admin-authored tasks (custom_tasks, 00097): live rows inside their
