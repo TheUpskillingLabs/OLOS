@@ -14,7 +14,8 @@ import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getRecruitingCycle } from "@/lib/cycle/active";
-import { nextPublicCycleLine } from "@/lib/cycles/next-public-cycle";
+import { internalCycleJoinUrl, whatsNextMessage } from "@/lib/cycles/whats-next";
+import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
 export const metadata = {
@@ -127,15 +128,24 @@ const CYCLE_ANATOMY: [string, string, string][] = [
    labs) rendered from the content tables, ending in the open-source footer.
    The stories row and the survey CTA arrive with their stages. */
 export default async function LandingPage() {
-  const [{ signedIn, initials, avatarUrl }, events, resources, metros, recruitingCycle, spotlights] =
-    await Promise.all([
-      publicSession(),
-      getEvents(),
-      getResources(),
-      getMetros(),
-      getRecruitingCycle(createServiceClient()).catch(() => null),
-      getPublishedSpotlights(),
-    ]);
+  const service = createServiceClient();
+  const [
+    { signedIn, initials, avatarUrl, onCycleWaitlist },
+    events,
+    resources,
+    metros,
+    recruitingCycle,
+    spotlights,
+    whatsNextFacts,
+  ] = await Promise.all([
+    publicSession(),
+    getEvents(),
+    getResources(),
+    getMetros(),
+    getRecruitingCycle(service).catch(() => null),
+    getPublishedSpotlights(),
+    getWhatsNextFacts(service),
+  ]);
 
   // The registration banner is driven by the recruiting cycle (the upcoming
   // cohort if one is open, else the running one). Signed-in members go straight
@@ -146,6 +156,16 @@ export default async function LandingPage() {
   // lands on their dashboard — never bounced back to /login (the old fail-open).
   const recruitingUpcoming = recruitingCycle?.status === "upcoming";
   const joinDoor = "/login?intent=join";
+  // "What's next" (lib/cycles/whats-next.ts) leads whenever no cycle is
+  // taking registrations: with nothing recruiting, or while a running cycle
+  // is past registration and there is an internal cycle to invite people
+  // into. Visitors then see the internal cycle, the public workshops, and the
+  // next public kickoff with its waitlist — never "Join this cycle" for a
+  // cycle that can't take them.
+  const whatsNext = whatsNextMessage(whatsNextFacts);
+  const showWhatsNext =
+    !recruitingCycle || (!recruitingUpcoming && whatsNext.internal !== null);
+  const waitlistHref = signedIn ? "/dashboard#whats-next" : joinDoor;
   const joinCycleHref = recruitingCycle
     ? signedIn
       ? `/cycles/${recruitingCycle.id}/join`
@@ -240,7 +260,7 @@ export default async function LandingPage() {
             eyebrow="Build Cycles"
             heading="Solve a real problem with a small team"
           />
-          {recruitingCycle ? (
+          {recruitingCycle && !showWhatsNext ? (
             <div className="cycle-banner s-cover grain on-dark">
               <Orb />
               <div className="cb-body">
@@ -277,28 +297,53 @@ export default async function LandingPage() {
               </div>
             </div>
           ) : (
-            <div className="cycle-banner s-cover grain on-dark">
+            <div className="cycle-banner s-cover grain on-dark" id="whats-next">
               <Orb />
               <div className="cb-body">
-                <span className="cb-status">Between cycles</span>
+                <span className="cb-status">{whatsNext.chip}</span>
                 <h3 className="t-h2" style={{ marginTop: 14 }}>
-                  No Build Cycle is open right now
+                  {whatsNext.heading}
                 </h3>
+                {whatsNext.internal && (
+                  <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                    {whatsNext.internal}
+                  </p>
+                )}
                 <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                  {nextPublicCycleLine()} Until then, workshops and events are
-                  open to everyone, and the Learning Library is free to browse.
+                  {whatsNext.notChanging}
+                </p>
+                <p
+                  className="t-body"
+                  style={{ marginTop: 8, maxWidth: "52ch", fontWeight: 600 }}
+                >
+                  {whatsNext.nextPublic}
                 </p>
               </div>
               <div className="cb-cta">
-                <Link className="btn btn-red btn-lg" href={joinCycleHref}>
-                  {signedIn ? "Go to your dashboard" : "Join The Labs"}
-                </Link>
+                {signedIn && onCycleWaitlist ? (
+                  <span className="cb-status">{whatsNext.onWaitlist} ✓</span>
+                ) : (
+                  <Link className="btn btn-red btn-lg" href={waitlistHref}>
+                    {whatsNext.waitlistCta}
+                  </Link>
+                )}
+                {whatsNext.internal && (
+                  <a
+                    href={internalCycleJoinUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="t-small"
+                    style={{ display: "block", marginTop: 12, color: "var(--teal)", fontWeight: 600 }}
+                  >
+                    {whatsNext.internalCta} →
+                  </a>
+                )}
                 <Link
                   href="/events"
                   className="t-small"
-                  style={{ display: "block", marginTop: 12, color: "var(--teal)", fontWeight: 600 }}
+                  style={{ display: "block", marginTop: 8, color: "var(--teal)", fontWeight: 600 }}
                 >
-                  See workshops and events →
+                  {whatsNext.eventsCta} →
                 </Link>
               </div>
             </div>

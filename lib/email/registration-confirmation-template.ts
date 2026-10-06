@@ -1,20 +1,33 @@
-import { nextPublicCycleLine } from "@/lib/cycles/next-public-cycle";
+import { whatsNextMessage, type WhatsNextMessage } from "@/lib/cycles/whats-next";
 
 type RegistrationEmailProps = {
   firstName: string;
   cycleName?: string | null;
   cycleJoinUrl?: string | null;
+  /** Chose "Build Cycles" at sign-up (role_intents ∋ 'cycle') — the waitlist. */
+  onWaitlist?: boolean;
+  /** The "What's next" message (lib/cycles/whats-next.ts), built on the
+      caller's cycle facts; defaults to the facts-free message. */
+  whatsNext?: WhatsNextMessage;
 };
+
+/* The no-cycle paragraph: the waitlist promise for someone who chose Build
+   Cycles, else the next kickoff and how to join the waitlist — then what
+   keeps running. Plain text; the HTML wraps it. */
+function noCycleParagraph({ onWaitlist, whatsNext }: RegistrationEmailProps): string {
+  const m = whatsNext ?? whatsNextMessage();
+  const lead = onWaitlist
+    ? m.waitlistPromise
+    : `There is no public Build Cycle open right now. ${m.nextPublic} You can join the waitlist from your OLOS dashboard.`;
+  return `${lead} ${m.notChanging} The Learning Library is free to browse.`;
+}
 
 const SLACK_INVITE_URL =
   process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
   "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ";
 
-export function registrationConfirmationHtml({
-  firstName,
-  cycleName,
-  cycleJoinUrl,
-}: RegistrationEmailProps): string {
+export function registrationConfirmationHtml(props: RegistrationEmailProps): string {
+  const { firstName, cycleName, cycleJoinUrl } = props;
   const hasActiveCycle = cycleName && cycleJoinUrl;
 
   const bodyContent = hasActiveCycle
@@ -58,7 +71,7 @@ export function registrationConfirmationHtml({
         We received your registration to The Upskilling Labs.
       </p>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:rgba(200,210,230,0.75);">
-        There is no public Build Cycle open right now. ${nextPublicCycleLine()} It will show up on your OLOS dashboard the day it has dates. Until then, workshops and events are open to everyone, and the Learning Library is free to browse.
+        ${noCycleParagraph(props)}
       </p>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
         Join us on Slack: <a href="${SLACK_INVITE_URL}" style="color:#00b8c8;">${SLACK_INVITE_URL}</a>
@@ -113,11 +126,8 @@ export function registrationConfirmationHtml({
 </html>`;
 }
 
-export function registrationConfirmationText({
-  firstName,
-  cycleName,
-  cycleJoinUrl,
-}: RegistrationEmailProps): string {
+export function registrationConfirmationText(props: RegistrationEmailProps): string {
+  const { firstName, cycleName, cycleJoinUrl } = props;
   if (cycleName && cycleJoinUrl) {
     return `Hello ${firstName},
 
@@ -142,7 +152,7 @@ If you didn't register, you can safely ignore this email.`;
 
 We received your registration to The Upskilling Labs.
 
-There is no public Build Cycle open right now. ${nextPublicCycleLine()} It will show up on your OLOS dashboard the day it has dates. Until then, workshops and events are open to everyone, and the Learning Library is free to browse.
+${noCycleParagraph(props)}
 
 Join us on Slack: ${SLACK_INVITE_URL}
 
