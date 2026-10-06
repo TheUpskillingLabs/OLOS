@@ -10,7 +10,8 @@ import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import { type MilestoneContext } from "./learning-log-card";
 import { getCycleWeek } from "@/lib/cycle/week";
-import { whatsNextMessage } from "@/lib/cycles/whats-next";
+import { internalCycleJoinUrl, whatsNextMessage } from "@/lib/cycles/whats-next";
+import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 import { getCyclePhase, type CyclePhase } from "@/lib/cycle/phase";
 import {
   milestoneKindForWeek,
@@ -29,6 +30,7 @@ import {
   CycleRegisterCard,
   OpenNowList,
   ReadinessLadderCard,
+  WhatsNextCard,
 } from "@/app/components/tasks";
 import CycleCommitments from "./cycle-commitments";
 import DashboardHero, { type HeroStat } from "./dashboard-hero";
@@ -527,6 +529,13 @@ export default async function DashboardPage() {
   const showReadiness =
     betweenCycles ||
     (preRegisteredUpcoming && !assignmentOnlyPoderator && !orgActive);
+  // S0 — between cycles with nothing announced: "What's next" leads (the
+  // public site's message, lib/cycles/whats-next.ts) with the one-tap
+  // waitlist. Once a next cycle is upcoming, its register card takes over.
+  const whatsNext =
+    betweenCycles && !upcomingCycle
+      ? whatsNextMessage(await getWhatsNextFacts(serviceClient))
+      : null;
 
   // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
   // default 1). The dashboard is optimized for the one-pod case but honors a
@@ -612,7 +621,9 @@ export default async function DashboardPage() {
   const readinessCard = (
     <ReadinessLadderCard
       rows={taskData.prepare}
-      heading={TASK_COPY.prepare.headingFor(upcomingCycle?.name ?? null)}
+      heading={TASK_COPY.prepare.headingFor(
+        upcomingCycle?.name ?? whatsNext?.kickoffLabel ?? null
+      )}
     />
   );
 
@@ -906,9 +917,10 @@ export default async function DashboardPage() {
   );
 
   // Between cycles (#412, #413): the line of communication, then the two
-  // lists. The pinned announcement is the success team's channel ("The next
-  // public Build Cycle opens in 2027…", ops log #481): on phones it leads
-  // here; on tablet and desktop the right rail already carries it.
+  // lists. The pinned announcement is the success team's channel (AMG's
+  // message, ops log #481): on phones it leads here; on tablet and desktop
+  // the right rail already carries it. With nothing announced (S0) the
+  // "What's next" card follows, with the one-tap waitlist (#whats-next).
   // `#dash-tminus` is the reserved slot for lane S's T-minus card.
   const betweenLead = betweenCycles ? (
     <>
@@ -920,6 +932,16 @@ export default async function DashboardPage() {
           compact
         />
       </div>
+      {whatsNext && (
+        <WhatsNextCard
+          message={whatsNext}
+          internalUrl={internalCycleJoinUrl()}
+          participantId={participant.id}
+          intents={
+            ((participant as { role_intents?: string[] | null }).role_intents ?? [])
+          }
+        />
+      )}
       <div id="dash-tminus" />
       <OpenNowList tasks={taskData.openNow} />
       {readinessCard}
@@ -998,7 +1020,9 @@ export default async function DashboardPage() {
               {!orgActive &&
                 (upcomingCycle && !assignmentOnlyPoderator ? (
                   registerStateCard(upcomingCycle)
-                ) : (
+                ) : whatsNext ? null : (
+                  // The "What's next" card already leads (betweenLead), so
+                  // this note is only for the members it doesn't reach.
                   <EmptyState
                     icon={Calendar}
                     title="No Build Cycle is running right now"

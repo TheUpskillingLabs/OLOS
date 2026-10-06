@@ -31,7 +31,7 @@ document records why (§9).
 
 | State | Who | Center column (after the existing queue) |
 |---|---|---|
-| **S0 No cycle announced** (prod from Oct 13 until the 2027 row exists) | any member not in a cycle | the pinned announcement; **Still open**; **Get ready** (no cycle-dependent rows); no register card |
+| **S0 No cycle announced** (prod from Oct 13 until the 2027 row exists) | any member not in a cycle | the pinned announcement; **What's next** (the internal cycle invitation, the Jan 12 kickoff, the one-tap waitlist; added 2026-10-06, §4); **Still open**; **Get ready for January 12** (no cycle-dependent rows); no register card |
 | **S1 Announced, not registered** | an upcoming open cycle exists | Still open; Get ready (all rows that apply); register card `open` |
 | **S2 Pre-registered** | has an agreement on the upcoming cycle | Still open; Get ready (row 2 ✓); register card "{done} of {total} ready" |
 | **S3 Active cycle, registration closed** | the active cycle is past its join windows, nothing upcoming | Still open; Get ready (as S0) |
@@ -104,9 +104,17 @@ placeholder copy unless the success team signs off.
 - **The pinned announcement.** The existing `AnnouncementsPanel` is the channel the
   success team controls ("The next public Build Cycle opens in 2027…", #481). In S0–S4 it
   renders compact, limit 1, above "Still open" on **every** breakpoint, not only phones.
-- **The no-cycle sentence.** Where the register card would be, S0 and S3 show the shared
-  `nextPublicCycleLine()` (`lib/cycles/next-public-cycle.ts`, shipped in #483) and "It
-  will show up right here the day it has dates." No year is hard-coded in this lane.
+- **What's next (S0; replaces the no-cycle sentence, 2026-10-06).** The public site's
+  message (`lib/cycles/whats-next.ts`, #488) as the first card after the phone
+  announcement, `WhatsNextCard` at `#whats-next` (the homepage's signed-in "Join the 2027
+  waitlist" lands here): the internal cycle (Oct 13 – Dec 8, from its org cycle row) as an
+  invitation via Slack, "workshops and meetups keep running", and "the first public Build
+  Cycle of 2027 kicks off January 12" with `WaitlistButton`. One tap PATCHes the member's
+  own `role_intents` with `'cycle'` added (`lib/participants/role-intents.ts`), optimistic
+  with an undo; once on, it reads "You're on the 2027 waitlist ✓" and the promise. Never
+  dismissible. The empty-state note it replaces stays only for members the card doesn't
+  reach. The Get-ready heading names the kickoff ("Get ready for January 12"). No dates
+  are hard-coded in this lane: they come from `whats-next.ts`.
 - **The hero lede** for between-cycles members points at the two lists ("Here's what's
   open now, and how to get ready").
 
@@ -140,9 +148,9 @@ placeholder copy unless the success team signs off.
 │   (turns ✓ once it's on your profile)│
 │ ✓ we can see it's done · ○ your word  │
 ├──────────────────────────────────────┤
-│ The next public Build Cycle opens in  │  S0/S3 only (no register card)
-│ 2027. It will show up right here the  │
-│ day it has dates.                     │
+│ (S0: the "What's next" card leads the │  2026-10-06: moved to the top of
+│ column instead: the internal cycle,   │  the lead; see §4
+│ workshops, Jan 12 + the waitlist)     │
 ├──────────────────────────────────────┤
 │ Journal (practice log) · feed         │  existing
 └──────────────────────────────────────┘

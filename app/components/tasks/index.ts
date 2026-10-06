@@ -8,3 +8,5 @@ export {
 } from "./cycle-register-card";
 export { default as OpenNowList } from "./open-now-list";
 export { default as ReadinessLadderCard } from "./readiness-ladder-card";
+export { default as WhatsNextCard } from "./whats-next-card";
+export { default as WaitlistButton } from "./waitlist-button";

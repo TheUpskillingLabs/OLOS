@@ -55,6 +55,10 @@ export interface WhatsNextMessage {
   kickoff: string | null;
   /** "Jan 12, 2027", or null. */
   kickoffShort: string | null;
+  /** "January 12" (the interim date, whose year the copy already names) or
+   *  "February 2, 2027" (a cycle row's date); null when none. For "Get ready
+   *  for …". */
+  kickoffLabel: string | null;
   /** "Oct 13 – Dec 8", or null without the org cycle row. */
   internalDates: string | null;
   waitlistCta: string;
@@ -163,6 +167,7 @@ export function whatsNextMessage(
     nextPublic,
     kickoff,
     kickoffShort: k ? fmt(k, { month: "short", day: "numeric", year: "numeric" }) : null,
+    kickoffLabel: !k ? null : fromRow ? `${monthDay}, ${year}` : monthDay,
     internalDates,
     waitlistCta: `Join ${waitlist}`,
     waitlistLabel: year ? `${year} waitlist` : "Waitlist",

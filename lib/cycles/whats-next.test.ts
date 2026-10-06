@@ -64,6 +64,7 @@ describe("whatsNextMessage", () => {
     const m = whatsNextMessage(INTERNAL, OCT);
     expect(m.nextPublic).toBe("The first public Build Cycle of 2027 kicks off January 12.");
     expect(m.kickoffShort).toBe("Jan 12, 2027");
+    expect(m.kickoffLabel).toBe("January 12");
     expect(m.waitlistCta).toBe("Join the 2027 waitlist");
     expect(m.waitlistLabel).toBe("2027 waitlist");
     expect(m.onWaitlist).toBe("You're on the 2027 waitlist");
@@ -73,6 +74,7 @@ describe("whatsNextMessage", () => {
   it("uses the row's date once the next public cycle exists", () => {
     const m = whatsNextMessage({ ...INTERNAL, upcomingPublicStart: "2027-02-02" }, OCT);
     expect(m.nextPublic).toBe("The next public Build Cycle kicks off February 2, 2027.");
+    expect(m.kickoffLabel).toBe("February 2, 2027");
   });
 
   it("falls back to 'being planned' after the date, with no year promised", () => {

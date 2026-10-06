@@ -42,7 +42,12 @@ one action read as clutter" (2026-07-14).
    **"Get ready for the next Build Cycle"** (`ReadinessLadderCard`: ✓ steps
    flip on a record; ○ steps are the member's word — "Done" / "Not for me",
    both reversible, persisted as `prepare:*` keys in `task_dismissals`).
-   Retired: "On your plate", "What's next" (as a heading), "To Do list".
+   With nothing announced (S0) a `WhatsNextCard` (`#whats-next`) leads: its
+   copy is `lib/cycles/whats-next.ts` verbatim (the same message as the
+   public site, never re-worded here), with `WaitlistButton`; the Get-ready
+   heading then names the kickoff ("Get ready for January 12").
+   Retired: "On your plate", "What's next" (as a heading — the card's
+   heading comes from `whats-next.ts`), "To Do list".
 3. **Window labels** come from `CYCLE_WINDOWS` — `labels.action` verbatim on
    both the dashboard card and the cycle-page row; `labels.short` in
    timeline contexts. Never write a window label inline.

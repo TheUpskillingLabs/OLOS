@@ -70,3 +70,22 @@
 - Review and merge #486, then the follow-on M-2: `?from=signup` ledes, key dates and `.ics`
   from `cycle_events`, the `/local-labs?reason=cycle` band coordinated on #414, and social
   proof once #414 lands.
+
+## Addendum, 2026-10-06: "What's next" and the waitlist
+
+- **Brought in #488** (the public "what's next" message) with a merge commit, because #488
+  awaits review. When it lands in `dev`, the identical changes merge cleanly, so #486's diff
+  shrinks back to its own work.
+- **Added `WhatsNextCard`** (`#whats-next`), which leads the column in S0. It shows the
+  internal cycle invitation via Slack, "workshops and meetups keep running", and the Jan 12
+  kickoff. Its copy is `lib/cycles/whats-next.ts`, verbatim.
+- **Added `WaitlistButton`:** one tap PATCHes the member's own `role_intents` with `'cycle'`
+  added (`lib/participants/role-intents.ts`, tested against `participantsUpdateSchema`). It is
+  optimistic, with an undo, and rolls back with a message if the save fails.
+- **Layout changes:**
+  - the S0 empty-state note now shows only to members the card doesn't reach;
+  - the Get-ready heading names the kickoff: "Get ready for January 12" (`kickoffLabel`).
+- **Docs:** spec §2 (S0 row) and §4, the wireframe note, `app/components/tasks/CLAUDE.md`
+  naming, and the CHANGELOG line.
+- **Verified:** `npm run test` (699 passing), `tsc`, lint (0 errors), and `npm run build`.
+  Not verified visually, for the same reason as above.

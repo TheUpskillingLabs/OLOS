@@ -32,7 +32,9 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   ready"); the pinned announcement leads on phones; the pre-registered card shows readiness instead of a
   dead end; no Register task without an active lab; one Slack step across both cards; the admin preview
   shares the rule (`deriveBetweenCycles`); `/api/tasks/dismiss` refuses writes while an admin views as a
-  member; a GitHub username field on `/profile/edit`; the shared copy lint (`lib/tasks/copy-lint.ts`).
+  member; a GitHub username field on `/profile/edit`; the shared copy lint (`lib/tasks/copy-lint.ts`);
+  with nothing announced, a **"What's next"** card leads (the public site's message, #488) with a
+  one-tap **2027 waitlist** button (`role_intents ∋ 'cycle'`, undoable) and "Get ready for January 12".
   Departures from brief §7.M: #487. (#486)
 
 ### Fixed
