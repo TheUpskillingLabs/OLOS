@@ -10,7 +10,7 @@ import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import { type MilestoneContext } from "./learning-log-card";
 import { getCycleWeek } from "@/lib/cycle/week";
-import { nextPublicCycleLine } from "@/lib/cycles/next-public-cycle";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
 import { getCyclePhase, type CyclePhase } from "@/lib/cycle/phase";
 import {
   milestoneKindForWeek,
@@ -1002,7 +1002,7 @@ export default async function DashboardPage() {
                   <EmptyState
                     icon={Calendar}
                     title="No Build Cycle is running right now"
-                    description={`${nextPublicCycleLine()} It will show up right here the day it has dates. Until then, workshops and events are open to everyone.`}
+                    description={`${whatsNextMessage().nextPublic} ${whatsNextMessage().notChanging}`}
                   />
                 ))}
               {leadershipSection}
