@@ -44,9 +44,9 @@ export function weeklyLogTaskKey(cycleId: number, logDueAt: string): string {
   return `weekly_log:c${cycleId}:${logDueAt.trim().replace(" ", "T")}`;
 }
 
-/** One-time account-scoped setup rows (profile, follow, slack, first_log). */
+/** One-time account-scoped setup rows (profile, follow, slack, events, first_log). */
 export function setupTaskKey(
-  step: "profile" | "follow" | "slack" | "first_log"
+  step: "profile" | "follow" | "slack" | "events" | "first_log"
 ): string {
   return `setup:${step}`;
 }

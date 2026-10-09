@@ -19,7 +19,7 @@ import {
 } from "@/lib/cycle/milestones";
 import { selectMemberCycles } from "@/lib/cycle/active";
 import { dashboardTasks } from "@/lib/tasks/tasks";
-import { SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
+import { EVENTS_ROW_SINCE_ISO, SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
 import {
   TaskList,
   ChecklistCard,
@@ -498,6 +498,10 @@ export default async function DashboardPage() {
   const slackRowVisible =
     !!participant.created_at &&
     Date.parse(participant.created_at) >= Date.parse(SLACK_ROW_SINCE_ISO);
+  // Same rule for the events row (shipped 2026-10-09).
+  const eventsRowVisible =
+    !!participant.created_at &&
+    Date.parse(participant.created_at) >= Date.parse(EVENTS_ROW_SINCE_ISO);
 
   // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
   // default 1). The dashboard is optimized for the one-pod case but honors a
@@ -514,6 +518,7 @@ export default async function DashboardPage() {
     profileDone,
     followsAnyone,
     slackRowVisible,
+    eventsRowVisible,
     slackInviteUrl: process.env.NEXT_PUBLIC_SLACK_INVITE_URL,
     activeCycle: activeCycle
       ? {

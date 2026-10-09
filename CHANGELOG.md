@@ -22,6 +22,12 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ## [Unreleased]
 
+### Added
+
+- "Get set up" checklist: a "View upcoming events and workshops" row linking to `/learning#events`, for
+  members created from 2026-10-09. Like the Slack row it is done once clicked and never re-pins the
+  checklist. (#PR)
+
 ### Fixed
 
 - One "what's next" message on every public surface (the board advisor's and AMG's wording, epic #477):

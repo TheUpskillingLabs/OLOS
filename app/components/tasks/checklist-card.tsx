@@ -38,7 +38,7 @@ export default function ChecklistCard({ items }: { items: Task[] }) {
   const [hidden, setHidden] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // An advisory row (Slack) flips to done the moment its CTA is clicked —
+  // An advisory row (Slack, events) flips to done the moment its CTA is clicked —
   // optimistic here, persisted as its dismissal row.
   const resolved = items.map((i) =>
     i.advisory && clicked.has(i.instanceKey) ? { ...i, done: true } : i
@@ -187,7 +187,11 @@ export default function ChecklistCard({ items }: { items: Task[] }) {
                   {item.cta ?? "Start"} →
                 </a>
               ) : (
-                <Link href={item.href} className={rowCta}>
+                <Link
+                  href={item.href}
+                  onClick={item.advisory ? () => markClicked(item) : undefined}
+                  className={rowCta}
+                >
                   {item.cta ?? "Start"} →
                 </Link>
               ))}

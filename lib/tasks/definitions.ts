@@ -61,6 +61,7 @@ export const TASK_COPY = {
     profile: { label: "Add your bio and headline", cta: "Edit" },
     follow: { label: "Follow people you know", cta: "Find" },
     slack: { label: "Join the Slack", cta: "Join" },
+    events: { label: "View upcoming events and workshops", cta: "See events" },
   },
   windowDetailPrefix: "Open now — closes",
 } as const;
@@ -69,6 +70,11 @@ export const TASK_COPY = {
     members created before then were onboarded without it; only newer
     signups see the row. */
 export const SLACK_ROW_SINCE_ISO = "2026-07-21T00:00:00Z";
+
+/** The events checklist row ships 2026-10-09 — same rule as the Slack row:
+    only members created from then see it, so nobody who has finished (or
+    hidden) their checklist gets a new row. */
+export const EVENTS_ROW_SINCE_ISO = "2026-10-09T00:00:00Z";
 
 export const SLACK_INVITE_FALLBACK =
   "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ";
