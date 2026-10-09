@@ -2,7 +2,6 @@ import Link from "next/link";
 import { EditorialHeader, EdSection, EdRow } from "@/app/components/chrome/editorial";
 import { getEvents } from "@/lib/content/queries";
 import { fmtDate } from "@/lib/content/format";
-import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { internalCycleJoinUrl, whatsNextMessage } from "@/lib/cycles/whats-next";
 import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
@@ -19,8 +18,8 @@ import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
    an internal org cycle — so the page describes how a cycle works, says
    what's next (lib/cycles/whats-next.ts: the internal cycle as an invitation
    to people who have taken part before, the public workshops, and the next
-   public kickoff with its waitlist), and invites people to join the waitlist
-   (an account, free) rather than "register for this cycle". Lane U (#414)
+   public kickoff), and points people to the workshops and events rather than
+   "register for this cycle". Lane U (#414)
    replaces this with the four-state page reading cycle data. The
    past-projects block waits for the Work layer. */
 
@@ -56,23 +55,11 @@ const PROMISES: [string, string][] = [
 ];
 
 export default async function BuildCyclesPage() {
-  const [events, session, facts] = await Promise.all([
+  const [events, facts] = await Promise.all([
     getEvents(),
-    publicSession(),
     getWhatsNextFacts(createServiceClient()),
   ]);
   const m = whatsNextMessage(facts);
-  // The waitlist is role_intents ∋ 'cycle': chosen at sign-up, or one tap on
-  // the dashboard for members who already have an account.
-  const waitlistHref = session.signedIn ? "/dashboard#whats-next" : "/login?intent=join";
-  const waitlistButton =
-    session.signedIn && session.onCycleWaitlist ? (
-      <span className="lbl lbl-teal">{m.onWaitlist} ✓</span>
-    ) : (
-      <Link className="btn btn-red btn-lg" href={waitlistHref}>
-        {m.waitlistCta}
-      </Link>
-    );
   // Only anchor events still ahead — a past cycle's dates are not an invitation.
   const now = new Date();
   const anchors = events.filter(
@@ -89,9 +76,8 @@ export default async function BuildCyclesPage() {
       >
         <div className="ed-cols">
           <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
-            {waitlistButton}
-            <Link className="see" href="/events">
-              {m.eventsCta} →
+            <Link className="btn btn-red btn-lg" href="/events">
+              {m.eventsCta}
             </Link>
           </div>
         </div>
@@ -172,15 +158,14 @@ export default async function BuildCyclesPage() {
           </EdSection>
 
 
-          {/* Join the waitlist — the closing CTA (an account, not a cycle registration) */}
+          {/* The closing CTA — the workshops and events (an account, not a cycle registration) */}
           <EdSection eyebrow="Join" heading="Start with The Labs now.">
             <div className="ed-cols">
               <div>
                 <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
-                  An account is free and takes a minute. Choose Build Cycles
-                  when you sign up and you&rsquo;re on the waitlist: you&rsquo;ll
-                  get the workshops, the Library, and a dashboard, and we&rsquo;ll
-                  tell you the day pre-registration opens.
+                  An account is free and takes a minute. You&rsquo;ll get the
+                  workshops, the Library, and a dashboard. Start with a workshop
+                  or event.
                 </p>
                 <div
                   style={{
@@ -190,9 +175,8 @@ export default async function BuildCyclesPage() {
                     alignItems: "center",
                   }}
                 >
-                  {waitlistButton}
-                  <Link className="see" href="/events">
-                    {m.eventsCta} →
+                  <Link className="btn btn-red btn-lg" href="/events">
+                    {m.eventsCta}
                   </Link>
                 </div>
               </div>

@@ -4,22 +4,16 @@ type RegistrationEmailProps = {
   firstName: string;
   cycleName?: string | null;
   cycleJoinUrl?: string | null;
-  /** Chose "Build Cycles" at sign-up (role_intents ∋ 'cycle') — the waitlist. */
-  onWaitlist?: boolean;
   /** The "What's next" message (lib/cycles/whats-next.ts), built on the
       caller's cycle facts; defaults to the facts-free message. */
   whatsNext?: WhatsNextMessage;
 };
 
-/* The no-cycle paragraph: the waitlist promise for someone who chose Build
-   Cycles, else the next kickoff and how to join the waitlist — then what
-   keeps running. Plain text; the HTML wraps it. */
-function noCycleParagraph({ onWaitlist, whatsNext }: RegistrationEmailProps): string {
+/* The no-cycle paragraph: the next kickoff, then what keeps running. Plain
+   text; the HTML wraps it. */
+function noCycleParagraph({ whatsNext }: RegistrationEmailProps): string {
   const m = whatsNext ?? whatsNextMessage();
-  const lead = onWaitlist
-    ? m.waitlistPromise
-    : `There is no public Build Cycle open right now. ${m.nextPublic} You can join the waitlist from your OLOS dashboard.`;
-  return `${lead} ${m.notChanging} The Learning Library is free to browse.`;
+  return `There is no public Build Cycle open right now. ${m.nextPublic} ${m.notChanging} The Learning Library is free to browse.`;
 }
 
 const SLACK_INVITE_URL =

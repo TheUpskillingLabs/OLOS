@@ -169,10 +169,9 @@ const ROLE_OPTIONS: {
   {
     v: "cycle",
     title: "Build Cycles",
-    // No cycle is advertised (epic #477): choosing this joins the waitlist for
-    // the next public one (role_intents ∋ 'cycle'; lib/cycles/whats-next.ts).
-    badge: WHATS_NEXT.waitlistLabel,
-    sub: `Join a pod, take on a real problem, and ship something you’re proud of. ${WHATS_NEXT.nextPublic} Choose this to join the waitlist.`,
+    // No cycle is advertised (epic #477): say when the next public one kicks off.
+    badge: "Heart of the Labs",
+    sub: `Join a pod, take on a real problem, and ship something you’re proud of. ${WHATS_NEXT.nextPublic}`,
   },
   {
     v: "events",
