@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveUserRoles } from "@/lib/auth/roles";
-import { coordinatorLabs, isCoordinator, APPLICATION_SELECT, INVITE_SELECT, type AmbassadorInvite } from "@/lib/ambassador/data";
-import { STEPS, invite as inviteCopy, AMBASSADOR_HOME } from "@/lib/ambassador/content";
+import { coordinatorLabs, isCoordinator, reviewsFor, APPLICATION_SELECT, INVITE_SELECT, type AmbassadorInvite } from "@/lib/ambassador/data";
+import { awaitsReviewer, outcomeLabel, reviewOutcome } from "@/lib/ambassador/review";
+import { isAdmin } from "@/lib/auth/roles";
+import { STEPS, invite as inviteCopy, AMBASSADOR_COORDINATOR, AMBASSADOR_HOME } from "@/lib/ambassador/content";
 import type { AmbassadorApplication } from "@/lib/ambassador/status";
 import { formatDate } from "@/lib/format/date";
 import { DecisionButtons, InviteForm, InviteRow, NominationActions } from "./coordinator-client";
@@ -82,6 +84,16 @@ export default async function CoordinatorPage() {
   for (const s of steps ?? []) stepCount.set(s.participant_id, (stepCount.get(s.participant_id) ?? 0) + 1);
 
   const pending = rows.filter((a) => a.status === "pending");
+  // Two reviewers decide each one (00105): who's reviewed, and whether it's
+  // waiting on this person.
+  const reviews = await reviewsFor(service, pending.map((a) => a.id));
+  const who = { reviewerId: roles.participantId, reviewerIsAdmin: isAdmin(roles) };
+  const reviewState = new Map(
+    pending.map((a) => {
+      const mine = reviews.filter((r) => r.application_id === a.id);
+      return [a.id, { label: outcomeLabel(reviewOutcome(mine)), yours: awaitsReviewer(a, mine, who) }] as const;
+    })
+  );
   const ambassadors = rows.filter((a) => a.status === "approved");
   const past = rows.filter((a) => a.status === "declined" || a.status === "stepped_back");
   const nominations = (noms ?? []) as unknown as NomRow[];
@@ -94,21 +106,24 @@ export default async function CoordinatorPage() {
         <p className="lbl lbl-teal">Coordinator</p>
         <h1 className="t-h1 text-ink" style={{ marginTop: 6 }}>Ambassadors</h1>
         <p className="t-lede">
-          Confirm new ambassadors, hand over buttons, and invite the people your ambassadors suggest.
+          Review new applications, hand over buttons, and invite the people your ambassadors suggest.
           {labs ? "" : " You see every Lab and HQ as an admin."}
         </p>
       </header>
 
       <section className="amb-section">
         <h2 className="t-h2">Waiting for you</h2>
-        <p className="t-small">They passed the ten questions and signed the agreement. Confirm them, or say not now.</p>
+        <p className="t-small">
+          They passed the ten questions and signed the agreement. Two reviewers decide each application: two approvals
+          confirm them, two declines say not now, and a split goes to an admin.
+        </p>
         <div className="amb-table-wrap">
           {pending.length === 0 ? (
             <p className="amb-empty">Nobody is waiting.</p>
           ) : (
             <table className="amb-table">
               <thead>
-                <tr><th>Who</th><th>Lab</th><th>Brought in by</th><th>Quiz</th><th>Submitted</th><th /></tr>
+                <tr><th>Who</th><th>Lab</th><th>Brought in by</th><th>Quiz</th><th>Submitted</th><th>Reviews</th><th /></tr>
               </thead>
               <tbody>
                 {pending.map((a) => (
@@ -118,7 +133,15 @@ export default async function CoordinatorPage() {
                     <td>{a.referred_by ?? "—"}</td>
                     <td>{a.quiz_score ?? "—"} of {a.quiz_total ?? "—"}</td>
                     <td>{a.submitted_at ? formatDate(a.submitted_at) : "—"}</td>
-                    <td><DecisionButtons id={a.id} actions={["approve", "decline"]} /></td>
+                    <td>
+                      {reviewState.get(a.id)?.label}
+                      {reviewState.get(a.id)?.yours && <><br /><span className="status active">Waiting for you</span></>}
+                    </td>
+                    <td>
+                      <Link className={`btn btn-sm ${reviewState.get(a.id)?.yours ? "btn-teal" : "btn-ghost"}`} href={`${AMBASSADOR_COORDINATOR}/${a.id}`}>
+                        {reviewState.get(a.id)?.yours ? "Review" : "Open"}
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -228,7 +251,7 @@ export default async function CoordinatorPage() {
                     <td>{a.lab?.name ?? "HQ"}</td>
                     <td>{a.status === "declined" ? "Not now" : "Stepped back"}</td>
                     <td>{a.decision_note ?? "—"}</td>
-                    <td><DecisionButtons id={a.id} actions={a.status === "declined" ? ["approve", "reopen"] : ["approve"]} /></td>
+                    <td><DecisionButtons id={a.id} actions={a.status === "declined" ? ["reopen"] : ["approve"]} /></td>
                   </tr>
                 ))}
               </tbody>

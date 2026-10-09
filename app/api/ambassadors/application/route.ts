@@ -11,8 +11,9 @@ import {
   APPLICATION_SELECT,
   checkInvite,
   getAmbassadorSelf,
-  grantAmbassadorRole,
+  recordReview,
   resolveReferrer,
+  settleApplication,
 } from "@/lib/ambassador/data";
 import { AMB_JOIN_COOKIE, parseAmbJoin } from "@/lib/ambassador/join-cookie";
 
@@ -21,10 +22,10 @@ import { AMB_JOIN_COOKIE, parseAmbJoin } from "@/lib/ambassador/join-cookie";
  * screen, in the order the flow gives before it takes: oriented (the film or
  * the short read) → quiz (graded here) → agreement → submit.
  *
- * Submit decides the outcome: a valid pre-approved invite makes them an
- * ambassador straight away (the inviter is recorded as the granter); without
- * one they wait as "pending" for their Lab's coordinator. An invite opened
- * after a pending submission confirms them — the prototype's behavior.
+ * Submit makes the application "pending": two reviewers decide it
+ * (lib/ambassador/review.ts, 00105). A valid pre-approved invite counts as the
+ * inviter's approval, so one more review settles it; an invite opened after a
+ * pending submission adds that approval the same way.
  */
 export const POST = withAuth(async (request: NextRequest, auth) => {
   const participantId = auth.user.participantId;
@@ -154,23 +155,11 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
         submitted_at: app.submitted_at ?? now,
       };
 
-      let granted = false;
+      // Every submission waits for two reviews (00105). A usable invite is
+      // recorded as its inviter's approval, so it needs one more reviewer.
+      if (app.status === "started") fields.status = "pending";
       if (usable) {
-        const { error: gErr } = await grantAmbassadorRole(
-          service,
-          participantId,
-          labId,
-          usable.invited_by,
-          `Pre-approved invite #${usable.id}`
-        );
-        if (gErr) return dbError(gErr, "ambassador-grant-invite");
-        granted = true;
-        Object.assign(fields, {
-          status: "approved",
-          invite_id: usable.id,
-          decided_at: now,
-          decided_by: usable.invited_by,
-        });
+        fields.invite_id = app.invite_id ?? usable.id;
         if (!usable.accepted_participant_id) {
           await service
             .from("ambassador_invites")
@@ -178,12 +167,26 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
             .eq("id", usable.id)
             .is("accepted_participant_id", null);
         }
-      } else if (app.status === "started") {
-        fields.status = "pending";
       }
 
-      const { data, error } = await update(fields);
-      if (error || !data) return dbError(error, "ambassador-submit");
+      const { data: submitted, error } = await update(fields);
+      if (error || !submitted) return dbError(error, "ambassador-submit");
+
+      let data = submitted;
+      if (usable?.invited_by && usable.invited_by !== participantId) {
+        const { error: rErr } = await recordReview(service, {
+          applicationId: submitted.id,
+          reviewerId: usable.invited_by,
+          decision: "approve",
+          note: `Pre-approved invite #${usable.id}`,
+          source: "invite",
+        });
+        if (rErr) return dbError(rErr, "ambassador-invite-review");
+        const settled = await settleApplication(service, submitted);
+        if (settled.error) return dbError(settled.error, "ambassador-invite-settle");
+        data = settled.application;
+      }
+      const granted = data.status === "approved";
       const res = reply(data, { invite_problem: token ? problem : null }, granted);
       res.cookies.set(AMB_JOIN_COOKIE, "", { path: "/", maxAge: 0 });
       return res;

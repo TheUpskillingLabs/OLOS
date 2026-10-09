@@ -17,25 +17,23 @@ async function call(url: string, method: string, body?: unknown): Promise<{ ok: 
   return { ok: Boolean(res?.ok), json };
 }
 
-const LABELS: Record<AmbassadorDecision, string> = {
-  approve: "Confirm",
-  decline: "Not now",
-  reopen: "Reopen",
+const LABELS: Record<Exclude<AmbassadorDecision, "review">, string> = {
+  approve: "Reinstate",
+  reopen: "Reopen for review",
   button_given: "Button given",
   step_back: "Step back",
 };
 
 const ASKS_NOTE: Partial<Record<AmbassadorDecision, string>> = {
-  decline: "A short note for them (optional). They'll see it on their Ambassador page.",
   step_back: "Why they're stepping back (optional). They'll see it.",
 };
 
-export function DecisionButtons({ id, actions }: { id: number; actions: AmbassadorDecision[] }) {
+export function DecisionButtons({ id, actions }: { id: number; actions: Exclude<AmbassadorDecision, "review">[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const act = async (action: AmbassadorDecision) => {
+  const act = async (action: Exclude<AmbassadorDecision, "review">) => {
     let note: string | undefined;
     if (ASKS_NOTE[action]) {
       const n = window.prompt(ASKS_NOTE[action]);

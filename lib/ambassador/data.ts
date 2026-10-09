@@ -8,6 +8,14 @@ import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAdmin, type UserRoles } from "@/lib/auth/roles";
 import type { AmbassadorApplication } from "./status";
+import {
+  activeReviews,
+  awaitsReviewer,
+  reviewOutcome,
+  REVIEW_SELECT,
+  type AmbassadorReview,
+  type ReviewDecision,
+} from "./review";
 
 type Service = SupabaseClient;
 
@@ -171,12 +179,103 @@ export async function resolveReferrer(service: Service, handle: string | undefin
   return data && data.id !== selfId ? (data.id as number) : null;
 }
 
-/** Applications waiting on this coordinator (pending submissions + ambassadors
- *  who said they're ready but haven't had their button). For the dashboard. */
+/** The review rows (00105) for these applications, every round. */
+export async function reviewsFor(service: Service, applicationIds: number[]): Promise<AmbassadorReview[]> {
+  if (applicationIds.length === 0) return [];
+  const { data } = await service
+    .from("ambassador_reviews")
+    .select(REVIEW_SELECT)
+    .in("application_id", applicationIds)
+    .order("created_at", { ascending: true });
+  return (data ?? []) as AmbassadorReview[];
+}
+
+/** Record one review. 23505 (this reviewer already has a counting review)
+ *  comes back as `duplicate` so the caller can say so. */
+export async function recordReview(
+  service: Service,
+  review: { applicationId: number; reviewerId: number; decision: ReviewDecision; note?: string | null; source?: "review" | "invite" }
+): Promise<{ error: unknown; duplicate: boolean }> {
+  const { error } = await service.from("ambassador_reviews").insert({
+    application_id: review.applicationId,
+    reviewer_id: review.reviewerId,
+    decision: review.decision,
+    note: review.note ?? null,
+    source: review.source ?? "review",
+  });
+  if (error?.code === "23505") return { error: null, duplicate: true };
+  return { error, duplicate: false };
+}
+
+/** A new review round (reopen): earlier reviews stay as history. */
+export async function supersedeReviews(service: Service, applicationId: number): Promise<{ error: unknown }> {
+  const { error } = await service
+    .from("ambassador_reviews")
+    .update({ superseded_at: new Date().toISOString() })
+    .eq("application_id", applicationId)
+    .is("superseded_at", null);
+  return { error };
+}
+
+/**
+ * Apply the current round's outcome to a pending application: two approvals
+ * grant the role and approve it; two declines (or a split broken by an admin)
+ * decline it. Open rounds and splits leave it pending. Idempotent — the grant
+ * is, and an already-decided application is returned as is.
+ *
+ * A review-driven decline leaves decision_note empty: reviewer notes are for
+ * reviewers, so the applicant sees the plain "not this time" copy.
+ */
+export async function settleApplication(
+  service: Service,
+  app: AmbassadorApplication
+): Promise<{ application: AmbassadorApplication; error: unknown }> {
+  if (app.status !== "pending") return { application: app, error: null };
+  const reviews = activeReviews(await reviewsFor(service, [app.id]));
+  const outcome = reviewOutcome(reviews);
+  if (outcome.state !== "approved" && outcome.state !== "declined") return { application: app, error: null };
+
+  // The review that settled it decides who's recorded as the decider.
+  const decider = [...reviews].reverse().find((r) => r.decision === (outcome.state === "approved" ? "approve" : "decline"));
+  const deciderId = decider?.reviewer_id ?? null;
+  const now = new Date().toISOString();
+
+  if (outcome.state === "approved") {
+    const { error } = await grantAmbassadorRole(service, app.participant_id, app.lab_id, deciderId, `Approved by two reviewers, application #${app.id}`);
+    if (error) return { application: app, error };
+  }
+  const { data, error } = await service
+    .from("ambassador_applications")
+    .update({
+      status: outcome.state,
+      decided_at: now,
+      decided_by: deciderId,
+      decision_note: null,
+      updated_at: now,
+    })
+    .eq("id", app.id)
+    .eq("status", "pending")
+    .select(APPLICATION_SELECT)
+    .maybeSingle();
+  if (error) return { application: app, error };
+  // No row: a concurrent settle got there first — re-read the result.
+  if (!data) {
+    const { data: again } = await service.from("ambassador_applications").select(APPLICATION_SELECT).eq("id", app.id).single();
+    return { application: (again as AmbassadorApplication) ?? app, error: null };
+  }
+  return { application: data as AmbassadorApplication, error: null };
+}
+
+/** Applications waiting on this coordinator (pending submissions this person
+ *  may review now + ambassadors who said they're ready but haven't had their
+ *  button). For the dashboard. */
 export async function coordinatorQueueCount(service: Service, user: UserRoles): Promise<number> {
   const labs = coordinatorLabs(user);
   if (labs && labs.length === 0) return 0;
-  let pending = service.from("ambassador_applications").select("id", { count: "exact", head: true }).eq("status", "pending");
+  let pending = service
+    .from("ambassador_applications")
+    .select("id, status, participant_id, referred_by_participant_id")
+    .eq("status", "pending");
   let ready = service
     .from("ambassador_applications")
     .select("id", { count: "exact", head: true })
@@ -188,7 +287,11 @@ export async function coordinatorQueueCount(service: Service, user: UserRoles): 
     ready = ready.in("lab_id", labs);
   }
   const [a, b] = await Promise.all([pending, ready]);
-  return (a.count ?? 0) + (b.count ?? 0);
+  const apps = (a.data ?? []) as Pick<AmbassadorApplication, "id" | "status" | "participant_id" | "referred_by_participant_id">[];
+  const reviews = await reviewsFor(service, apps.map((x) => x.id));
+  const who = { reviewerId: user.participantId, reviewerIsAdmin: isAdmin(user) };
+  const waiting = apps.filter((x) => awaitsReviewer(x, reviews.filter((r) => r.application_id === x.id), who)).length;
+  return waiting + (b.count ?? 0);
 }
 
 /** How many new ambassadors came in through this one's share link — the

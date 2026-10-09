@@ -41,7 +41,7 @@
     "nudge": "About ten minutes: The Labs in three minutes, ten questions, the agreement, your name.",
     "apply": "Become an ambassador",
     "applyContinue": "Continue your application",
-    "pending": "Almost there. Your coordinator will confirm you. Read ahead while you wait."
+    "pending": "Almost there. Two reviewers are looking at your application. Read ahead while you wait."
   },
   "nav": {
     "home": "Home",
@@ -178,5 +178,18 @@
     "home": "Back to Home",
     "stay": "Stay on this page",
     "progress": "{n} of {total} steps done"
+  },
+  "launch": {
+    "$comment": "The dashboard's launch banner (app/components/ambassador/launch-banner.tsx), top of the center column for every signed-in member who hasn't applied, until `until` (a date, exclusive). 'pending' replaces it once they've applied. Dismissible per member (task_dismissals).",
+    "until": "2027-01-01",
+    "eyebrow": "New in The Labs",
+    "title": "The Ambassador program is open.",
+    "body": "Think of someone who's figuring out what's next. Ambassadors bring them in with a real conversation, their own story, and one dated next step. Applying takes about ten minutes, and two reviewers read every application.",
+    "apply": "Apply to be an ambassador",
+    "learnMore": "What ambassadors do",
+    "pendingTitle": "Your ambassador application is in.",
+    "pendingBody": "Two reviewers are looking at it. You'll see their answer on your Ambassador page, and the guide is open while you wait.",
+    "pendingCta": "Open the guide",
+    "dismiss": "Dismiss"
   }
 }

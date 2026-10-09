@@ -61,6 +61,8 @@ import LeadershipLogCard, {
 } from "./leadership-log-card";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 import { effectiveUser } from "@/lib/auth/simulation";
+import { ambassadorLaunchBanner } from "@/lib/ambassador/banner";
+import { AmbassadorLaunchBanner } from "@/app/components/ambassador/launch-banner";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -505,6 +507,11 @@ export default async function DashboardPage() {
   const podLimit =
     (activeCycleConfig as { pod_limit?: number } | null)?.pod_limit ?? 1;
 
+  // The Ambassador launch banner (lib/ambassador/launch.ts) — leads the
+  // center column in every dashboard state, above the task queue.
+  // Best effort: a failed read just means no banner this visit.
+  const ambassadorBannerPromise = ambassadorLaunchBanner(participant.id).catch(() => null);
+
   // The central task assembly (lib/tasks) — the one derivation of the
   // member's queue + checklist, replacing the three hand-built lists
   // (checklistItems / upNextTodos / stripChips) that used to live here.
@@ -663,6 +670,8 @@ export default async function DashboardPage() {
     </div>
   );
 
+  const ambassadorBanner = await ambassadorBannerPromise;
+
   // The center column's shared scaffold. The Up-next queue (TaskList — the
   // same component on every breakpoint: snap strip on phones, 2-col grid on
   // md+) leads the column everywhere, behind only an unfinished checklist.
@@ -672,6 +681,9 @@ export default async function DashboardPage() {
   // and the composer lead — the LinkedIn feed-first posture.
   const centerColumn = (tasks: ReactNode, feed: ReactNode) => (
     <div className="dash-center">
+      {ambassadorBanner && (
+        <AmbassadorLaunchBanner variant={ambassadorBanner.variant} dismissKey={ambassadorBanner.dismissKey} />
+      )}
       {checklistIncomplete && checklistBlock}
       <TaskList
         tasks={taskData.queue}
