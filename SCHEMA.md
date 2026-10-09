@@ -590,9 +590,24 @@ erDiagram
     ambassador_nominations |o--o| ambassador_invites : "becomes"
     participants ||--o{ ambassador_step_progress : "reads"
     metros ||--o{ ambassador_applications : "coordinates"
+    ambassador_applications ||--o{ ambassador_reviews : "reviewed by"
+    participants ||--o{ ambassador_reviews : "reviews"
+
+    ambassador_reviews {
+        int id PK
+        int application_id FK "→ ambassador_applications(id) ON DELETE CASCADE"
+        int reviewer_id FK "→ participants(id) ON DELETE SET NULL"
+        varchar decision "approve/decline"
+        varchar note "nullable, max 1000 — reviewers only, never the applicant"
+        varchar source "review/invite (a pre-approved invite's approval)"
+        timestamptz created_at
+        timestamptz superseded_at "nullable — set when the application is reopened"
+    }
 ```
 
-**Lifecycle:** `started` (orientation part way) → `pending` (submitted, waiting for the Lab's coordinator) → `approved` (role granted) or `declined` (with an optional note the applicant sees). A valid invite at submit skips `pending`. `approved` → `stepped_back` revokes the role; a coordinator can approve again.
+**Lifecycle:** `started` (orientation part way) → `pending` (submitted, waiting for two reviews) → `approved` (role granted) or `declined`. `approved` → `stepped_back` revokes the role; a coordinator can reinstate them. A declined application can be reopened for a new review round.
+
+**Two reviewers (migration `00105`, `lib/ambassador/review.ts`):** `ambassador_reviews` holds one row per reviewer per round. Two approvals approve (and grant the role, `granted_by` = the reviewer whose approval settled it); two declines decline; a 1–1 split waits for an admin's third review, which decides. Nobody reviews their own application or one they referred (`referred_by_participant_id`). A pre-approved invite is recorded as its inviter's approval (`source = 'invite'`), so an invited applicant needs one more reviewer — invites no longer skip `pending`. Reopening sets `superseded_at` on the round's rows: they stay as history and stop counting (the partial unique index `uq_amb_reviews_active` allows one counting review per reviewer). A review-driven decline leaves `decision_note` empty: reviewer notes are internal. RLS: admin read only; writes go through `PATCH /api/ambassadors/applications/[id]` (`action: "review"`).
 
 **Also in `00104`:** `participant_roles.role` CHECK gains `ambassador`; `agreement_acceptances.doc` gains `ambassador` and `.source` gains `ambassador_flow` (the Ambassador Agreement's acceptance is written there, versioned).
 
@@ -1012,10 +1027,11 @@ erDiagram
 | `projects` | Project Layer | Shortlisted solutions with external integrations |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
-| `ambassador_applications` | Ambassadors | One per person: orientation (quiz, agreement), who brought them in, the coordinator's decision, ready/button state (00104) |
+| `ambassador_applications` | Ambassadors | One per person: orientation (quiz, agreement), who brought them in, the reviewers' outcome, ready/button state (00104) |
 | `ambassador_invites` | Ambassadors | A coordinator's pre-approved, single-use invite link (00104) |
 | `ambassador_nominations` | Ambassadors | An ambassador suggests someone; the coordinator invites or declines (00104) |
 | `ambassador_step_progress` | Ambassadors | Which of the guide's five steps a person has marked done (00104) |
+| `ambassador_reviews` | Ambassadors | One reviewer's approve/decline on an application; two decide it, an admin breaks a split (00105) |
 | `events` | Public Content | Public events/workshops (Luma-shaped cache; the source until live sync) |
 | `resources` | Public Content | Learning Library items (guides, recordings, templates, courses, playbooks) |
 | `metros` | Public Content | Local labs / cities — `active` or `waitlist`. `archived_at` (00081) = owner-archived (deactivated) lab; NULL = active. The default lab (`is_default`) is never archivable |

@@ -1,20 +1,32 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { withAuth } from "@/lib/auth/middleware";
 import { requireLabAccess } from "@/lib/auth/lab";
+import { isAdmin } from "@/lib/auth/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { ambassadorDecisionSchema } from "@/lib/validations/ambassador";
-import { APPLICATION_SELECT, grantAmbassadorRole, revokeAmbassadorRole } from "@/lib/ambassador/data";
+import {
+  APPLICATION_SELECT,
+  grantAmbassadorRole,
+  recordReview,
+  reviewsFor,
+  revokeAmbassadorRole,
+  settleApplication,
+  supersedeReviews,
+} from "@/lib/ambassador/data";
+import { REVIEW_BLOCK_MESSAGE, reviewBlock } from "@/lib/ambassador/review";
 import type { AmbassadorApplication } from "@/lib/ambassador/status";
 
 /**
- * A coordinator's decision on one application (/ambassador/coordinator).
+ * A coordinator's action on one application (/ambassador/coordinator).
  * Scope: admin, or a lead of the application's Lab (HQ rows: admin only).
  *
- *   approve      pending|declined|stepped_back → approved, and grant the role
- *   decline      pending → declined (with an optional note to the applicant)
- *   reopen       declined → pending
+ *   review       pending: record this reviewer's approve/decline (00105).
+ *                Two approvals grant the role; two declines decline; a split
+ *                waits for an admin's third review (lib/ambassador/review.ts).
+ *   reopen       declined → pending, a fresh review round
+ *   approve      stepped_back → approved: reinstate, and re-grant the role
  *   button_given approved → the button was handed over, in person
  *   step_back    approved → stepped_back, and revoke the role
  */
@@ -31,31 +43,49 @@ export const PATCH = withAuth(async (request: NextRequest, auth, params) => {
 
   const denied = requireLabAccess(auth.user, app.lab_id);
   if (denied) return denied;
-  if (app.participant_id === auth.user.participantId) {
+  const me = auth.user.participantId;
+  if (app.participant_id === me) {
     return NextResponse.json({ error: "Someone else decides on your own application." }, { status: 403 });
   }
 
   const now = new Date().toISOString();
-  const me = auth.user.participantId;
   const conflict = (msg: string) => NextResponse.json({ error: msg }, { status: 409 });
-  let fields: Record<string, unknown>;
 
+  if (body.action === "review") {
+    const reviews = await reviewsFor(service, [app.id]);
+    const block = reviewBlock(app, reviews, { reviewerId: me, reviewerIsAdmin: isAdmin(auth.user) });
+    if (block) return conflict(REVIEW_BLOCK_MESSAGE[block]);
+    const { error, duplicate } = await recordReview(service, {
+      applicationId: app.id,
+      reviewerId: me!,
+      decision: body.decision!,
+      note: body.note ?? null,
+    });
+    if (duplicate) return conflict(REVIEW_BLOCK_MESSAGE.already_reviewed);
+    if (error) return dbError(error, "ambassador-review");
+    const settled = await settleApplication(service, app);
+    if (settled.error) return dbError(settled.error, "ambassador-review-settle");
+    return NextResponse.json({ application: settled.application });
+  }
+
+  let fields: Record<string, unknown>;
   switch (body.action) {
+    case "reopen": {
+      if (app.status !== "declined") return conflict("Only a declined application can be reopened.");
+      const { error } = await supersedeReviews(service, app.id);
+      if (error) return dbError(error, "ambassador-reopen-reviews");
+      fields = { status: "pending", decided_at: null, decided_by: null, decision_note: null };
+      break;
+    }
     case "approve": {
-      if (app.status === "approved" || app.status === "started") return conflict("Only a submitted application can be approved.");
-      const { error } = await grantAmbassadorRole(service, app.participant_id, app.lab_id, me, `Approved application #${app.id}`);
-      if (error) return dbError(error, "ambassador-approve-grant");
+      if (app.status !== "stepped_back") {
+        return conflict("A new application is decided by two reviews. Approve only reinstates someone who stepped back.");
+      }
+      const { error } = await grantAmbassadorRole(service, app.participant_id, app.lab_id, me, `Reinstated, application #${app.id}`);
+      if (error) return dbError(error, "ambassador-reinstate-grant");
       fields = { status: "approved", decided_at: now, decided_by: me, decision_note: body.note ?? null };
       break;
     }
-    case "decline":
-      if (app.status !== "pending") return conflict("Only a waiting application can be declined.");
-      fields = { status: "declined", decided_at: now, decided_by: me, decision_note: body.note ?? null };
-      break;
-    case "reopen":
-      if (app.status !== "declined") return conflict("Only a declined application can be reopened.");
-      fields = { status: "pending", decided_at: null, decided_by: null, decision_note: null };
-      break;
     case "button_given":
       if (app.status !== "approved") return conflict("Only an ambassador gets a button.");
       fields = { button_given_at: app.button_given_at ?? now, button_given_by: app.button_given_by ?? me };
@@ -67,6 +97,8 @@ export const PATCH = withAuth(async (request: NextRequest, auth, params) => {
       fields = { status: "stepped_back", decided_at: now, decided_by: me, decision_note: body.note ?? null };
       break;
     }
+    default:
+      return conflict("Unknown action.");
   }
 
   const { data: updated, error } = await service

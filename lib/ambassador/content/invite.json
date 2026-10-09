@@ -1,8 +1,8 @@
 {
-  "$comment": "The coordinator's invite form (/ambassador/coordinator) and the ambassador's nominate page (/ambassador/nominate). An invite is a single-use link that pre-approves: the person still passes the quiz and signs the agreement, then they're in straight away.",
+  "$comment": "The coordinator's invite form (/ambassador/coordinator) and the ambassador's nominate page (/ambassador/nominate). An invite is a single-use link that pre-approves: the person still passes the quiz and signs the agreement, and the invite counts as the inviter's approval: one more reviewer confirms them.",
   "invite": {
     "title": "Invite an ambassador",
-    "lede": "Make a pre-approved invite. They still pass the quiz and sign the agreement, then they're in straight away. Someone already passed on their own? Make them an invite anyway: opening it confirms them.",
+    "lede": "Make a pre-approved invite. It counts as your approval of their application: they still pass the quiz and sign the agreement, then one more reviewer confirms them. Someone already applied on their own? An invite adds your approval to theirs.",
     "unlisted": "For coordinators: your Lab's leads, and HQ admins.",
     "first": "Their first name",
     "last": "Their last name",

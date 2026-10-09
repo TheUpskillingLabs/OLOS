@@ -86,7 +86,7 @@ export default async function AmbassadorHome() {
         <div className="amb-panel">
           <h2 className="t-h3">Not this time.</h2>
           <p className="t-body">
-            Your coordinator didn&apos;t confirm you as an ambassador this round.
+            The reviewers didn&apos;t confirm you as an ambassador this round.
             {app?.decision_note ? ` Their note: “${app.decision_note}”` : ""} You&apos;re still a full member of The Labs, and the guide stays open to you.
           </p>
         </div>

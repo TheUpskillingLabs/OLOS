@@ -29,6 +29,11 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   (server-graded quiz, versioned Ambassador Agreement, pre-approved invites), the five-step guide
   with practice cards, the presenter deck, nominations, a coordinator queue for Lab leads, and
   dashboard tasks; migration `00104` (`docs/ambassadors/CLAUDE.md`) (#PR)
+- Ambassador launch: a dismissible banner at the top of the dashboard's center column announces the
+  program to every member who hasn't applied (and says "in review" once they have); applications are
+  decided by two reviewers who see the quiz result and agreement beside the applicant's OLOS record
+  (`/ambassador/coordinator/[id]`), with an admin breaking a split and an invite counting as one
+  approval; migration `00105` (#PR)
 
 ### Fixed
 

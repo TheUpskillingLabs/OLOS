@@ -24,11 +24,16 @@ export const ambassadorProgressSchema = z.object({
   step_id: z.string().min(1).max(40),
 });
 
-/** A coordinator's decision on one application. */
-export const ambassadorDecisionSchema = z.object({
-  action: z.enum(["approve", "decline", "reopen", "button_given", "step_back"]),
-  note: z.string().trim().max(500).optional(),
-});
+/** A coordinator's action on one application. A pending application is
+ *  decided by two reviews (`review`, lib/ambassador/review.ts); `approve` only
+ *  reinstates someone who stepped back. */
+export const ambassadorDecisionSchema = z
+  .object({
+    action: z.enum(["review", "approve", "reopen", "button_given", "step_back"]),
+    decision: z.enum(["approve", "decline"]).optional(),
+    note: z.string().trim().max(1000).optional(),
+  })
+  .refine((b) => b.action !== "review" || b.decision, { message: "Pick approve or decline.", path: ["decision"] });
 export type AmbassadorDecision = z.infer<typeof ambassadorDecisionSchema>["action"];
 
 export const ambassadorInviteSchema = z.object({
