@@ -34,8 +34,10 @@ Rules that apply to every change:
 - Constitution: no in-app LLM, no activity telemetry, nothing that shames a member who is
   behind, consent-gated messaging. The brief's §4 and §8 spell these out.
 - In new code, cycle facts are data: read a cycle's dates, audience, events and copy from its
-  rows through one helper, never as constants naming a cycle or season. Cycle 4 is internal and
-  must not appear on the public site: `docs/requirements/cycle-4-readiness.md`, epic #477.
+  rows through one helper, never as constants naming a cycle or season. Cycle 4 (Oct 13 – Dec 8)
+  is internal: the public site names it only as an invitation to past participants, nobody
+  registers for it there, and all "what's next" copy comes from `lib/cycles/whats-next.ts`
+  (`docs/requirements/cycle-4-readiness.md`, epic #477).
 - End every substantive session with a report in `docs/sessions/` (template in its README).
   It is the artifact of what was completed and travels to the team knowledge repo on merge.
 

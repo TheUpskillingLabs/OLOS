@@ -6,6 +6,8 @@ import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration";
 import { findOrCreateWaitlistLab } from "@/lib/labs/membership";
 import { getMemberRecruitingCycle } from "@/lib/cycle/active";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
+import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 import { fulfillInvitation } from "@/lib/auth/invitations";
 import { isEmailBanned } from "@/lib/auth/bans";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
@@ -244,6 +246,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // No open cycle to join: the "What's next" paragraph instead, with the
+  // waitlist promise for anyone who chose Build Cycles (role_intents ∋ 'cycle').
+  const onWaitlist = (body.role_intents ?? []).includes("cycle");
+  const whatsNext = emailCycleJoinUrl
+    ? undefined
+    : whatsNextMessage(await getWhatsNextFacts(supabase));
+
   try {
     const resend = getResendClient();
     await resend.emails.send({
@@ -254,11 +263,15 @@ export async function POST(request: NextRequest) {
         firstName: body.first_name,
         cycleName: emailCycleName,
         cycleJoinUrl: emailCycleJoinUrl,
+        onWaitlist,
+        whatsNext,
       }),
       text: registrationConfirmationText({
         firstName: body.first_name,
         cycleName: emailCycleName,
         cycleJoinUrl: emailCycleJoinUrl,
+        onWaitlist,
+        whatsNext,
       }),
     });
   } catch {
