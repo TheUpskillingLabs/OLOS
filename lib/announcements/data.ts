@@ -8,9 +8,11 @@ import { one } from "@/lib/supabase/embed";
  * SERVICE client with an author-name allowlist (never a widened participants
  * RLS), select only display columns, and log-on-error instead of silently
  * rendering an empty rail (a 400 from a drifted column reads identically to
- * "no news" otherwise). Members only ever get published rows; lab-scoping is
- * applied here in the query (global rows always show; the viewer's own lab
- * adds to them), not in RLS.
+ * "no news" otherwise). Members only ever get rows that are live right now —
+ * published, past their go-live, not yet expired (00104; mirrored in the
+ * select policy, since this read bypasses RLS). Lab-scoping is applied here in
+ * the query (global rows always show; the viewer's own lab adds to them), not
+ * in RLS.
  */
 
 export interface AnnouncementCard {
@@ -51,6 +53,7 @@ export async function fetchAnnouncements(
 ): Promise<AnnouncementCard[]> {
   const service = createServiceClient();
   const limit = opts.limit ?? 10;
+  const nowIso = new Date().toISOString();
 
   let query = service
     .from("announcements")
@@ -58,6 +61,8 @@ export async function fetchAnnouncements(
       "id, title, body, pinned, published_at, lab_id, author:author_participant_id(preferred_name, first_name, last_name)"
     )
     .eq("status", "published")
+    .lte("published_at", nowIso)
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("pinned", { ascending: false })
     .order("published_at", { ascending: false })
     .limit(limit);

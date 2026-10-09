@@ -7,7 +7,8 @@ import AnnouncementsAdmin, {
 
 /* Org announcements admin — compose org news for the member dashboard rail.
    Global posts (no lab) reach everyone; a lab-scoped post reaches only members
-   of that lab. Drafts stay private until published. */
+   of that lab. Drafts stay private until published; a published post can be
+   scheduled (future go-live) and auto-archives at its expiration (00104). */
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function AdminAnnouncementsPage() {
   const [{ data: announcements }, { data: labs }] = await Promise.all([
     serviceClient
       .from("announcements")
-      .select("id, title, body, lab_id, status, pinned, published_at, created_at")
+      .select("id, title, body, lab_id, status, pinned, published_at, expires_at, created_at")
       .order("created_at", { ascending: false }),
     serviceClient
       .from("metros")
@@ -39,7 +40,8 @@ export default async function AdminAnnouncementsPage() {
         <p className="mt-1 text-sm text-meta">
           Org news for the member dashboard. A global post reaches everyone; a
           lab-scoped post reaches only that lab. Pin a post to float it to the
-          top.
+          top. Set a go-live time to schedule a post; it auto-archives at its
+          expiration (two weeks after creation unless you change it).
         </p>
       </div>
 

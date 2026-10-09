@@ -22,6 +22,15 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ## [Unreleased]
 
+### Added
+
+- Announcements can be scheduled and expire on their own: admins and lab leads set a go-live date/time
+  (a future `published_at` schedules the post) and an expiration that auto-archives it. It defaults to
+  two weeks from creation, or from go-live when scheduled, and can be changed or set to never expire.
+  There is also an Archive button on drafts, scheduled and live posts. Members only see live posts (the feed query
+  plus a tightened select policy), and an hourly `/api/cron/announcement-expiry` sweep flips expired
+  rows to archived. Migration `00104`. (#490)
+
 ### Fixed
 
 - One "what's next" message on every public surface (the board advisor's and AMG's wording, epic #477):

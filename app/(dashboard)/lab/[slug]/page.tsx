@@ -86,7 +86,7 @@ export default async function LabWorkspacePage({
       .order("first_name"),
     serviceClient
       .from("announcements")
-      .select("id, title, body, lab_id, status, pinned, published_at, created_at")
+      .select("id, title, body, lab_id, status, pinned, published_at, expires_at, created_at")
       .eq("lab_id", lab.id)
       .order("created_at", { ascending: false }),
   ]);
