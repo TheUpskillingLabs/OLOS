@@ -60,14 +60,10 @@ describe("whatsNextMessage", () => {
     expect(m.internal).toMatch(/^This quarter we're running an internal Build Cycle/);
   });
 
-  it("says when the first public cycle of 2027 kicks off, with a waitlist", () => {
+  it("says when the first public cycle of 2027 kicks off", () => {
     const m = whatsNextMessage(INTERNAL, OCT);
     expect(m.nextPublic).toBe("The first public Build Cycle of 2027 kicks off January 12.");
     expect(m.kickoffShort).toBe("Jan 12, 2027");
-    expect(m.waitlistCta).toBe("Join the 2027 waitlist");
-    expect(m.waitlistLabel).toBe("2027 waitlist");
-    expect(m.onWaitlist).toBe("You're on the 2027 waitlist");
-    expect(m.waitlistPromise).toMatch(/first public Build Cycle of 2027, which kicks off January 12/);
   });
 
   it("uses the row's date once the next public cycle exists", () => {
@@ -79,7 +75,6 @@ describe("whatsNextMessage", () => {
     const m = whatsNextMessage(undefined, new Date("2027-03-01T12:00:00Z"));
     expect(m.nextPublic).toBe("The next public Build Cycle is being planned.");
     expect(m.kickoff).toBeNull();
-    expect(m.waitlistCta).toBe("Join the waitlist");
   });
 
   it("drops the invitation once there is no internal cycle and the interim is over", () => {

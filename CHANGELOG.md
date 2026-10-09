@@ -27,10 +27,10 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 - One "what's next" message on every public surface (the board advisor's and AMG's wording, epic #477):
   the internal Build Cycle (dates from its org cycle row) named as an invitation to past participants,
   joined through Slack; "workshops and meetups keep running"; and "the first public Build Cycle of 2027
-  kicks off January 12" with a light waitlist (`role_intents ∋ 'cycle'`). The homepage banner shows it
-  whenever no cycle is taking registrations, with "Join the 2027 waitlist"; `/build-cycles`, the
-  `/events` footnote, the local lab page, the sign-up card, the welcome email (the waitlist promise) and
-  the dashboard say the same. `lib/cycles/whats-next.ts` (tested) replaces `next-public-cycle.ts`. (#488)
+  kicks off January 12". The homepage banner shows it whenever no cycle is taking registrations, with
+  "See workshops and events" as the primary button and the Slack invitation as a secondary link;
+  `/build-cycles`, the `/events` footnote, the local lab page, the sign-up card, the welcome email and
+  the dashboard say the same. No waitlist for now. `lib/cycles/whats-next.ts` (tested) replaces `next-public-cycle.ts`. (#488)
 
 - No public front door for the next cycle (Cycle 4 runs internally; the next public cycle opens in 2027,
   epic #477): the homepage banner, `/build-cycles`, the `/events` footnote, the local lab page, the sign-up

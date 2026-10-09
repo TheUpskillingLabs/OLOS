@@ -6,8 +6,7 @@
  *      Build Cycle (an org cycle), named publicly as an invitation to people
  *      who have taken part before. Joining is through Slack.
  *   2. Public workshops and meetups keep running.
- *   3. The first public Build Cycle of 2027 kicks off January 12 — join the
- *      waitlist (role_intents ∋ 'cycle').
+ *   3. The first public Build Cycle of 2027 kicks off January 12.
  *
  * Cycle facts are data: the internal cycle's dates come from its org cycle
  * row, and an `upcoming` open HQ cycle's start_date replaces the kickoff
@@ -57,12 +56,6 @@ export interface WhatsNextMessage {
   kickoffShort: string | null;
   /** "Oct 13 – Dec 8", or null without the org cycle row. */
   internalDates: string | null;
-  waitlistCta: string;
-  /** "2027 waitlist" — a badge. */
-  waitlistLabel: string;
-  onWaitlist: string;
-  /** The promise made to someone on the waitlist (dashboard + email). */
-  waitlistPromise: string;
   internalCta: string;
   eventsCta: string;
 }
@@ -143,13 +136,6 @@ export function whatsNextMessage(
       ? `The next public Build Cycle kicks off ${monthDay}, ${year}.`
       : `The first public Build Cycle of ${year} kicks off ${monthDay}.`;
 
-  const waitlist = year ? `the ${year} waitlist` : "the waitlist";
-  const which = !k
-    ? "the next public Build Cycle"
-    : fromRow
-      ? `the next public Build Cycle, which kicks off ${monthDay}, ${year}`
-      : `the first public Build Cycle of ${year}, which kicks off ${monthDay}`;
-
   return {
     chip: showInternal ? "A new kind of Build Cycle" : "Between cycles",
     heading: showInternal
@@ -164,10 +150,6 @@ export function whatsNextMessage(
     kickoff,
     kickoffShort: k ? fmt(k, { month: "short", day: "numeric", year: "numeric" }) : null,
     internalDates,
-    waitlistCta: `Join ${waitlist}`,
-    waitlistLabel: year ? `${year} waitlist` : "Waitlist",
-    onWaitlist: `You're on ${waitlist}`,
-    waitlistPromise: `You're on the waitlist for ${which}. We'll tell you on your dashboard, and by email, the day pre-registration opens.`,
     internalCta: "Taken part before? Join the internal cycle",
     eventsCta: "See workshops and events",
   };
