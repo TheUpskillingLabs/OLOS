@@ -148,9 +148,9 @@ empty-until-real — content appears only when genuinely published.
 
 ### Scheduled jobs
 
-Five Vercel crons (`vercel.json`): the Learning-Log window (Fri 21:00 UTC) and
+Six Vercel crons (`vercel.json`): the Learning-Log window (Fri 21:00 UTC) and
 reminder (daily 09:00), the Leadership-Log window (Wed 13:00) and reminder (daily
-09:00), and a Luma events sync (every 6h). Two more cron routes exist but are
+09:00), a Luma events sync (every 6h), and the announcement-expiry sweep (hourly). Two more cron routes exist but are
 **deliberately unscheduled** — `revocation-check` (issue #213) and
 `learning-log-compliance-nudge` (#362, dry-run by default). Each is a route under
 `app/api/cron/`; the current inventory and their status live in
