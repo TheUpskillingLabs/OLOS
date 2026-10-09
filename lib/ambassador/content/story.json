@@ -1,0 +1,26 @@
+{
+  "$comment": "Your Story. The draft is the non-empty answers joined in order, until the ambassador edits the draft itself.",
+  "placeholder": true,
+  "prompts": [
+    {
+      "id": "before",
+      "label": "What brought you in?",
+      "example": "I'd just left a job I'd had for eleven years and wasn't sure what came next."
+    },
+    {
+      "id": "moment",
+      "label": "A moment that stuck",
+      "example": "In my first Build Cycle, our team interviewed library staff, and I realized I was good at asking questions nobody else thought of."
+    },
+    {
+      "id": "why",
+      "label": "Why you keep coming back",
+      "example": "I learn faster with other people than I ever did alone."
+    },
+    {
+      "id": "for-them",
+      "label": "Who it's for",
+      "example": "If you're figuring out what's next, it's a good place to start."
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { escapeEmailForIlike } from "@/lib/auth/email";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { fulfillInvitation } from "@/lib/auth/invitations";
 import { isEmailBanned } from "@/lib/auth/bans";
+import { RETURN_TO_COOKIE, safeReturnTo } from "@/lib/auth/return-to";
 
 // The login door sets auth_intent=login before kicking off OAuth (the join
 // door sets "join") — see app/(auth)/login/login-card.tsx. An unknown Google
@@ -18,6 +19,15 @@ function authIntent(request: Request): string {
 function clearIntentCookie(res: NextResponse): NextResponse {
   res.cookies.set("auth_intent", "", { path: "/", maxAge: 0 });
   return res;
+}
+
+// A public front door (today only /ambassador/start) can ask to bring a
+// RETURNING member back after sign-in. Allowlisted paths only
+// (lib/auth/return-to.ts); anything else falls back to /dashboard.
+function returnTo(request: Request): string | null {
+  const cookies = request.headers.get("cookie") ?? "";
+  const m = cookies.match(new RegExp(`(?:^|;\\s*)${RETURN_TO_COOKIE}=([^;]*)`));
+  return m ? safeReturnTo(m[1]) : null;
 }
 
 export async function GET(request: Request) {
@@ -93,10 +103,13 @@ export async function GET(request: Request) {
             hasPlaceholder,
           );
 
-          // A returning member lands in the app, not on the public landing.
-          return clearIntentCookie(
-            NextResponse.redirect(`${origin}/dashboard`),
+          // A returning member lands in the app, not on the public landing —
+          // or back where a front door sent them from (return_to).
+          const res = clearIntentCookie(
+            NextResponse.redirect(`${origin}${returnTo(request) ?? "/dashboard"}`),
           );
+          res.cookies.set(RETURN_TO_COOKIE, "", { path: "/", maxAge: 0 });
+          return res;
         } else if (authIntent(request) === "login") {
           // Logging in with a Google account we don't know: say so rather
           // than silently opening registration (owner ask, July 2026). Sign

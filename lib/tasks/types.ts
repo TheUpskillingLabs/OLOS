@@ -29,7 +29,10 @@ export type TaskKind =
   /** An admin-authored task (custom_tasks, 00097 — /admin/tasks). */
   | "custom"
   /** Account housekeeping checklist rows (profile, follow, Slack). */
-  | "setup";
+  | "setup"
+  /** The Ambassador role's next step, or a coordinator's waiting list
+      (lib/ambassador/tasks.ts). */
+  | "ambassador";
 
 export type TaskTone = "urgent" | "teal" | "default";
 

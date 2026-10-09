@@ -1,0 +1,265 @@
+{
+  "$comment": "The apply flow (/ambassador/apply): the short film or read, the quiz (graded on the server, lib/ambassador/quiz.ts), the Ambassador Agreement (recorded in agreement_acceptances), confirm your details, then 'You're in' (a pre-approved invite) or 'Almost there' (your Lab's coordinator confirms you in OLOS). The quiz is the ambassador coordinator's ten-question certification (September 2026), eight right to pass. [PLACEHOLDER] marks copy to confirm. The agreement is a draft and needs review before launch; bump agreement.version whenever its text changes.",
+  "placeholder": true,
+  "title": "Become an ambassador",
+  "description": "The Labs in three minutes, ten questions, the ambassador agreement, and your name. About ten minutes.",
+  "stepOf": "Step {n} of {total}",
+  "back": "Back",
+  "next": "Next",
+  "privacy": "Your name and email come from your Upskilling account. Change them on your profile.",
+  "you": {
+    "nav": "About you",
+    "title": "Your details.",
+    "lede": "So your coordinator knows who's in.",
+    "first": "First name",
+    "last": "Last name",
+    "email": "Email",
+    "zip": "ZIP code",
+    "zipHint": "5 digits",
+    "referredBy": "Who brought you in? (optional)",
+    "referredByHint": "If an ambassador sent you, add their name so we can thank them.",
+    "errors": {
+      "first": "Add your first name.",
+      "last": "Add your last name.",
+      "email": "Add an email address like name@example.com.",
+      "zip": "Add a 5-digit ZIP code."
+    }
+  },
+  "agreement": {
+    "nav": "Agreement",
+    "title": "The ambassador agreement.",
+    "lede": "Plain language. One read.",
+    "version": "ambassador-2026-09-v1",
+    "sections": [
+      {
+        "h": "Who this is between",
+        "p": "You and The Upskilling Labs. You're volunteering as an ambassador: you're not staff, and there's no pay."
+      },
+      {
+        "h": "What you'll do",
+        "p": "Have real conversations with people you know, tell your own story, and invite them to one dated next step. When you're ready, give one short talk to a room. Bring someone new along."
+      },
+      {
+        "h": "How you represent The Labs",
+        "p": "Use the guide's words. Describe our legal status exactly as the guide says it. Never promise jobs, pay, or outcomes, and never speak for The Labs to the press or officials without asking your coordinator first."
+      },
+      {
+        "h": "Other people's information",
+        "p": "You don't collect anyone's contact details for The Labs. People Join The Labs themselves at theupskillinglabs.org."
+      },
+      {
+        "h": "How we treat each other",
+        "p": "Our Code of Conduct applies to ambassadors everywhere you represent The Labs, online and in person."
+      },
+      {
+        "h": "Stepping back",
+        "p": "You can stop any time. Tell your coordinator, and you're always welcome back. If an ambassador breaks this agreement or the Code of Conduct, we may ask them to step back."
+      },
+      {
+        "h": "The full terms",
+        "p": "This is a plain-language summary. The Upskilling Labs' Terms of Service, Privacy Policy, and Code of Conduct govern in full."
+      }
+    ],
+    "conductLabel": "Read the Code of Conduct",
+    "conductUrl": "https://theupskillinglabs.org/code-of-conduct",
+    "check": "I agree to the Ambassador Agreement and the Code of Conduct.",
+    "error": "Tick the box to agree before you continue."
+  },
+  "video": {
+    "nav": "Video",
+    "title": "The Labs in three minutes.",
+    "lede": "Watch it, or read the short version. The ten questions come from this.",
+    "src": "",
+    "poster": "",
+    "captions": "",
+    "placeholder": "[PLACEHOLDER] The orientation film goes here.",
+    "watched": "Next",
+    "readTitle": "The short version",
+    "read": [
+      "Most people find The Labs because someone they know said “come with me.”",
+      "The Labs is free. Workshops, Build Cycles, all of it. Run by volunteers. It grew out of a fall 2025 pilot run by DC Public Library and Levy, a strategic design firm, for about 50 ex-feds navigating career change and new technology. The pilot's alums founded The Labs in January 2026.",
+      "The tagline: “Find your people. Build your edge.” The idea behind it: AI is rewriting how we work, and it's easier to learn together than alone.",
+      "You don't need a technical background. Just a willingness to learn by doing alongside others.",
+      "A Build Cycle is twelve weeks, four a year: Problem Discovery, then Experimentation, then Synthesis. Small teams called pods form around the problems people vote for. Everything built is open-source by default.",
+      "Workshops teach two kinds of skills. Durable skills, like communication, storytelling, and framing problems. And AI skills, like prompt engineering and building agents.",
+      "Signing in uses a Google account for your name, email, and profile picture only. Never Gmail, Drive, or Calendar.",
+      "Your job is three moves. Ask what they're working toward. Share thirty seconds of your story. Invite them to one dated next step.",
+      "You don't sell, sign anyone up, or promise a job. People Join The Labs themselves at theupskillinglabs.org.",
+      "If anyone asks what we are: “a fiscally sponsored project of Superbloom Design, a 501(c)(3). Our own status is pending.”"
+    ]
+  },
+  "quiz": {
+    "nav": "Quiz",
+    "title": "Ten questions about The Labs.",
+    "lede": "You're here because you lived The Labs and liked what you found. Eight of ten and you're set. It's not about being perfect, it's about being ready to tell the story. Try as often as you like.",
+    "check": "Check my answers",
+    "retry": "Try again",
+    "pass": 8,
+    "result": "{score} of {total} right.",
+    "passed": "You passed. You're ready to tell the story.",
+    "failed": "Not yet. Look again at the ones marked, then try again.",
+    "right": "Right.",
+    "wrong": "Not quite.",
+    "unanswered": "Answer every question first.",
+    "questions": [
+      {
+        "q": "What is the tagline of The Upskilling Labs?",
+        "options": [
+          "Find your people. Build your edge.",
+          "Learn fast. Work smart.",
+          "The future of work, today.",
+          "Skills for a changing world."
+        ],
+        "answer": 0,
+        "hint": "It has two short parts: one about community, one about skills.",
+        "why": "“Find your people. Build your edge.” It captures both sides: the community (find your people) and the skills (build your edge)."
+      },
+      {
+        "q": "What is the central idea behind why The Labs exists?",
+        "options": [
+          "AI is rewriting how we work, and it's easier to learn together than alone",
+          "Traditional universities are too expensive",
+          "Remote work has made networking impossible",
+          "Certifications are the fastest path to a new job"
+        ],
+        "answer": 0,
+        "hint": "It's about a big shift in work, and doing something about it together.",
+        "why": "The Labs is built on the belief that AI is changing work, and learning it alongside people near you beats going it alone."
+      },
+      {
+        "q": "How long is a Build Cycle, and how many run per year?",
+        "options": [
+          "Twelve weeks, 4 cycles per year",
+          "Six weeks, 6 cycles per year",
+          "One year, 1 cycle per year",
+          "Eight weeks, 3 cycles per year"
+        ],
+        "answer": 0,
+        "hint": "Three months long, once a quarter.",
+        "why": "A Build Cycle runs twelve weeks, and there are four a year, roughly one per quarter."
+      },
+      {
+        "q": "What are the three phases of a Build Cycle, in order?",
+        "options": [
+          "Problem Discovery → Experimentation → Synthesis",
+          "Research → Building → Launch",
+          "Onboarding → Workshops → Graduation",
+          "Ideation → Funding → Demo"
+        ],
+        "answer": 0,
+        "hint": "You start by finding a problem and end by synthesizing a working prototype.",
+        "why": "Month 1 is Problem Discovery, Month 2 is Experimentation, and Month 3 is Synthesis. Each ends with a meetup, capped by a public showcase."
+      },
+      {
+        "q": "What is a “pod”?",
+        "options": [
+          "A small team that forms around a compelling problem",
+          "A weekly workshop session",
+          "The physical space at the library where members meet",
+          "A subscription tier for members"
+        ],
+        "answer": 0,
+        "hint": "It's a group of people, not a place or a plan.",
+        "why": "After community voting surfaces the most compelling problems, small teams called pods form around them to explore and prototype solutions."
+      },
+      {
+        "q": "Do you need a technical background to join The Labs?",
+        "options": [
+          "No. You just need a willingness to learn by doing alongside others",
+          "Yes. At least one year of coding experience is required",
+          "Yes. A college degree in a STEM field is required",
+          "Only for the Build Cycles, not the workshops"
+        ],
+        "answer": 0,
+        "hint": "The whole point is that it's open to everyone.",
+        "why": "No technical background is needed. The Labs is peer-powered and project-based, open to anyone willing to learn by doing."
+      },
+      {
+        "q": "What two broad categories of skills does The Labs teach?",
+        "options": [
+          "Durable (human) skills and AI (technical) skills",
+          "Coding skills and design skills",
+          "Leadership skills and sales skills",
+          "Beginner skills and advanced skills"
+        ],
+        "answer": 0,
+        "hint": "One set is timeless and human; the other is about working with AI.",
+        "why": "Durable skills are the human ones: communication, storytelling, problem framing. AI skills are the technical side: LLMs, prompt engineering, vibe coding, building agents."
+      },
+      {
+        "q": "Where did The Upskilling Labs start?",
+        "options": [
+          "In a DC Public Library pilot, run with the strategic design firm Levy, whose alums founded The Labs",
+          "In Silicon Valley, as a startup accelerator",
+          "Online during the pandemic in 2020",
+          "At a university in Baltimore"
+        ],
+        "answer": 0,
+        "hint": "A library, the nation's capital, and a group of former federal workers.",
+        "why": "It began as a fall 2025 pilot run by DC Public Library and Levy, a strategic design firm, for about 50 ex-feds navigating career change and new technology. The alums of that pilot founded The Upskilling Labs in January 2026.",
+        "$comment": "Dates confirmed: the pilot ran in fall 2025; the organisation was founded in January 2026."
+      },
+      {
+        "q": "What happens to the work participants create during a Build Cycle?",
+        "options": [
+          "It's open-source by default, so others can learn from and build on it",
+          "It's kept private and owned by The Labs",
+          "It's sold to sponsors to fund the program",
+          "It's deleted at the end of each cycle"
+        ],
+        "answer": 0,
+        "hint": "Think about the phrase “built in the open.”",
+        "why": "Everything created is open-source by default (MIT code, CC BY 4.0 content). Even The Labs' own playbooks are built in the open."
+      },
+      {
+        "q": "Why does The Labs ask you to sign in with a Google account?",
+        "options": [
+          "To use only your name, email, and profile picture. Never your Gmail, Drive, or Calendar",
+          "To scan your emails for networking opportunities",
+          "To sync your Google Calendar with all events",
+          "To back up your project files to Google Drive"
+        ],
+        "answer": 0,
+        "hint": "It's the privacy-conscious answer: minimal access only.",
+        "why": "Sign-in uses only your name, email, and profile picture, to set up your profile and keep you signed in. The Labs never ask for Gmail, Drive, or Calendar access. A good privacy point to reassure people."
+      }
+    ],
+    "hint": "Hint"
+  },
+  "done": {
+    "title": "You're in.",
+    "who": "{first} {last} · Ambassador",
+    "buttonAlt": "The ambassador button",
+    "handover": "Show this to your coordinator. They'll hand you your button.",
+    "ask": {
+      "title": "Who's first?",
+      "lede": "Think of someone who's figuring out what's next. Type their first name, and your phone sends the invite.",
+      "label": "Their first name",
+      "send": "Send",
+      "sent": "Sent"
+    },
+    "sayHi": "Say hi to your coordinator",
+    "message": "Hi, it's {first} {last}. I just finished ambassador orientation. My details: {email}, ZIP {zip}. Brought in by {referredBy}. Invited by {invitedBy}. (Agreement {version}, quiz {score} of {total}.)",
+    "nobody": "nobody",
+    "guide": "Get ready: open the guide",
+    "guideNote": "The guide is yours from here: five short steps to get ready, and a reference for later."
+  },
+  "invited": {
+    "banner": "{by} invited you. You're pre-approved: pass the quiz, sign the agreement, and you're in.",
+    "note": "From {by}:"
+  },
+  "pending": {
+    "title": "Almost there.",
+    "lede": "You passed. Your Lab's coordinator will confirm you here, usually within a few days. If they're with you now, show them this screen.",
+    "guide": "Get ready meanwhile",
+    "guideNote": "The guide is open to you while you wait."
+  },
+  "finish": "Finish",
+  "invalidInvite": {
+    "expired": "That invite has expired. Finish anyway, and your coordinator will confirm you.",
+    "revoked": "That invite was withdrawn. Finish anyway, and your coordinator will confirm you.",
+    "used": "That invite was already used by someone else. Finish anyway, and your coordinator will confirm you.",
+    "email_mismatch": "That invite was made for a different email address. Finish anyway, and your coordinator will confirm you.",
+    "not_found": "We couldn't find that invite. Finish anyway, and your coordinator will confirm you."
+  }
+}

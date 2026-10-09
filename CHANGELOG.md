@@ -22,6 +22,14 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ## [Unreleased]
 
+### Added
+
+- The Ambassador role moves in from the `ambassadors` prototype: the public program page
+  (`/get-involved/ambassador`, unlisted), the front door (`/ambassador/start`), the apply flow
+  (server-graded quiz, versioned Ambassador Agreement, pre-approved invites), the five-step guide
+  with practice cards, the presenter deck, nominations, a coordinator queue for Lab leads, and
+  dashboard tasks; migration `00104` (`docs/ambassadors/CLAUDE.md`) (#PR)
+
 ### Fixed
 
 - No public front door for the next cycle (Cycle 4 runs internally; the next public cycle opens in 2027,

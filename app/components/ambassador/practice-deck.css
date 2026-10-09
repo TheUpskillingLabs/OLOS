@@ -1,0 +1,53 @@
+/* Practice deck — ported from the ambassadors prototype (.sd-* -> .pd-*).
+   Uses the OLOS tokens from globals.css :root. One radius (var(--r)); circles
+   only for the round action controls; teal for focus/accents. */
+.pd { display: flex; flex-direction: column; gap: 16px; }
+.pd-count { font-size: 14px; font-weight: 600; color: var(--meta); font-variant-numeric: tabular-nums; min-height: 20px; }
+.pd-stage { position: relative; height: clamp(300px, calc(100svh - 500px), 540px); perspective: 1400px; touch-action: pan-y; }
+.pd-card { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; will-change: transform; user-select: none; -webkit-user-select: none; cursor: grab; border-radius: var(--r); touch-action: none; }
+.pd-card:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; }
+.pd-card.dragging { transition: none; cursor: grabbing; }
+.pd-card.back1 { transform: translateY(14px) scale(0.955); pointer-events: none; touch-action: pan-y; }
+.pd-card.back2 { transform: translateY(28px) scale(0.91); pointer-events: none; opacity: 0.7; touch-action: pan-y; }
+.pd-card.back1 .pd-face, .pd-card.back2 .pd-face { box-shadow: 0 1px 2px rgba(0, 20, 27, 0.06); }
+.pd-card.gone { pointer-events: none; }
+.pd-flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.pd-card.flipped .pd-flip { transform: rotateY(180deg); }
+.pd-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: var(--r); overflow: hidden; background: var(--white); box-shadow: 0 2px 6px rgba(0, 20, 27, 0.06), 0 18px 44px rgba(0, 20, 27, 0.14); display: flex; flex-direction: column; }
+.pd-back { transform: rotateY(180deg); }
+.pd-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; overflow-y: auto; }
+.pd-body p { margin: 0; }
+.pd-kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--teal-deep); }
+.pd-label { font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--meta); }
+.pd-setup { font-weight: 700; font-size: 21px; line-height: 28px; letter-spacing: -0.018em; color: var(--ink); }
+.pd-hint { margin-top: auto; display: flex; align-items: center; gap: 10px; color: var(--slate); font-size: 14px; }
+.pd-bar { flex: 1; max-width: 90px; height: 3px; border-radius: 2px; background: var(--paper-edge); overflow: hidden; }
+.pd-bar i { display: block; height: 100%; width: 0; background: var(--teal); }
+.pd-card.thinking .pd-bar i { animation: pd-think 2.5s linear forwards; }
+@keyframes pd-think { to { width: 100%; } }
+.pd-back .pd-body { gap: 8px; }
+.pd-back .pd-label { margin-top: 4px; }
+.pd-answer { font-size: 18px; line-height: 27px; font-weight: 500; color: var(--ink); }
+.pd-why { font-size: 16px; line-height: 24px; color: var(--charcoal); }
+.pd-placeholder { font-weight: 600; font-size: 14px; color: var(--slate); }
+.pd-stamp { position: absolute; top: 22px; z-index: 5; padding: 6px 12px; border: 3px solid currentColor; border-radius: var(--r); font-weight: 700; font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0; pointer-events: none; background: rgba(255, 255, 255, 0.9); }
+.pd-stamp.had { left: 20px; color: var(--teal-deep); transform: rotate(-10deg); }
+.pd-stamp.not { right: 20px; color: var(--ink); transform: rotate(10deg); }
+.pd-actions { display: flex; align-items: center; justify-content: center; gap: 22px; padding-top: 6px; }
+.pd-actions[hidden], .pd-done[hidden] { display: none; }
+.pd-btn-label { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--meta); }
+.pd-btn { width: 60px; height: 60px; border-radius: 50%; border: 1px solid var(--rule); background: var(--white); color: var(--ink); display: grid; place-items: center; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 20, 27, 0.12); transition: transform 0.12s, box-shadow 0.15s, background 0.15s; }
+.pd-btn:active:not(:disabled) { transform: scale(0.9); }
+.pd-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.pd-btn.big { width: 76px; height: 76px; background: var(--teal-deep); color: #fff; border-color: transparent; }
+.pd-btn.had { color: var(--teal-deep); }
+.pd-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pd-keys { margin: 0; text-align: center; font-size: 12px; color: var(--meta); }
+@media (hover: none) { .pd-keys { display: none; } }
+.pd-done { text-align: left; display: flex; flex-direction: column; gap: 14px; }
+.pd-done h2, .pd-done p { margin: 0; }
+.pd-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .pd-flip, .pd-card { transition: none; }
+  .pd-card.thinking .pd-bar i { animation: none; width: 100%; }
+}

@@ -6,6 +6,7 @@ import {
 } from "@/lib/cycles/windows";
 import { dismissedTaskKeys } from "./dismissals";
 import { assembleTasks, type TaskInputs } from "./assemble";
+import { ambassadorTasks } from "@/lib/ambassador/tasks";
 import type { Task } from "./types";
 
 /* The thin Supabase companion to the pure assembler (the gate-logic.ts /
@@ -76,7 +77,7 @@ export async function dashboardTasks(
   const supabase = createServiceClient();
   const now = ctx.now ?? new Date();
 
-  const [phasesResult, dismissedKeys, whatsNext, customTasks] =
+  const [phasesResult, dismissedKeys, whatsNext, customTasks, ambassador] =
     await Promise.all([
       ctx.activeCycle
         ? supabase
@@ -87,6 +88,8 @@ export async function dashboardTasks(
       dismissedTaskKeys(ctx.participantId),
       resolveWhatsNext(ctx, now),
       resolveCustomTasks(ctx, now),
+      // The Ambassador role's next step; a failure never blocks the dashboard.
+      ambassadorTasks(ctx.participantId).catch(() => []),
     ]);
 
   const phases = phasesResult.data;
@@ -118,6 +121,7 @@ export async function dashboardTasks(
     leadershipDue: ctx.leadershipDue,
     whatsNext,
     customTasks,
+    ambassador,
     dismissedKeys,
   });
 

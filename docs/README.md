@@ -20,7 +20,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 | new to the repo | [`../ONBOARDING.md`](../ONBOARDING.md) → [`../CONTRIBUTING.md`](../CONTRIBUTING.md) → [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | deciding what to build next | [`roadmap/README.md`](roadmap/README.md) |
 | about to open a PR | [`roadmap/documentation-framework.md`](roadmap/documentation-framework.md) §5, then the PR template |
-| touching an area | the `CLAUDE.md` next to it (`lib/auth/`, `supabase/`, `scripts/ops/`, `scripts/migration/`, `docs/poderator-dashboard/`) |
+| touching an area | the `CLAUDE.md` next to it (`lib/auth/`, `supabase/`, `scripts/ops/`, `scripts/migration/`, `docs/poderator-dashboard/`, `docs/ambassadors/`) |
 | asking "why is it like this" | `docs/vault/` (PR #391) once merged; until then the decision logs in the PRDs and `audit/IMPROVEMENT_ROADMAP.md` |
 | asking "what shipped when" | [`../CHANGELOG.md`](../CHANGELOG.md) |
 
@@ -60,6 +60,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 | [`environments.md`](environments.md) | how-to / reference | Canonical | local/dev/prod, env vars, migrations, **ledger-drift warning** |
 | [`SECTOR_MODEL.md`](SECTOR_MODEL.md) | explanation | Canonical (Phase A shipped; B–D on paper) | sectors, cycle lifecycle, graduation |
 | [`LOCAL_LABS.md`](LOCAL_LABS.md) | explanation | Canonical | metros as labs, sub-cohorts, lab leads |
+| [`ambassadors/CLAUDE.md`](ambassadors/CLAUDE.md) | explanation / reference | Canonical | the Ambassador role: the ladder, routes, coordinators (Lab leads), records (00104), the decisions made moving it in from the `ambassadors` prototype |
 | [`ORG_CYCLES.md`](ORG_CYCLES.md) | explanation | Canonical (§6 has one stale claim) | the org-internal track |
 | [`SENSEMAKING_FLOW.md`](SENSEMAKING_FLOW.md) | explanation | Plan of record (intake shipped; rest on paper) | survey → extract → swipe → Paradox Sprint |
 | [`ORTELIUS_KNOWLEDGE_GRAPH.md`](ORTELIUS_KNOWLEDGE_GRAPH.md), [`ORTELIUS_NORTHSTAR.md`](ORTELIUS_NORTHSTAR.md) | explanation | North star | gated on governance decision #11 |

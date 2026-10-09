@@ -1,0 +1,68 @@
+{
+  "$comment": "The coordinator's invite form (/ambassador/coordinator) and the ambassador's nominate page (/ambassador/nominate). An invite is a single-use link that pre-approves: the person still passes the quiz and signs the agreement, then they're in straight away.",
+  "invite": {
+    "title": "Invite an ambassador",
+    "lede": "Make a pre-approved invite. They still pass the quiz and sign the agreement, then they're in straight away. Someone already passed on their own? Make them an invite anyway: opening it confirms them.",
+    "unlisted": "For coordinators: your Lab's leads, and HQ admins.",
+    "first": "Their first name",
+    "last": "Their last name",
+    "email": "Their email (optional)",
+    "by": "Invited by",
+    "byHint": "Your name, as they'll see it. Remembered on this device.",
+    "note": "A note for them (optional)",
+    "noteHint": "One line, shown at the top of their application.",
+    "make": "Make the invite",
+    "linkLabel": "Their invite link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "text": "Text it",
+    "emailIt": "Email it",
+    "message": "Hi {first}, it's {by}. I'd love you to be an ambassador for The Labs, and you're pre-approved. It takes about ten minutes: {link}",
+    "subject": "Your invite to be an ambassador",
+    "errors": {
+      "first": "Add their first name.",
+      "by": "Add your name.",
+      "email": "That email doesn't look right."
+    },
+    "sentTitle": "Invites you've made",
+    "sentNone": "No invites yet.",
+    "clear": "Clear the list",
+    "clearConfirm": "Clear the list of invites on this device? The links still work.",
+    "textsTitle": "Texts you'll send",
+    "textsLede": "Copy, fill in the name, send from your phone.",
+    "texts": [
+      {
+        "label": "When someone joins through them",
+        "body": "Hi {first}, it's {by}. Someone just joined The Labs and said you sent them. That's one. Thank you."
+      },
+      {
+        "label": "When their button is ready",
+        "body": "Hi {first}, it's {by}. Your button's here. I'll have it at the next session."
+      }
+    ]
+  },
+  "nominate": {
+    "title": "Nominate someone",
+    "lede": "Know someone who'd make a great ambassador? Tell your coordinator. If they agree, they'll send them a pre-approved invite.",
+    "name": "Their name",
+    "how": "How you know them",
+    "why": "Why they'd be good at this",
+    "contact": "Their email or phone (optional)",
+    "contactHint": "Only if they've said it's OK to pass it on.",
+    "send": "Send to your coordinator",
+    "note": "It goes to your Lab's coordinator.",
+    "message": "Hi, it's {me}. I'd like to nominate {name} as an ambassador. How I know them: {how}. Why: {why}. Contact: {contact}.",
+    "noContact": "not shared",
+    "errors": {
+      "name": "Add their name.",
+      "why": "Add a line on why."
+    }
+  },
+  "bring": {
+    "title": "Bring someone in",
+    "shareLabel": "Share your ambassador link",
+    "shareHint": "For someone who'd make a good ambassador; they count toward your pin. New Upskillers just say your name when they Join The Labs.",
+    "copied": "Link copied",
+    "nominate": "Nominate someone"
+  }
+}

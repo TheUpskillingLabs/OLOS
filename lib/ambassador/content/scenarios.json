@@ -1,0 +1,175 @@
+[
+  {
+    "id": "hard-question",
+    "audience": "mentor",
+    "mode": "room",
+    "setup": "During Q&A, someone asks how The Labs is funded and whether it's a registered nonprofit.",
+    "goodResponse": "\"Good question. The Labs is a fiscally sponsored project of Superbloom Design, which is a registered 501(c)(3). Our own status is pending. For details on funding, the coordinator is the best person to ask.\"",
+    "why": "It's accurate about legal status and doesn't guess at what you don't know.",
+    "tags": [
+      "legal-status",
+      "q-and-a"
+    ],
+    "placeholder": true,
+    "core": true
+  },
+  {
+    "id": "host-cuts-time",
+    "audience": "workshop",
+    "mode": "room",
+    "setup": "You were promised five minutes. As you walk up, the host whispers: \"Can you do one?\"",
+    "goodResponse": "Switch to the 60-second version: question, ask, QR. \"Quick show of hands: who's tried an AI tool this year? We run free, hands-on workshops. The next one's Thursday. The link's on the screen.\"",
+    "why": "Keeping the ask and the QR matters more than the middle. Hosts remember who kept to time.",
+    "tags": [
+      "time",
+      "short-version"
+    ],
+    "placeholder": true,
+    "core": true
+  },
+  {
+    "id": "is-it-political",
+    "audience": "workshop",
+    "mode": "conversation",
+    "setup": "Someone asks: \"Is this a political thing?\"",
+    "goodResponse": "\"No. The Labs is nonpartisan. It's about people learning by building things together.\"",
+    "why": "It's short, true, and doesn't take the bait.",
+    "tags": [
+      "objections",
+      "nonpartisan"
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "is-this-a-bootcamp",
+    "audience": "workshop",
+    "mode": "conversation",
+    "setup": "Someone asks: \"Is this like a coding bootcamp?\"",
+    "goodResponse": "\"Not really. There's no curriculum to get through. You work with a small team on a real problem and learn what you need along the way.\"",
+    "why": "It corrects the comparison in plain words and describes what actually happens.",
+    "tags": [
+      "positioning"
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "just-laid-off",
+    "audience": "participant",
+    "mode": "conversation",
+    "setup": "At a job-search meetup, someone tells you they were laid off two months ago and are \"just trying to stay busy.\"",
+    "goodResponse": "\"That's a lot. A few people in my Build Cycle were in the same spot. What would make the next few months feel useful to you?\"",
+    "why": "It acknowledges what they said before offering anything, and the question finds out what 'useful' means to them.",
+    "tags": [
+      "career-change",
+      "empathy"
+    ],
+    "placeholder": true,
+    "core": true
+  },
+  {
+    "id": "mentor-time",
+    "audience": "mentor",
+    "mode": "conversation",
+    "setup": "A senior engineer at a meetup says: \"I'd help, but I can't commit to teaching.\"",
+    "goodResponse": "\"You wouldn't be teaching. Mentors are around when a pod gets stuck, for a single workshop or a whole cycle. You choose.\"",
+    "why": "It removes the thing they're worried about and makes the ask bounded and specific.",
+    "tags": [
+      "mentors",
+      "time"
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "no-hands",
+    "audience": "workshop",
+    "mode": "room",
+    "setup": "You ask your opening question and nobody raises a hand.",
+    "goodResponse": "Raise your own hand and answer it: \"Fair enough. I'll go first. A year ago that was me.\" Then go straight into your story.",
+    "why": "It takes the pressure off the room and turns the silence into your opening line.",
+    "tags": [
+      "opening-question"
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "no-screen",
+    "audience": "participant",
+    "mode": "room",
+    "setup": "You arrive and there's no screen or projector.",
+    "goodResponse": "Give the talk without slides. At the ask, hold up your phone with Present now open on the QR slide: \"Scan this, or go to theupskillinglabs.org.\"",
+    "why": "The talk works without slides. The only thing you need to show is how to find the next step.",
+    "tags": [
+      "slides",
+      "setup"
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "not-technical",
+    "audience": "workshop",
+    "mode": "conversation",
+    "setup": "At a library table, someone says: \"I'm not technical.\"",
+    "goodResponse": "\"Most people who join aren't. The workshops are hands-on and start from zero. What made you stop by the table?\"",
+    "why": "It takes the worry seriously, answers it in one line, and hands the conversation back to them.",
+    "tags": [
+      "objections",
+      "experience"
+    ],
+    "placeholder": true,
+    "core": true
+  },
+  {
+    "id": "problem-owner-intro",
+    "audience": "problem-owner",
+    "mode": "conversation",
+    "setup": "A library branch manager mentions their patrons can never find out about free services.",
+    "goodResponse": "\"That's the kind of real problem a Build Cycle team could dig into. Would you be open to talking with a team about it?\"",
+    "why": "It connects their problem to what The Labs does and asks for a small, concrete yes.",
+    "tags": [
+      "problem-owners"
+    ],
+    "placeholder": true
+  },
+  {
+    "id": "too-busy",
+    "audience": "participant",
+    "mode": "conversation",
+    "setup": "Someone interested says: \"I'd love to, but I don't have time right now.\"",
+    "goodResponse": "\"Totally fair. The workshops are a couple of hours, one evening. If that's still too much right now, it's all on the site for later.\"",
+    "why": "It offers the smallest possible step and leaves the door open without pushing.",
+    "tags": [
+      "objections",
+      "time"
+    ],
+    "placeholder": true,
+    "core": true
+  },
+  {
+    "id": "what-does-it-cost",
+    "audience": "workshop",
+    "mode": "conversation",
+    "setup": "After a workshop, someone asks: \"So what does the Build Cycle cost?\"",
+    "goodResponse": "\"It's free. What it does cost is time: twelve weeks, busiest at the start and the end.\"",
+    "why": "It's accurate and it names the real cost up front, so nobody is surprised later.",
+    "tags": [
+      "objections",
+      "cost",
+      "time"
+    ],
+    "placeholder": true,
+    "core": true
+  },
+  {
+    "id": "what-is-your-button",
+    "audience": "workshop",
+    "mode": "conversation",
+    "setup": "Someone points at your button: \"What's an ambassador?\"",
+    "goodResponse": "\"I help people find The Upskilling Labs. It's a free community at the public library where people learn by building real projects together. What are you curious about?\"",
+    "why": "It says what you are in one sentence, what The Labs is in another, and turns it back to them. The Ambassador page says the same, so if they look it up later, the page and you agree.",
+    "tags": [
+      "positioning",
+      "button"
+    ],
+    "placeholder": true
+  }
+]

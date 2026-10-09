@@ -139,6 +139,27 @@ export default async function DashboardLayout({
     labLeadHref = leadMetro ? `/lab/${leadMetro.slug}` : null;
   }
 
+  // The Ambassador role (docs/ambassadors/CLAUDE.md): an avatar-menu entry for
+  // ambassadors, applicants, and coordinators (admins and Lab leads).
+  let ambassadorHref: string | null = null;
+  if (adminUser || userRoles.labLeadLabIds.length > 0) {
+    ambassadorHref = "/ambassador";
+  } else if (participant) {
+    const [{ count: roleCount }, { count: appCount }] = await Promise.all([
+      serviceClient
+        .from("participant_roles")
+        .select("id", { count: "exact", head: true })
+        .eq("participant_id", participant.id)
+        .eq("role", "ambassador")
+        .is("revoked_at", null),
+      serviceClient
+        .from("ambassador_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("participant_id", participant.id),
+    ]);
+    if ((roleCount ?? 0) + (appCount ?? 0) > 0) ambassadorHref = "/ambassador";
+  }
+
   // Local Labs (docs/LOCAL_LABS.md — the membership spine): a member with no
   // active lab (metro_id NULL — lab-less or waitlisted) gets a non-blocking
   // prompt to pick one, since active-lab membership gates cycle participation.
@@ -180,6 +201,7 @@ export default async function DashboardLayout({
         isTest={!!participant?.is_test && !simulating}
         moderatorPersonaLabel={coLeadOnly ? "Co-lead" : "Poderator"}
         labLeadHref={labLeadHref}
+        ambassadorHref={ambassadorHref}
       />
       {needsLab && (
         <div className="border-b border-teal/30 bg-teal/10 px-4 py-2 text-center text-sm text-ink">

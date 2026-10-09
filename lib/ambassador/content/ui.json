@@ -1,0 +1,182 @@
+{
+  "$comment": "Every string a component renders. Add ui.<locale>.json to translate.",
+  "ask": {
+    "lede": "Three people you know. Your phone sends it. Names stay on this device.",
+    "me": "Your first name",
+    "message": "Hi {them}, it's {me}. I'm going to The Labs {what} on {day} at {time}, {place}. It's free and hands-on. Want to come with me? Join at theupskillinglabs.org and say {me} sent you.",
+    "messageNoDate": "Hi {them}, it's {me}. I've been going to The Labs, a free community where people learn by building real projects together. Want to come to the next one with me? Join at theupskillinglabs.org and say {me} sent you.",
+    "person": "Person",
+    "preview": "Preview",
+    "send": "Send",
+    "sent": "Sent",
+    "title": "Who will you ask?"
+  },
+  "coord": {
+    "body": "Hi, it's {me}, an ambassador. Quick question: ",
+    "pinBody": "Hi, it's {me}. I've done all five steps of the ambassador guide. Ready when you are.",
+    "stuck": "Stuck? Text your coordinator."
+  },
+  "deck": {
+    "presentNow": "Present now"
+  },
+  "footer": {
+    "legal": "A fiscally sponsored project of Superbloom Design, a 501(c)(3).",
+    "license": "Playbook content CC BY 4.0. Everything else © 2026 The Upskilling Labs, Inc.",
+    "reset": "Start over",
+    "resetConfirm": "Forget your progress, story, and names on this device?",
+    "site": "The Labs",
+    "program": "The ambassador program"
+  },
+  "home": {
+    "claim": "Tell your coordinator you're ready",
+    "continue": "Continue: {title}",
+    "doneGoal": "You're ready. Who's first?",
+    "doneTitle": "You're ready.",
+    "goal": "Five steps and you're ready for your first conversation. About half an hour, whenever you like.",
+    "start": "Start",
+    "title": "Get ready.",
+    "welcome": "Welcome, {first}.",
+    "member": "You're an ambassador. Your coordinator has your button.",
+    "nudgeTitle": "Not an ambassador yet?",
+    "nudge": "About ten minutes: The Labs in three minutes, ten questions, the agreement, your name.",
+    "apply": "Become an ambassador",
+    "applyContinue": "Continue your application",
+    "pending": "Almost there. Your coordinator will confirm you. Read ahead while you wait."
+  },
+  "nav": {
+    "home": "Home",
+    "present": "Present",
+    "steps": "Steps",
+    "finish": "Ready",
+    "stepOf": "Step {n} of {total}",
+    "progress": "{n} of {total} steps done"
+  },
+  "offline": {
+    "lede": "This page isn't saved on this device yet. Pages you've opened before, and the deck, work offline.",
+    "title": "You're offline"
+  },
+  "page": {
+    "editYourStory": "Edit",
+    "markedRead": "Read",
+    "noStoryYet": "You haven't saved a 30-second why yet.",
+    "placeholder": "[PLACEHOLDER] draft copy",
+    "previous": "Previous",
+    "writeYourStory": "Write your story",
+    "yourWhy": "Your 30-second why"
+  },
+  "practice": {
+    "card": "Practice card",
+    "example": "Example reply",
+    "flipBack": "Flip back",
+    "had": "Had it",
+    "keys": "Space flips · → had it · ← not yet",
+    "more": "More situations",
+    "notYet": "Not yet",
+    "position": "{n} of {total}",
+    "prompt": "Think of your answer.",
+    "reveal": "Reveal",
+    "roundBody": "The ones you marked Not yet come back first next time.",
+    "roundTitle": "Round done.",
+    "why": "Why it works",
+    "modes": {
+      "conversation": "Conversation",
+      "room": "Room"
+    },
+    "audiences": {
+      "participant": "Participant",
+      "mentor": "Mentor",
+      "problem-owner": "Problem owner",
+      "workshop": "Workshop"
+    }
+  },
+  "present": {
+    "close": "Close",
+    "comingSoon": "Next dates coming soon",
+    "cues": "Cues",
+    "exit": "Exit",
+    "fullscreen": "Full screen",
+    "hint": "Arrows, click, or swipe. F full screen. ? for all keys.",
+    "joinCta": "Join The Labs",
+    "keys": "Keyboard shortcuts",
+    "next": "Next",
+    "noNext": "End of deck",
+    "openAudience": "Open presentation window",
+    "paceAhead": "Ahead by {t} · slow down",
+    "paceBehind": "Behind by {t} · speed up",
+    "paceOn": "On pace · {total} planned",
+    "placeholder": "[PLACEHOLDER]",
+    "resetTimer": "Reset timer",
+    "slide": "Slide",
+    "talkCue": "Talk cue",
+    "keyListItems": [
+      [
+        "→  Space  N",
+        "Next slide"
+      ],
+      [
+        "←  P",
+        "Previous slide"
+      ],
+      [
+        "2  Enter",
+        "Go to slide 2"
+      ],
+      [
+        "Home  End",
+        "First or last slide"
+      ],
+      [
+        "B  or  .",
+        "Black screen"
+      ],
+      [
+        "W  or  ,",
+        "White screen"
+      ],
+      [
+        "F",
+        "Full screen"
+      ],
+      [
+        "?",
+        "This list"
+      ]
+    ]
+  },
+  "step": {
+    "done": "Done",
+    "last": "Last step",
+    "next": "Next",
+    "of": "Step {n} of {total} · {min} min",
+    "pin": "You're ready",
+    "present": "Present the deck",
+    "short": "60-second version"
+  },
+  "story": {
+    "bandLong": "Over 30 seconds. Cut the setup, not the change.",
+    "bandOk": "About 30 seconds.",
+    "bandShort": "A little short. Add a detail.",
+    "draftLabel": "Your 30-second why",
+    "seconds": "sec spoken",
+    "words": "words"
+  },
+  "siteName": "Ambassador Guide",
+  "siteTagline": "Get ready to represent The Labs.",
+  "skipToContent": "Skip to content",
+  "brandAlt": "The Upskilling Labs",
+  "done": {
+    "kicker": "Step {n} of {total} done",
+    "title": "{title} is done.",
+    "lastTitle": "All five steps are done.",
+    "upNext": "Up next",
+    "nextMeta": "{min} min",
+    "next": "Next: {title}",
+    "pinKicker": "You're ready",
+    "pinBody": "Tell your coordinator from Home. Then go have the conversation.",
+    "pinAlt": "The ambassador button",
+    "toHome": "Go to Home",
+    "home": "Back to Home",
+    "stay": "Stay on this page",
+    "progress": "{n} of {total} steps done"
+  }
+}

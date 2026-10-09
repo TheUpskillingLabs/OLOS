@@ -521,6 +521,87 @@ erDiagram
 
 ---
 
+## ERD — Ambassadors
+
+The Ambassador role (migration `00104`, [`docs/ambassadors/CLAUDE.md`](docs/ambassadors/CLAUDE.md)) — moved in from the static `ambassadors` prototype, where everything lived on the applicant's phone. The role grant itself is a `participant_roles` row (`role = 'ambassador'`, `lab_id` = the Lab whose coordinator confirmed them, `granted_by` = that coordinator or the inviter); the tables below carry the way in and the coordinator's work.
+
+```mermaid
+erDiagram
+    ambassador_applications {
+        int id PK
+        int participant_id FK "UNIQUE — one per person"
+        int lab_id FK "metros; NULL = HQ decides"
+        varchar status "started/pending/approved/declined/stepped_back"
+        timestamptz oriented_at
+        varchar quiz_version
+        smallint quiz_score
+        smallint quiz_total
+        timestamptz quiz_passed_at
+        varchar agreement_version
+        timestamptz agreement_accepted_at
+        varchar referred_by "free text"
+        int referred_by_participant_id FK "share link ?ref=handle"
+        int invite_id FK
+        timestamptz submitted_at
+        timestamptz decided_at
+        int decided_by FK
+        varchar decision_note
+        timestamptz ready_at "all five guide steps done"
+        timestamptz button_given_at
+        int button_given_by FK
+    }
+    ambassador_invites {
+        int id PK
+        varchar token UK "bearer secret, single-use"
+        varchar first_name
+        varchar last_name
+        varchar email "if set, must match the applicant"
+        varchar note
+        varchar inviter_name
+        int invited_by FK
+        int lab_id FK
+        int nomination_id FK
+        timestamptz expires_at "default now() + 30 days"
+        timestamptz accepted_at
+        int accepted_participant_id FK
+        timestamptz revoked_at
+    }
+    ambassador_nominations {
+        int id PK
+        int nominator_id FK
+        int lab_id FK
+        varchar nominee_name
+        varchar how_known
+        varchar reason
+        varchar nominee_contact "only if they agreed"
+        varchar status "open/invited/declined"
+        int decided_by FK
+    }
+    ambassador_step_progress {
+        int participant_id PK
+        varchar step_id PK "labs/conversation/your-story/room/practice"
+        timestamptz done_at
+    }
+
+    participants ||--o| ambassador_applications : "applies"
+    participants ||--o{ ambassador_invites : "invites"
+    ambassador_invites |o--o| ambassador_applications : "pre-approves"
+    participants ||--o{ ambassador_nominations : "nominates"
+    ambassador_nominations |o--o| ambassador_invites : "becomes"
+    participants ||--o{ ambassador_step_progress : "reads"
+    metros ||--o{ ambassador_applications : "coordinates"
+```
+
+**Lifecycle:** `started` (orientation part way) → `pending` (submitted, waiting for the Lab's coordinator) → `approved` (role granted) or `declined` (with an optional note the applicant sees). A valid invite at submit skips `pending`. `approved` → `stepped_back` revokes the role; a coordinator can approve again.
+
+**Also in `00104`:** `participant_roles.role` CHECK gains `ambassador`; `agreement_acceptances.doc` gains `ambassador` and `.source` gains `ambassador_flow` (the Ambassador Agreement's acceptance is written there, versioned).
+
+**Deliberately not stored:** the ambassador's 30-second story draft, their practice self-checks, and the names in "Who will you ask?" stay in the browser's localStorage. The names are third parties who agreed to nothing.
+
+**RLS:** self + admin read on applications, nominations and step progress; invites (bearer tokens) admin-only. All writes go through service-role routes under `app/api/ambassadors/`, which check the Lab scope (`requireLabAccess`: admin, or a lead of the row's Lab; `lab_id` NULL = admin only).
+
+---
+
 ## ERD — Public Content (the CMS)
 
 The public web's content tables (migration `00033_public_content.sql`), ported 1:1 from the onboarding-proto content directories (`events/ library/ labs/` data.js files — HANDOFF.md §4). These serve the public landing and the `/events/[slug]`, `/library/[slug]`, `/local-labs/[slug]` pages. Rows are seeded and refreshed idempotently by `00034_seed_public_content.sql` (slug-keyed upserts); edit content in the prototype's data.js first, then re-generate the seed.
@@ -931,6 +1012,10 @@ erDiagram
 | `projects` | Project Layer | Shortlisted solutions with external integrations |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
+| `ambassador_applications` | Ambassadors | One per person: orientation (quiz, agreement), who brought them in, the coordinator's decision, ready/button state (00104) |
+| `ambassador_invites` | Ambassadors | A coordinator's pre-approved, single-use invite link (00104) |
+| `ambassador_nominations` | Ambassadors | An ambassador suggests someone; the coordinator invites or declines (00104) |
+| `ambassador_step_progress` | Ambassadors | Which of the guide's five steps a person has marked done (00104) |
 | `events` | Public Content | Public events/workshops (Luma-shaped cache; the source until live sync) |
 | `resources` | Public Content | Learning Library items (guides, recordings, templates, courses, playbooks) |
 | `metros` | Public Content | Local labs / cities — `active` or `waitlist`. `archived_at` (00081) = owner-archived (deactivated) lab; NULL = active. The default lab (`is_default`) is never archivable |

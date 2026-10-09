@@ -55,8 +55,10 @@ export default function TermsPage() {
         organizer, or builder. That agreement incorporates these Terms, our{" "}
         <a className="see" href="/privacy">Privacy Policy</a>, and our{" "}
         <a className="see" href="/code-of-conduct">Code of Conduct</a>, and they apply
-        to all members equally, regardless of role. The only additional agreement is
-        the Build Cycle agreement you accept if and when you join a specific cycle.
+        to all members equally, regardless of role. There are two additional
+        agreements, each accepted only if and when you take it on: the Build Cycle
+        agreement when you join a specific cycle, and the Ambassador Agreement when
+        you become an ambassador.
       </p>
 
       <h2 className="t-h2" style={h2}>4. Acceptable use</h2>
