@@ -112,7 +112,17 @@ loss of assignment takes effect immediately (PRD §8).
 
 ## New DB tables
 
-Next migration number: **00023** (latest at time of writing is
+> **Historical note (2026-09-15):** the tables below shipped as `00023`–`00027` and the
+> dashboard has since been re-pointed from pulse checks to Learning Logs (Phase 1,
+> `00040`; Insights page PRs #379/#381). Never take a migration number from this file —
+> run `ls supabase/migrations | tail -1`. The PRD decisions in §10 still govern.
+>
+> **Log cadence floor (2026-10-03, #463):** the per-pod at-risk cadence
+> (`lib/moderator/log-cadence.ts`) counts a member's weeks only from the same floor the
+> member-facing compliance uses (`MissedLogFloor`: the later of enrolment and pod join,
+> and the cohort's first log), so a late joiner is never flagged at-risk on arrival.
+
+Next migration number (at time of writing): **00023** (latest at time of writing is
 `00022_pod_memberships_select_hide_soft_deleted.sql`; 00019–00022 were
 consumed by the RLS soft-delete fixes in PR #110/#111). Split into
 logical migration files; don't bundle everything in one.

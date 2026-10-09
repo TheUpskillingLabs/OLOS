@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { EditorialHeader, EdSection, EdRow } from "@/app/components/chrome/editorial";
 import { getEvents } from "@/lib/content/queries";
-import { fmtDate, fmtDay } from "@/lib/content/format";
+import { fmtDate } from "@/lib/content/format";
+import { createServiceClient } from "@/lib/supabase/server";
+import { internalCycleJoinUrl, whatsNextMessage } from "@/lib/cycles/whats-next";
+import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 
 /* The public Build Cycles page — recomposed on the editorial "standards-manual"
    grid (ref: 1976 NASA Graphics Standards Manual, Column Five, The Futur) as a
@@ -10,8 +13,15 @@ import { fmtDate, fmtDay } from "@/lib/content/format";
    + heading share the head row and whose content — the promise, the current
    cycle's anchor events, the partner problems — flows in the
    rows beneath. Copy is byte-for-byte from the generator (tools/generate.js
-   cyclesPage(), the design source of truth). The past-projects block waits for
-   the Work layer. */
+   cyclesPage(), the design source of truth) except the cycle-specific blocks:
+   since 2026-10-03 (epic #477) no public cycle is recruiting — Cycle 4 runs as
+   an internal org cycle — so the page describes how a cycle works, says
+   what's next (lib/cycles/whats-next.ts: the internal cycle as an invitation
+   to people who have taken part before, the public workshops, and the next
+   public kickoff), and points people to the workshops and events rather than
+   "register for this cycle". Lane U (#414)
+   replaces this with the four-state page reading cycle data. The
+   past-projects block waits for the Work layer. */
 
 
 // The (public) layout reads request cookies for the auth-aware nav —
@@ -21,13 +31,8 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Build Cycles · The Upskilling Labs",
   description:
-    "Three months from now, you’ll have built something real. Pick a problem, team up, and see it through — in the open.",
+    "Pick a problem, team up, and see it through — in the open. How a Build Cycle works, and when the next public one kicks off.",
 };
-
-// The current cycle's public shape, inlined from the prototype's
-// cycles/data.js (CYCLE_PUBLIC) — now shared with the /events hero from
-// lib/cycles/public-cycle.ts so the two pages can't drift.
-import { CYCLE_PUBLIC as CYCLE } from "@/lib/cycles/public-cycle";
 
 
 const PROMISES: [string, string][] = [
@@ -50,21 +55,31 @@ const PROMISES: [string, string][] = [
 ];
 
 export default async function BuildCyclesPage() {
-  const events = await getEvents();
-  const anchors = events.filter((e) => e.anchor);
+  const [events, facts] = await Promise.all([
+    getEvents(),
+    getWhatsNextFacts(createServiceClient()),
+  ]);
+  const m = whatsNextMessage(facts);
+  // Only anchor events still ahead — a past cycle's dates are not an invitation.
+  const now = new Date();
+  const anchors = events.filter(
+    (e) => e.anchor && new Date(e.end_at ?? e.start_at) >= now
+  );
 
   return (
     <>
       {/* ── Header: eyebrow + headline (head row); standfirst + register (beneath) ── */}
       <EditorialHeader
-        eyebrow="Build Cycles · 4 a year"
-        title="Three months from now, you’ll have built something real."
+        eyebrow="Build Cycles"
+        title="Build something real, with a team."
         standfirst="You’ll pick a problem that matters to you, team up, and see it through — with mentors and a whole community behind you."
       >
         <div className="ed-cols">
-          <Link className="btn btn-red btn-lg" href="/login?intent=join">
-            Register for this cycle
-          </Link>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
+            <Link className="btn btn-red btn-lg" href="/events">
+              {m.eventsCta}
+            </Link>
+          </div>
         </div>
       </EditorialHeader>
 
@@ -87,22 +102,38 @@ export default async function BuildCyclesPage() {
             </EdRow>
           </EdSection>
 
-          {/* The current cycle — theme + name head row; details and anchor events beneath */}
-          <EdSection
-            eyebrow="The current cycle"
-            heading={`${CYCLE.theme} · ${CYCLE.name}`}
-          >
+          {/* What's next — no public cycle is recruiting (epic #477): the
+              internal cycle as an invitation, what keeps running, the next
+              public kickoff, and any public anchor events ahead. */}
+          <EdSection eyebrow={m.chip} heading={m.heading}>
             <div className="ed-cols">
-              <p className="t-lede ed-text">
-                {CYCLE.city} · Kickoff {fmtDay(CYCLE.kickoff)} · {CYCLE.weeks} weeks
-                · An Open Cycle — every project is open source.
-              </p>
+              <div className="ed-text">
+                {m.internal && (
+                  <p className="t-lede" style={{ marginBottom: 12 }}>
+                    {m.internal}{" "}
+                    <a
+                      href={internalCycleJoinUrl()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "var(--teal-deep)", fontWeight: 600 }}
+                    >
+                      Join it on Slack →
+                    </a>
+                  </p>
+                )}
+                <p className="t-lede" style={{ marginBottom: 12 }}>
+                  {m.notChanging}
+                </p>
+                <p className="t-lede" style={{ fontWeight: 600 }}>
+                  {m.nextPublic}
+                </p>
+              </div>
             </div>
             {anchors.length > 0 && (
               <div className="ed-cols">
               <div>
                 <div className="lbl lbl-teal" style={{ marginBottom: 12 }}>
-                  The six anchor events
+                  Public events coming up
                 </div>
                 {anchors.map((e) => (
                   <div className="kv" key={e.slug}>
@@ -127,13 +158,14 @@ export default async function BuildCyclesPage() {
           </EdSection>
 
 
-          {/* Register — the closing CTA */}
-          <EdSection eyebrow="Register" heading="Ready?">
+          {/* The closing CTA — the workshops and events (an account, not a cycle registration) */}
+          <EdSection eyebrow="Join" heading="Start with The Labs now.">
             <div className="ed-cols">
               <div>
                 <p className="t-lede ed-text" style={{ marginBottom: 24 }}>
-                  Registration takes a few minutes. The commitment is real, and so
-                  is what you’ll build.
+                  An account is free and takes a minute. You&rsquo;ll get the
+                  workshops, the Library, and a dashboard. Start with a workshop
+                  or event.
                 </p>
                 <div
                   style={{
@@ -143,11 +175,8 @@ export default async function BuildCyclesPage() {
                     alignItems: "center",
                   }}
                 >
-                  <Link className="btn btn-red btn-lg" href="/login?intent=join">
-                    Register for this cycle
-                  </Link>
-                  <Link className="see" href="/events/kickoff-summit">
-                    Just curious? Come to Kickoff →
+                  <Link className="btn btn-red btn-lg" href="/events">
+                    {m.eventsCta}
                   </Link>
                 </div>
               </div>

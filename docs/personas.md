@@ -1,5 +1,12 @@
 # OLOS Personas
 
+> **Superseded as the working definition (2026-09-15).** The three personas below are
+> still accurate and are the origin of the role model, but the product now serves ten
+> distinguishable roles and the next sprint targets one this file does not name (the
+> pre-registrant between cycles). Use
+> [`docs/roadmap/personas-and-journeys.md`](roadmap/personas-and-journeys.md) for
+> product, copy, and program decisions; this file stays as the source of the voice.
+
 *Working definitions of the three people OLOS is built for. Draft, 2026-05-20.*
 
 The three personas below define who OLOS is for. They're meant to be used as a quick gut-check when making product, copy, and program decisions: would this make sense to an upskiller? Would it actually save an organizer time? Would it give a moderator the signal they need?

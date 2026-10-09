@@ -1,8 +1,16 @@
-# OLOS — Roadmap
-*The central long-term plan. This is the source of truth; issues reference back to it.*
+# OLOS — Roadmap (April 2026 — historical)
 
-**Status:** Living document. Update as decisions resolve and waves complete.
-**Last updated:** April 30, 2026
+> **Historical (bannered 2026-09-15).** This document is the April 2026 plan (Waves
+> 1–3). It is kept because issues #39–#52 and several docs cite its `§`-anchors, and
+> because §5–§6 record early decisions. It is **not** the current plan: the plan of
+> record is [`docs/roadmap/README.md`](roadmap/README.md); the decisions that moved
+> the build away from this plan are being recorded in `docs/vault/`; what shipped is in
+> [`CHANGELOG.md`](../CHANGELOG.md).
+
+*The central long-term plan as of April 2026; issues of that era reference back to it.*
+
+**Status:** Historical. Anchors are stable; content is frozen except for banners.
+**Last updated:** April 30, 2026 (content); 2026-09-15 (banner)
 
 ---
 
@@ -182,7 +190,7 @@ graph TD
 ## §2.6 — Solution proposal submission form
 *Authenticated form scoped to a pod. Posts to `POST /api/pods/{id}/solution-proposals`. Single-submitter UX (per board annotation: multi-submission is functionally allowed but not promoted).*
 
-**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** Existing pod-scoped submission API + page predate this consolidation; W2-006 ships the rich 7-field form (project name, summary, description, 4 optional context fields), a `(cycle_id, participant_id)` unique constraint via [migration 00016](../supabase/migrations/00016_solution_proposals_rich_fields.sql), and the T-1/T+1 tab-visibility buffer + T-2-day warning banner. Edit-until-close handled via UPSERT on the unique constraint.
+**Consolidated into [ISSUE-W2-006](https://github.com/TheUpskillingLabs/OLOS/issues/74).** Existing pod-scoped submission API + page predate this consolidation; W2-006 ships the rich 7-field form (project name, summary, description, 4 optional context fields), a `(cycle_id, participant_id)` unique constraint via [migration 00018](../supabase/migrations/00018_solution_proposals_rich_fields.sql) (written as `00016` here originally; the file shipped as `00018`), and the T-1/T+1 tab-visibility buffer + T-2-day warning banner. Edit-until-close handled via UPSERT on the unique constraint.
 - Issue: `ISSUE-W2-006` (#74)
 
 ## §2.7 — Pulse-check moderator view: response review
