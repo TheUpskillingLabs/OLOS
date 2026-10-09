@@ -88,6 +88,7 @@ export default async function ProfilePage() {
         mainFocus: participant.main_focus,
         sector: participant.sector,
         linkedin: participant.linkedin,
+        githubUsername: participant.github_username,
         aiToolFamiliarity: participant.ai_tool_familiarity,
       }}
       options={grouped}

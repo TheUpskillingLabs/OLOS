@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { HANDLE_RE } from "@/lib/participants/handle";
+import {
+  GITHUB_USERNAME_RE,
+  normalizeGithubUsername,
+} from "@/lib/participants/github";
 
 // Reject the literal placeholder value 'Unknown' (case-insensitive, trimmed)
 // that scripts/migration/migrate.py wrote for participants missing name data.
@@ -89,6 +93,13 @@ export const participantsUpdateSchema = z
     sector: z.string().max(255).nullable(),
     current_title: z.string().max(255).nullable(),
     linkedin: z.string().max(500).nullable(),
+    // Normalized ("@octocat" / a pasted github.com URL → "octocat") before the
+    // format check, so the column only ever holds a bare username.
+    github_username: z
+      .string()
+      .transform(normalizeGithubUsername)
+      .pipe(z.string().regex(GITHUB_USERNAME_RE, "Enter a valid GitHub username"))
+      .nullable(),
     primary_expertise: z.string().max(500).nullable(),
 
     // AI background

@@ -44,6 +44,7 @@ export interface MemberProfileMember {
   mainFocus?: string | null;
   sector?: string | null;
   linkedin?: string | null;
+  githubUsername?: string | null;
   aiToolFamiliarity?: number | null;
 }
 
@@ -199,6 +200,13 @@ export default function MemberProfileView({
                 <Field label="Main Focus" value={member.mainFocus} />
                 <Field label="Sector" value={member.sector} />
                 <Field label="LinkedIn" value={member.linkedin} isLink />
+                {member.githubUsername && (
+                  <Field
+                    label="GitHub"
+                    value={`https://github.com/${member.githubUsername}`}
+                    isLink
+                  />
+                )}
               </Section>
 
               <Section title="AI background">
