@@ -168,8 +168,8 @@ All from records that already exist:
 4. Hide a pending application with an unapproved invite from the two-reviewer queue until its invite is
    approved? (Currently both routes work.)
 5. Should invites support a decline-with-reason (needed for Phase 1), or only withdraw?
-6. One shared staff channel or one per Lab? A shared channel is simpler, and the posts carry no names, but
-   Lab leads then see other Labs' activity counts.
+6. ~~One shared staff channel or one per Lab?~~ **Decided (2026-10-10): one shared channel for now.** The posts
+   carry no names, but Lab leads see other Labs' activity counts. Revisit with a per-Lab mapping if that matters.
 7. Is a Slack approve-from-message worth building later?
 
 ## 9. Evidence and limits
