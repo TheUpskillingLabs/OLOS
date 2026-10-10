@@ -199,7 +199,7 @@ export default async function ReviewApplicationPage({ params }: { params: Promis
                 <li key={r.id}>
                   <b>{r.reviewer_id ? reviewerName.get(r.reviewer_id) ?? "A reviewer" : "A former reviewer"}</b>{" "}
                   {r.decision === "approve" ? "approved" : "declined"}
-                  {r.source === "invite" ? " (their pre-approved invite)" : ""} · {formatDate(r.created_at)}
+                  {r.source === "invite" ? " (approved their invite)" : ""} · {formatDate(r.created_at)}
                   {r.note && r.source === "review" && <p className="t-small">“{r.note}”</p>}
                 </li>
               ))}

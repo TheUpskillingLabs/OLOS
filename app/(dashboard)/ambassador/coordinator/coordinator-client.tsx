@@ -274,7 +274,7 @@ export function InviteForm({ labs, requireLab }: { labs: { id: number; name: str
   );
 }
 
-export function InviteRow({ invite, nowMs }: { invite: AmbassadorInvite; nowMs: number }) {
+export function InviteRow({ invite, nowMs, viewerId }: { invite: AmbassadorInvite; nowMs: number; viewerId: number | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const now = nowMs;
@@ -284,7 +284,10 @@ export function InviteRow({ invite, nowMs }: { invite: AmbassadorInvite; nowMs: 
       ? "Withdrawn"
       : new Date(invite.expires_at).getTime() <= now
         ? "Expired"
-        : `Open until ${formatDate(invite.expires_at)}`;
+        : invite.approved_at
+          ? `Open until ${formatDate(invite.expires_at)}`
+          : "Waiting for a second coordinator to approve";
+  const canApprove = !invite.approved_at && invite.invited_by !== viewerId;
   const open = !invite.accepted_at && !invite.revoked_at && new Date(invite.expires_at).getTime() > now;
 
   return (
@@ -299,6 +302,21 @@ export function InviteRow({ invite, nowMs }: { invite: AmbassadorInvite; nowMs: 
       <td>
         {open && (
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            {canApprove && (
+              <button
+                type="button"
+                className="btn btn-sm btn-teal"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  await call(`/api/ambassadors/invites/${invite.id}`, "PATCH");
+                  setBusy(false);
+                  router.refresh();
+                }}
+              >
+                Approve
+              </button>
+            )}
             <button
               type="button"
               className="btn btn-sm btn-ghost"

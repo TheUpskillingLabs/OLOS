@@ -134,10 +134,13 @@ export interface AmbassadorInvite {
   accepted_at: string | null;
   accepted_participant_id: number | null;
   revoked_at: string | null;
+  /** A different coordinator confirmed the invite (00106); it grants the role only then. */
+  approved_at: string | null;
+  approved_by: number | null;
 }
 
 export const INVITE_SELECT =
-  "id, token, first_name, last_name, email, note, inviter_name, invited_by, lab_id, nomination_id, created_at, expires_at, accepted_at, accepted_participant_id, revoked_at";
+  "id, token, first_name, last_name, email, note, inviter_name, invited_by, lab_id, nomination_id, created_at, expires_at, accepted_at, accepted_participant_id, revoked_at, approved_at, approved_by";
 
 export type InviteProblem = "not_found" | "revoked" | "expired" | "used" | "email_mismatch";
 
@@ -169,6 +172,29 @@ export function inviteProblem(
   if (!invite.accepted_participant_id && new Date(invite.expires_at).getTime() <= now.getTime()) return "expired";
   if (invite.email && invite.email.trim().toLowerCase() !== participant.email.trim().toLowerCase()) return "email_mismatch";
   return null;
+}
+
+/** An invited applicant whose invite is approved is in: grant the role and
+ *  close the application. Called when they finish onboarding (invite already
+ *  approved) or when the invite is approved after they did. */
+export async function admitInvitee(
+  service: Service,
+  app: Pick<AmbassadorApplication, "id" | "participant_id" | "lab_id">,
+  invite: Pick<AmbassadorInvite, "id" | "invited_by" | "approved_by">
+): Promise<{ application: AmbassadorApplication | null; error: unknown }> {
+  const decider = invite.approved_by ?? invite.invited_by;
+  const note = `Approved invite #${invite.id}, application #${app.id}`;
+  const { error: gErr } = await grantAmbassadorRole(service, app.participant_id, app.lab_id, decider, note);
+  if (gErr) return { application: null, error: gErr };
+  const now = new Date().toISOString();
+  const { data, error } = await service
+    .from("ambassador_applications")
+    .update({ status: "approved", decided_at: now, decided_by: decider, decision_note: `Approved invite #${invite.id}`, updated_at: now })
+    .eq("id", app.id)
+    .in("status", ["started", "pending"])
+    .select(APPLICATION_SELECT)
+    .maybeSingle();
+  return { application: (data as AmbassadorApplication | null) ?? null, error };
 }
 
 /** The participant behind a share link's ?ref=<handle>, if real and not self. */

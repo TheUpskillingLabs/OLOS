@@ -11,7 +11,7 @@ import {
   APPLICATION_SELECT,
   checkInvite,
   getAmbassadorSelf,
-  grantAmbassadorRole,
+  admitInvitee,
   recordReview,
   resolveReferrer,
 } from "@/lib/ambassador/data";
@@ -23,9 +23,10 @@ import { AMB_JOIN_COOKIE, parseAmbJoin } from "@/lib/ambassador/join-cookie";
  * the short read) → quiz (graded here) → agreement → submit.
  *
  * Submit from the open front door makes the application "pending": two
- * reviewers decide it (lib/ambassador/review.ts, 00105). A valid pre-approved
- * invite skips review — finishing the onboarding is what makes the invitee an
- * ambassador, and the invite is recorded as the inviter's approval.
+ * reviewers decide it (lib/ambassador/review.ts, 00105). An invited applicant
+ * skips that: their invite is approved by a second coordinator (00106,
+ * PATCH /api/ambassadors/invites/[id]), and finishing the onboarding then
+ * makes them an ambassador, here or when the invite is approved.
  */
 export const POST = withAuth(async (request: NextRequest, auth) => {
   const participantId = auth.user.participantId;
@@ -172,40 +173,31 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
         submitted_at: app.submitted_at ?? now,
       };
 
-      // An open application waits for two reviews (00105). An invited one is
-      // already approved by whoever invited them: finishing the onboarding
-      // (canSubmit above) is all that's left, so it goes straight to
-      // ambassador. The invite is kept as a review row for the record.
-      if (usable) {
-        fields.invite_id = app.invite_id ?? usable.id;
-        fields.status = "approved";
-        fields.decided_at = now;
-        fields.decided_by = usable.invited_by;
-        fields.decision_note = `Pre-approved invite #${usable.id}`;
-        const { error: gErr } = await grantAmbassadorRole(
-          service,
-          participantId,
-          labId,
-          usable.invited_by,
-          `Pre-approved invite #${usable.id}, application #${app.id}`
-        );
-        if (gErr) return dbError(gErr, "ambassador-invite-grant");
-      } else if (app.status === "started") {
-        fields.status = "pending";
-      }
+      // An open application waits for two reviews (00105). An invited one
+      // waits for the invite itself to be approved by a second coordinator
+      // (00106); once it is, finishing the onboarding (canSubmit above) makes
+      // the invitee an ambassador, with no application review.
+      if (usable) fields.invite_id = app.invite_id ?? usable.id;
+      if (app.status === "started") fields.status = "pending";
 
-      const { data: submitted, error } = await update(fields);
-      if (error || !submitted) return dbError(error, "ambassador-submit");
+      const { data: submitted0, error } = await update(fields);
+      if (error || !submitted0) return dbError(error, "ambassador-submit");
+      let submitted = submitted0;
 
-      if (usable?.invited_by && usable.invited_by !== participantId) {
-        const { error: rErr, duplicate } = await recordReview(service, {
-          applicationId: submitted.id,
-          reviewerId: usable.invited_by,
-          decision: "approve",
-          note: `Pre-approved invite #${usable.id}`,
-          source: "invite",
-        });
-        if (rErr && !duplicate) return dbError(rErr, "ambassador-invite-review");
+      if (usable?.approved_at) {
+        const admitted = await admitInvitee(service, submitted, usable);
+        if (admitted.error) return dbError(admitted.error, "ambassador-invite-admit");
+        if (admitted.application) submitted = admitted.application;
+        if (usable.invited_by && usable.invited_by !== participantId) {
+          const { error: rErr, duplicate } = await recordReview(service, {
+            applicationId: submitted.id,
+            reviewerId: usable.approved_by ?? usable.invited_by,
+            decision: "approve",
+            note: `Approved invite #${usable.id}`,
+            source: "invite",
+          });
+          if (rErr && !duplicate) return dbError(rErr, "ambassador-invite-review");
+        }
       }
       const granted = submitted.status === "approved";
       const res = reply(submitted, { invite_problem: token ? problem : null }, granted);

@@ -565,6 +565,8 @@ erDiagram
         timestamptz accepted_at
         int accepted_participant_id FK
         timestamptz revoked_at
+        timestamptz approved_at "a second coordinator approved the invite (00106)"
+        int approved_by FK
     }
     ambassador_nominations {
         int id PK
@@ -607,7 +609,7 @@ erDiagram
 
 **Lifecycle:** `started` (orientation part way) → `pending` (submitted, waiting for two reviews) → `approved` (role granted) or `declined`. `approved` → `stepped_back` revokes the role; a coordinator can reinstate them. A declined application can be reopened for a new review round.
 
-**Two reviewers (migration `00105`, `lib/ambassador/review.ts`):** `ambassador_reviews` holds one row per reviewer per round. Two approvals approve (and grant the role, `granted_by` = the reviewer whose approval settled it); two declines decline; a 1–1 split waits for an admin's third review, which decides. Nobody reviews their own application or one they referred (`referred_by_participant_id`). A pre-approved invite skips review (owner decision 2026-10-10): once the invitee finishes the quiz and agreement the application goes straight to `approved`, `decided_by` = the inviter, and the invite is kept as a `source = 'invite'` row for the record. Reopening sets `superseded_at` on the round's rows: they stay as history and stop counting (the partial unique index `uq_amb_reviews_active` allows one counting review per reviewer). A review-driven decline leaves `decision_note` empty: reviewer notes are internal. RLS: admin read only; writes go through `PATCH /api/ambassadors/applications/[id]` (`action: "review"`).
+**Two reviewers (migration `00105`, `lib/ambassador/review.ts`):** `ambassador_reviews` holds one row per reviewer per round. Two approvals approve (and grant the role, `granted_by` = the reviewer whose approval settled it); two declines decline; a 1–1 split waits for an admin's third review, which decides. Nobody reviews their own application or one they referred (`referred_by_participant_id`). An invited applicant skips this (owner decision 2026-10-10, migration `00106`): the invite is reviewed instead. `ambassador_invites.approved_at` / `approved_by` record a different coordinator's approval; the link works before that but grants nothing. Once approved and the invitee has finished the quiz and agreement the application goes straight to `approved`, `decided_by` = the approver, with the approval kept as a `source = 'invite'` row for the record. Invites from before 00106 are backfilled as approved. Reopening sets `superseded_at` on the round's rows: they stay as history and stop counting (the partial unique index `uq_amb_reviews_active` allows one counting review per reviewer). A review-driven decline leaves `decision_note` empty: reviewer notes are internal. RLS: admin read only; writes go through `PATCH /api/ambassadors/applications/[id]` (`action: "review"`).
 
 **Also in `00104`:** `participant_roles.role` CHECK gains `ambassador`; `agreement_acceptances.doc` gains `ambassador` and `.source` gains `ambassador_flow` (the Ambassador Agreement's acceptance is written there, versioned).
 
@@ -1028,7 +1030,7 @@ erDiagram
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
 | `ambassador_applications` | Ambassadors | One per person: orientation (quiz, agreement), who brought them in, the reviewers' outcome, ready/button state (00104) |
-| `ambassador_invites` | Ambassadors | A coordinator's pre-approved, single-use invite link (00104) |
+| `ambassador_invites` | Ambassadors | A coordinator's single-use invite link (00104), approved by a second coordinator before it grants the role (00106) |
 | `ambassador_nominations` | Ambassadors | An ambassador suggests someone; the coordinator invites or declines (00104) |
 | `ambassador_step_progress` | Ambassadors | Which of the guide's five steps a person has marked done (00104) |
 | `ambassador_reviews` | Ambassadors | One reviewer's approve/decline on an application; two decide it, an admin breaks a split (00105) |

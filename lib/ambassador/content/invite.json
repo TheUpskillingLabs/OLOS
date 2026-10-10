@@ -1,8 +1,8 @@
 {
-  "$comment": "The coordinator's invite form (/ambassador/coordinator) and the ambassador's nominate page (/ambassador/nominate). An invite is a single-use link that pre-approves: the person still passes the quiz and signs the agreement, and they're in: no further review.",
+  "$comment": "The coordinator's invite form (/ambassador/coordinator) and the ambassador's nominate page (/ambassador/nominate). An invite is a single-use link. A second coordinator approves it (00106); the person passes the quiz and signs the agreement, and once the invite is approved they're in: no application review.",
   "invite": {
     "title": "Invite an ambassador",
-    "lede": "Make a pre-approved invite. They still pass the quiz and sign the agreement, then they're an ambassador: no further review. Someone already applied on their own? An invite approves them straight away.",
+    "lede": "Make an invite. A second coordinator approves it; then, once they pass the quiz and sign the agreement, they're an ambassador, with no application review.",
     "unlisted": "For coordinators: your Lab's leads, and HQ admins.",
     "first": "Their first name",
     "last": "Their last name",
@@ -17,7 +17,7 @@
     "copied": "Copied",
     "text": "Text it",
     "emailIt": "Email it",
-    "message": "Hi {first}, it's {by}. I'd love you to be an ambassador for The Labs, and you're pre-approved. It takes about ten minutes: {link}",
+    "message": "Hi {first}, it's {by}. I'd love you to be an ambassador for The Labs. It takes about ten minutes: {link}",
     "subject": "Your invite to be an ambassador",
     "errors": {
       "first": "Add their first name.",

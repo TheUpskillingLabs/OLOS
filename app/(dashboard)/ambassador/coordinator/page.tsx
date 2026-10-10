@@ -228,7 +228,7 @@ export default async function CoordinatorPage() {
               </thead>
               <tbody>
                 {((invites ?? []) as AmbassadorInvite[]).map((i) => (
-                  <InviteRow key={i.id} invite={i} nowMs={nowMs} />
+                  <InviteRow key={i.id} invite={i} nowMs={nowMs} viewerId={roles.participantId ?? null} />
                 ))}
               </tbody>
             </table>

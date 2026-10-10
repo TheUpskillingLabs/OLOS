@@ -30,7 +30,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Promis
   let invite: ApplyInvite | null = null;
   if (token && stage !== "ambassador") {
     const { invite: row, problem } = await checkInvite(createServiceClient(), token, self.participant);
-    invite = problem ? { token, by: null, note: null, problem } : { token, by: row!.inviter_name, note: row!.note, problem: null };
+    invite = problem ? { token, by: null, note: null, approved: false, problem } : { token, by: row!.inviter_name, note: row!.note, approved: Boolean(row!.approved_at), problem: null };
   }
 
   if (stage === "declined" || stage === "stepped_back") {

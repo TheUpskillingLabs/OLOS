@@ -15,6 +15,8 @@ export interface ApplyInvite {
   token: string;
   by: string | null;
   note: string | null;
+  /** A second coordinator has approved the invite (00106). */
+  approved: boolean;
   problem: InviteProblem | null;
 }
 
@@ -115,7 +117,7 @@ export default function ApplyFlow({
 
       {invitedBanner && (
         <div className="amb-panel" style={{ marginBottom: 20 }}>
-          <p className="t-body"><b>{fill(apply.invited.banner, { by: invite.by! })}</b></p>
+          <p className="t-body"><b>{fill(invite.approved ? apply.invited.banner : apply.invited.bannerPending, { by: invite.by! })}</b></p>
           {invite.note && <p className="amb-note">{fill(apply.invited.note, { by: invite.by! })} “{invite.note}”</p>}
         </div>
       )}
@@ -354,7 +356,7 @@ function Pass({
 
       {confirmWithInvite && (
         <div className="amb-panel">
-          <p className="t-body">You have a pre-approved invite. Add it and you&apos;re in, with no further review.</p>
+          <p className="t-body">You have an invite. Add it to your application; once a coordinator has approved it, you&apos;re in, with no further review.</p>
           <button type="button" className="btn btn-teal" style={{ marginTop: 10 }} disabled={busy} onClick={confirmWithInvite}>
             Add my invite to my application
           </button>
