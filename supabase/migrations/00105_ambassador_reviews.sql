@@ -7,8 +7,9 @@
 --
 --   ambassador_reviews — one row per reviewer per review round. Two approvals
 --   approve (and grant the role); two declines decline; a 1–1 split waits for
---   an admin's third review, which decides. A pre-approved invite counts as
---   its inviter's approval, so an invited applicant needs one more reviewer.
+--   an admin's third review, which decides. A pre-approved invite skips
+--   review (the invitee is approved when onboarding is done); it is kept here as
+--   a source='invite' row for the record.
 --   Reopening a declined application starts a new round: the old rows are
 --   kept as history (superseded_at) and stop counting.
 --

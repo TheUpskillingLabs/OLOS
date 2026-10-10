@@ -7,7 +7,9 @@
      - Nobody reviews their own application, or one they referred.
      - Each reviewer decides on their own: the other reviews stay hidden until
        you've recorded yours (an admin breaking a split sees both).
-     - A pre-approved invite counts as its inviter's approval.
+     - A pre-approved invite skips review: the invitee becomes an ambassador
+       when the onboarding is done (the application route settles it, and keeps
+       the invite as a source='invite' row). These rules cover open applications.
 
    Pure module: types + functions only — importable from client components. */
 

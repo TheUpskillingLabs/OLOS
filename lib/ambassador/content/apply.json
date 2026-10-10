@@ -1,5 +1,5 @@
 {
-  "$comment": "The apply flow (/ambassador/apply): the short film or read, the quiz (graded on the server, lib/ambassador/quiz.ts), the Ambassador Agreement (recorded in agreement_acceptances), confirm your details, then 'Almost there' while two reviewers decide (lib/ambassador/review.ts; a pre-approved invite counts as one approval), or 'You're in' once they have. The quiz is the ambassador coordinator's ten-question certification (September 2026), eight right to pass. [PLACEHOLDER] marks copy to confirm. The agreement is a draft and needs review before launch; bump agreement.version whenever its text changes.",
+  "$comment": "The apply flow (/ambassador/apply): the short film or read, the quiz (graded on the server, lib/ambassador/quiz.ts), the Ambassador Agreement (recorded in agreement_acceptances), confirm your details, then 'Almost there' while two reviewers decide (lib/ambassador/review.ts), or 'You're in' once they have. A pre-approved invite skips review: finishing the quiz and agreement makes the invitee an ambassador. The quiz is the ambassador coordinator's ten-question certification (September 2026), eight right to pass. [PLACEHOLDER] marks copy to confirm. The agreement is a draft and needs review before launch; bump agreement.version whenever its text changes.",
   "placeholder": true,
   "title": "Become an ambassador",
   "description": "The Labs in three minutes, ten questions, the ambassador agreement, and your name. About ten minutes.",
@@ -245,7 +245,7 @@
     "guideNote": "The guide is yours from here: five short steps to get ready, and a reference for later."
   },
   "invited": {
-    "banner": "{by} invited you, and their invite counts as your first approval. Pass the quiz and sign the agreement; one more reviewer confirms you.",
+    "banner": "{by} invited you, so you're pre-approved. Pass the quiz and sign the agreement and you're in.",
     "note": "From {by}:"
   },
   "pending": {

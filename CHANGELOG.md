@@ -24,6 +24,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Added
 
+- Ambassador: open applications stay two-reviewer; a pre-approved invite now skips review — finishing the quiz and agreement makes the invitee an ambassador. The invite is claimed atomically so a link can't be used twice at once.
 - The Ambassador role moves in from the `ambassadors` prototype: the public program page
   (`/get-involved/ambassador`, unlisted), the front door (`/ambassador/start`), the apply flow
   (server-graded quiz, versioned Ambassador Agreement, pre-approved invites), the five-step guide

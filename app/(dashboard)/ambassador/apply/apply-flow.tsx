@@ -354,7 +354,7 @@ function Pass({
 
       {confirmWithInvite && (
         <div className="amb-panel">
-          <p className="t-body">You have a pre-approved invite. It counts as one of your two approvals.</p>
+          <p className="t-body">You have a pre-approved invite. Add it and you&apos;re in, with no further review.</p>
           <button type="button" className="btn btn-teal" style={{ marginTop: 10 }} disabled={busy} onClick={confirmWithInvite}>
             Add my invite to my application
           </button>
