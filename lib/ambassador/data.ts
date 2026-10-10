@@ -292,9 +292,9 @@ export async function settleApplication(
   return { application: data as AmbassadorApplication, error: null };
 }
 
-/** Applications waiting on this coordinator (pending submissions this person
- *  may review now + ambassadors who said they're ready but haven't had their
- *  button). For the dashboard. */
+/** Work waiting on this coordinator (pending submissions this person may
+ *  review now + invites to approve + ambassadors who said they're ready but
+ *  haven't had their button). For the dashboard. */
 export async function coordinatorQueueCount(service: Service, user: UserRoles): Promise<number> {
   const labs = coordinatorLabs(user);
   if (labs && labs.length === 0) return 0;
@@ -308,16 +308,25 @@ export async function coordinatorQueueCount(service: Service, user: UserRoles): 
     .eq("status", "approved")
     .not("ready_at", "is", null)
     .is("button_given_at", null);
+  // Invites someone else drafted that wait for this coordinator's approval (00106).
+  let invites = service
+    .from("ambassador_invites")
+    .select("id, invited_by")
+    .is("approved_at", null)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString());
   if (labs) {
     pending = pending.in("lab_id", labs);
     ready = ready.in("lab_id", labs);
+    invites = invites.in("lab_id", labs);
   }
-  const [a, b] = await Promise.all([pending, ready]);
+  const [a, b, c] = await Promise.all([pending, ready, invites]);
+  const toApprove = ((c.data ?? []) as { invited_by: number | null }[]).filter((i) => i.invited_by !== user.participantId).length;
   const apps = (a.data ?? []) as Pick<AmbassadorApplication, "id" | "status" | "participant_id" | "referred_by_participant_id">[];
   const reviews = await reviewsFor(service, apps.map((x) => x.id));
   const who = { reviewerId: user.participantId, reviewerIsAdmin: isAdmin(user) };
   const waiting = apps.filter((x) => awaitsReviewer(x, reviews.filter((r) => r.application_id === x.id), who)).length;
-  return waiting + (b.count ?? 0);
+  return waiting + (b.count ?? 0) + toApprove;
 }
 
 /** How many new ambassadors came in through this one's share link — the
