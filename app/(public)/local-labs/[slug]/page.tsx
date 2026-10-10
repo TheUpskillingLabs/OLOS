@@ -13,7 +13,8 @@ import JoinActiveButton from "./join-active-button";
 import FollowButton from "@/app/components/follow-button";
 import { resolvePageContext } from "@/lib/pages/server";
 import PageUpdatesSection from "@/app/(dashboard)/page-updates-section";
-import { nextPublicCycleYear } from "@/lib/cycles/next-public-cycle";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
+import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 
 /* The lab (metro) detail page — the prototype generator's labPage(), both
    branches: the active lab's dark gravity cover (labs/dc) and the waitlist
@@ -103,12 +104,14 @@ export default async function LabPage({
   if (!m) notFound();
 
   if (m.status === "active") {
-    const [events, { signedIn }, member, ctx] = await Promise.all([
+    const [events, { signedIn }, member, ctx, whatsNextFacts] = await Promise.all([
       getEvents().then((e) => e.slice(0, 3)),
       publicSession(),
       alreadyMember(m.id),
       resolvePageContext("lab", m.id),
+      getWhatsNextFacts(createServiceClient()),
     ]);
+    const next = whatsNextMessage(whatsNextFacts);
     return (
       <>
         <section
@@ -158,9 +161,9 @@ export default async function LabPage({
                 </div>
               </div>
               <div>
-                {/* No cycle is named here (epic #477): the next public one. */}
+                {/* The next public kickoff (lib/cycles/whats-next.ts, epic #477). */}
                 <div className="t-h2" style={{ color: "#fff" }}>
-                  {nextPublicCycleYear() ?? "Being planned"}
+                  {next.kickoffShort ?? "Being planned"}
                 </div>
                 <div className="t-small" style={{ color: "var(--od2)" }}>
                   next public Build Cycle

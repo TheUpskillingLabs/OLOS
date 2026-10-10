@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { fmtDay, fmtTime, fmtMonth } from "@/lib/content/format";
 import { featuredEvents } from "@/lib/content/featured";
-import { nextPublicCycleLine } from "@/lib/cycles/next-public-cycle";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
 import type { EventRow } from "@/lib/content/queries";
 
 /* The /events hero — the page headline and the next two anchor events in one
@@ -90,14 +90,14 @@ export default function EventsHero({
             (owner call: under the cards, subtle). Phrased for outsiders — free
             and open to everyone is the point. No cycle is named: since
             2026-10-03 no public cycle is recruiting (epic #477), so the line
-            says when the next one opens (lib/cycles/next-public-cycle.ts). */}
+            says when the next one kicks off (lib/cycles/whats-next.ts). */}
         <p
           className="t-small ed-text"
           style={{ color: "rgba(255,255,255,0.72)", marginTop: 32 }}
         >
           Anchor events are where a Build Cycle meets in public: pods pick real
           problems, build practical answers, and show their work. Free and open
-          to everyone. {nextPublicCycleLine()}{" "}
+          to everyone. {whatsNextMessage().nextPublic}{" "}
           <Link
             href="/build-cycles"
             target="_blank"
