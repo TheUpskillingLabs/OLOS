@@ -61,6 +61,7 @@ defines these is [`roadmap/documentation-framework.md`](roadmap/documentation-fr
 | [`SECTOR_MODEL.md`](SECTOR_MODEL.md) | explanation | Canonical (Phase A shipped; B–D on paper) | sectors, cycle lifecycle, graduation |
 | [`LOCAL_LABS.md`](LOCAL_LABS.md) | explanation | Canonical | metros as labs, sub-cohorts, lab leads |
 | [`ambassadors/CLAUDE.md`](ambassadors/CLAUDE.md) | explanation / reference | Canonical | the Ambassador role: the ladder, routes, coordinators (Lab leads), records (00104), the decisions made moving it in from the `ambassadors` prototype |
+| [`ambassadors/ux-plan.md`](ambassadors/ux-plan.md) | proposal | Proposal | the phased UI/UX plan for every Ambassador user (applicant, ambassador, coordinator, admin): status model, notifications, wireframes to draw first, decisions needed |
 | [`ORG_CYCLES.md`](ORG_CYCLES.md) | explanation | Canonical (§6 has one stale claim) | the org-internal track |
 | [`SENSEMAKING_FLOW.md`](SENSEMAKING_FLOW.md) | explanation | Plan of record (intake shipped; rest on paper) | survey → extract → swipe → Paradox Sprint |
 | [`ORTELIUS_KNOWLEDGE_GRAPH.md`](ORTELIUS_KNOWLEDGE_GRAPH.md), [`ORTELIUS_NORTHSTAR.md`](ORTELIUS_NORTHSTAR.md) | explanation | North star | gated on governance decision #11 |
