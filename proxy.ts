@@ -102,8 +102,13 @@ export async function proxy(request: NextRequest) {
       "/board",
       "/team", // old path — next.config redirects it to /board
     ];
+    // Exact public paths (no prefix match): the ambassador front door parks an
+    // invite/referrer and sends a signed-out visitor to sign-in itself; the
+    // rest of /ambassador is the signed-in account.
+    const publicExact = ["/ambassador/start"];
     const isPublicPath =
       request.nextUrl.pathname === "/" ||
+      publicExact.includes(request.nextUrl.pathname) ||
       publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
     if (!user && !isPublicPath && !request.nextUrl.pathname.startsWith("/_next")) {

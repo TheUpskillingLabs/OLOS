@@ -21,6 +21,7 @@ import {
   whatsNextTaskKey,
   leadershipLogTaskKey,
   customTaskKey,
+  ambassadorTaskKey,
 } from "./keys";
 
 export interface TaskInputs {
@@ -77,6 +78,18 @@ export interface TaskInputs {
     /** ends_at, doubling as the displayed deadline. */
     deadline: string | null;
     pinned: boolean;
+    dismissible: boolean;
+  }[];
+
+  /** The Ambassador role's next step(s), already decided by
+      lib/ambassador/tasks.ts. Optional: absent = none. */
+  ambassador?: {
+    stage: string;
+    eyebrow: string;
+    title: string;
+    detail?: string;
+    href: string;
+    cta: string;
     dismissible: boolean;
   }[];
 
@@ -262,6 +275,29 @@ export function assembleTasks(input: TaskInputs): Task[] {
       tone: c.pinned ? "teal" : "default",
       blocking: false,
       dismissible: c.dismissible,
+      done: false,
+      surface: "queue",
+    });
+  }
+
+  /* ── The Ambassador role ────────────────────────────────────────────── */
+  for (const a of input.ambassador ?? []) {
+    const key = ambassadorTaskKey(a.stage);
+    if (a.dismissible && input.dismissedKeys.has(key)) continue;
+    tasks.push({
+      defId: `ambassador:${a.stage}`,
+      kind: "ambassador",
+      instanceKey: key,
+      eyebrow: a.eyebrow,
+      title: a.title,
+      detail: a.detail,
+      href: a.href,
+      cta: a.cta,
+      deadline: null,
+      priority: PRIORITY.ambassador,
+      tone: "default",
+      blocking: false,
+      dismissible: a.dismissible,
       done: false,
       surface: "queue",
     });

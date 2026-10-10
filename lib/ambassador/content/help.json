@@ -1,0 +1,11 @@
+{
+  "placeholder": true,
+  "coordinator": {
+    "name": "[PLACEHOLDER] Ambassador coordinator",
+    "role": "Ambassador Corps coordinator",
+    "email": "coordinator@example.org",
+    "note": "Ask about anything: a tricky question you got, an event you want to speak at, or something in this guide that's unclear. Expect a reply within two working days.",
+    "phone": "",
+    "$comment": "phone: E.164 like +12025550123. With a phone, 'Text my coordinator' opens a text; without, an email."
+  }
+}

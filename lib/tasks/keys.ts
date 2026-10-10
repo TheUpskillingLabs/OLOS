@@ -72,6 +72,13 @@ export function customTaskKey(customTaskId: number): string {
   return `custom:${customTaskId}`;
 }
 
+/** The Ambassador role's task — one occurrence per stage ("apply",
+    "continue", "guide", "ready", "coordinator"), so dismissing one stage's
+    nudge never hides the next. */
+export function ambassadorTaskKey(stage: string): string {
+  return `ambassador:${stage}`;
+}
+
 /** A leadership-log scope's weekly duty — per (tier, cycle, pod|lab). Not
     dismissible (submitting resolves it). */
 export function leadershipLogTaskKey(

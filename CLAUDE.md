@@ -18,4 +18,5 @@ The reading order for any session is in [AGENTS.md](AGENTS.md) (imported above):
 ## Subdocs
 
 - [lib/auth/CLAUDE.md](lib/auth/CLAUDE.md) — sign-in flow, role resolution, invitation flow, and the `TUL_MVP_Spec.md`-vs-implementation deviations (Issues #44, #45). Read before touching anything in `lib/auth/`, `app/api/auth/`, `app/(auth)/`, or `lib/email/`.
+- [docs/ambassadors/CLAUDE.md](docs/ambassadors/CLAUDE.md) — the Ambassador role: apply flow, guide, deck, coordinator queue (Lab leads), and the `00104` tables. Read before touching `app/(dashboard)/ambassador/`, `app/api/ambassadors/`, `lib/ambassador/`, or `00104`.
 - [docs/poderator-dashboard/CLAUDE.md](docs/poderator-dashboard/CLAUDE.md) — naming conventions, route structure, new DB tables, auth integration, and build order for the Poderator dashboard. Read before touching `app/(dashboard)/moderator/` or any `00019`+ migration.
