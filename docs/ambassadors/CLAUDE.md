@@ -57,7 +57,7 @@ decides without seeing the other review until they've recorded their own.
 | Open applications are reviewed by two people; an invite is reviewed once, before it is extended. | The front door stays open to anyone, so strangers get two reviewers. An invite is a coordinator's vouching, checked by a second coordinator (never its author) via `PATCH /api/ambassadors/invites/[id]`. The link works meanwhile, but grants the role only once approved; then the invitee is in as soon as onboarding is done (`canSubmit`), whichever happens last (`admitInvitee`). The claim on the invite is atomic and single-use. (Owner decision, 2026-10-10; supersedes the 00105 "one more reviewer" rule.) |
 | Reviewers see participation, not private reflections. | The OLOS record panel shows profile, Lab, roles, cycles, pods, projects, event RSVPs and agreements. Learning Log content and health checks stay between the member, their Poderator and admins (SCHEMA.md). The quiz keeps only its score, so per-question answers aren't shown. |
 | Reviewer notes never reach the applicant. | A review-driven decline leaves `decision_note` empty; the applicant sees the plain "not this time" copy. |
-| No emails to coordinators. | Consent-gated messaging; the coordinator's queue is a dashboard task and the `/ambassador/coordinator` page. |
+| Coordinators are told by a Slack channel post, not email or DM. | Joining the staff channel is the opt-in, so it needs no per-person Slack identity (ADR-0003 is Sprint 2). Posts say *that* something is waiting, in which Lab, and link to the page; they never carry a name, email, quiz result or a review (`lib/ambassador/notify-message.ts`). The queue is still a dashboard task and the `/ambassador/coordinator` page. Off unless `SLACK_NOTIFY_ENABLED=true`; failures never reach the request (`lib/slack/post.ts`). (Owner decision, 2026-10-10; replaces "no emails to coordinators".) |
 | The next session comes from the published public events, not a hand-kept schedule. | `lib/ambassador/session.ts`; the prototype's `data/schedule.json` went stale. |
 | Terms of Service §3 now names the Ambassador Agreement. | It said the Build Cycle agreement was the only additional agreement. |
 
@@ -81,6 +81,9 @@ The playbook content (steps, scenarios, FAQ, deck, story prompts) is CC BY 4.0
 
 ## Still open
 
+- **Turn the Slack posts on.** Create the staff channel, add a bot with `chat:write`, set `SLACK_BOT_TOKEN`,
+  `SLACK_AMBASSADOR_CHANNEL_ID` and `SLACK_NOTIFY_ENABLED=true` in Vercel. Until then the posts only log.
+  One shared channel today; a channel per Lab needs a mapping (no `metros.slack_channel_id` yet).
 - **Board approval** of the role and the program page (it stays unlisted and `noindex`).
 - **The launch banner goes live with the code.** It shows to every signed-in member once this
   reaches production, and links the (still unlisted) program page. Promote only after board

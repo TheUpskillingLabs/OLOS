@@ -16,6 +16,7 @@ import {
   resolveReferrer,
 } from "@/lib/ambassador/data";
 import { AMB_JOIN_COOKIE, parseAmbJoin } from "@/lib/ambassador/join-cookie";
+import { notifyCoordinators } from "@/lib/ambassador/notify";
 
 /**
  * The ambassador apply flow (docs/ambassadors/CLAUDE.md) — one action per
@@ -198,6 +199,11 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
           });
           if (rErr && !duplicate) return dbError(rErr, "ambassador-invite-review");
         }
+      }
+      // A new open application is now waiting for reviewers. (An invited one waits
+      // on its invite, which was announced when it was drafted.)
+      if (app.status === "started" && submitted.status === "pending" && !usable) {
+        notifyCoordinators("application_waiting", submitted.lab_id);
       }
       const granted = submitted.status === "approved";
       const res = reply(submitted, { invite_problem: token ? problem : null }, granted);

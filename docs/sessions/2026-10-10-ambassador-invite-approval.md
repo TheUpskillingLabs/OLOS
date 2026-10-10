@@ -49,3 +49,15 @@
 Open one PR into `dev`; reviewers (Madhu, Aaron) check the invite and review routes and the auth-adjacent
 `proxy.ts` / `return_to` changes, then test with a few accounts (open apply, invite approved by another
 coordinator, the same link in two browsers, author trying to approve their own invite).
+
+## Addendum — Slack posts for coordinators and admins
+
+- Owner decision: staff are told by a Slack **channel post** (not email, not DM). Replaces "No emails to
+  coordinators" in `docs/ambassadors/CLAUDE.md`.
+- Built: `lib/slack/post.ts` (bot `chat.postMessage`; dry-run unless `SLACK_NOTIFY_ENABLED=true`; never throws),
+  `lib/ambassador/notify-message.ts` (the words; no names or contact details) and `notify.ts` (runs in `after()`).
+  Posted when: an open application is submitted, an invite is drafted, two reviews split, an ambassador is ready.
+- Tests: `lib/slack/post.test.ts`, `lib/ambassador/notify-message.test.ts`. Typecheck and lint clean.
+- **Not verified:** a real post to Slack. Needs a channel, a bot with `chat:write` invited to it, and the three env
+  vars in Vercel (see `.env.local.example`). Until then it only logs.
+- Not built: DMs (ADR-0003 identity, Sprint 2), a channel per Lab, the digest, the nudge, approve-from-Slack.

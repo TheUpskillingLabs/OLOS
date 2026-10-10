@@ -24,6 +24,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Added
 
+- Ambassador: coordinators and admins are told in a staff Slack channel when an application, an invite to approve, a split review or a ready-for-button ambassador is waiting. No personal details in the message; off unless `SLACK_NOTIFY_ENABLED=true`; needs `SLACK_BOT_TOKEN` and `SLACK_AMBASSADOR_CHANNEL_ID`.
 - Ambassador: open applications stay two-reviewer; an invite is instead approved by a second coordinator (migration 00106), after which finishing the quiz and agreement makes the invitee an ambassador, with no application review. The invite is claimed atomically so a link can't be used twice at once.
 - The Ambassador role moves in from the `ambassadors` prototype: the public program page
   (`/get-involved/ambassador`, unlisted), the front door (`/ambassador/start`), the apply flow

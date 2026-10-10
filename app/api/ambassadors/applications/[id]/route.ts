@@ -15,7 +15,8 @@ import {
   settleApplication,
   supersedeReviews,
 } from "@/lib/ambassador/data";
-import { REVIEW_BLOCK_MESSAGE, reviewBlock } from "@/lib/ambassador/review";
+import { REVIEW_BLOCK_MESSAGE, reviewBlock, reviewOutcome } from "@/lib/ambassador/review";
+import { notifyCoordinators } from "@/lib/ambassador/notify";
 import type { AmbassadorApplication } from "@/lib/ambassador/status";
 
 /**
@@ -65,6 +66,10 @@ export const PATCH = withAuth(async (request: NextRequest, auth, params) => {
     if (error) return dbError(error, "ambassador-review");
     const settled = await settleApplication(service, app);
     if (settled.error) return dbError(settled.error, "ambassador-review-settle");
+    // Two reviews that disagree wait for an admin: tell the channel.
+    if (settled.application.status === "pending" && reviewOutcome(await reviewsFor(service, [app.id])).state === "split") {
+      notifyCoordinators("review_split", app.lab_id);
+    }
     return NextResponse.json({ application: settled.application });
   }
 

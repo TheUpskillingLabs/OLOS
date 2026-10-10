@@ -82,18 +82,18 @@ The `{n} days` figure comes from real timestamps (median `submitted_at` → `dec
 
 | Event | To | Channel | Notes |
 |---|---|---|---|
-| Application submitted | Lab's coordinators | In-app task now; email **only if decision 6 allows**, as a daily digest | Digest, not one email per item. Opt-out per person |
-| Invite drafted | Other coordinators of that Lab | Digest + in-app | Author excluded |
+| Application submitted | Lab's coordinators | In-app task + **Slack channel post (built)** | No names in the post |
+| Invite drafted | Other coordinators of that Lab | In-app + **Slack channel post (built)** | Author excluded from the in-app count |
 | Invite approved | Invitee (if email on invite) and the author | Email | "You're approved to finish" |
 | Decision made | Applicant | Email + status page | Uses the kind decline template |
-| Reviewer slow (> {n} days) | The reviewer, privately | A **manual** "nudge" button for coordinators/admins, plus one automatic reminder | One reminder, then silence. No public "overdue" label and no "seen" tracking |
-| Ready for button | Coordinator | Digest + in-app | |
+| Review split | Admins | **Slack channel post (built)** | An admin breaks the tie |
+| Reviewer slow (> {n} days) | The reviewer, privately | A **manual** "nudge" a coordinator sends, plus one automatic reminder (channel post, not a DM, until ADR-0003) | One reminder, then silence. No public "overdue" label and no "seen" tracking |
+| Ready for button | Coordinator | In-app + **Slack channel post (built)** | |
 
-**Conflicts with a recorded decision.** [`CLAUDE.md`](CLAUDE.md) says "No emails to coordinators" (the
-queue is a dashboard task and a page). Everything in the table that emails a coordinator or reviewer is
-therefore **proposed, not decided**; the default without an owner decision is in-app only (dashboard task,
-badge, and the manual nudge as a message the coordinator sends themselves). Emails to applicants and invitees
-do not conflict with it.
+**Decided (2026-10-10): coordinators and admins are told by Slack channel posts.** Built: new application,
+invite to approve, split review, ready for button (`lib/ambassador/notify.ts`), with no personal details in the
+message. Not built: a digest, the manual nudge, the slow-review reminder, DMs (need ADR-0003 identity), a
+channel per Lab. Email to coordinators stays out; email to applicants and invitees is unaffected.
 
 Reuses the existing `lib/email` templates and `email_log`; no new channel infrastructure is needed for email.
 Slack approve-from-message (LaunchDarkly style) is a later option and needs its own decision (ADR-0003 limits
@@ -168,9 +168,9 @@ All from records that already exist:
 4. Hide a pending application with an unapproved invite from the two-reviewer queue until its invite is
    approved? (Currently both routes work.)
 5. Should invites support a decline-with-reason (needed for Phase 1), or only withdraw?
-6. Lift "No emails to coordinators" for an opt-in daily digest (section 5)? If not, coordinator
-   notification stays in-app only.
-7. Is a Slack approve-from-message worth building once email works?
+6. One shared staff channel or one per Lab? A shared channel is simpler, and the posts carry no names, but
+   Lab leads then see other Labs' activity counts.
+7. Is a Slack approve-from-message worth building later?
 
 ## 9. Evidence and limits
 

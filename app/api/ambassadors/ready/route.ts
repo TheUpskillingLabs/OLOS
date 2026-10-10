@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { dbError } from "@/lib/api/errors";
 import { getAmbassadorSelf } from "@/lib/ambassador/data";
 import { guideProgress } from "@/lib/ambassador/status";
+import { notifyCoordinators } from "@/lib/ambassador/notify";
 
 /**
  * "Tell your coordinator you're ready": all five steps are done. Replaces the
@@ -37,5 +38,6 @@ export const POST = withAuth(async (_request, auth) => {
         ready_at: now,
       });
   if (error) return dbError(error, "ambassador-ready");
+  notifyCoordinators("ready_for_button", self.application?.lab_id ?? self.role.lab_id);
   return NextResponse.json({ ready_at: now });
 });

@@ -8,6 +8,7 @@ import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { ambassadorInviteSchema } from "@/lib/validations/ambassador";
 import { INVITE_SELECT, isCoordinator, newInviteToken } from "@/lib/ambassador/data";
 import { AMBASSADOR_START } from "@/lib/ambassador/content";
+import { notifyCoordinators } from "@/lib/ambassador/notify";
 
 /**
  * A coordinator's pre-approved ambassador invite — the OLOS twin of the
@@ -60,6 +61,8 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
       .update({ status: "invited", decided_by: auth.user.participantId, decided_at: new Date().toISOString() })
       .eq("id", body.nomination_id);
   }
+
+  notifyCoordinators("invite_waiting", labId);
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
   return NextResponse.json({ invite: data, link: `${origin}${AMBASSADOR_START}?invite=${data.token}` }, { status: 201 });
