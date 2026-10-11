@@ -31,6 +31,15 @@ who came in through them. The prototype's account tools now redirect to these pa
 | Pass it on | `/ambassador` (share link), `/ambassador/nominate` | The share link (`/ambassador/start?ref=<handle>`) credits new ambassadors to the sharer; nominations go to the coordinator, who can turn one into an invite. | `referred_by_participant_id`, `ambassador_nominations`, `ambassador_invites` |
 | Present | `/ambassador/present` (`?short`, `?notes`, `?practice`) | The full-screen deck; the notes view drives a presentation window on the same device. | — |
 
+## Ambassador is a role with its own dashboard
+
+An active `participant_roles` grant (`role = 'ambassador'`) makes the app treat the person as an Ambassador, the way a
+Poderator or a Lab lead is treated: `resolveUserRoles` puts `"ambassador"` in `UserRoles.roles` (`isAmbassador()` in
+`lib/auth/roles.ts`), the avatar menu's **View as** switcher gets an **Ambassador** entry, and every `/ambassador/**`
+page shows the Ambassador persona pill with "Exit to member view" in place of the member destinations
+(`app/components/chrome/app-nav.tsx`). `/ambassador` is the dashboard. People who only applied, and coordinators, keep the plain
+**Ambassador** menu item instead of a View-as entry. The role confers no admin or Lab-lead authority, only this surface.
+
 ## Who coordinates
 
 **A Lab's leads** (`participant_roles.role = 'lab_lead'`, scoped by `lab_id`) coordinate that

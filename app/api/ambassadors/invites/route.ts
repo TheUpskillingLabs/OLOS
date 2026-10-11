@@ -32,8 +32,9 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
 
   const service = createServiceClient();
   if (body.nomination_id) {
-    const { data: nom } = await service.from("ambassador_nominations").select("id, lab_id").eq("id", body.nomination_id).maybeSingle();
+    const { data: nom } = await service.from("ambassador_nominations").select("id, lab_id, status").eq("id", body.nomination_id).maybeSingle();
     if (!nom) return NextResponse.json({ error: "Nomination not found." }, { status: 404 });
+    if (nom.status !== "open") return NextResponse.json({ error: "That nomination has already been handled." }, { status: 409 });
     const nomDenied = requireLabAccess(auth.user, nom.lab_id);
     if (nomDenied) return nomDenied;
   }
@@ -59,7 +60,8 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
     await service
       .from("ambassador_nominations")
       .update({ status: "invited", decided_by: auth.user.participantId, decided_at: new Date().toISOString() })
-      .eq("id", body.nomination_id);
+      .eq("id", body.nomination_id)
+      .eq("status", "open");
   }
 
   notifyCoordinators("invite_waiting", labId);

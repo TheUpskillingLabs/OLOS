@@ -57,7 +57,10 @@ export default async function CoordinatorPage() {
     .select(`${APPLICATION_SELECT}, participant:participants!ambassador_applications_participant_id_fkey(id, first_name, last_name, preferred_name, email), lab:metros(name)`)
     .neq("status", "started")
     .order("submitted_at", { ascending: false });
-  let invitesQ = service.from("ambassador_invites").select(INVITE_SELECT).order("created_at", { ascending: false }).limit(100);
+  // Open invites (waiting to be approved or used) are always listed; used and withdrawn ones are
+  // history, so a recent slice is enough and can't push an open invite off the page.
+  let invitesQ = service.from("ambassador_invites").select(INVITE_SELECT).is("accepted_at", null).is("revoked_at", null).order("created_at", { ascending: false }).limit(200);
+  let pastInvitesQ = service.from("ambassador_invites").select(INVITE_SELECT).or("accepted_at.not.is.null,revoked_at.not.is.null").order("created_at", { ascending: false }).limit(30);
   let nomsQ = service
     .from("ambassador_nominations")
     .select("id, lab_id, nominee_name, how_known, reason, nominee_contact, status, created_at, nominator:participants!ambassador_nominations_nominator_id_fkey(id, first_name, last_name, preferred_name, email)")
@@ -65,13 +68,15 @@ export default async function CoordinatorPage() {
   if (labs) {
     appsQ = appsQ.in("lab_id", inScope);
     invitesQ = invitesQ.in("lab_id", inScope);
+    pastInvitesQ = pastInvitesQ.in("lab_id", inScope);
     nomsQ = nomsQ.in("lab_id", inScope);
   }
   const labsQ = labs
     ? service.from("metros").select("id, name").in("id", inScope)
     : service.from("metros").select("id, name").eq("status", "active").order("name");
 
-  const [{ data: apps }, { data: invites }, { data: noms }, { data: labRows }] = await Promise.all([appsQ, invitesQ, nomsQ, labsQ]);
+  const [{ data: apps }, { data: openInvites }, { data: pastInvites }, { data: noms }, { data: labRows }] = await Promise.all([appsQ, invitesQ, pastInvitesQ, nomsQ, labsQ]);
+  const invites = [...(openInvites ?? []), ...(pastInvites ?? [])];
 
   // Server clock for the invites' open/expired split (hydration-stable).
   const nowMs = new Date().getTime();

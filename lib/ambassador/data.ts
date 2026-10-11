@@ -183,6 +183,10 @@ export async function admitInvitee(
   invite: Pick<AmbassadorInvite, "id" | "invited_by" | "approved_by">
 ): Promise<{ application: AmbassadorApplication | null; error: unknown }> {
   const decider = invite.approved_by ?? invite.invited_by;
+  // Two people: nobody is admitted on an invite they approved themselves.
+  if (decider != null && decider === app.participant_id) {
+    return { application: null, error: new Error("An invite can't be approved by the person it is for.") };
+  }
   const note = `Approved invite #${invite.id}, application #${app.id}`;
   const { error: gErr } = await grantAmbassadorRole(service, app.participant_id, app.lab_id, decider, note);
   if (gErr) return { application: null, error: gErr };
@@ -208,11 +212,13 @@ export async function resolveReferrer(service: Service, handle: string | undefin
 /** The review rows (00105) for these applications, every round. */
 export async function reviewsFor(service: Service, applicationIds: number[]): Promise<AmbassadorReview[]> {
   if (applicationIds.length === 0) return [];
-  const { data } = await service
+  const { data, error } = await service
     .from("ambassador_reviews")
     .select(REVIEW_SELECT)
     .in("application_id", applicationIds)
     .order("created_at", { ascending: true });
+  // Not swallowed: an empty list on a failed read would look like "no reviews yet".
+  if (error) throw new Error(`reviewsFor: ${error.message}`);
   return (data ?? []) as AmbassadorReview[];
 }
 
@@ -257,7 +263,12 @@ export async function settleApplication(
   app: AmbassadorApplication
 ): Promise<{ application: AmbassadorApplication; error: unknown }> {
   if (app.status !== "pending") return { application: app, error: null };
-  const reviews = activeReviews(await reviewsFor(service, [app.id]));
+  let reviews: AmbassadorReview[];
+  try {
+    reviews = activeReviews(await reviewsFor(service, [app.id]));
+  } catch (error) {
+    return { application: app, error };
+  }
   const outcome = reviewOutcome(reviews);
   if (outcome.state !== "approved" && outcome.state !== "declined") return { application: app, error: null };
 

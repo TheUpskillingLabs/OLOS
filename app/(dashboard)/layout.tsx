@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { resolveUserRoles, isAdmin, isModerator, can } from "@/lib/auth/roles";
+import { resolveUserRoles, isAdmin, isAmbassador, isModerator, can } from "@/lib/auth/roles";
 import { hasPlaceholderName } from "@/lib/participants/placeholder";
 import { one } from "@/lib/supabase/embed";
 import AppNav from "@/app/components/chrome/app-nav";
@@ -141,8 +141,9 @@ export default async function DashboardLayout({
 
   // The Ambassador role (docs/ambassadors/CLAUDE.md): an avatar-menu entry for
   // ambassadors, applicants, and coordinators (admins and Lab leads).
+  const ambassadorUser = isAmbassador(userRoles);
   let ambassadorHref: string | null = null;
-  if (adminUser || userRoles.labLeadLabIds.length > 0) {
+  if (adminUser || ambassadorUser || userRoles.labLeadLabIds.length > 0) {
     ambassadorHref = "/ambassador";
   } else if (participant) {
     const [{ count: roleCount }, { count: appCount }] = await Promise.all([
@@ -202,6 +203,7 @@ export default async function DashboardLayout({
         moderatorPersonaLabel={coLeadOnly ? "Co-lead" : "Poderator"}
         labLeadHref={labLeadHref}
         ambassadorHref={ambassadorHref}
+        isAmbassador={ambassadorUser}
       />
       {needsLab && (
         <div className="border-b border-teal/30 bg-teal/10 px-4 py-2 text-center text-sm text-ink">

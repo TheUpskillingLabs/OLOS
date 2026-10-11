@@ -46,6 +46,14 @@ describe("admitInvitee", () => {
     expect(upd?.values).toMatchObject({ status: "approved", decided_by: 2 });
   });
 
+  it("never admits someone on an invite they approved themselves", async () => {
+    const { service, log } = fakeService();
+    const out = await admitInvitee(service, { id: 5, participant_id: 9, lab_id: 3 }, invite({ approved_by: 9 }));
+    expect(out.error).toBeInstanceOf(Error);
+    expect(out.application).toBeNull();
+    expect(log.some((l) => l.table === "participant_roles" && l.op === "insert")).toBe(false);
+  });
+
   it("is safe to retry when the role already exists", async () => {
     const { service, log } = fakeService(true);
     const out = await admitInvitee(service, { id: 5, participant_id: 9, lab_id: 3 }, invite({ approved_by: 2 }));

@@ -29,7 +29,17 @@ export const POST = withAuth(async (_request, auth) => {
   // An ambassador granted directly (no application) gets a row here, so the
   // coordinator's list can carry their ready/button state too.
   const { error } = self.application
-    ? await service.from("ambassador_applications").update({ ready_at: now, updated_at: now }).eq("id", self.application.id)
+    ? await service
+        .from("ambassador_applications")
+        // They hold the role, so the row the coordinator list reads must say so (and name their Lab).
+        .update({
+          ready_at: now,
+          updated_at: now,
+          ...(self.application.status === "approved"
+            ? {}
+            : { status: "approved", lab_id: self.application.lab_id ?? self.role.lab_id, decided_at: self.application.decided_at ?? self.role.granted_at }),
+        })
+        .eq("id", self.application.id)
     : await service.from("ambassador_applications").insert({
         participant_id: participantId,
         lab_id: self.role.lab_id,

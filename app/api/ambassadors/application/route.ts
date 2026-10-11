@@ -163,7 +163,8 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
         }
       }
 
-      const labId = app.lab_id ?? self.participant.metro_id ?? usable?.lab_id ?? null;
+      // An invited applicant belongs to the Lab whose coordinators approved the invite.
+      const labId = usable?.lab_id ?? app.lab_id ?? self.participant.metro_id ?? null;
       const referrerId =
         app.referred_by_participant_id ?? (await resolveReferrer(service, body.ref || parked.ref, participantId));
 
@@ -185,7 +186,7 @@ export const POST = withAuth(async (request: NextRequest, auth) => {
       if (error || !submitted0) return dbError(error, "ambassador-submit");
       let submitted = submitted0;
 
-      if (usable?.approved_at) {
+      if (usable?.approved_at && usable.approved_by !== participantId) {
         const admitted = await admitInvitee(service, submitted, usable);
         if (admitted.error) return dbError(admitted.error, "ambassador-invite-admit");
         if (admitted.application) submitted = admitted.application;
