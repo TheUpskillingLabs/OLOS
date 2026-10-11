@@ -24,7 +24,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Added
 
-- Ambassador is now a first-class role with its own dashboard: it appears in the app's roles, in the avatar menu's View as switcher, and `/ambassador/**` shows the Ambassador persona header with "Exit to member view".
+- Ambassador is now a first-class role with its own dashboard: it appears in the app's roles, in the avatar menu's View as switcher, and `/ambassador/**` shows the Ambassador persona header with "Exit to member view". (#497)
 - Ambassador: coordinators and admins are told in a staff Slack channel when an application, an invite to approve, a split review or a ready-for-button ambassador is waiting. No personal details in the message; off unless `SLACK_NOTIFY_ENABLED=true`; needs `SLACK_BOT_TOKEN` and `SLACK_AMBASSADOR_CHANNEL_ID`.
 - Ambassador: open applications stay two-reviewer; an invite is instead approved by a second coordinator (migration 00106), after which finishing the quiz and agreement makes the invitee an ambassador, with no application review. The invite is claimed atomically so a link can't be used twice at once.
 - The Ambassador role moves in from the `ambassadors` prototype: the public program page
@@ -40,7 +40,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Fixed
 
-- Ambassador, checked against the live dev database: a coordinator's note over 500 characters no longer fails on step back or reinstate; an invite can no longer be approved by the person it is for, and pressing Approve again repairs an approval that stopped half-way; a review that already decides an application finishes settling it instead of leaving it stuck; an invited applicant joins the Lab that approved the invite; the next-session time is no longer shifted by the server's time zone; open invites always stay on the coordinator page; a nomination can only be invited once.
+- Ambassador, checked against the live dev database: a coordinator's note over 500 characters no longer fails on step back or reinstate; an invite can no longer be approved by the person it is for, and pressing Approve again repairs an approval that stopped half-way; a review that already decides an application finishes settling it instead of leaving it stuck; an invited applicant joins the Lab that approved the invite; the next-session time is no longer shifted by the server's time zone; open invites always stay on the coordinator page; a nomination can only be invited once. (#497)
 - One "what's next" message on every public surface (the board advisor's and AMG's wording, epic #477):
   the internal Build Cycle (dates from its org cycle row) named as an invitation to past participants,
   joined through Slack; "workshops and meetups keep running"; and "the first public Build Cycle of 2027
