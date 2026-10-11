@@ -77,6 +77,10 @@ export interface AppNavProps {
       applicants, and coordinators (Lab leads, admins). Adds an "Ambassador"
       item to the avatar menu; null hides it. */
   ambassadorHref?: string | null;
+  /** An active Ambassador: the role has its own dashboard, so "Ambassador"
+      joins the View-as switcher (applicants and coordinators keep the plain
+      menu item above instead). */
+  isAmbassador?: boolean;
 }
 
 export default function AppNav({
@@ -92,6 +96,7 @@ export default function AppNav({
   moderatorPersonaLabel = "Poderator",
   labLeadHref = null,
   ambassadorHref = null,
+  isAmbassador = false,
 }: AppNavProps) {
   const pathname = usePathname() || "";
   const persona = pathname.startsWith("/admin")
@@ -100,7 +105,9 @@ export default function AppNav({
       ? "poderator"
       : pathname.startsWith("/lab/")
         ? "lablead"
-        : null;
+        : pathname.startsWith("/ambassador")
+          ? "ambassador"
+          : null;
 
   return (
     <header className="sitenav appnav" id="site-nav">
@@ -122,7 +129,9 @@ export default function AppNav({
                 ? "Admin"
                 : persona === "lablead"
                   ? "Lab lead"
-                  : moderatorPersonaLabel}
+                  : persona === "ambassador"
+                    ? "Ambassador"
+                    : moderatorPersonaLabel}
             </span>
             <Link className="nav-link exit-member" href="/dashboard">
               Exit to member view
@@ -231,6 +240,7 @@ export default function AppNav({
           moderatorPersonaLabel={moderatorPersonaLabel}
           labLeadHref={labLeadHref}
           ambassadorHref={ambassadorHref}
+          isAmbassador={isAmbassador}
         />
       </div>
     </header>
@@ -253,6 +263,7 @@ function AvatarMenu({
   moderatorPersonaLabel,
   labLeadHref,
   ambassadorHref,
+  isAmbassador,
 }: {
   initials: string;
   avatarUrl: string | null;
@@ -260,17 +271,18 @@ function AvatarMenu({
   isAdmin: boolean;
   isModerator: boolean;
   showPods: boolean;
-  persona: "admin" | "poderator" | "lablead" | null;
+  persona: "admin" | "poderator" | "lablead" | "ambassador" | null;
   isTest: boolean;
   moderatorPersonaLabel: string;
   labLeadHref: string | null;
   ambassadorHref: string | null;
+  isAmbassador: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
-  const canViewAs = isAdmin || isModerator || showPods || !!labLeadHref;
+  const canViewAs = isAdmin || isModerator || showPods || !!labLeadHref || isAmbassador;
 
   // Esc / outside-click close + ArrowUp/Down cycling — the shared.js contract.
   useEffect(() => {
@@ -406,7 +418,7 @@ function AvatarMenu({
           >
             View profile
           </Link>
-          {ambassadorHref && (
+          {ambassadorHref && !isAmbassador && (
             <Link
               className="menu-item"
               role="menuitem"
@@ -431,6 +443,7 @@ function AvatarMenu({
                 )}
               {labLeadHref &&
                 radio(persona === "lablead", "Lab lead", labLeadHref)}
+              {isAmbassador && radio(persona === "ambassador", "Ambassador", "/ambassador")}
               {isAdmin && radio(persona === "admin", "Admin", "/admin")}
             </>
           )}

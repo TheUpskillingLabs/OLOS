@@ -6,6 +6,7 @@ import {
   isOwner,
   isModerator,
   isAnyLabLead,
+  isAmbassador,
   can,
 } from "./roles";
 
@@ -279,5 +280,23 @@ describe("isModeratorForPod", () => {
     const u = fixtureUser({ moderatorPodIds: [3, 5] });
     expect(isModeratorForPod(u, 3)).toBe(true);
     expect(isModeratorForPod(u, 4)).toBe(false);
+  });
+});
+
+describe("ambassador role", () => {
+  it("an active ambassador grant makes the user an ambassador and nothing more", async () => {
+    const u = await resolveUserRoles(
+      mockClient(withParticipant({ participant_roles: [{ role: "ambassador", lab_id: 3 }] })),
+      "auth-1"
+    );
+    expect(isAmbassador(u)).toBe(true);
+    expect(u.roles).toContain("ambassador");
+    expect(isAdmin(u)).toBe(false);
+    expect(isAnyLabLead(u)).toBe(false);
+  });
+
+  it("is not an ambassador without the grant", async () => {
+    const u = await resolveUserRoles(mockClient(withParticipant({ participant_roles: [{ role: "upskiller" }] })), "auth-1");
+    expect(isAmbassador(u)).toBe(false);
   });
 });

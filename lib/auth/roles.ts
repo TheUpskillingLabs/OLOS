@@ -1,7 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { capabilitiesForRoles, type Permission } from "./permissions";
 
-export type Role = "owner" | "admin" | "observer" | "developer" | "moderator" | "participant";
+export type Role = "owner" | "admin" | "observer" | "developer" | "moderator" | "ambassador" | "participant";
 export type ParticipantStatus =
   | "registered"
   | "active"
@@ -81,6 +81,11 @@ export async function resolveUserRoles(
         case "lab_lead":
           if (r.lab_id != null) labLeadLabIds.push(r.lab_id);
           break;
+        case "ambassador":
+          // A role with its own dashboard (/ambassador): the grant IS the status
+          // (docs/ambassadors/CLAUDE.md). Scope (lab_id) lives on the grant row.
+          if (!roles.includes("ambassador")) roles.push("ambassador");
+          break;
         default:
           // Member-preference roles (upskiller/…) and the project/flag roles
           // are not app authority roles resolved here.
@@ -145,6 +150,11 @@ export function isModerator(roles: UserRoles): boolean {
 
 export function isModeratorForPod(roles: UserRoles, podId: number): boolean {
   return roles.moderatorPodIds.includes(podId);
+}
+
+/** True for an active Ambassador (a participant_roles grant; /ambassador is their dashboard). */
+export function isAmbassador(roles: UserRoles): boolean {
+  return roles.roles.includes("ambassador");
 }
 
 /** True if user actively leads the given local lab (metro). */
