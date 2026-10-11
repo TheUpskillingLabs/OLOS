@@ -54,6 +54,14 @@ export const PATCH = withAuth(async (request: NextRequest, auth, params) => {
 
   if (body.action === "review") {
     const reviews = await reviewsFor(service, [app.id]);
+    // Self-heal: if the reviews already decide it but the status never caught up
+    // (a settle that failed part-way), finish the job instead of leaving it stuck.
+    const standing = reviewOutcome(reviews).state;
+    if (app.status === "pending" && (standing === "approved" || standing === "declined")) {
+      const healed = await settleApplication(service, app);
+      if (healed.error) return dbError(healed.error, "ambassador-review-heal");
+      return NextResponse.json({ application: healed.application });
+    }
     const block = reviewBlock(app, reviews, { reviewerId: me, reviewerIsAdmin: isAdmin(auth.user) });
     if (block) return conflict(REVIEW_BLOCK_MESSAGE[block]);
     const { error, duplicate } = await recordReview(service, {

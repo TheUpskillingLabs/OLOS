@@ -36,6 +36,9 @@ export const DELETE = withAuth(async (_request, auth, params) => {
  * invite; a DIFFERENT coordinator of that Lab (or an admin) approves it. Same
  * scope as creating. If the invitee already finished onboarding while it
  * waited, they become an ambassador now.
+ *
+ * Safe to repeat: approving an already-approved invite re-runs the admit step,
+ * so a failure after the approval was saved is repaired by pressing Approve again.
  */
 export const PATCH = withAuth(async (_request: NextRequest, auth, params) => {
   const id = Number(params.id);
@@ -52,44 +55,52 @@ export const PATCH = withAuth(async (_request: NextRequest, auth, params) => {
   if (invite.invited_by === me) {
     return NextResponse.json({ error: "Someone else approves your invite." }, { status: 403 });
   }
+  // The person the invite is for can't approve it either.
+  if (invite.accepted_participant_id === me) {
+    return NextResponse.json({ error: "Someone else approves an invite made for you." }, { status: 403 });
+  }
   if (invite.revoked_at) return NextResponse.json({ error: "That invite was withdrawn." }, { status: 409 });
-  if (invite.approved_at) return NextResponse.json({ invite });
-  if (!invite.accepted_at && new Date(invite.expires_at).getTime() <= Date.now()) {
+  if (!invite.approved_at && !invite.accepted_at && new Date(invite.expires_at).getTime() <= Date.now()) {
     return NextResponse.json({ error: "That invite has expired." }, { status: 409 });
   }
 
-  const now = new Date().toISOString();
-  const { data: approved, error } = await service
-    .from("ambassador_invites")
-    .update({ approved_at: now, approved_by: me })
-    .eq("id", id)
-    .is("approved_at", null)
-    .select(INVITE_SELECT)
-    .maybeSingle();
-  if (error) return dbError(error, "ambassador-invite-approve");
-  if (!approved) return NextResponse.json({ invite });
+  let current = invite;
+  if (!invite.approved_at) {
+    const now = new Date().toISOString();
+    const { data: approved, error } = await service
+      .from("ambassador_invites")
+      .update({ approved_at: now, approved_by: me })
+      .eq("id", id)
+      .is("approved_at", null)
+      .select(INVITE_SELECT)
+      .maybeSingle();
+    if (error) return dbError(error, "ambassador-invite-approve");
+    // Lost a race to another approver: carry on with their approval.
+    current = (approved as AmbassadorInvite | null) ?? ((await service.from("ambassador_invites").select(INVITE_SELECT).eq("id", id).single()).data as AmbassadorInvite);
+  }
 
   // The invitee may already have finished onboarding while this waited.
-  if (invite.accepted_participant_id) {
+  if (current.accepted_participant_id) {
     const { data: appRow } = await service
       .from("ambassador_applications")
       .select(APPLICATION_SELECT)
-      .eq("participant_id", invite.accepted_participant_id)
+      .eq("participant_id", current.accepted_participant_id)
       .maybeSingle();
     const app = appRow as AmbassadorApplication | null;
     if (app && app.status === "pending") {
-      const admitted = await admitInvitee(service, app, approved as AmbassadorInvite);
+      const admitted = await admitInvitee(service, app, current);
       if (admitted.error) return dbError(admitted.error, "ambassador-invite-admit");
       if (admitted.application) {
-        await recordReview(service, {
+        const { error: rErr, duplicate } = await recordReview(service, {
           applicationId: app.id,
-          reviewerId: me,
+          reviewerId: current.approved_by ?? me,
           decision: "approve",
           note: `Approved invite #${id}`,
           source: "invite",
         });
+        if (rErr && !duplicate) return dbError(rErr, "ambassador-invite-review");
       }
     }
   }
-  return NextResponse.json({ invite: approved });
+  return NextResponse.json({ invite: current });
 });

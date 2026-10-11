@@ -39,6 +39,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Fixed
 
+- Ambassador, checked against the live dev database: a coordinator's note over 500 characters no longer fails on step back or reinstate; an invite can no longer be approved by the person it is for, and pressing Approve again repairs an approval that stopped half-way; a review that already decides an application finishes settling it instead of leaving it stuck; an invited applicant joins the Lab that approved the invite; the next-session time is no longer shifted by the server's time zone; open invites always stay on the coordinator page; a nomination can only be invited once.
 - One "what's next" message on every public surface (the board advisor's and AMG's wording, epic #477):
   the internal Build Cycle (dates from its org cycle row) named as an invitation to past participants,
   joined through Slack; "workshops and meetups keep running"; and "the first public Build Cycle of 2027

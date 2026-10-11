@@ -33,7 +33,13 @@ export const ambassadorDecisionSchema = z
     decision: z.enum(["approve", "decline"]).optional(),
     note: z.string().trim().max(1000).optional(),
   })
-  .refine((b) => b.action !== "review" || b.decision, { message: "Pick approve or decline.", path: ["decision"] });
+  .refine((b) => b.action !== "review" || b.decision, { message: "Pick approve or decline.", path: ["decision"] })
+  // A review note lands in ambassador_reviews.note (1000); every other action's note lands in
+  // ambassador_applications.decision_note, which is varchar(500).
+  .refine((b) => b.action === "review" || !b.note || b.note.length <= 500, {
+    message: "Keep the note under 500 characters.",
+    path: ["note"],
+  });
 export type AmbassadorDecision = z.infer<typeof ambassadorDecisionSchema>["action"];
 
 export const ambassadorInviteSchema = z.object({
