@@ -24,6 +24,8 @@ export const PRIORITY = {
   /** Admin-authored tasks (custom_tasks) — unless pinned, which sorts at
       the `pinned` band above. */
   custom: 55,
+  /** The Ambassador role's next step (lib/ambassador/tasks.ts). */
+  ambassador: 57,
   whatsNext: 60,
   /** Checklist rows — ordered among themselves, never in the queue. */
   setupBase: 90,

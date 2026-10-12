@@ -246,9 +246,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // No open cycle to join: the "What's next" paragraph instead, with the
-  // waitlist promise for anyone who chose Build Cycles (role_intents ∋ 'cycle').
-  const onWaitlist = (body.role_intents ?? []).includes("cycle");
+  // No open cycle to join: the "What's next" paragraph instead.
   const whatsNext = emailCycleJoinUrl
     ? undefined
     : whatsNextMessage(await getWhatsNextFacts(supabase));
@@ -263,14 +261,12 @@ export async function POST(request: NextRequest) {
         firstName: body.first_name,
         cycleName: emailCycleName,
         cycleJoinUrl: emailCycleJoinUrl,
-        onWaitlist,
         whatsNext,
       }),
       text: registrationConfirmationText({
         firstName: body.first_name,
         cycleName: emailCycleName,
         cycleJoinUrl: emailCycleJoinUrl,
-        onWaitlist,
         whatsNext,
       }),
     });

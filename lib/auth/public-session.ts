@@ -13,9 +13,6 @@ export interface PublicSession {
   avatarUrl: string | null;
   email: string | null;
   fullName: string | null;
-  /** On the next public cycle's waitlist (role_intents ∋ 'cycle';
-      lib/cycles/whats-next.ts). */
-  onCycleWaitlist: boolean;
 }
 
 const SIGNED_OUT: PublicSession = {
@@ -24,7 +21,6 @@ const SIGNED_OUT: PublicSession = {
   avatarUrl: null,
   email: null,
   fullName: null,
-  onCycleWaitlist: false,
 };
 
 export async function publicSession(): Promise<PublicSession> {
@@ -38,7 +34,7 @@ export async function publicSession(): Promise<PublicSession> {
     const serviceClient = createServiceClient();
     const { data: participant } = await serviceClient
       .from("participants")
-      .select("first_name, last_name, profile_image_url, role_intents")
+      .select("first_name, last_name, profile_image_url")
       .eq("auth_user_id", user.id)
       .maybeSingle();
 
@@ -59,7 +55,6 @@ export async function publicSession(): Promise<PublicSession> {
       avatarUrl,
       email: user.email?.toLowerCase() ?? null,
       fullName,
-      onCycleWaitlist: ((participant?.role_intents as string[] | null) ?? []).includes("cycle"),
     };
   } catch (err) {
     // Never swallow Next.js control-flow errors (dynamic bailouts, redirects).

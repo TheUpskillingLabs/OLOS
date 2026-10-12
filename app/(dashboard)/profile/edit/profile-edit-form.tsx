@@ -10,6 +10,7 @@ import { z } from "zod";
 import { FormField, Input, Textarea, Select } from "@/app/components/ui/form";
 import { stateFromZip } from "@/lib/zip-state";
 import { HANDLE_RE } from "@/lib/participants/handle";
+import { isValidGithubUsername, normalizeGithubUsername } from "@/lib/participants/github";
 
 // Everything but the names is optional at the form layer: Mode B (forced
 // name completion) submits names only, while Mode A submits the whole profile.
@@ -54,6 +55,13 @@ const formSchema = z.object({
   sector: z.string().max(255).optional().or(z.literal("")),
   current_title: z.string().max(255).optional().or(z.literal("")),
   linkedin: z.string().max(500).optional().or(z.literal("")),
+  github_username: z
+    .string()
+    .refine((s) => !s.trim() || isValidGithubUsername(normalizeGithubUsername(s)), {
+      message: "Enter a valid GitHub username",
+    })
+    .optional()
+    .or(z.literal("")),
   primary_expertise: z.string().max(500).optional().or(z.literal("")),
   ai_tool_familiarity: z.string().optional().or(z.literal("")),
 });
@@ -159,6 +167,7 @@ interface Props {
     sector: string;
     current_title: string;
     linkedin: string;
+    github_username: string;
     primary_expertise: string;
     ai_tool_familiarity: string;
     role_intents: string[];
@@ -333,6 +342,8 @@ export default function ProfileEditForm({
       body.sector = values.sector?.trim() || null;
       body.current_title = values.current_title?.trim() || null;
       body.linkedin = values.linkedin?.trim() || null;
+      body.github_username =
+        normalizeGithubUsername(values.github_username ?? "") || null;
       body.primary_expertise = values.primary_expertise?.trim() || null;
 
       body.role_intents = roleIntents;
@@ -540,6 +551,9 @@ export default function ProfileEditForm({
               </FormField>
               <FormField name="linkedin" label="LinkedIn" htmlFor="linkedin">
                 <Input id="linkedin" type="url" inputMode="url" maxLength={500} placeholder="https://linkedin.com/in/…" invalid={!!errors.linkedin} {...register("linkedin")} />
+              </FormField>
+              <FormField name="github_username" label="GitHub username" htmlFor="github_username">
+                <Input id="github_username" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={100} placeholder="octocat" invalid={!!errors.github_username} {...register("github_username")} />
               </FormField>
             </Section>
 

@@ -1,0 +1,98 @@
+{
+  "$comment": "The boilerplate deck. Slides mirror the Room talk shape. Slides 5 and 6 read the next session from data/schedule.json; the QR always points to joinUrl.",
+  "placeholder": true,
+  "joinUrl": "https://theupskillinglabs.org",
+  "joinUrlLabel": "theupskillinglabs.org",
+  "oneSentence": "The Upskilling Labs is a free community where people learn by building real projects together.",
+  "openingQuestion": "Who here has changed jobs, or thought about it, in the last two years?",
+  "proof": {
+    "stat": "300+",
+    "label": "people have come through our programs since January 2026."
+  },
+  "photo": {
+    "src": "/assets/photo-community.jpg",
+    "alt": "People working together at a session of The Labs."
+  },
+  "partners": [
+    {
+      "src": "/assets/dcpl-knockout-logo.png",
+      "alt": "DC Public Library",
+      "width": 117,
+      "height": 96
+    },
+    {
+      "src": "/assets/superbloom-white.png",
+      "alt": "Superbloom Design",
+      "width": 406,
+      "height": 96
+    },
+    {
+      "src": "/assets/levy-strategic-design-white.png",
+      "alt": "Levy Strategic Design",
+      "width": 198,
+      "height": 96
+    }
+  ],
+  "askFallback": "Workshops are free, hands-on, and open to everyone.",
+  "slides": [
+    {
+      "n": 1,
+      "key": "question",
+      "bg": "cover",
+      "eyebrow": "A quick question",
+      "cue": "Ask the question. Raise your own hand. Pause and let hands go up.",
+      "notes": "15 seconds. If nobody raises a hand, answer it yourself: 'I'll go first.'",
+      "seconds": 15
+    },
+    {
+      "n": 2,
+      "key": "story",
+      "bg": "navy",
+      "eyebrow": "",
+      "cue": "Your 30-second why: where you were, what happened, what changed.",
+      "notes": "30 seconds. The photo is a backdrop. Look at the room, not the screen.",
+      "seconds": 30
+    },
+    {
+      "n": 3,
+      "key": "what",
+      "bg": "paper",
+      "eyebrow": "What The Labs is",
+      "cue": "Read the sentence as written, then walk the ladder in one breath.",
+      "notes": "30 seconds. Say 'small team' before 'pod' if the room is new to The Labs.",
+      "seconds": 30
+    },
+    {
+      "n": 4,
+      "key": "proof",
+      "bg": "paper",
+      "eyebrow": "Proof",
+      "cue": "One stat. Say it, then stop.",
+      "notes": "15 seconds. Don't add a second number.",
+      "seconds": 15
+    },
+    {
+      "n": 5,
+      "key": "ask",
+      "bg": "ink",
+      "eyebrow": "Next session",
+      "cue": "Say the date, the place, and what to expect. Then: 'Join The Labs.'",
+      "notes": "30 seconds. The date comes from the schedule, so it's always current.",
+      "seconds": 30
+    },
+    {
+      "n": 6,
+      "key": "join",
+      "bg": "paper",
+      "eyebrow": "Join The Labs",
+      "cue": "Leave this up. 'The code goes to theupskillinglabs.org. Happy to take questions.'",
+      "notes": "Stay on this slide for all of Q&A. If asked where this is going: every metro region that wants it. The Labs isn't a place. It's something a region picks up, makes its own, and makes better. What they learn gets shared.",
+      "seconds": 15
+    }
+  ],
+  "shortSlides": [
+    1,
+    5,
+    6
+  ]
+}
