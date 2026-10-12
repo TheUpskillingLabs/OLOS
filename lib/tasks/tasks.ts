@@ -28,6 +28,7 @@ export interface DashboardTaskContext {
   profileDone: boolean;
   followsAnyone: boolean;
   slackRowVisible: boolean;
+  eventsRowVisible: boolean;
   slackInviteUrl?: string | null;
 
   activeCycle: {
@@ -105,6 +106,7 @@ export async function dashboardTasks(
     profileDone: ctx.profileDone,
     followsAnyone: ctx.followsAnyone,
     slackRowVisible: ctx.slackRowVisible,
+    eventsRowVisible: ctx.eventsRowVisible,
     slackInviteUrl: ctx.slackInviteUrl,
     activeCycle: ctx.activeCycle
       ? { id: ctx.activeCycle.id, name: ctx.activeCycle.name }
