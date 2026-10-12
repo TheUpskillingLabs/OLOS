@@ -72,7 +72,7 @@ export default async function CycleDetailPage({
     serviceClient
       .from("cycle_config")
       .select(
-        "theme_description, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+        "theme_description, invite_only, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
       )
       .eq("cycle_id", cycle.id)
       .single(),
@@ -104,19 +104,31 @@ export default async function CycleDetailPage({
   // to signed-in members who haven't signed this cycle's agreement, while the
   // D-10 registration window is open. Org cycles are invite-only — never a
   // Register CTA.
+  // Invite-only cycles (00104) never show it either: invitees are already
+  // enrolled (no agreement to sign), and nobody else can register.
   let showRegisterCta = false;
   if (
     me &&
     cycle.mode !== "org" &&
+    !(config as { invite_only?: boolean | null } | null)?.invite_only &&
     (cycle.status === "active" || cycle.status === "upcoming")
   ) {
-    const { data: agreement } = await serviceClient
-      .from("cycle_agreements")
-      .select("id")
-      .eq("cycle_id", cycle.id)
-      .eq("participant_id", me.id)
-      .maybeSingle();
-    if (!agreement) {
+    const [{ data: agreement }, { data: enrollment }] = await Promise.all([
+      serviceClient
+        .from("cycle_agreements")
+        .select("id")
+        .eq("cycle_id", cycle.id)
+        .eq("participant_id", me.id)
+        .maybeSingle(),
+      serviceClient
+        .from("cycle_enrollments")
+        .select("status")
+        .eq("cycle_id", cycle.id)
+        .eq("participant_id", me.id)
+        .in("status", ["registered", "active"])
+        .maybeSingle(),
+    ]);
+    if (!agreement && !enrollment) {
       showRegisterCta = (await registrationWindow(serviceClient, cycle.id))
         .open;
     }

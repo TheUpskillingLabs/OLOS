@@ -8,6 +8,7 @@ import { cycleAgreementSchema } from "@/lib/validations/cycle-agreement";
 import { requireActiveLabMembership } from "@/lib/labs/membership";
 import { registrationWindow } from "@/lib/cycles/schedule";
 import { fmtLabDateTime } from "@/lib/cycles/lab-time";
+import { rejectUninvited } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 // The Open Cycle Agreement signature (backend doc §2c) — the completion of
@@ -80,6 +81,12 @@ export const POST = withAuth(
         );
       }
     }
+
+    // Invite-only cycles (00104, docs/ORG_CYCLES.md §5a): signing is the
+    // self-serve way in, so it is closed to anyone without an enrollment —
+    // an accepted admin invitation is the only path that writes one.
+    const uninvited = await rejectUninvited(supabase, cycleId, participantId);
+    if (uninvited) return uninvited;
 
     const body = await parseBody(request, cycleAgreementSchema);
     if (isErrorResponse(body)) return body;

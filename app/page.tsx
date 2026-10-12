@@ -136,21 +136,35 @@ export default async function LandingPage() {
       getPublishedSpotlights(),
     ]);
 
+  // Invite-only cycles (00104) are not recruited on the public landing — the
+  // banner falls back to its "no cycle is open" state and the CTA to the
+  // generic Join The Labs / dashboard links.
+  const recruitingInviteOnly = recruitingCycle
+    ? (
+        await createServiceClient()
+          .from("cycle_config")
+          .select("invite_only")
+          .eq("cycle_id", recruitingCycle.id)
+          .maybeSingle()
+      ).data?.invite_only === true
+    : false;
+  const bannerCycle = recruitingInviteOnly ? null : recruitingCycle;
+
   // The registration banner is driven by the recruiting cycle (the upcoming
   // cohort if one is open, else the running one). Signed-in members go straight
   // to the join ceremony; signed-out visitors enter the funnel at /login. A
   // signed-in member with no open cycle lands on their dashboard — never
   // bounced back to /login (the old fail-open).
-  const joinCycleHref = recruitingCycle
+  const joinCycleHref = bannerCycle
     ? signedIn
-      ? `/cycles/${recruitingCycle.id}/join`
+      ? `/cycles/${bannerCycle.id}/join`
       : "/login"
     : signedIn
       ? "/dashboard"
       : "/login";
-  const bannerSeason = seasonYear(recruitingCycle?.start_date ?? null);
-  const bannerKickoff = recruitingCycle?.start_date
-    ? new Date(recruitingCycle.start_date).toLocaleDateString("en-US", {
+  const bannerSeason = seasonYear(bannerCycle?.start_date ?? null);
+  const bannerKickoff = bannerCycle?.start_date
+    ? new Date(bannerCycle.start_date).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
@@ -235,12 +249,12 @@ export default async function LandingPage() {
             eyebrow="Build Cycles · 4 per year"
             heading="Join a Build Cycle, solve a real problem"
           />
-          {recruitingCycle ? (
+          {bannerCycle ? (
             <div className="cycle-banner s-cover grain on-dark">
               <Orb />
               <div className="cb-body">
                 <span className="cb-status">
-                  {recruitingCycle.status === "upcoming"
+                  {bannerCycle.status === "upcoming"
                     ? "Registration open now"
                     : "Cycle in progress"}
                 </span>
@@ -249,7 +263,7 @@ export default async function LandingPage() {
                     {bannerSeason}
                   </div>
                 )}
-                <h3 className="t-h2">{recruitingCycle.name}</h3>
+                <h3 className="t-h2">{bannerCycle.name}</h3>
                 {bannerKickoff && (
                   <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
                     Kicks off {bannerKickoff} — twelve weeks, a group of curious
@@ -257,7 +271,7 @@ export default async function LandingPage() {
                     with solutions worth building.
                   </p>
                 )}
-                {recruitingCycle.mode === "open" && (
+                {bannerCycle.mode === "open" && (
                   <p className="t-small" style={{ marginTop: 6, color: "var(--od2)", maxWidth: "52ch" }}>
                     An Open Cycle — the projects are open source, free for anyone
                     to use and build on.
