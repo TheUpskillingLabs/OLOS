@@ -71,9 +71,11 @@ export default async function JoinCyclePage({
 
   // Invite-only participant cycles (00104, docs/ORG_CYCLES.md §5a): an
   // accepted admin invitation already enrolled the member, and invitees never
-  // sign the agreement — so an enrolled member has nothing to do here, and an
-  // uninvited one gets a closed door. The agreement route enforces the same
-  // rule server-side (rejectUninvited); this is the friendly surface.
+  // sign the agreement — so an enrolled member has nothing to sign here and
+  // lands on the cycle page (the /cycles "You're registered — view details"
+  // card links through this route), while an uninvited one gets a closed
+  // door. The agreement route enforces the same rule server-side
+  // (rejectUninvited); this is the friendly surface.
   const [{ data: inviteConfig }, { data: myEnrollment }] = await Promise.all([
     serviceClient
       .from("cycle_config")
@@ -88,7 +90,9 @@ export default async function JoinCyclePage({
       .maybeSingle(),
   ]);
   if (inviteConfig?.invite_only) {
-    if (!isInviteOnlyBlocked(inviteConfig, myEnrollment)) redirect("/dashboard");
+    if (!isInviteOnlyBlocked(inviteConfig, myEnrollment)) {
+      redirect(`/cycles/${cycleId}`);
+    }
     return (
       <div className="mx-auto max-w-xl py-12">
         <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">

@@ -157,13 +157,30 @@ export async function memberTaskPreview(
     onboarding && upcomingCycle ? upcomingCycle : activeCycle;
 
   let preRegisteredUpcoming = false;
+  let upcomingInviteOnly = false;
   if (onboarding && upcomingCycle) {
-    const { count } = await supabase
-      .from("cycle_agreements")
-      .select("id", { head: true, count: "exact" })
-      .eq("participant_id", participant.id)
-      .eq("cycle_id", upcomingCycle.id);
-    preRegisteredUpcoming = (count ?? 0) > 0;
+    const [{ count }, { data: upcomingEnrollment }, { data: upcomingConfig }] =
+      await Promise.all([
+        supabase
+          .from("cycle_agreements")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id),
+        supabase
+          .from("cycle_enrollments")
+          .select("status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id)
+          .in("status", ["registered", "active"])
+          .maybeSingle(),
+        supabase
+          .from("cycle_config")
+          .select("invite_only")
+          .eq("cycle_id", upcomingCycle.id)
+          .maybeSingle(),
+      ]);
+    preRegisteredUpcoming = (count ?? 0) > 0 || !!upcomingEnrollment;
+    upcomingInviteOnly = !!upcomingConfig?.invite_only;
   }
   // Mirrors app/(dashboard)/dashboard/page.tsx: a 'registered' enrollment
   // without an agreement is an invitee (00104) and counts as done, and an
@@ -174,8 +191,11 @@ export async function memberTaskPreview(
       : hasAgreement ||
         enrollment?.status === "active" ||
         enrollment?.status === "registered";
-  const inviteOnly =
-    registerCycleRow?.id === activeCycle?.id && !!activeCycleConfig?.invite_only;
+  const inviteOnly = !registerCycleRow
+    ? false
+    : registerCycleRow.id === upcomingCycle?.id
+      ? upcomingInviteOnly
+      : !!activeCycleConfig?.invite_only;
   const regWindow =
     registerCycleRow && !registerDone && !inviteOnly
       ? await registrationWindow(supabase, registerCycleRow.id)
