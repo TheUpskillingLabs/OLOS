@@ -10,7 +10,7 @@ import { AMB_JOIN_COOKIE, cleanAmbJoin, parseAmbJoin } from "@/lib/ambassador/jo
 import ApplyFlow, { type ApplyInvite } from "./apply-flow";
 
 /* Getting in — orientation, one screen at a time, in the order that gives
-   before it takes: The Labs in three minutes → ten questions → the Ambassador
+   before it takes: the overview (or the film) → ten questions → the Ambassador
    Agreement → your details → the pass. Sign-in replaces the prototype's
    "Your name" fields (Google already has them); the server grades the quiz,
    records the agreement, and decides: a valid invite means "You're in",

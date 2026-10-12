@@ -1,8 +1,8 @@
 {
-  "$comment": "The apply flow (/ambassador/apply): the short film or read, the quiz (graded on the server, lib/ambassador/quiz.ts), the Ambassador Agreement (recorded in agreement_acceptances), confirm your details, then 'Almost there' while two reviewers decide (lib/ambassador/review.ts), or 'You're in' once they have. An invite is approved by a second coordinator (00106); once it is, finishing the quiz and agreement makes the invitee an ambassador. The quiz is the ambassador coordinator's ten-question certification (September 2026), eight right to pass. [PLACEHOLDER] marks copy to confirm. The agreement is a draft and needs review before launch; bump agreement.version whenever its text changes.",
+  "$comment": "The apply flow (/ambassador/apply): the overview (or the film, once it exists), the quiz (graded on the server, lib/ambassador/quiz.ts), the Ambassador Agreement (recorded in agreement_acceptances), confirm your details, then 'Almost there' while two reviewers decide (lib/ambassador/review.ts), or 'You're in' once they have. An invite is approved by a second coordinator (00106); once it is, finishing the quiz and agreement makes the invitee an ambassador. The quiz is the ambassador coordinator's ten-question certification (September 2026), eight right to pass. [PLACEHOLDER] marks copy to confirm. The agreement is a draft and needs review before launch; bump agreement.version whenever its text changes.",
   "placeholder": true,
   "title": "Become an ambassador",
-  "description": "The Labs in three minutes, ten questions, the ambassador agreement, and your name. About ten minutes.",
+  "description": "An overview of the program, ten questions, the ambassador agreement, and your name. About ten minutes.",
   "stepOf": "Step {n} of {total}",
   "back": "Back",
   "next": "Next",
@@ -66,27 +66,104 @@
     "error": "Tick the box to agree before you continue."
   },
   "video": {
+    "$comment": "The first screen. While src is empty (no film yet) it shows the photo in `fallback` and the *NoFilm copy, and nothing says a film is missing; set src (plus poster and captions) and the film takes the photo's place. `overview` is the screen's numbered steps. Steps flagged draft: true are seed copy awaiting review (never marked on screen). Step 4's topics hold every fact the ten quiz questions ask about, so keep them in step with quiz.questions. Each topic's `more` is a slot for a fuller piece built later: null renders nothing; {label, href} renders a link.",
     "nav": "Video",
+    "navNoFilm": "Overview",
     "title": "The Labs in three minutes.",
-    "lede": "Watch it, or read the short version. The ten questions come from this.",
+    "titleNoFilm": "Before you apply.",
+    "lede": "Watch it, or read the overview below. The ten questions come from it.",
+    "ledeNoFilm": "Four short parts. Step 4 is where the ten questions come from.",
     "src": "",
     "poster": "",
     "captions": "",
-    "placeholder": "[PLACEHOLDER] The orientation film goes here.",
+    "fallback": {
+      "src": "/ambassador/photo-community.jpg",
+      "alt": "People standing and talking in small groups at a Labs event",
+      "caption": "The Labs: people learning together."
+    },
     "watched": "Next",
-    "readTitle": "The short version",
-    "read": [
-      "Most people find The Labs because someone they know said “come with me.”",
-      "The Labs is free. Workshops, Build Cycles, all of it. Run by volunteers. It grew out of a fall 2025 pilot run by DC Public Library and Levy, a strategic design firm, for about 50 ex-feds navigating career change and new technology. The pilot's alums founded The Labs in January 2026.",
-      "The tagline: “Find your people. Build your edge.” The idea behind it: AI is rewriting how we work, and it's easier to learn together than alone.",
-      "You don't need a technical background. Just a willingness to learn by doing alongside others.",
-      "A Build Cycle is twelve weeks, four a year: Problem Discovery, then Experimentation, then Synthesis. Small teams called pods form around the problems people vote for. Everything built is open-source by default.",
-      "Workshops teach two kinds of skills. Durable skills, like communication, storytelling, and framing problems. And AI skills, like prompt engineering and building agents.",
-      "Signing in uses a Google account for your name, email, and profile picture only. Never Gmail, Drive, or Calendar.",
-      "Your job is three moves. Ask what they're working toward. Share thirty seconds of your story. Invite them to one dated next step.",
-      "You don't sell, sign anyone up, or promise a job. People Join The Labs themselves at theupskillinglabs.org.",
-      "If anyone asks what we are: “a fiscally sponsored project of Superbloom Design, a 501(c)(3). Our own status is pending.”"
-    ]
+    "overview": {
+      "steps": [
+        {
+          "id": "do",
+          "title": "What you'll do",
+          "draft": false,
+          "points": [
+            "Have real conversations. Ask what someone's working toward, share thirty seconds of your story, and invite them to one dated next step.",
+            "Give one short talk to a group you're part of. You'll practice first.",
+            "Welcome the next ambassador, the way someone once welcomed you.",
+            "You don't sell, sign anyone up, or promise a job. People join The Labs themselves at theupskillinglabs.org."
+          ]
+        },
+        {
+          "id": "get",
+          "title": "What you get",
+          "draft": true,
+          "points": [
+            "A short guide and a practice deck: about half an hour before your first conversation.",
+            "A coordinator with you the whole way.",
+            "Your Ambassador button, handed to you in person.",
+            "Practice in the durable skills The Labs teaches: telling your story, listening, and speaking to a room."
+          ]
+        },
+        {
+          "id": "next",
+          "title": "Where it's going",
+          "draft": true,
+          "points": [
+            "Our first ambassadors start the program, and what works in their conversations shapes the guide.",
+            "Ambassadors in every city where a Lab is forming.",
+            "A way to recognise the people who keep The Labs running, earned by passing it on."
+          ]
+        }
+      ],
+      "labs": {
+        "title": "The Labs in brief",
+        "lede": "The ten questions come from here.",
+        "topics": [
+          {
+            "id": "who",
+            "title": "Who we are",
+            "points": [
+              "The tagline: “Find your people. Build your edge.”",
+              "The idea behind it: AI is rewriting how we work, and it's easier to learn together than alone.",
+              "It grew out of a fall 2025 pilot run by DC Public Library and Levy, a strategic design firm, for about 50 ex-feds navigating career change and new technology. The pilot's alums founded The Labs in January 2026.",
+              "Free, and run by volunteers. If anyone asks what we are: “a fiscally sponsored project of Superbloom Design, a 501(c)(3). Our own status is pending.”",
+              "Most people find The Labs because someone they know said “come with me.”"
+            ],
+            "more": null
+          },
+          {
+            "id": "cycles",
+            "title": "Build Cycles",
+            "points": [
+              "Twelve weeks, four a year.",
+              "Three phases, in order: Problem Discovery, Experimentation, Synthesis.",
+              "Small teams called pods form around the problems people vote for.",
+              "Everything built is open-source by default."
+            ],
+            "more": null
+          },
+          {
+            "id": "learn",
+            "title": "What you learn",
+            "points": [
+              "No technical background needed, just a willingness to learn by doing alongside others.",
+              "Two kinds of skills: durable skills, like communication, storytelling and framing problems; and AI skills, like prompt engineering and building agents."
+            ],
+            "more": null
+          },
+          {
+            "id": "account",
+            "title": "Your account",
+            "points": [
+              "Signing in uses a Google account for your name, email and profile picture only. Never Gmail, Drive or Calendar."
+            ],
+            "more": null
+          }
+        ]
+      }
+    }
   },
   "quiz": {
     "nav": "Quiz",

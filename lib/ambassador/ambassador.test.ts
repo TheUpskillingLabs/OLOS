@@ -126,3 +126,37 @@ describe("step markdown", () => {
     expect(() => parseMarkdown("<!-- ladderr -->", "labs")).toThrow(/ladderr.*labs/);
   });
 });
+
+describe("apply overview copy", () => {
+  const { overview } = apply.video;
+  const onScreen = [
+    apply.video.navNoFilm,
+    apply.video.titleNoFilm,
+    apply.video.ledeNoFilm,
+    apply.video.fallback.alt,
+    apply.video.fallback.caption,
+    overview.labs.title,
+    overview.labs.lede,
+    ...overview.steps.flatMap((s) => [s.title, ...s.points]),
+    ...overview.labs.topics.flatMap((t) => [t.title, ...t.points]),
+  ];
+
+  it("gives every step and topic at least one point", () => {
+    for (const s of overview.steps) expect(s.points.length, s.id).toBeGreaterThan(0);
+    for (const t of overview.labs.topics) expect(t.points.length, t.id).toBeGreaterThan(0);
+  });
+
+  it("keeps each topic's 'more' slot empty or complete", () => {
+    for (const t of overview.labs.topics) {
+      const more = t.more as { label?: string; href?: string } | null;
+      if (more !== null) expect(Boolean(more.label && more.href), t.id).toBe(true);
+    }
+  });
+
+  it("never says a film or anything else is missing, or uses banned words", () => {
+    for (const s of onScreen) {
+      expect(s, s).not.toMatch(/placeholder|coming soon|\bfilm\b/i);
+      expect(s, s).not.toMatch(/\b(course|class|student|lesson|module)s?\b/i);
+    }
+  });
+});

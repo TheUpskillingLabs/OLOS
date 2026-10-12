@@ -10,6 +10,7 @@ import type { ApplyStage } from "@/lib/ambassador/status";
 import type { InviteProblem } from "@/lib/ambassador/data";
 import type { QuizResult } from "@/lib/ambassador/quiz";
 import { askStore, profileStore, shareText } from "@/app/components/ambassador/local-store";
+import { ApplyOverview, hasFilm } from "@/app/components/ambassador/apply-overview";
 
 export interface ApplyInvite {
   token: string;
@@ -22,7 +23,7 @@ export interface ApplyInvite {
 
 type Outcome = "in" | "pending" | null;
 const SCREENS: ApplyStage[] = ["video", "quiz", "agreement", "details", "done"];
-const NAV = [apply.video.nav, apply.quiz.nav, apply.agreement.nav, apply.you.nav];
+const NAV = [hasFilm ? apply.video.nav : apply.video.navNoFilm, apply.quiz.nav, apply.agreement.nav, apply.you.nav];
 
 async function post(body: unknown): Promise<{ ok: boolean; json: Record<string, unknown> | null }> {
   const res = await fetch("/api/ambassadors/application", {
@@ -129,24 +130,9 @@ export default function ApplyFlow({
 
       {screen === "video" && (
         <section aria-labelledby="ap-video">
-          <h1 id="ap-video" ref={heading} tabIndex={-1} className="t-h1 text-ink">{apply.video.title}</h1>
-          <p className="t-lede" style={{ marginTop: 8 }}>{apply.video.lede}</p>
-          <div style={{ marginTop: 20 }}>
-            {apply.video.src ? (
-              <video className="amb-video" controls playsInline preload="metadata" poster={apply.video.poster || undefined}>
-                <source src={apply.video.src} />
-                {apply.video.captions && <track kind="captions" src={apply.video.captions} srcLang="en" label="English" default />}
-              </video>
-            ) : (
-              <p className="amb-placeholder">{apply.video.placeholder}</p>
-            )}
-          </div>
-          <div className="amb-panel amb-read" style={{ marginTop: 20 }}>
-            <h2 className="t-h3">{apply.video.readTitle}</h2>
-            {apply.video.read.map((p) => (
-              <p key={p} className="t-body">{p}</p>
-            ))}
-          </div>
+          <h1 id="ap-video" ref={heading} tabIndex={-1} className="t-h1 text-ink">{hasFilm ? apply.video.title : apply.video.titleNoFilm}</h1>
+          <p className="t-lede" style={{ marginTop: 8 }}>{hasFilm ? apply.video.lede : apply.video.ledeNoFilm}</p>
+          <ApplyOverview />
           <div className="amb-row-actions" style={{ justifyContent: "flex-end" }}>
             <button type="button" className="btn btn-teal" disabled={busy} onClick={() => run({ action: "oriented" }, () => go("quiz"))}>
               {apply.video.watched} →
