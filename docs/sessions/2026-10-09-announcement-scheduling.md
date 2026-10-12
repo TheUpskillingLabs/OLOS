@@ -36,7 +36,8 @@
 - `npm run test`: 660 passed.
 - `npm run lint`: 0 errors. The 8 warnings are in untouched files.
 - `npm run build`, `npm run check:docs` and `npm run check:migrations` pass.
-- Not verified: the migration was only static-checked (it has not been applied to a database), and the UI was not exercised in a browser. The manual test steps are in the #490 body.
+- 2026-10-12: `00108` applied to the dev database by hand (per `docs/environments.md`), plus ledger row `00108`. Verified afterwards: column + default, index, the new select rule, and the one existing row still has no expiry. The read rule went in via `ALTER POLICY` because the Supabase connector timed out on `DROP` statements; the result is the same.
+- Not verified by me: the UI in a browser. AMG is testing on the preview; the manual steps are in the #490 body.
 
 ## Decisions made → where they live
 
@@ -46,6 +47,12 @@
 | Visibility enforced at read time; the cron is bookkeeping only | `00108` header; cron route comment |
 | Legacy rows get no expiry | `00108` header |
 | A scheduled post's untouched default expiry is go-live + 14 days, not creation + 14 days | #490 body (awaiting AMG's confirmation) |
+
+## Follow-ups during review
+
+- First test on the preview hit "An internal error occurred": `00104` hadn't been applied to the dev database, so the `expires_at` write failed. Fixed by applying it (above).
+- The meta line showed dates in UTC, date only, which read as if scheduling ran on UTC. It now shows local date + time with the zone, and the form names the timezone. The inputs were already local.
+- Renumbered `00104` → `00108`: `dev` gained `00104`–`00106` (ambassadors), and the hand-off brief reserves `00107` for #470. The brief's reservations for lanes S, C and P (`00104`–`00106`) are now taken by the ambassador migrations, so those lanes need new numbers.
 
 ## Open questions / needs from others
 
