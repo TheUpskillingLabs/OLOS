@@ -26,7 +26,6 @@ export default function CycleRegisterCard({
   state,
   upcoming,
   reopensAt,
-  inviteOnly = false,
 }: {
   cycle: RegisterCardCycle;
   state: "open" | "pre_registered" | "closed";
@@ -34,8 +33,6 @@ export default function CycleRegisterCard({
   upcoming: boolean;
   /** When state === "closed" in the dead zone: the reopen instant (ISO). */
   reopensAt?: string | null;
-  /** When state === "closed" because the cycle is invite-only (00104). */
-  inviteOnly?: boolean;
 }) {
   if (state === "pre_registered") {
     return (
@@ -68,14 +65,10 @@ export default function CycleRegisterCard({
   if (state === "closed") {
     return (
       <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
-        <div className="lbl mb-2">
-          {inviteOnly ? "Invite only" : "Registration closed"}
-        </div>
+        <div className="lbl mb-2">Registration closed</div>
         <h2 className="t-h3 text-ink">{cycle.name}</h2>
         <p className="mt-2 text-sm text-meta">
-          {inviteOnly
-            ? "This cycle is by invitation. If you were invited, open the link in your invitation email to join."
-            : reopensAt
+          {reopensAt
             ? `Pods are forming right now, so registration is paused. It reopens ${fmtLabDateTime(
                 reopensAt
               )}, when pods open to new members.`

@@ -204,10 +204,11 @@ get in:
   `rejectOrgCycle`) 403s anyone without an enrollment on the join ceremony,
   `POST /api/cycles/[id]/agreement`, the legacy `…/interest` route, and
   `POST /api/pods/[id]/register` (which never required an enrollment and
-  would otherwise be a side door). The landing banner, `/cycles`, the cycle
-  page, the dashboard register card and the welcome email all stop offering
-  Join / Register for an invite-only cycle; already-enrolled members keep
-  their confirmation.
+  would otherwise be a side door). **The uninvited see nothing** (owner
+  rule): the landing banner and welcome email don't recruit for it, `/cycles`
+  hides it, its page and join route redirect to `/cycles` (admins may still
+  open the page), and the dashboard shows no card or task. Already-enrolled
+  invitees keep the ordinary "you're registered" confirmation.
 - **Independent of `mode='org'`.** Org cycles are invite-only by construction
   and ignore the flag (`ORG_ALLOWED_CONFIG_KEYS` rejects it on PATCH). A lab
   can still run its org cycle alongside; dual-enrolled members then file two
