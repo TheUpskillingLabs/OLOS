@@ -9,7 +9,7 @@ import {
   reconcilePodMembers,
 } from "@/lib/enrollment/reconciler";
 import { requireCompleteProfile } from "@/lib/participants/placeholder";
-import { rejectOrgCycle } from "@/lib/cycle/guards";
+import { rejectOrgCycle, rejectUninvited } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -42,6 +42,19 @@ export const POST = withAuth(
       "This is an organization workstream — membership is by invitation."
     );
     if (orgRejection) return orgRejection;
+
+    // Invite-only participant cycles (00104, docs/ORG_CYCLES.md §5a): this
+    // route never required a cycle enrollment, so without this check an
+    // uninvited member could walk straight into a pod. Enrolled invitees pass.
+    // Service client: cycle_config / cycle_enrollments reads are RLS-gated
+    // for the cookie-bound client (see the pod_limit read below).
+    const uninvited = await rejectUninvited(
+      createServiceClient(),
+      pod.cycle_id,
+      participantId,
+      "This cycle is invite-only — pods are open to invited members."
+    );
+    if (uninvited) return uninvited;
 
     // Pods are local (docs/LOCAL_LABS.md): a lab-tagged pod only accepts its
     // own lab's members. The DB fence (00068) backstops this; here we return a

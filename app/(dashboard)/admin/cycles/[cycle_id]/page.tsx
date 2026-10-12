@@ -13,6 +13,7 @@ import {
   CycleRegInfoForm,
 } from "./cycle-config-form";
 import CycleLogGateForm from "./cycle-log-gate-form";
+import CycleInviteOnlyForm from "./cycle-invite-only-form";
 import CycleLeadershipLogGateForm from "./cycle-leadership-log-gate-form";
 import ParticipantsTable from "./participants-table";
 import FinalizeVotingButton from "./finalize-voting-button";
@@ -431,8 +432,14 @@ export default async function AdminCycleDetailPage({
           <section>
             <h2 className="mb-1 t-h3 text-ink">Registration</h2>
             <p className="mb-4 text-sm text-meta">
-              Theme copy shown during cycle registration.
+              Who can register, and the theme copy shown during registration.
             </p>
+            <div className="mb-6">
+              <CycleInviteOnlyForm
+                cycleId={cycle.id}
+                inviteOnly={!!config.invite_only}
+              />
+            </div>
             <CycleRegInfoForm cycleId={cycle.id} config={config} />
           </section>
           <hr className="border-ink/10" />

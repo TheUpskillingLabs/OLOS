@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { rejectOrgCycle, orgForbiddenConfigKeys } from "./guards";
+import {
+  rejectOrgCycle,
+  orgForbiddenConfigKeys,
+  isInviteOnlyBlocked,
+  rejectUninvited,
+} from "./guards";
 
 function fakeSupabase(cycle: { mode: string } | null): SupabaseClient {
   return {
@@ -79,5 +84,85 @@ describe("orgForbiddenConfigKeys", () => {
         max_pods: undefined,
       })
     ).toEqual([]);
+  });
+});
+
+describe("isInviteOnlyBlocked", () => {
+  it("never blocks when the flag is off or config is missing", () => {
+    expect(isInviteOnlyBlocked({ invite_only: false }, null)).toBe(false);
+    expect(isInviteOnlyBlocked(null, null)).toBe(false);
+    expect(isInviteOnlyBlocked({ invite_only: null }, null)).toBe(false);
+  });
+
+  it("blocks an invite-only cycle when there is no enrollment", () => {
+    expect(isInviteOnlyBlocked({ invite_only: true }, null)).toBe(true);
+  });
+
+  it("admits registered / active enrollments on an invite-only cycle", () => {
+    expect(isInviteOnlyBlocked({ invite_only: true }, { status: "registered" })).toBe(false);
+    expect(isInviteOnlyBlocked({ invite_only: true }, { status: "active" })).toBe(false);
+  });
+
+  it("blocks exited enrollments on an invite-only cycle", () => {
+    expect(isInviteOnlyBlocked({ invite_only: true }, { status: "inactive" })).toBe(true);
+    expect(isInviteOnlyBlocked({ invite_only: true }, { status: "revoked" })).toBe(true);
+  });
+});
+
+describe("rejectUninvited", () => {
+  // Answers cycle_config and cycle_enrollments by table name; the enrollment
+  // query chains two .eq() calls, so eq() returns the same builder.
+  function fakeSupabaseTables(tables: {
+    cycle_config: { invite_only: boolean } | null;
+    cycle_enrollments: { status: string } | null;
+  }): SupabaseClient {
+    return {
+      from: (table: keyof typeof tables) => {
+        const builder = {
+          select: () => builder,
+          eq: () => builder,
+          maybeSingle: async () => ({ data: tables[table] }),
+        };
+        return builder;
+      },
+    } as unknown as SupabaseClient;
+  }
+
+  it("returns null for an open-registration cycle", async () => {
+    const supabase = fakeSupabaseTables({
+      cycle_config: { invite_only: false },
+      cycle_enrollments: null,
+    });
+    expect(await rejectUninvited(supabase, 1, 10)).toBeNull();
+  });
+
+  it("returns null for an invited (enrolled) member", async () => {
+    const supabase = fakeSupabaseTables({
+      cycle_config: { invite_only: true },
+      cycle_enrollments: { status: "registered" },
+    });
+    expect(await rejectUninvited(supabase, 1, 10)).toBeNull();
+  });
+
+  it("403s an uninvited member with the default message", async () => {
+    const supabase = fakeSupabaseTables({
+      cycle_config: { invite_only: true },
+      cycle_enrollments: null,
+    });
+    const res = await rejectUninvited(supabase, 1, 10);
+    expect(res).not.toBeNull();
+    expect(res!.status).toBe(403);
+    const body = await res!.json();
+    expect(body.error).toMatch(/invite-only/i);
+  });
+
+  it("403s with a custom message", async () => {
+    const supabase = fakeSupabaseTables({
+      cycle_config: { invite_only: true },
+      cycle_enrollments: { status: "revoked" },
+    });
+    const res = await rejectUninvited(supabase, 1, 10, "Nope.");
+    expect(res!.status).toBe(403);
+    expect((await res!.json()).error).toBe("Nope.");
   });
 });

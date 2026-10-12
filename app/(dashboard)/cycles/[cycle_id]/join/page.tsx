@@ -8,6 +8,7 @@ import { registrationWindow } from "@/lib/cycles/schedule";
 import CycleCeremony from "./ceremony";
 import { cycleInfoContent } from "@/lib/cycles/info";
 import { effectiveUser } from "@/lib/auth/simulation";
+import { isInviteOnlyBlocked } from "@/lib/cycle/guards";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
 // FLOWS('cycle') → the Open Cycle Agreement signature → view-cycle-signed).
@@ -67,6 +68,47 @@ export default async function JoinCyclePage({
   // Org cycles (docs/ORG_CYCLES.md) are invite-only — no self-serve join
   // ceremony. Redirect before any interest/agreement UI renders.
   if (cycle.mode === "org") redirect("/cycles");
+
+  // Invite-only participant cycles (00104, docs/ORG_CYCLES.md §5a): an
+  // accepted admin invitation already enrolled the member, and invitees never
+  // sign the agreement — so an enrolled member has nothing to do here, and an
+  // uninvited one gets a closed door. The agreement route enforces the same
+  // rule server-side (rejectUninvited); this is the friendly surface.
+  const [{ data: inviteConfig }, { data: myEnrollment }] = await Promise.all([
+    serviceClient
+      .from("cycle_config")
+      .select("invite_only")
+      .eq("cycle_id", cycleId)
+      .maybeSingle(),
+    serviceClient
+      .from("cycle_enrollments")
+      .select("status")
+      .eq("cycle_id", cycleId)
+      .eq("participant_id", participant.id)
+      .maybeSingle(),
+  ]);
+  if (inviteConfig?.invite_only) {
+    if (!isInviteOnlyBlocked(inviteConfig, myEnrollment)) redirect("/dashboard");
+    return (
+      <div className="mx-auto max-w-xl py-12">
+        <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
+          <div className="lbl mb-2">Invite only</div>
+          <h1 className="t-h2 text-ink">{cycle.name}</h1>
+          <p className="mt-3 text-meta">
+            This cycle is by invitation. If you were invited, open the link in
+            your invitation email to join — it signs you up directly.
+          </p>
+          <Link
+            href="/cycles"
+            className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep hover:underline"
+          >
+            Back to cycles
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Sub-cohort model (docs/LOCAL_LABS.md, 00067): the joinable participant
   // cycle is the single HQ one (live open cycles are lab_id NULL by the

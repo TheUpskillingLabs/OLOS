@@ -132,7 +132,7 @@ export default async function DashboardPage() {
       ? serviceClient
           .from("cycle_config")
           .select(
-            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit, milestone_mid_week, milestone_final_week"
+            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit, milestone_mid_week, milestone_final_week, invite_only"
           )
           .eq("cycle_id", activeCycle.id)
           .single()
@@ -479,18 +479,26 @@ export default async function DashboardPage() {
     : onboarding && upcomingCycle
       ? upcomingCycle
       : activeCycle;
+  // A 'registered' enrollment with no agreement is an invitee (00104 —
+  // invite fulfillment enrolls without the ceremony), so it counts as done;
+  // otherwise they'd be nagged to sign an agreement they were told to skip.
   const registerDone =
     onboarding && upcomingCycle
       ? preRegisteredUpcoming
-      : hasAgreement || enrollment?.status === "active";
+      : hasAgreement ||
+        enrollment?.status === "active" ||
+        enrollment?.status === "registered";
 
   // D-10 (docs/requirements/pod-registration.md): registration for a cohort
   // closes between pod-forming close and the active-join window, and again
   // after active-join ends. Gates the register task and the state card
   // below — members who already signed keep their confirmation regardless
-  // of the window.
+  // of the window. An invite-only cycle (00104) reads as closed to anyone
+  // not already in it.
+  const inviteOnly =
+    registerCycle?.id === activeCycle?.id && !!activeCycleConfig?.invite_only;
   const regWindow =
-    registerCycle && !registerDone
+    registerCycle && !registerDone && !inviteOnly
       ? await registrationWindow(serviceClient, registerCycle.id)
       : null;
   const regOpen = registerDone || (regWindow?.open ?? false);
@@ -580,6 +588,7 @@ export default async function DashboardPage() {
         cycle={cycle}
         state="closed"
         upcoming={onboarding && !!upcomingCycle}
+        inviteOnly={inviteOnly}
         reopensAt={
           regWindow?.state === "dead_zone" && regWindow.reopensAt
             ? regWindow.reopensAt.toISOString()
