@@ -37,6 +37,10 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   (`/ambassador/coordinator/[id]`), with an admin breaking a split and an invite counting as one
   approval; migration `00105` (#PR)
 
+### Changed
+
+- Homepage "What's next" banner: the internal cycle's dates (Oct 13 – Dec 8) are hard-coded instead of read from the org cycle row, and the "Taken part before? Join the internal cycle" link is removed.
+
 ### Fixed
 
 - One "what's next" message on every public surface (the board advisor's and AMG's wording, epic #477):

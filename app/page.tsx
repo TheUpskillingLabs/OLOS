@@ -14,7 +14,7 @@ import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getRecruitingCycle } from "@/lib/cycle/active";
-import { internalCycleJoinUrl, whatsNextMessage } from "@/lib/cycles/whats-next";
+import { whatsNextMessage, type InternalCycleFacts } from "@/lib/cycles/whats-next";
 import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
@@ -26,6 +26,24 @@ export const metadata = {
 
 // Auth-aware nav + live content tables — always rendered per request.
 export const dynamic = "force-dynamic";
+
+// The internal Build Cycle the "What's next" banner names, hard-coded so the
+// homepage copy no longer depends on an org cycle row existing in the
+// database (decided 2026-10-12). The invitation drops off after the end
+// date, so a forgotten constant never becomes a stale promise.
+const INTERNAL_CYCLE: InternalCycleFacts = {
+  name: "Internal Build Cycle",
+  start_date: "2026-10-13",
+  end_date: "2026-12-08",
+};
+
+function internalCycleUntilEnd(now: Date): InternalCycleFacts | null {
+  const end = new Date(`${INTERNAL_CYCLE.end_date}T00:00:00Z`);
+  // Still shown through the end day itself.
+  return now.getTime() < end.getTime() + 24 * 60 * 60 * 1000
+    ? INTERNAL_CYCLE
+    : null;
+}
 
 // "Summer 2026" from a start date — the banner's season label (no location
 // column exists yet; the local lab is surfaced separately).
@@ -162,7 +180,10 @@ export default async function LandingPage() {
   // into. Visitors then see the internal cycle, the public workshops, and the
   // next public kickoff — never "Join this cycle" for a cycle that can't take
   // them. The workshops and events are the primary action.
-  const whatsNext = whatsNextMessage(whatsNextFacts);
+  const whatsNext = whatsNextMessage({
+    ...whatsNextFacts,
+    internalCycle: internalCycleUntilEnd(new Date()),
+  });
   const showWhatsNext =
     !recruitingCycle || (!recruitingUpcoming && whatsNext.internal !== null);
   const joinCycleHref = recruitingCycle
@@ -322,17 +343,6 @@ export default async function LandingPage() {
                 <Link className="btn btn-red btn-lg" href="/events">
                   {whatsNext.eventsCta}
                 </Link>
-                {whatsNext.internal && (
-                  <a
-                    href={internalCycleJoinUrl()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="t-small"
-                    style={{ display: "block", marginTop: 12, color: "var(--teal)", fontWeight: 600 }}
-                  >
-                    {whatsNext.internalCta} →
-                  </a>
-                )}
               </div>
             </div>
           )}
