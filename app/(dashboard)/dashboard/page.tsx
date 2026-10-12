@@ -248,14 +248,34 @@ export default async function DashboardPage() {
     .in("cycles.status", ["active", "upcoming"]);
   const moderatesCurrentCycle = (activeModAssignmentCount ?? 0) > 0;
 
+  // Pre-registered = signed the agreement OR holds an enrollment (an invitee
+  // on an invite-only cycle, 00104, is enrolled without ever signing). The
+  // upcoming cycle's invite_only flag rides along for the register gate.
   let preRegisteredUpcoming = false;
+  let upcomingInviteOnly = false;
   if (upcomingCycle) {
-    const { count } = await serviceClient
-      .from("cycle_agreements")
-      .select("id", { head: true, count: "exact" })
-      .eq("participant_id", participant.id)
-      .eq("cycle_id", upcomingCycle.id);
-    preRegisteredUpcoming = (count ?? 0) > 0;
+    const [{ count }, { data: upcomingEnrollment }, { data: upcomingConfig }] =
+      await Promise.all([
+        serviceClient
+          .from("cycle_agreements")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id),
+        serviceClient
+          .from("cycle_enrollments")
+          .select("status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id)
+          .in("status", ["registered", "active"])
+          .maybeSingle(),
+        serviceClient
+          .from("cycle_config")
+          .select("invite_only")
+          .eq("cycle_id", upcomingCycle.id)
+          .maybeSingle(),
+      ]);
+    preRegisteredUpcoming = (count ?? 0) > 0 || !!upcomingEnrollment;
+    upcomingInviteOnly = !!upcomingConfig?.invite_only;
   }
 
   // Determine pod registration window status. Naive window columns are UTC
@@ -495,8 +515,11 @@ export default async function DashboardPage() {
   // below — members who already signed keep their confirmation regardless
   // of the window. An invite-only cycle (00104) reads as closed to anyone
   // not already in it.
-  const inviteOnly =
-    registerCycle?.id === activeCycle?.id && !!activeCycleConfig?.invite_only;
+  const inviteOnly = !registerCycle
+    ? false
+    : registerCycle.id === upcomingCycle?.id
+      ? upcomingInviteOnly
+      : !!activeCycleConfig?.invite_only;
   const regWindow =
     registerCycle && !registerDone && !inviteOnly
       ? await registrationWindow(serviceClient, registerCycle.id)
