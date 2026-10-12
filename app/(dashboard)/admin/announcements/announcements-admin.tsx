@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { formatDate } from "@/lib/format/date";
+import { formatDate as formatUtcDate } from "@/lib/format/date";
 import {
   announcementPhase,
   defaultExpiry,
+  formatLocalDateTime,
   fromLocalInput,
+  localTimeZoneName,
   toLocalInput,
   type AnnouncementPhase,
 } from "@/lib/announcements/schedule";
@@ -244,7 +246,10 @@ function ScheduleFields({
           value={hydrated ? toLocalInput(goLive) : ""}
           onChange={(e) => onGoLive(fromLocalInput(e.target.value))}
         />
-        <span className="mt-1 block text-xs text-meta">{goLiveHint}</span>
+        <span className="mt-1 block text-xs text-meta">
+          {goLiveHint}
+          {hydrated ? ` Times are in your timezone (${localTimeZoneName()}).` : ""}
+        </span>
       </label>
       <div className="block">
         <label className="block">
@@ -416,7 +421,15 @@ function ComposeForm({
   );
 }
 
-function phaseMeta(row: AdminAnnouncement, phase: AnnouncementPhase): string {
+// Meta-line timestamps: the viewer's local date + time once hydrated; the
+// server (and the hydration pass) render the UTC date, as before.
+function phaseMeta(
+  row: AdminAnnouncement,
+  phase: AnnouncementPhase,
+  hydrated: boolean
+): string {
+  const formatDate = (iso: string) =>
+    hydrated ? formatLocalDateTime(iso) : formatUtcDate(iso);
   const parts: string[] = [];
   if (phase === "scheduled" && row.published_at) {
     parts.push(`goes live ${formatDate(row.published_at)}`);
@@ -493,13 +506,14 @@ function AnnouncementRow({
   }
 
   const willSchedule = isFuture(goLive);
+  const hydrated = useHydrated();
 
   return (
     <div className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-meta tabular-nums">
           #{row.id} · {labLabel(row.lab_id)}
-          {row.pinned ? " · pinned" : ""} · {phaseMeta(row, phase)}
+          {row.pinned ? " · pinned" : ""} · {phaseMeta(row, phase, hydrated)}
         </span>
       </div>
 

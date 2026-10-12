@@ -3,7 +3,9 @@ import {
   DEFAULT_EXPIRY_DAYS,
   announcementPhase,
   defaultExpiry,
+  formatLocalDateTime,
   fromLocalInput,
+  localTimeZoneName,
   scheduleError,
   toLocalInput,
 } from "./schedule";
@@ -100,5 +102,18 @@ describe("datetime-local round trip", () => {
   it("round-trips to the minute in local time", () => {
     const iso = "2026-10-20T15:30:00.000Z";
     expect(fromLocalInput(toLocalInput(iso))).toBe(iso);
+  });
+});
+
+describe("local display", () => {
+  it("formats date and time in the given timezone, with its abbreviation", () => {
+    expect(
+      formatLocalDateTime("2026-10-20T15:30:00Z", "America/New_York")
+    ).toBe("Oct 20, 2026, 11:30 AM EDT");
+  });
+
+  it("names the timezone, tracking daylight saving", () => {
+    expect(localTimeZoneName(new Date("2026-10-20T12:00:00Z"), "America/New_York")).toBe("EDT");
+    expect(localTimeZoneName(new Date("2026-12-20T12:00:00Z"), "America/New_York")).toBe("EST");
   });
 });

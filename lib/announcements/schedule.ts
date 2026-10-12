@@ -94,6 +94,31 @@ export function toLocalInput(iso: string | null): string {
   );
 }
 
+/**
+ * ISO → "Oct 20, 2026, 11:30 AM EDT" in the viewer's own timezone (or the
+ * `timeZone` given). Client-side only, for the same reason as toLocalInput.
+ */
+export function formatLocalDateTime(iso: string, timeZone?: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    timeZone,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+/** The viewer's timezone abbreviation, e.g. "EDT". Client-side only. */
+export function localTimeZoneName(at: Date = new Date(), timeZone?: string): string {
+  return (
+    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" })
+      .formatToParts(at)
+      .find((p) => p.type === "timeZoneName")?.value ?? "local time"
+  );
+}
+
 /** A datetime-local value (browser local time) → ISO, or null when empty. */
 export function fromLocalInput(value: string): string | null {
   if (!value) return null;
