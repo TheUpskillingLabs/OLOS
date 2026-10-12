@@ -73,9 +73,10 @@ export default async function JoinCyclePage({
   // accepted admin invitation already enrolled the member, and invitees never
   // sign the agreement — so an enrolled member has nothing to sign here and
   // lands on the cycle page (the /cycles "You're registered — view details"
-  // card links through this route), while an uninvited one gets a closed
-  // door. The agreement route enforces the same rule server-side
-  // (rejectUninvited); this is the friendly surface.
+  // card links through this route), while an uninvited one sees nothing of
+  // the cycle at all (owner rule) and is sent back to /cycles, like an org
+  // cycle. The agreement route enforces the same rule server-side
+  // (rejectUninvited).
   const [{ data: inviteConfig }, { data: myEnrollment }] = await Promise.all([
     serviceClient
       .from("cycle_config")
@@ -90,27 +91,10 @@ export default async function JoinCyclePage({
       .maybeSingle(),
   ]);
   if (inviteConfig?.invite_only) {
-    if (!isInviteOnlyBlocked(inviteConfig, myEnrollment)) {
-      redirect(`/cycles/${cycleId}`);
-    }
-    return (
-      <div className="mx-auto max-w-xl py-12">
-        <div className="rounded-card border border-ink/10 bg-white p-8 shadow-card">
-          <div className="lbl mb-2">Invite only</div>
-          <h1 className="t-h2 text-ink">{cycle.name}</h1>
-          <p className="mt-3 text-meta">
-            This cycle is by invitation. If you were invited, open the link in
-            your invitation email to join — it signs you up directly.
-          </p>
-          <Link
-            href="/cycles"
-            className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep hover:underline"
-          >
-            Back to cycles
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
-        </div>
-      </div>
+    redirect(
+      isInviteOnlyBlocked(inviteConfig, myEnrollment)
+        ? "/cycles"
+        : `/cycles/${cycleId}`
     );
   }
 

@@ -595,15 +595,17 @@ export default async function DashboardPage() {
     start_date: string | null;
     end_date: string | null;
   };
+  // An invite-only cycle (00104) shows the uninvited nothing at all — no
+  // closed card, no task — while an enrolled invitee keeps the ordinary
+  // confirmation above.
   const registerStateCard = (cycle: CycleCardData) =>
     registerDone && onboarding && upcomingCycle ? (
       <CycleRegisterCard cycle={cycle} state="pre_registered" upcoming />
-    ) : !regOpen ? (
+    ) : inviteOnly ? null : !regOpen ? (
       <CycleRegisterCard
         cycle={cycle}
         state="closed"
         upcoming={onboarding && !!upcomingCycle}
-        inviteOnly={inviteOnly}
         reopensAt={
           regWindow?.state === "dead_zone" && regWindow.reopensAt
             ? regWindow.reopensAt.toISOString()

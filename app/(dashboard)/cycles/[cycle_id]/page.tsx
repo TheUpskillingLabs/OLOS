@@ -7,7 +7,9 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isAdmin, resolveUserRoles } from "@/lib/auth/roles";
+import { isInviteOnlyBlocked } from "@/lib/cycle/guards";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import { TaskRow } from "@/app/components/tasks";
 import { cycleInfoContent } from "@/lib/cycles/info";
@@ -99,6 +101,30 @@ export default async function CycleDetailPage({
         .maybeSingle()
     : { data: null };
 
+  // The viewer's enrollment in this cycle — feeds both the invite-only gate
+  // and the Register CTA below.
+  const { data: myEnrollment } = me
+    ? await serviceClient
+        .from("cycle_enrollments")
+        .select("status")
+        .eq("cycle_id", cycle.id)
+        .eq("participant_id", me.id)
+        .in("status", ["registered", "active"])
+        .maybeSingle()
+    : { data: null };
+
+  // Invite-only cycles (00104, docs/ORG_CYCLES.md §5a): the uninvited see
+  // nothing of the cycle — /cycles already hides it; a deep link lands back
+  // there. Enrolled invitees and admins (who run the cycle) pass.
+  const inviteOnly = !!(config as { invite_only?: boolean | null } | null)
+    ?.invite_only;
+  if (inviteOnly && isInviteOnlyBlocked({ invite_only: true }, myEnrollment)) {
+    const viewerIsAdmin = user
+      ? isAdmin(await resolveUserRoles(supabase, user.id))
+      : false;
+    if (!viewerIsAdmin) redirect("/cycles");
+  }
+
   // Register CTA (July 2026 feedback, running-list #1): the join flow accepts
   // active and upcoming cohorts, but this page had no way into it. Shown only
   // to signed-in members who haven't signed this cycle's agreement, while the
@@ -110,25 +136,16 @@ export default async function CycleDetailPage({
   if (
     me &&
     cycle.mode !== "org" &&
-    !(config as { invite_only?: boolean | null } | null)?.invite_only &&
+    !inviteOnly &&
     (cycle.status === "active" || cycle.status === "upcoming")
   ) {
-    const [{ data: agreement }, { data: enrollment }] = await Promise.all([
-      serviceClient
-        .from("cycle_agreements")
-        .select("id")
-        .eq("cycle_id", cycle.id)
-        .eq("participant_id", me.id)
-        .maybeSingle(),
-      serviceClient
-        .from("cycle_enrollments")
-        .select("status")
-        .eq("cycle_id", cycle.id)
-        .eq("participant_id", me.id)
-        .in("status", ["registered", "active"])
-        .maybeSingle(),
-    ]);
-    if (!agreement && !enrollment) {
+    const { data: agreement } = await serviceClient
+      .from("cycle_agreements")
+      .select("id")
+      .eq("cycle_id", cycle.id)
+      .eq("participant_id", me.id)
+      .maybeSingle();
+    if (!agreement && !myEnrollment) {
       showRegisterCta = (await registrationWindow(serviceClient, cycle.id))
         .open;
     }
