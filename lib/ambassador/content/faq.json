@@ -1,0 +1,58 @@
+[
+  {
+    "order": 1,
+    "question": "Does it cost anything?",
+    "answer": "No. Workshops and Build Cycles are free.",
+    "placeholder": true,
+    "id": "cost"
+  },
+  {
+    "order": 2,
+    "question": "How much time does a Build Cycle take?",
+    "answer": "Twelve weeks, busiest at the start and the end and steady in between, with your team and in person.",
+    "placeholder": true,
+    "id": "time"
+  },
+  {
+    "order": 3,
+    "question": "Do I need to be technical?",
+    "answer": "No. Most people aren't when they start. You learn what you need by building with a team.",
+    "placeholder": true,
+    "id": "experience"
+  },
+  {
+    "order": 4,
+    "question": "What do I walk away with?",
+    "answer": "Something real you helped build, proof of it you can show, and people who've seen what you can do.",
+    "placeholder": true,
+    "id": "what-you-get"
+  },
+  {
+    "order": 5,
+    "question": "What does it actually teach?",
+    "answer": "Free workshops by people who do the work, and by Upskillers who learned it last cycle. Then a Build Cycle, fast and on a team, or your own project at your own pace.",
+    "placeholder": false,
+    "id": "teach"
+  },
+  {
+    "order": 6,
+    "question": "Is this just a DC thing?",
+    "answer": "It started in Greater Washington. The Labs is something a region picks up and makes its own, and a few regions already have waitlists.",
+    "placeholder": false,
+    "id": "just-dc"
+  },
+  {
+    "order": 7,
+    "question": "What do you mean by the future of work?",
+    "answer": "Not only jobs. Work and action: what people make together that lasts, and what they do together in public.",
+    "placeholder": false,
+    "id": "future-of-work"
+  },
+  {
+    "order": 10,
+    "question": "How do I join?",
+    "answer": "Go to theupskillinglabs.org and choose Join The Labs. Ambassadors don't take sign-ups directly.",
+    "placeholder": true,
+    "id": "how-join"
+  }
+]

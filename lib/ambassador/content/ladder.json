@@ -1,0 +1,26 @@
+{
+  "$comment": "The ladder visual, used on Know the Labs and deck slide 3. [PLACEHOLDER] until confirmed against the brand kit.",
+  "placeholder": true,
+  "rungs": [
+    {
+      "label": "Workshop",
+      "detail": "Free, hands-on, open to everyone."
+    },
+    {
+      "label": "Build Cycle",
+      "detail": "Three months as an Upskiller in a pod, on a real problem."
+    },
+    {
+      "label": "Project Team",
+      "detail": "Three to five people who build one thing."
+    },
+    {
+      "label": "Showcase",
+      "detail": "Show your work in public."
+    },
+    {
+      "label": "Give back",
+      "detail": "Mentor, Poderator (who runs a pod), or ambassador."
+    }
+  ]
+}

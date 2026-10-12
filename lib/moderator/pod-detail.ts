@@ -20,60 +20,10 @@ import {
   type PulseHealthCfg,
 } from "./pulse-health";
 import { atRiskNudgeKey, deriveAtRiskRun, loadDismissedKeys, isDismissed } from "./nudges";
-import { getCycleWeek, getCycleWeekStart } from "@/lib/cycle/week";
+import { synthesizeLogCadence, type CadenceRow } from "./log-cadence";
+import { memberCadenceFloor } from "@/lib/learning-logs/at-risk";
 
 const DEFAULT_AT_RISK_MISSES = 2;
-
-// A member's weekly cadence, expressed as pulse-shaped rows so the whole
-// status/streak/miss/bucket engine below works unchanged regardless of source.
-// Legacy pods feed real pulse_checks rows; log-based (current) cycles feed
-// rows SYNTHESIZED from the weekly Learning Log windows — one row per
-// completed cycle-week, completed_at set iff a log was filed that week.
-type CadenceRow = {
-  participant_id: number;
-  scheduled_date: string;
-  completed_at: string | null;
-};
-
-/**
- * Synthesize a member's weekly cadence from their Learning Logs: for each
- * completed cycle-week (getCycleWeek buckets [start,end] into weeks 0–12), a
- * row keyed by that week's start, marked completed iff any cycle-attributed
- * log lands in it. The in-progress current week is not emitted (can't be
- * "missed" yet). Mirrors the pulse stream shape consumed downstream.
- */
-function synthesizeLogCadence(
-  participantId: number,
-  now: Date,
-  cycleStart: Date,
-  cycleEnd: Date,
-  logCreatedAts: Date[]
-): CadenceRow[] {
-  const currentWeek = getCycleWeek(now, cycleStart, cycleEnd);
-  const lastCompleted = Math.min(currentWeek, 13) - 1;
-  if (lastCompleted < 0) return [];
-
-  const latestLogByWeek = new Map<number, string>();
-  for (const d of logCreatedAts) {
-    const w = getCycleWeek(d, cycleStart, cycleEnd);
-    const iso = d.toISOString();
-    const prev = latestLogByWeek.get(w);
-    if (!prev || iso > prev) latestLogByWeek.set(w, iso);
-  }
-
-  const rows: CadenceRow[] = [];
-  for (let w = 0; w <= lastCompleted; w++) {
-    const weekKey = getCycleWeekStart(w, cycleStart, cycleEnd)
-      .toISOString()
-      .slice(0, 10);
-    rows.push({
-      participant_id: participantId,
-      scheduled_date: weekKey,
-      completed_at: latestLogByWeek.get(w) ?? null,
-    });
-  }
-  return rows;
-}
 
 export type PulseStatus = "current" | "pending" | "late" | "at_risk";
 
@@ -189,15 +139,18 @@ export async function getPodDetail(
 
   const memberIds = (memberRows ?? []).map((m) => m.participant_id as number);
 
-  let enrollmentsByParticipant = new Map<number, { status: string }>();
+  let enrollmentsByParticipant = new Map<number, { status: string; enrolled_at: string | null }>();
   if (memberIds.length > 0) {
     const { data: enrolls } = await supabase
       .from("cycle_enrollments")
-      .select("participant_id, status")
+      .select("participant_id, status, enrolled_at")
       .eq("cycle_id", pod.cycle_id as number)
       .in("participant_id", memberIds);
     enrollmentsByParticipant = new Map(
-      (enrolls ?? []).map((e) => [e.participant_id as number, { status: e.status as string }])
+      (enrolls ?? []).map((e) => [
+        e.participant_id as number,
+        { status: e.status as string, enrolled_at: (e.enrolled_at as string | null) ?? null },
+      ])
     );
   }
 
@@ -257,7 +210,41 @@ export async function getPodDetail(
   } else if (cycleInfo?.start_date && cycleInfo?.end_date) {
     const cycleStart = new Date(cycleInfo.start_date);
     const cycleEnd = new Date(cycleInfo.end_date);
+
+    // The join-date floor (#463) — the same inputs the member-facing
+    // compliance and the revocation cron use (lib/learning-logs/compliance.ts),
+    // so a late joiner reads the same here as on their own dashboard:
+    //   windowArmedSince  — the cohort's first cycle-attributed log;
+    //   memberActiveSince — the later of enrolled_at and the member's earliest
+    //                       still-active pod join anywhere in this cycle.
+    const [{ data: firstLogRow }, { data: cycleJoinRows }] = await Promise.all([
+      supabase
+        .from("learning_logs")
+        .select("created_at")
+        .eq("cycle_id", pod.cycle_id as number)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      memberIds.length > 0
+        ? supabase
+            .from("pod_memberships")
+            .select("participant_id, joined_at, pods!inner(cycle_id)")
+            .in("participant_id", memberIds)
+            .eq("pods.cycle_id", pod.cycle_id as number)
+            .is("inactive_at", null)
+        : Promise.resolve({ data: [] as { participant_id: number; joined_at: string | null }[] }),
+    ]);
+    const windowArmedSince = firstLogRow?.created_at ? new Date(firstLogRow.created_at) : null;
+    const earliestJoin = new Map<number, Date>();
+    for (const r of (cycleJoinRows ?? []) as { participant_id: number; joined_at: string | null }[]) {
+      if (!r.joined_at) continue;
+      const joined = new Date(r.joined_at);
+      const prev = earliestJoin.get(r.participant_id);
+      if (!prev || joined < prev) earliestJoin.set(r.participant_id, joined);
+    }
+
     for (const id of memberIds) {
+      const enrolledAt = enrollmentsByParticipant.get(id)?.enrolled_at;
       cadenceByMember.set(
         id,
         synthesizeLogCadence(
@@ -265,7 +252,14 @@ export async function getPodDetail(
           now,
           cycleStart,
           cycleEnd,
-          logCreatedAtsByMember.get(id) ?? []
+          logCreatedAtsByMember.get(id) ?? [],
+          {
+            memberActiveSince: memberCadenceFloor(
+              enrolledAt ? new Date(enrolledAt) : null,
+              earliestJoin.get(id) ?? null
+            ),
+            windowArmedSince,
+          }
         )
       );
     }

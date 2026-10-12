@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { fmtDay, fmtTime, fmtMonth } from "@/lib/content/format";
 import { featuredEvents } from "@/lib/content/featured";
-import { CYCLE_PUBLIC } from "@/lib/cycles/public-cycle";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
 import type { EventRow } from "@/lib/content/queries";
 
 /* The /events hero — the page headline and the next two anchor events in one
@@ -87,18 +87,17 @@ export default function EventsHero({
         )}
 
         {/* ── What the highlights belong to — a footnote, not a header ──
-            (owner call: under the cards, subtle). Facts from CYCLE_PUBLIC,
-            shared with /build-cycles; phrased for outsiders — free and open
-            to everyone is the point. */}
+            (owner call: under the cards, subtle). Phrased for outsiders — free
+            and open to everyone is the point. No cycle is named: since
+            2026-10-03 no public cycle is recruiting (epic #477), so the line
+            says when the next one kicks off (lib/cycles/whats-next.ts). */}
         <p
           className="t-small ed-text"
           style={{ color: "rgba(255,255,255,0.72)", marginTop: 32 }}
         >
-          These are anchor events of the current Build Cycle —{" "}
-          {CYCLE_PUBLIC.theme} · {CYCLE_PUBLIC.name}, {CYCLE_PUBLIC.weeks}{" "}
-          weeks in {CYCLE_PUBLIC.city} where pods pick real civic problems,
-          build practical answers, and show their work at the Showcase Summit
-          in October. Free and open to everyone.{" "}
+          Anchor events are where a Build Cycle meets in public: pods pick real
+          problems, build practical answers, and show their work. Free and open
+          to everyone. {whatsNextMessage().nextPublic}{" "}
           <Link
             href="/build-cycles"
             target="_blank"

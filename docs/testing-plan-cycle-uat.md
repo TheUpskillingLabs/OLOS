@@ -5,7 +5,7 @@ environment: problem statements → voting → pod creation → pod registration
 solution proposals → solution voting → project creation → project
 registration. One sitting, **60–90 minutes**.
 
-Companion doc: [`dev-report-cycle-process.md`](./dev-report-cycle-process.md)
+Companion doc: [`archive/dev-report-cycle-process.md`](./archive/dev-report-cycle-process.md)
 (what was fixed and why). Environment reference:
 [`environments.md`](./environments.md).
 

@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "check:migrations": "node scripts/check-migration-numbers.mjs",
     "verify:cycle": "node scripts/verify/cycle-e2e.mjs",
-    "seed:test-cycle": "node scripts/ops/seed-test-cycle.mjs"
+    "seed:test-cycle": "node scripts/ops/seed-test-cycle.mjs",
+    "check:docs": "node scripts/check-doc-links.mjs && node scripts/check-vault-frontmatter.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
@@ -20,6 +21,7 @@
     "@supabase/supabase-js": "^2.102.1",
     "lucide-react": "^1.14.0",
     "next": "^16.2.6",
+    "qrcode-generator": "^2.0.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.76.1",
