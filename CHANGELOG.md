@@ -28,6 +28,10 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
   members created from 2026-10-09. Like the Slack row it is done once clicked and never re-pins the
   checklist. (#494)
 
+### Changed
+
+- Homepage "What's next" banner: the copy is written out in the page for this quarter (internal cycle Oct 13 – Dec 8, public kickoff Jan 12, 2027) instead of built from cycle rows, and the "Taken part before? Join the internal cycle" link is removed. (#498)
+
 ### Fixed
 
 - One "what's next" message on every public surface (the board advisor's and AMG's wording, epic #477):
