@@ -241,17 +241,17 @@ ops log [#481](https://github.com/TheUpskillingLabs/OLOS/issues/481).
 **Update 2026-10-06.** The public story now follows the board advisor and AMG
 (`docs/requirements/cycle-4-readiness.md` §1): the internal cycle (**Oct 13 – Dec 8**) is
 named publicly as an invitation to people who have taken part before, and the first public
-cycle of 2027 kicks off **January 12, 2027**, with a **light waitlist** (`role_intents ∋
-'cycle'`, chosen at sign-up or with one tap on the dashboard). The copy lives in one place,
+cycle of 2027 kicks off **January 12, 2027**. **2026-10-09:** the light waitlist is dropped
+for now and the primary action is the workshops and events. The copy lives in one place,
 `lib/cycles/whats-next.ts`. Where §10.1–§10.2 below say "opens in 2027" and "no time
-promises", read the date and the waitlist promise instead; the rest stands.
+promises", read the date instead; the rest stands.
 
 ### 10.1 The journey through the long gap
 
 | Stage | What the member needs | Touchpoint (today → after this sprint) |
 |---|---|---|
 | Visitor | to see what The Labs is and what's open **now**, without being promised a cycle | homepage, `/events`, `/library`. Copy states the next public cycle opens in 2027 and makes no other promise (#414) |
-| Signs up | a light account, a lab or a city waitlist, the **2027 waitlist** if they choose Build Cycles, and an honest welcome | sign-up funnel ("Build Cycles · 2027 waitlist") and email ("You're on the waitlist… we'll tell you the day pre-registration opens"; ops keeps the promise, #481) |
+| Signs up | a light account, a lab or a city waitlist, and an honest welcome | sign-up funnel ("Build Cycles", with the next kickoff date) and an email that says what is open and when the next public cycle kicks off |
 | First dashboard visit | "what's happening, when, and what can I do now" | the pinned announcement and member tasks (exist today) → the two lists and the ladder (#412/#413) |
 | Every month | public workshops and events; something to read; one step of readiness | Luma events, Library, refreshed member tasks → "Still open" list, "Before the cycle" shelf (#441), weekly messages (#460) |
 | The 2027 cycle is announced | dates, a pre-registration path, the remaining readiness steps | creating the public cycle flips the dashboard in one page load (§8); the drip in §5 resumes, keyed to the real calendar |
@@ -293,7 +293,7 @@ months of data.
 | 5 | Learning Logs written outside a cycle (the practice log) | `learning_logs.cycle_id IS NULL` |
 | 6 | Readiness steps done (after #413): distribution, verified ✓ vs self-attested ○ | `task_dismissals` `prepare:*` keys plus the verified reads |
 | 7 | When the 2027 cycle is announced: share of between-cycles members who pre-register within 4 weeks, then §8 item 7 | `cycle_agreements`, `cycle_enrollments` |
-| 8 | **The 2027 waitlist:** its size, and the share of new accounts that join it (at sign-up or from the dashboard). Later, the share of the waitlist that pre-registers | `participants.role_intents @> '{cycle}'` |
+| 8 | **Interest in Build Cycles:** the share of new accounts that choose Build Cycles at sign-up. Later, the share that pre-registers | `participants.role_intents @> '{cycle}'` |
 
 A7 [#418](https://github.com/TheUpskillingLabs/OLOS/issues/418) (the pipeline view) is
 where these become a query an admin can run. Until then the success team reviews them

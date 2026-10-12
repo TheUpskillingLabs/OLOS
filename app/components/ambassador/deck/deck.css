@@ -1,0 +1,159 @@
+/* The presenter deck. Slides are authored at 1920x1080 and scaled to fit by
+   deck-client.tsx. Geologica only; flush left; no emoji, no text shadows.
+   Backgrounds by type: cover gradient + grain (title), flat ink / navy
+   (subsection), paper (body). Every class is prefixed `deck-` so nothing
+   collides with app/globals.css. */
+
+.deck-root {
+  position: fixed; inset: 0; z-index: 50; background: #000; color: var(--od1);
+  overflow: hidden; font-family: var(--font-sans); user-select: none; -webkit-user-select: none;
+}
+.deck-shell { position: absolute; inset: 0; display: grid; grid-template-rows: 1fr; }
+.deck-viewport { position: relative; overflow: hidden; min-height: 0; }
+.deck-scaler { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+.deck-slides { position: relative; width: 1920px; height: 1080px; }
+
+.deck-slide {
+  position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: hidden;
+  opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+  font-family: var(--font-sans);
+}
+.deck-slide.deck-current { opacity: 1; visibility: visible; transition: opacity 0.25s ease; }
+
+.deck-bg-cover {
+  background:
+    radial-gradient(120% 80% at 0% 100%, rgba(0, 148, 160, 0.55) 0%, transparent 56%),
+    radial-gradient(110% 70% at 100% 0%, rgba(0, 148, 160, 0.4) 0%, transparent 50%),
+    linear-gradient(160deg, var(--ink) 0%, var(--navy) 55%, var(--forest) 120%);
+  color: var(--od1);
+}
+.deck-bg-cover::before { content: ""; position: absolute; inset: 0; background-image: var(--grain); mix-blend-mode: overlay; opacity: 0.5; pointer-events: none; }
+.deck-bg-navy { background: var(--navy); color: var(--od1); }
+.deck-bg-ink { background: var(--ink); color: var(--od1); }
+.deck-bg-paper { background: var(--paper); color: var(--ink); }
+
+.deck-sl-body { position: absolute; left: 144px; right: 144px; top: 152px; }
+.deck-sl-eyebrow { font-weight: 600; font-size: 32px; line-height: 40px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 40px; }
+.deck-bg-cover .deck-sl-eyebrow, .deck-bg-ink .deck-sl-eyebrow, .deck-bg-navy .deck-sl-eyebrow { color: var(--teal); }
+.deck-bg-paper .deck-sl-eyebrow { color: var(--teal-deep); }
+
+/* white lockup: dark slides only, bottom-left, ~48px tall */
+.deck-sl-logo { position: absolute; left: 144px; bottom: 72px; height: 48px; width: auto; }
+.deck-sl-ph { position: absolute; top: 56px; left: 144px; font-size: 20px; font-weight: 600; letter-spacing: 0.08em; opacity: 0.6; }
+
+/* 1 - opening question */
+.deck-sl-question { font-weight: 700; font-size: 112px; line-height: 120px; letter-spacing: -0.035em; max-width: 1500px; }
+.deck-sl-rail { position: absolute; left: 144px; right: 144px; bottom: 56px; height: 80px; display: flex; align-items: center; justify-content: flex-end; gap: 64px; border-top: 1px solid var(--rule-d); padding-top: 24px; box-sizing: content-box; }
+.deck-sl-partner { height: 56px; width: auto; opacity: 0.85; }
+
+/* 2 - your story: approved photo, grayscale + cover tint, no text */
+.deck-sl-photo { position: absolute; inset: 0; background-size: cover; background-position: center; filter: grayscale(1); }
+.deck-bg-navy::after { content: ""; position: absolute; inset: 0; z-index: 1; background:
+  radial-gradient(120% 80% at 0% 100%, rgba(0, 148, 160, 0.5) 0%, transparent 56%),
+  linear-gradient(160deg, rgba(0, 20, 27, 0.78) 0%, rgba(3, 35, 42, 0.7) 55%, rgba(0, 95, 104, 0.62) 120%); }
+.deck-sl-logo, .deck-sl-ph { z-index: 2; }
+
+/* 3 - what The Labs is */
+.deck-sl-sentence { font-weight: 700; font-size: 76px; line-height: 88px; letter-spacing: -0.03em; max-width: 1480px; }
+.deck-sl-ladder { list-style: none; padding: 0; margin: 96px 0 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; }
+.deck-sl-ladder li { border-top: 4px solid var(--ink); padding-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+.deck-sl-ladder li:first-child { border-top-color: var(--teal-deep); }
+.deck-sl-rung-n { font-weight: 700; font-size: 28px; color: var(--teal-deep); font-variant-numeric: tabular-nums; }
+.deck-sl-rung-l { font-weight: 600; font-size: 40px; line-height: 48px; letter-spacing: -0.02em; color: var(--ink); }
+
+/* 4 - proof */
+.deck-sl-stat { font-weight: 700; font-size: 320px; line-height: 300px; letter-spacing: -0.05em; color: var(--teal-deep); margin-top: 24px; }
+.deck-sl-stat-label { font-weight: 600; font-size: 64px; line-height: 76px; letter-spacing: -0.02em; color: var(--ink); max-width: 1400px; margin-top: 48px; }
+
+/* 5 - the ask */
+.deck-sl-date { font-weight: 700; font-size: 120px; line-height: 128px; letter-spacing: -0.04em; }
+.deck-sl-where { font-size: 48px; line-height: 60px; color: var(--od2); margin-top: 24px; }
+.deck-sl-expect { font-size: 44px; line-height: 60px; color: var(--od1); margin-top: 48px; max-width: 1400px; }
+/* Words on a projected slide, not a control: a red rule over the line, never a filled box. */
+.deck-sl-join { display: inline-block; margin-top: 64px; color: var(--od1); font-weight: 700; font-size: 56px; line-height: 64px; letter-spacing: -0.02em; border-top: 6px solid var(--red); padding-top: 24px; }
+
+/* 6 - join: large QR on paper */
+.deck-sl-join-grid { display: grid; grid-template-columns: 640px 1fr; gap: 112px; align-items: center; top: 180px; }
+.deck-sl-qr { width: 640px; height: 640px; background: #fff; border-radius: var(--r); overflow: hidden; }
+.deck-sl-qr svg { display: block; width: 100%; height: 100%; }
+.deck-sl-url { font-weight: 700; font-size: 84px; line-height: 96px; letter-spacing: -0.03em; color: var(--ink); overflow-wrap: anywhere; }
+.deck-sl-join-date { font-size: 44px; line-height: 56px; color: var(--charcoal); margin-top: 40px; }
+
+/* on-screen controls (auto-hide) */
+.deck-controls {
+  position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; left: 12px; z-index: 5;
+  display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.deck-controls-on .deck-controls, .deck-controls:focus-within { opacity: 1; pointer-events: auto; }
+.deck-controls .deck-ctl:first-child { margin-right: auto; }
+.deck-ctl {
+  min-height: 44px; min-width: 44px; padding: 10px 16px; border-radius: var(--r); border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 20, 27, 0.72); color: var(--od1); font: 600 14px/20px var(--font-sans); cursor: pointer; text-decoration: none;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: inline-flex; align-items: center; justify-content: center;
+}
+.deck-ctl[aria-pressed="true"] { background: var(--white); color: var(--ink); }
+/* Status line (slide count + keys): an unbounded caption over a bottom scrim, flush left - not a boxed label that could read as a button. */
+.deck-hint { position: fixed; left: 0; right: 0; bottom: 0; padding: 32px 16px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, rgba(0, 20, 27, 0.72)); font-size: 13px; line-height: 20px; color: var(--od1); opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.deck-hint-n { font-weight: 600; font-variant-numeric: tabular-nums; }
+.deck-controls-on .deck-hint { opacity: 1; }
+
+/* phone speaker cues */
+.deck-cue-sheet { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 4; background: var(--paper); color: var(--ink); border-radius: var(--r); padding: 16px 20px; box-shadow: var(--shadow-lg); }
+.deck-cue-sheet .lbl { color: var(--meta); }
+.deck-pc-cue { font-size: 18px; line-height: 28px; font-weight: 600; margin-top: 6px; }
+.deck-pc-notes { font-size: 15px; line-height: 22px; color: var(--slate); margin-top: 6px; }
+
+/* ?practice: slide on top, cue beneath on the same screen */
+.deck-mode-practice .deck-shell { grid-template-rows: minmax(0, 1fr) auto; background: var(--ink); }
+.deck-practice-cue { background: var(--paper); color: var(--ink); padding: 20px var(--pad) max(20px, env(safe-area-inset-bottom)); user-select: text; -webkit-user-select: text; }
+.deck-practice-cue .lbl { color: var(--meta); }
+.deck-mode-practice .deck-pc-cue { font-size: 20px; line-height: 28px; }
+.deck-mode-practice .deck-hint, .deck-mode-practice .deck-toggle-cues { display: none; }
+
+/* ?notes: slide + next + cues + timer */
+.deck-mode-notes { overflow: auto; }
+.deck-mode-notes .deck-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 55vh) auto; background: var(--ink); position: relative; inset: auto; min-height: 100%; }
+.deck-notes-pane { background: var(--navy); color: var(--od1); padding: 20px var(--pad) 32px; display: flex; flex-direction: column; gap: 10px; }
+.deck-notes-pane .lbl { color: var(--od2); margin-top: 8px; }
+.deck-np-top { display: flex; justify-content: space-between; align-items: center; }
+.deck-np-count { font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; }
+.deck-np-timer { font: 700 28px/32px var(--font-sans); color: var(--teal); background: none; border: 1px solid var(--rule-d); border-radius: var(--r); padding: 8px 14px; min-height: 44px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.deck-np-cue { font-size: 22px; line-height: 32px; font-weight: 600; }
+.deck-np-notes { font-size: 16px; line-height: 24px; color: var(--od2); }
+.deck-np-next { aspect-ratio: 16 / 9; max-width: 420px; border-radius: var(--r); border: 1px solid var(--rule-d); }
+.deck-np-next .deck-slide { transition: none; }
+.deck-np-end { color: var(--od2); }
+.deck-np-btns { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.deck-np-btns .btn-ghost { color: var(--od1); border-color: var(--rule-d); }
+.deck-notes-pane .deck-see { color: var(--od1); background: none; border: none; padding: 0; text-align: left; font: 600 15px/22px var(--font-sans); text-decoration: underline; cursor: pointer; }
+.deck-mode-notes .deck-controls { opacity: 1; pointer-events: auto; }
+.deck-mode-notes .deck-hint, .deck-mode-notes .deck-toggle-cues { display: none; }
+@media (min-width: 900px) {
+  .deck-mode-notes { overflow: hidden; }
+  .deck-mode-notes .deck-shell { position: absolute; inset: 0; grid-template-columns: minmax(0, 1fr) 400px; grid-template-rows: 1fr; min-height: 0; }
+  .deck-mode-notes .deck-notes-pane { overflow: auto; }
+  .deck-mode-notes .deck-controls { right: 412px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-slide, .deck-slide.deck-current, .deck-controls, .deck-hint { transition: none; }
+}
+
+/* pacing status (notes view): text + color */
+.deck-np-pace { font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; color: var(--od1); }
+.deck-np-pace::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #3fb68b; }
+.deck-np-pace[data-state="behind"]::before { background: var(--red); }
+.deck-np-pace[data-state="ahead"]::before { background: var(--teal); }
+
+/* blank screen (B / W) */
+.deck-blank { position: fixed; inset: 0; z-index: 8; background: #000; cursor: none; }
+.deck-blank[data-mode="white"] { background: #fff; }
+
+/* keyboard shortcuts */
+.deck-keys { border: none; border-radius: var(--r); padding: 24px; max-width: 420px; width: calc(100% - 32px); background: var(--paper); color: var(--ink); box-shadow: var(--shadow-lg); user-select: text; }
+.deck-keys::backdrop { background: rgba(0, 20, 27, 0.6); }
+.deck-keys-list { margin: 16px 0 20px; display: flex; flex-direction: column; }
+.deck-keys-list div { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 15px; }
+.deck-keys-list dt { font-weight: 700; font-variant-numeric: tabular-nums; white-space: pre; }
+.deck-keys-list dd { margin: 0; color: var(--slate); text-align: right; }

@@ -8,7 +8,7 @@ import AnnouncementsAdmin, {
 /* Org announcements admin — compose org news for the member dashboard rail.
    Global posts (no lab) reach everyone; a lab-scoped post reaches only members
    of that lab. Drafts stay private until published; a published post can be
-   scheduled (future go-live) and auto-archives at its expiration (00104). */
+   scheduled (future go-live) and auto-archives at its expiration (00108). */
 
 export const dynamic = "force-dynamic";
 

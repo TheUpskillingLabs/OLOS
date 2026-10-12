@@ -5,7 +5,7 @@ import { z } from "zod";
 // global/org-wide, a positive int scopes to one lab (metros). Publishing
 // (status → 'published') is where the route stamps published_at.
 //
-// Scheduling (00104): published_at is the go-live time — a future value on a
+// Scheduling (00108): published_at is the go-live time — a future value on a
 // published row schedules it. expires_at auto-archives the row; null = never
 // expires, omitted on create = two weeks from now. Both are ISO timestamps
 // with an offset (the client converts its datetime-local inputs).

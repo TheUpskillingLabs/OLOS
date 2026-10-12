@@ -18,7 +18,7 @@ import {
    reconciles after each API call. Mirrors stories-admin.tsx, plus a create
    path (spotlights are user-submitted; announcements are authored here).
 
-   Scheduling (00104): "Go live" sets published_at — a future time schedules
+   Scheduling (00108): "Go live" sets published_at — a future time schedules
    the post. "Expires" auto-archives it; a new post defaults to two weeks from
    creation (or from its go-live, when scheduled). Expired posts drop off the
    member feed immediately and are swept to Archived by an hourly cron; until

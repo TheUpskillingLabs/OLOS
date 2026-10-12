@@ -140,6 +140,12 @@ Files:
 
   - **No participant row** → redirect to `/register`. (See §404 vs redirect
     below.)
+  - **Returning member with a `return_to` cookie** → redirect there instead of
+    `/dashboard`. Only allowlisted same-site paths pass
+    ([`return-to.ts`](./return-to.ts) — today only `/ambassador*`, set by the
+    public ambassador front door `/ambassador/start`); anything else falls back
+    to `/dashboard`, so the cookie can't become an open redirect. New members
+    still always land on the dashboard after registration.
   - **Auth failure** → `?error=auth_failed` query on `/login`.
 
 - **Owner is not self-serve (2026-07, authorization unification).**

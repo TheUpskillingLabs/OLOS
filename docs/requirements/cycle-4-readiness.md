@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Plan of record for Cycle 4. Decided 2026-10-03 (owner, [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480)): Cycle 4 runs as an org cycle, and the next public cycle opens in 2027. **Updated 2026-10-06:** Cycle 4 runs Oct 13 – Dec 8 and is named publicly as an invitation; the first public cycle of 2027 kicks off January 12, with a waitlist (§1, §4, §9). Cycle 3's close-out timing is still open in #480 |
+| **Status** | Plan of record for Cycle 4. Decided 2026-10-03 (owner, [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480)): Cycle 4 runs as an org cycle, and the next public cycle opens in 2027. **Updated 2026-10-06:** Cycle 4 runs Oct 13 – Dec 8 and is named publicly as an invitation; the first public cycle of 2027 kicks off January 12 (§1, §4, §9). **Updated 2026-10-09:** the waitlist is dropped for now and the primary action is the workshops and events (§9). Cycle 3's close-out timing is still open in #480 |
 | **Owner** | Lead architect / product |
 | **Last verified** | 2026-10-06 against `dev@2576e7c` |
 | **Tracking** | Epic [#477](https://github.com/TheUpskillingLabs/OLOS/issues/477) · **ops log [#481](https://github.com/TheUpskillingLabs/OLOS/issues/481)** (every non-technical action, appended as the build lands) · decisions [#480](https://github.com/TheUpskillingLabs/OLOS/issues/480) · registration audience [#478](https://github.com/TheUpskillingLabs/OLOS/issues/478) (backlog) · week counting [#479](https://github.com/TheUpskillingLabs/OLOS/issues/479) (closed, not planned) |
@@ -40,21 +40,21 @@ The board advisor and AMG settled the public story. The platform now says it in 
 > **What's not changing:** public workshops and meetups keep running, in person and online.
 > **Want in?** If you've taken part in the Labs before, join the internal cycle
 > (**Oct 13 – Dec 8**) through the Slack thread.
-> **2027:** the first public Build Cycle kicks off **January 12, 2027**. Join the waitlist.
+> **2027:** the first public Build Cycle kicks off **January 12, 2027**.
 
 Three things change from Oct 3:
 
 | Oct 3 | Oct 6 |
 |---|---|
 | The internal cycle is never mentioned publicly | It is **named, with its dates, as an invitation** to people who have taken part before. Joining is through Slack; admins invite those who respond into the org cycle's workstreams. Nobody registers for it on the site |
-| "The next public Build Cycle opens in 2027" | A date, **January 12, 2027**, and a **waitlist** |
+| "The next public Build Cycle opens in 2027" | A date, **January 12, 2027** (a waitlist was part of the 2026-10-06 message and is dropped for now, 2026-10-09) |
 | Neutral "no cycle is open" copy | AMG's three-part message |
 
-**The waitlist is light:** choosing "Build Cycles" at sign-up, or one tap on the dashboard,
-stored as `role_intents ∋ 'cycle'`. It works in every city and asks for no commitments.
-Pre-registration opens later, when the 2027 cycle row is created. The promise it carries
-("we'll tell you on your dashboard, and by email, the day pre-registration opens") is kept
-by ops (#481) until the weekly-messages email channel (#460) can send it.
+**No waitlist for now (2026-10-09):** the primary action on the homepage banner and
+`/build-cycles` is "See workshops and events"; the Slack invitation for past participants
+stays as a secondary link. People who choose "Build Cycles" at sign-up are still recorded
+(`role_intents ∋ 'cycle'`), but nothing is promised on it. A waitlist can come back with
+pre-registration, when the 2027 cycle row is created.
 
 **Facts stay data.** The internal cycle's dates come from its org cycle row; the kickoff
 date is one interim constant (`NEXT_PUBLIC_CYCLE_KICKOFF`) that an `upcoming` open HQ cycle
@@ -169,8 +169,8 @@ advertised.
 **Since 2026-10-06** every row above reads `lib/cycles/whats-next.ts` (PR "fix(public):
 what's next"): the homepage banner shows the message whenever no cycle is taking
 registrations; `/build-cycles`, the `/events` footnote, the local lab page, the sign-up card,
-the welcome email and the dashboard say the same thing. The email's notification promise
-is now deliberate (the waitlist), with ops keeping it (#481).
+the welcome email and the dashboard say the same thing. The email makes no
+notification promise.
 
 The general "no cycle open" sentence is the expectation-safe default. It is true whether
 the next cycle is internal or unscheduled, and it goes away by itself when a public cycle
@@ -257,3 +257,4 @@ Each resolution is recorded here until the vault lands (PR #391), then as a vaul
 | 2026-10-03 | Hot fix by data (the public Cycle 4 row to `draft`); **Cycle 4 runs as an org cycle**; #478 deferred to the backlog (`00108` released); the **next public cycle opens in 2027**, and nothing advertises a next cycle before then; OLOS signup stays open | owner (#480) |
 | 2026-10-03 | Keep a running non-technical ops log, appended as technical work lands, so no check or action is left behind | owner (#481) |
 | 2026-10-06 | The public message follows the board advisor and AMG: Cycle 4 runs **Oct 13 – Dec 8** and is named publicly as an invitation to past participants (joining through Slack, admins invite); the first public cycle of 2027 kicks off **January 12, 2027**; a **light waitlist** (`role_intents ∋ 'cycle'`, at sign-up or one tap on the dashboard); one source for the copy, `lib/cycles/whats-next.ts` | owner, board advisor, AMG (#480) |
+| 2026-10-09 | The waitlist is **dropped for now**: no waitlist button, badge or email promise; the primary call to action is "See workshops and events". `role_intents ∋ 'cycle'` is still recorded at sign-up | AMG |

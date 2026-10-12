@@ -1,5 +1,5 @@
 /**
- * Announcement scheduling — go-live and expiry (00104).
+ * Announcement scheduling — go-live and expiry (00108).
  *
  * The stored lifecycle is still draft → published → archived (00070). Two
  * timestamps layer time on top of 'published':

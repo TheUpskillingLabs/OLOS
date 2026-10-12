@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
-/* Auto-archive expired announcements (00104). Members stop seeing a post the
+/* Auto-archive expired announcements (00108). Members stop seeing a post the
    moment expires_at passes — the feed query and the select policy filter on
    it — so this sweep is bookkeeping, not visibility: it flips the row to
    status='archived' so the admin surface and the owner registry's archive

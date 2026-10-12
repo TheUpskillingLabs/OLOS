@@ -130,7 +130,7 @@ const CYCLE_ANATOMY: [string, string, string][] = [
 export default async function LandingPage() {
   const service = createServiceClient();
   const [
-    { signedIn, initials, avatarUrl, onCycleWaitlist },
+    { signedIn, initials, avatarUrl },
     events,
     resources,
     metros,
@@ -160,12 +160,11 @@ export default async function LandingPage() {
   // taking registrations: with nothing recruiting, or while a running cycle
   // is past registration and there is an internal cycle to invite people
   // into. Visitors then see the internal cycle, the public workshops, and the
-  // next public kickoff with its waitlist — never "Join this cycle" for a
-  // cycle that can't take them.
+  // next public kickoff — never "Join this cycle" for a cycle that can't take
+  // them. The workshops and events are the primary action.
   const whatsNext = whatsNextMessage(whatsNextFacts);
   const showWhatsNext =
     !recruitingCycle || (!recruitingUpcoming && whatsNext.internal !== null);
-  const waitlistHref = signedIn ? "/dashboard#whats-next" : joinDoor;
   const joinCycleHref = recruitingCycle
     ? signedIn
       ? `/cycles/${recruitingCycle.id}/join`
@@ -320,13 +319,9 @@ export default async function LandingPage() {
                 </p>
               </div>
               <div className="cb-cta">
-                {signedIn && onCycleWaitlist ? (
-                  <span className="cb-status">{whatsNext.onWaitlist} ✓</span>
-                ) : (
-                  <Link className="btn btn-red btn-lg" href={waitlistHref}>
-                    {whatsNext.waitlistCta}
-                  </Link>
-                )}
+                <Link className="btn btn-red btn-lg" href="/events">
+                  {whatsNext.eventsCta}
+                </Link>
                 {whatsNext.internal && (
                   <a
                     href={internalCycleJoinUrl()}
@@ -338,13 +333,6 @@ export default async function LandingPage() {
                     {whatsNext.internalCta} →
                   </a>
                 )}
-                <Link
-                  href="/events"
-                  className="t-small"
-                  style={{ display: "block", marginTop: 8, color: "var(--teal)", fontWeight: 600 }}
-                >
-                  {whatsNext.eventsCta} →
-                </Link>
               </div>
             </div>
           )}

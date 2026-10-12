@@ -9,7 +9,7 @@ import { one } from "@/lib/supabase/embed";
  * RLS), select only display columns, and log-on-error instead of silently
  * rendering an empty rail (a 400 from a drifted column reads identically to
  * "no news" otherwise). Members only ever get rows that are live right now —
- * published, past their go-live, not yet expired (00104; mirrored in the
+ * published, past their go-live, not yet expired (00108; mirrored in the
  * select policy, since this read bypasses RLS). Lab-scoping is applied here in
  * the query (global rows always show; the viewer's own lab adds to them), not
  * in RLS.

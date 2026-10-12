@@ -44,9 +44,9 @@ export function weeklyLogTaskKey(cycleId: number, logDueAt: string): string {
   return `weekly_log:c${cycleId}:${logDueAt.trim().replace(" ", "T")}`;
 }
 
-/** One-time account-scoped setup rows (profile, follow, slack, first_log). */
+/** One-time account-scoped setup rows (profile, follow, slack, events, first_log). */
 export function setupTaskKey(
-  step: "profile" | "follow" | "slack" | "first_log"
+  step: "profile" | "follow" | "slack" | "events" | "first_log"
 ): string {
   return `setup:${step}`;
 }
@@ -70,6 +70,13 @@ export function whatsNextTaskKey(cycleId: number, week: number): string {
     a re-announcement is a new row, so dismissals never bleed across. */
 export function customTaskKey(customTaskId: number): string {
   return `custom:${customTaskId}`;
+}
+
+/** The Ambassador role's task — one occurrence per stage ("apply",
+    "continue", "guide", "ready", "coordinator"), so dismissing one stage's
+    nudge never hides the next. */
+export function ambassadorTaskKey(stage: string): string {
+  return `ambassador:${stage}`;
 }
 
 /** A leadership-log scope's weekly duty — per (tier, cycle, pod|lab). Not

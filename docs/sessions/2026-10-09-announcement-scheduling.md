@@ -9,7 +9,7 @@
 
 ## What was done
 
-- **Migration `00104_announcement_schedule_expiry.sql`.**
+- **Migration `00108_announcement_schedule_expiry.sql`.**
   - Adds `announcements.expires_at`. Legacy rows stay NULL, which means they never expire.
   - New inserts default to `now() + 14 days`.
   - The member select policy now admits only live rows: published, past go-live, not expired.
@@ -42,9 +42,9 @@
 
 | Decision | Recorded in |
 |---|---|
-| Go-live reuses `published_at` (no new status or column) | `00104` header; `SCHEMA.md` |
-| Visibility enforced at read time; the cron is bookkeeping only | `00104` header; cron route comment |
-| Legacy rows get no expiry | `00104` header |
+| Go-live reuses `published_at` (no new status or column) | `00108` header; `SCHEMA.md` |
+| Visibility enforced at read time; the cron is bookkeeping only | `00108` header; cron route comment |
+| Legacy rows get no expiry | `00108` header |
 | A scheduled post's untouched default expiry is go-live + 14 days, not creation + 14 days | #490 body (awaiting AMG's confirmation) |
 
 ## Open questions / needs from others
@@ -56,4 +56,4 @@
 ## Next
 
 - Review and merge #490 into `dev`.
-- A maintainer applies `00104` to prod after `dev → main`.
+- A maintainer applies `00108` to prod after `dev → main`.

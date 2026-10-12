@@ -1,4 +1,4 @@
--- 00104_announcement_schedule_expiry.sql
+-- 00108_announcement_schedule_expiry.sql
 -- Scheduled go-live + auto-expiry for org announcements (00070).
 --
 -- Admins asked for three things: archive a post, schedule it to go live at a

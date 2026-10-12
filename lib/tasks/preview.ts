@@ -6,7 +6,7 @@ import { eligibleLogCycles } from "@/lib/learning-logs/eligible";
 import { learningLogGate } from "@/lib/learning-logs/gate";
 import { pendingBaselineCycles } from "@/lib/learning-logs/baseline";
 import { leadershipScopesFor } from "@/lib/leadership-logs/scopes";
-import { SLACK_ROW_SINCE_ISO } from "./definitions";
+import { EVENTS_ROW_SINCE_ISO, SLACK_ROW_SINCE_ISO } from "./definitions";
 import { dashboardTasks, type DashboardTasks } from "./tasks";
 
 /* Admin queue preview (support/debug, /admin/tasks): compute the exact
@@ -182,6 +182,9 @@ export async function memberTaskPreview(
     slackRowVisible:
       !!participant.created_at &&
       Date.parse(participant.created_at) >= Date.parse(SLACK_ROW_SINCE_ISO),
+    eventsRowVisible:
+      !!participant.created_at &&
+      Date.parse(participant.created_at) >= Date.parse(EVENTS_ROW_SINCE_ISO),
     slackInviteUrl: process.env.NEXT_PUBLIC_SLACK_INVITE_URL,
     activeCycle: activeCycle
       ? {
