@@ -14,8 +14,6 @@ import { getEvents, getResources, getMetros } from "@/lib/content/queries";
 import { publicSession } from "@/lib/auth/public-session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getRecruitingCycle } from "@/lib/cycle/active";
-import { whatsNextMessage, type InternalCycleFacts } from "@/lib/cycles/whats-next";
-import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 import { getPublishedSpotlights } from "@/lib/content/spotlights";
 
 export const metadata = {
@@ -26,24 +24,6 @@ export const metadata = {
 
 // Auth-aware nav + live content tables — always rendered per request.
 export const dynamic = "force-dynamic";
-
-// The internal Build Cycle the "What's next" banner names, hard-coded so the
-// homepage copy no longer depends on an org cycle row existing in the
-// database (decided 2026-10-12). The invitation drops off after the end
-// date, so a forgotten constant never becomes a stale promise.
-const INTERNAL_CYCLE: InternalCycleFacts = {
-  name: "Internal Build Cycle",
-  start_date: "2026-10-13",
-  end_date: "2026-12-08",
-};
-
-function internalCycleUntilEnd(now: Date): InternalCycleFacts | null {
-  const end = new Date(`${INTERNAL_CYCLE.end_date}T00:00:00Z`);
-  // Still shown through the end day itself.
-  return now.getTime() < end.getTime() + 24 * 60 * 60 * 1000
-    ? INTERNAL_CYCLE
-    : null;
-}
 
 // "Summer 2026" from a start date — the banner's season label (no location
 // column exists yet; the local lab is surfaced separately).
@@ -154,7 +134,6 @@ export default async function LandingPage() {
     metros,
     recruitingCycle,
     spotlights,
-    whatsNextFacts,
   ] = await Promise.all([
     publicSession(),
     getEvents(),
@@ -162,7 +141,6 @@ export default async function LandingPage() {
     getMetros(),
     getRecruitingCycle(service).catch(() => null),
     getPublishedSpotlights(),
-    getWhatsNextFacts(service),
   ]);
 
   // The registration banner is driven by the recruiting cycle (the upcoming
@@ -174,18 +152,11 @@ export default async function LandingPage() {
   // lands on their dashboard — never bounced back to /login (the old fail-open).
   const recruitingUpcoming = recruitingCycle?.status === "upcoming";
   const joinDoor = "/login?intent=join";
-  // "What's next" (lib/cycles/whats-next.ts) leads whenever no cycle is
-  // taking registrations: with nothing recruiting, or while a running cycle
-  // is past registration and there is an internal cycle to invite people
-  // into. Visitors then see the internal cycle, the public workshops, and the
-  // next public kickoff — never "Join this cycle" for a cycle that can't take
-  // them. The workshops and events are the primary action.
-  const whatsNext = whatsNextMessage({
-    ...whatsNextFacts,
-    internalCycle: internalCycleUntilEnd(new Date()),
-  });
-  const showWhatsNext =
-    !recruitingCycle || (!recruitingUpcoming && whatsNext.internal !== null);
+  // "What's next" leads whenever no cycle is taking registrations: visitors
+  // see the internal cycle, the public workshops, and the next public kickoff
+  // — never "Join this cycle" for a cycle that can't take them. The copy is
+  // written out in the banner below for this quarter only.
+  const showWhatsNext = !recruitingUpcoming;
   const joinCycleHref = recruitingCycle
     ? signedIn
       ? `/cycles/${recruitingCycle.id}/join`
@@ -320,28 +291,30 @@ export default async function LandingPage() {
             <div className="cycle-banner s-cover grain on-dark" id="whats-next">
               <Orb />
               <div className="cb-body">
-                <span className="cb-status">{whatsNext.chip}</span>
+                <span className="cb-status">A new kind of Build Cycle</span>
                 <h3 className="t-h2" style={{ marginTop: 14 }}>
-                  {whatsNext.heading}
+                  This quarter, we&rsquo;re turning our method on ourselves
                 </h3>
-                {whatsNext.internal && (
-                  <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                    {whatsNext.internal}
-                  </p>
-                )}
                 <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                  {whatsNext.notChanging}
+                  From Oct 13 to Dec 8 we&rsquo;re running an internal Build
+                  Cycle to strengthen the Labs&rsquo; foundation, so we can help
+                  even more people in 2027. Taken part in the Labs before?
+                  You&rsquo;re invited.
+                </p>
+                <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                  Our public workshops and meetups keep running, in person and
+                  online. Come learn, and bring a friend.
                 </p>
                 <p
                   className="t-body"
                   style={{ marginTop: 8, maxWidth: "52ch", fontWeight: 600 }}
                 >
-                  {whatsNext.nextPublic}
+                  The first public Build Cycle of 2027 kicks off January 12.
                 </p>
               </div>
               <div className="cb-cta">
                 <Link className="btn btn-red btn-lg" href="/events">
-                  {whatsNext.eventsCta}
+                  See workshops and events
                 </Link>
               </div>
             </div>

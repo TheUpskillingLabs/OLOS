@@ -39,7 +39,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Changed
 
-- Homepage "What's next" banner: the internal cycle's dates (Oct 13 – Dec 8) are hard-coded instead of read from the org cycle row, and the "Taken part before? Join the internal cycle" link is removed.
+- Homepage "What's next" banner: the copy is written out in the page for this quarter (internal cycle Oct 13 – Dec 8, public kickoff Jan 12, 2027) instead of built from cycle rows, and the "Taken part before? Join the internal cycle" link is removed.
 
 ### Fixed
 
