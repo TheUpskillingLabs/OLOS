@@ -4,7 +4,7 @@ import { z } from "zod";
 
 /** The apply flow, one action per screen. */
 export const ambassadorApplicationSchema = z.discriminatedUnion("action", [
-  // Watched the film or read the short version.
+  // Watched the film or read the overview.
   z.object({ action: z.literal("oriented") }),
   // The quiz: option indexes in question order; graded on the server.
   z.object({ action: z.literal("quiz"), answers: z.array(z.number().int().min(0)).max(50) }),

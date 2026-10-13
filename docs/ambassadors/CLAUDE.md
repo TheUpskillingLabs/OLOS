@@ -72,6 +72,13 @@ All copy is JSON (plus `steps.ts`) in `lib/ambassador/content/`, imported throug
   and a unit test parses every step).
 - The quiz, agreement, film/short read and pass: `apply.json`. **Bump `agreement.version`
   when the agreement text changes**: acceptances of an older version stop counting.
+- The apply flow's first screen: `apply.json` → `video`. Until `video.src` is set it shows a
+  photo (`video.fallback`) and the `*NoFilm` copy, with nothing saying a film is missing. The
+  program is `video.overview`: numbered steps (what you'll do, what you get, where it's going),
+  then "The Labs in brief", whose topics hold every fact the ten quiz questions ask about —
+  keep them in step with `quiz.questions`. Steps flagged `draft: true` are seed copy awaiting
+  review (never marked on screen). Each topic's `more` is the slot for a fuller piece built
+  later: `null` shows nothing; `{ "label", "href" }` shows a "Read more" link.
 - Practice situations: `scenarios.json` (`core: true` puts one in the first round of six).
 - Deck: `deck.json`. FAQ: `faq.json`. Program page: `program.json`. UI strings: `ui.json`.
 - The coordinator contact in `help.json` is hidden while it's still the placeholder.

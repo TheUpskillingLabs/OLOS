@@ -128,7 +128,21 @@
 .amb-agreement section:last-child { border-bottom: none; }
 .amb-agreement h3 { font-weight: 600; color: var(--ink); margin-bottom: 4px; }
 .amb-video { width: 100%; aspect-ratio: 16 / 9; border-radius: var(--r); background: var(--ink); }
-.amb-read p { margin: 10px 0; }
+.amb-photo { margin: 0; }
+.amb-photo img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 35%; border-radius: var(--r); background: var(--tint); }
+.amb-photo figcaption { margin-top: 8px; font-size: 13px; color: var(--meta); }
+
+/* The apply flow's overview: numbered steps joined by a thin rule. */
+.amb-overview { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 28px; }
+.amb-overview > li { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
+.amb-overview > li:not(:last-child)::before { content: ""; position: absolute; left: 13.5px; top: 34px; bottom: -22px; width: 1px; background: var(--rule); }
+.amb-overview ul { list-style: disc; margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; line-height: 22px; color: var(--charcoal); }
+.amb-overview .amb-step-n { background: var(--white); }
+.amb-overview ul li::marker { color: var(--teal); }
+.amb-topics { display: grid; gap: 12px; margin-top: 12px; align-items: start; }
+.amb-topics .amb-panel + .amb-panel { margin-top: 0; }
+.amb-topics .amb-panel ul { margin-top: 6px; }
+@media (min-width: 768px) { .amb-topics { grid-template-columns: 1fr 1fr; } }
 
 /* Coordinator */
 .amb-table { width: 100%; border-collapse: collapse; font-size: 14px; }
