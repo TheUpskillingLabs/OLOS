@@ -98,7 +98,7 @@
         {
           "id": "get",
           "title": "What you get",
-          "draft": true,
+          "draft": false,
           "points": [
             "A short guide and a practice deck: about half an hour before your first conversation.",
             "A coordinator with you the whole way.",
@@ -109,7 +109,7 @@
         {
           "id": "next",
           "title": "Where it's going",
-          "draft": true,
+          "draft": false,
           "points": [
             "Our first ambassadors start the program, and what works in their conversations shapes the guide.",
             "Ambassadors in every city where a Lab is forming.",

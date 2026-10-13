@@ -22,8 +22,8 @@
 
   Step 4 keeps every fact the ten quiz questions ask about. Each topic has a `more` slot for
   the fuller pieces planned later; it renders nothing until it has an `href`.
-- **Copy:** `lib/ambassador/content/apply.json` → `video`. Steps 2 and 3 are new draft copy
-  (`draft: true`, never shown on screen), awaiting the owner's review. Steps 1 and 4 reuse
+- **Copy:** `lib/ambassador/content/apply.json` → `video`. Steps 2 and 3 are new copy, drafted
+  here and approved by the program owner on 2026-10-13 (`draft: false`). Steps 1 and 4 reuse
   existing wording from `program.json` and the old short version.
 - **Styles** in `ambassador.css` (`.amb-photo`, `.amb-overview`, `.amb-topics`), the dashboard
   nudge copy in `ui.json`, comments in the apply page and validation, and
@@ -50,7 +50,6 @@
 
 ## Open questions / needs from others
 
-- Review the draft copy in steps 2 ("What you get") and 3 ("Where it's going").
 - The film, when it exists: set `video.src`, `poster` and `captions`.
 - The fuller topic pieces: when each exists, set its topic's `more` to `{ "label", "href" }`.
 

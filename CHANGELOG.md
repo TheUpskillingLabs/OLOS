@@ -38,7 +38,7 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 - Ambassador application, first screen: a photo stands in for the orientation film until it
   exists (no "placeholder" line), and the long "short version" text is now numbered steps:
-  what you'll do, what you get, where it's going (draft copy), and "The Labs in brief" by
+  what you'll do, what you get, where it's going, and "The Labs in brief" by
   topic, with a hidden "Read more" slot per topic (#PR)
 
 - Homepage "What's next" banner: the copy is written out in the page for this quarter (internal cycle Oct 13 – Dec 8, public kickoff Jan 12, 2027) instead of built from cycle rows, and the "Taken part before? Join the internal cycle" link is removed. (#498)
