@@ -1,4 +1,4 @@
--- 00104_cycle_config_invite_only.sql
+-- 00109_cycle_config_invite_only.sql
 --
 -- Invite-only participant cycles (docs/ORG_CYCLES.md §5a). For the dogfooding
 -- quarter the org runs the full participant (mode='open') cycle machinery —
@@ -22,4 +22,4 @@ ALTER TABLE cycle_config
   ADD COLUMN IF NOT EXISTS invite_only BOOLEAN NOT NULL DEFAULT FALSE;
 
 COMMENT ON COLUMN cycle_config.invite_only IS
-  'When true, self-serve cycle registration is off: members join only via admin invitations (00104).';
+  'When true, self-serve cycle registration is off: members join only via admin invitations (00109).';

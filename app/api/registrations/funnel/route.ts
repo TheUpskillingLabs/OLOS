@@ -6,6 +6,8 @@ import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { funnelRegistrationSchema } from "@/lib/validations/funnel-registration";
 import { findOrCreateWaitlistLab } from "@/lib/labs/membership";
 import { getMemberRecruitingCycle } from "@/lib/cycle/active";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
+import { getWhatsNextFacts } from "@/lib/cycles/whats-next-data";
 import { fulfillInvitation } from "@/lib/auth/invitations";
 import { isEmailBanned } from "@/lib/auth/bans";
 import { getResendClient, FROM_EMAIL } from "@/lib/email/index";
@@ -233,7 +235,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     // Naive window columns are UTC instants (lib/cycles/lab-time.ts). An
-    // invite-only cycle (00104) never dangles a join link — invitees get
+    // invite-only cycle (00109) never dangles a join link — invitees get
     // in through their invitation link instead.
     const isOpen =
       !config?.invite_only &&
@@ -248,6 +250,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // No open cycle to join: the "What's next" paragraph instead.
+  const whatsNext = emailCycleJoinUrl
+    ? undefined
+    : whatsNextMessage(await getWhatsNextFacts(supabase));
+
   try {
     const resend = getResendClient();
     await resend.emails.send({
@@ -258,11 +265,13 @@ export async function POST(request: NextRequest) {
         firstName: body.first_name,
         cycleName: emailCycleName,
         cycleJoinUrl: emailCycleJoinUrl,
+        whatsNext,
       }),
       text: registrationConfirmationText({
         firstName: body.first_name,
         cycleName: emailCycleName,
         cycleJoinUrl: emailCycleJoinUrl,
+        whatsNext,
       }),
     });
   } catch {

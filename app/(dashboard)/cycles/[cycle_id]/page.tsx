@@ -113,7 +113,7 @@ export default async function CycleDetailPage({
         .maybeSingle()
     : { data: null };
 
-  // Invite-only cycles (00104, docs/ORG_CYCLES.md §5a): the uninvited see
+  // Invite-only cycles (00109, docs/ORG_CYCLES.md §5a): the uninvited see
   // nothing of the cycle — /cycles already hides it; a deep link lands back
   // there. Enrolled invitees and admins (who run the cycle) pass.
   const inviteOnly = !!(config as { invite_only?: boolean | null } | null)
@@ -130,7 +130,7 @@ export default async function CycleDetailPage({
   // to signed-in members who haven't signed this cycle's agreement, while the
   // D-10 registration window is open. Org cycles are invite-only — never a
   // Register CTA.
-  // Invite-only cycles (00104) never show it either: invitees are already
+  // Invite-only cycles (00109) never show it either: invitees are already
   // enrolled (no agreement to sign), and nobody else can register.
   let showRegisterCta = false;
   if (

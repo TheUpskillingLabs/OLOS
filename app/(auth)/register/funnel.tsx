@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
 import {
   HEAR_ABOUT_SOURCES,
   PARTICIPANT_AGREEMENT_VERSION,
@@ -157,6 +158,8 @@ function signupSteps(email: string): FlowStep[] {
   ];
 }
 
+const WHATS_NEXT = whatsNextMessage();
+
 const ROLE_OPTIONS: {
   v: RoleIntent;
   title: string;
@@ -165,9 +168,10 @@ const ROLE_OPTIONS: {
 }[] = [
   {
     v: "cycle",
-    title: "Join a Cycle",
+    title: "Build Cycles",
+    // No cycle is advertised (epic #477): say when the next public one kicks off.
     badge: "Heart of the Labs",
-    sub: "Join a pod, take on a real problem, and ship something you’re proud of. Three months.",
+    sub: `Join a pod, take on a real problem, and ship something you’re proud of. ${WHATS_NEXT.nextPublic}`,
   },
   {
     v: "events",

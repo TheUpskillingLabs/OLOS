@@ -49,7 +49,7 @@ export default async function CyclesPage() {
   // "Open for registration" card must not show a bare "Register" CTA for a
   // cycle they're already in (July 2026 feedback). Same lookup the join
   // ceremony uses to open on the confirmation.
-  // Invitees (00104) hold a 'registered'/'active' enrollment with no
+  // Invitees (00109) hold a 'registered'/'active' enrollment with no
   // agreement, so enrollments count too.
   const registeredCycleIds = new Set<number>();
   if (me?.id) {
@@ -133,7 +133,7 @@ export default async function CyclesPage() {
     regWindows.set(c.id, await registrationWindow(serviceClient, c.id));
   }
 
-  // Invite-only cycles (00104): an uninvited member gets no Register card at
+  // Invite-only cycles (00109): an uninvited member gets no Register card at
   // all (not even a "closed" one — there is nothing to wait for); an
   // enrolled invitee keeps their "you're registered" card.
   const inviteOnlyIds = new Set<number>();

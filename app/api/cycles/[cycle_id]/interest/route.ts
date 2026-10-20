@@ -59,7 +59,7 @@ export const POST = withAuth(
       );
     }
 
-    // Invite-only participant cycles (00104): no self-serve interest either.
+    // Invite-only participant cycles (00109): no self-serve interest either.
     const uninvited = await rejectUninvited(supabase, cycleId, participantId);
     if (uninvited) return uninvited;
 

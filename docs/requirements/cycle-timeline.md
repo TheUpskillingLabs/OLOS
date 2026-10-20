@@ -186,6 +186,11 @@ recomputing downstream; the 24h hardcode goes away. It stays a
 
 ## Cycle template — relative schedule
 
+> **2026-10-03 note.** The table below is the **default** template (the 12-week arc on a
+> 91-day span). Cycle 4 is an internal cycle structured differently (owner, D1); what
+> assumes this template, and the settings Cycle 4 uses instead of code changes, are in
+> [`cycle-4-readiness.md`](./cycle-4-readiness.md) (epic #477).
+
 13-week, Tuesday-anchored cycle; events carry per-cycle-overridable offsets
 from start; software windows anchor to events with weekday-snap deadlines.
 **The June dates are confirmed correct (owner, 2026-07-12).** Note:
@@ -373,6 +378,12 @@ weekday strictly after X; project-stage transitions at midnight, end-of-day):
   `anchor-events.ts` updated to match. Kickoff / Meet the Pods / Summit now
   start 4:30 PM at MLK Library. To change a public event fact, change it on
   Luma — the sync owns the merged rows.
+
+- **2026-10-03 (owner)** — **No change to how cycle weeks are counted.** Cycle 4 is an
+  internal cycle (about 8 weeks) structured differently; `getCycleWeek`'s 13-slice grid
+  is recorded as a known limitation for cycles that are not about 13 weeks long, and Cycle 4
+  avoids it with settings (log gate paused). #479 closed as not planned. The 12-week
+  template above stays the default. See [`cycle-4-readiness.md`](./cycle-4-readiness.md) §6.
 
 ## Open decisions
 

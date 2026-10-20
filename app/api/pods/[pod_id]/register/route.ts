@@ -43,7 +43,7 @@ export const POST = withAuth(
     );
     if (orgRejection) return orgRejection;
 
-    // Invite-only participant cycles (00104, docs/ORG_CYCLES.md §5a): this
+    // Invite-only participant cycles (00109, docs/ORG_CYCLES.md §5a): this
     // route never required a cycle enrollment, so without this check an
     // uninvited member could walk straight into a pod. Enrolled invitees pass.
     // Service client: cycle_config / cycle_enrollments reads are RLS-gated

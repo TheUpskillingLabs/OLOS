@@ -148,7 +148,7 @@ Once a cycle flips `upcoming` → `active` (which is also when the problem-state
 
 **To investigate:** Extends #2, whose fix (propose-form echo + the "Your problem statements" section on the cycle page) covers *seeing* the submission — a full detail view and editing are still missing. For edit: whether any update path exists on the problem-statements API (likely only POST today), what edit window makes sense (e.g. until the submission window closes / voting opens — editing after votes are cast is problematic), and where the edit surface should live (the cycle page card → detail view → edit form).
 
-Folded in from the earlier `testing-feedback-2026-07-11.md` so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
+Folded in from the earlier `testing-feedback-2026-07-11.md` (now `docs/archive/`) so all hands-on feedback lives in one doc; the original triage structure is preserved. **✅ = fixed on a branch/PR (not necessarily merged yet)**, with the PR noted inline; ⏳ = partially addressed; unmarked = still open.
 
 ### Fix Now (blocks or breaks initial Cycle registration)
 

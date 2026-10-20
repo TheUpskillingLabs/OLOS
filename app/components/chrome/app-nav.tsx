@@ -73,6 +73,10 @@ export interface AppNavProps {
       first lab this member leads; null when they lead none. Adds a "Lab
       lead" entry to the View-as switcher. */
   labLeadHref?: string | null;
+  /** The Ambassador role (docs/ambassadors/CLAUDE.md): shown to ambassadors,
+      applicants, and coordinators (Lab leads, admins). Adds an "Ambassador"
+      item to the avatar menu; null hides it. */
+  ambassadorHref?: string | null;
 }
 
 export default function AppNav({
@@ -87,6 +91,7 @@ export default function AppNav({
   isTest,
   moderatorPersonaLabel = "Poderator",
   labLeadHref = null,
+  ambassadorHref = null,
 }: AppNavProps) {
   const pathname = usePathname() || "";
   const persona = pathname.startsWith("/admin")
@@ -225,6 +230,7 @@ export default function AppNav({
           isTest={isTest}
           moderatorPersonaLabel={moderatorPersonaLabel}
           labLeadHref={labLeadHref}
+          ambassadorHref={ambassadorHref}
         />
       </div>
     </header>
@@ -246,6 +252,7 @@ function AvatarMenu({
   isTest,
   moderatorPersonaLabel,
   labLeadHref,
+  ambassadorHref,
 }: {
   initials: string;
   avatarUrl: string | null;
@@ -257,6 +264,7 @@ function AvatarMenu({
   isTest: boolean;
   moderatorPersonaLabel: string;
   labLeadHref: string | null;
+  ambassadorHref: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
@@ -398,6 +406,16 @@ function AvatarMenu({
           >
             View profile
           </Link>
+          {ambassadorHref && (
+            <Link
+              className="menu-item"
+              role="menuitem"
+              href={ambassadorHref}
+              onClick={() => setOpen(false)}
+            >
+              Ambassador
+            </Link>
+          )}
           {canViewAs && (
             <>
               <div className="menu-rule" />

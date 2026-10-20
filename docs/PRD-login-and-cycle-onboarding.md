@@ -1,5 +1,7 @@
 # PRD — Login, Profile, and Cycle Onboarding
 
+> **Historical (bannered 2026-09-15).** Built, then superseded: the short form became the onboarding funnel (`app/(auth)/register/funnel.tsx`, migrations `00031`/`00056`), the long form became the cycle ceremony (`/cycles/[id]/join`, `00032`), and `/api/registrations/short` was deleted in July 2026. Kept for its decisions log. Current plan: [`docs/roadmap/README.md`](roadmap/README.md).
+
 | | |
 |---|---|
 | Status | Draft |
@@ -90,7 +92,7 @@ ALTER TABLE participants
 - A follow-up data check after the migration: any existing participant rows with `text_updates = TRUE` should *not* be auto-promoted to `contact_consent = TRUE`, because the two questions have different scopes (SMS updates vs. broader newsletter/invites). Treat existing rows as not-yet-consented to the broader scope.
 - Update [`SCHEMA.md`](../SCHEMA.md) §Participants table to document the new column.
 - On success, redirect to `/` (which routes to the personalized dashboard).
-- On failure, show the error inline (existing pattern in [`register-form.tsx`](../app/(auth)/register/register-form.tsx)).
+- On failure, show the error inline (existing pattern in [`funnel.tsx`](../app/(auth)/register/funnel.tsx), which replaced the original `register-form.tsx`).
 
 ### Duplicate-account detection
 

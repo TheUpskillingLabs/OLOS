@@ -21,6 +21,7 @@ import {
   whatsNextTaskKey,
   leadershipLogTaskKey,
   customTaskKey,
+  ambassadorTaskKey,
 } from "./keys";
 
 export interface TaskInputs {
@@ -31,6 +32,8 @@ export interface TaskInputs {
   /** Member signed up after the Slack row shipped (see the dashboard's
       SLACK_ROW_SINCE cutoff) — older members never see the row. */
   slackRowVisible: boolean;
+  /** Member signed up after the events row shipped (EVENTS_ROW_SINCE_ISO). */
+  eventsRowVisible: boolean;
   /** Slack invite URL (env-configured; fallback baked in). */
   slackInviteUrl?: string | null;
 
@@ -77,6 +80,18 @@ export interface TaskInputs {
     /** ends_at, doubling as the displayed deadline. */
     deadline: string | null;
     pinned: boolean;
+    dismissible: boolean;
+  }[];
+
+  /** The Ambassador role's next step(s), already decided by
+      lib/ambassador/tasks.ts. Optional: absent = none. */
+  ambassador?: {
+    stage: string;
+    eyebrow: string;
+    title: string;
+    detail?: string;
+    href: string;
+    cta: string;
     dismissible: boolean;
   }[];
 
@@ -267,6 +282,29 @@ export function assembleTasks(input: TaskInputs): Task[] {
     });
   }
 
+  /* ── The Ambassador role ────────────────────────────────────────────── */
+  for (const a of input.ambassador ?? []) {
+    const key = ambassadorTaskKey(a.stage);
+    if (a.dismissible && input.dismissedKeys.has(key)) continue;
+    tasks.push({
+      defId: `ambassador:${a.stage}`,
+      kind: "ambassador",
+      instanceKey: key,
+      eyebrow: a.eyebrow,
+      title: a.title,
+      detail: a.detail,
+      href: a.href,
+      cta: a.cta,
+      deadline: null,
+      priority: PRIORITY.ambassador,
+      tone: "default",
+      blocking: false,
+      dismissible: a.dismissible,
+      done: false,
+      surface: "queue",
+    });
+  }
+
   /* ── The per-week "what's next" nudge ───────────────────────────────── */
   if (input.whatsNext) {
     tasks.push({
@@ -345,6 +383,26 @@ export function assembleTasks(input: TaskInputs): Task[] {
         blocking: false,
         dismissible: true,
         done: input.dismissedKeys.has(setupTaskKey("slack")),
+        surface: "checklist",
+      });
+    }
+    if (input.eventsRowVisible) {
+      // Like Slack: nothing records "looked at the events", so the row is
+      // done once its link is clicked (its dismissal row) and stays advisory.
+      tasks.push({
+        defId: "setup:events",
+        kind: "setup",
+        instanceKey: setupTaskKey("events"),
+        title: TASK_COPY.setup.events.label,
+        href: "/learning#events",
+        cta: TASK_COPY.setup.events.cta,
+        advisory: true,
+        deadline: null,
+        priority: PRIORITY.setupBase + 3,
+        tone: "default",
+        blocking: false,
+        dismissible: true,
+        done: input.dismissedKeys.has(setupTaskKey("events")),
         surface: "checklist",
       });
     }

@@ -20,6 +20,10 @@
     {
       "path": "/api/cron/sync-luma-events",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/announcement-expiry",
+      "schedule": "0 * * * *"
     }
   ]
 }

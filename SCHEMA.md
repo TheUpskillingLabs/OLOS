@@ -40,7 +40,7 @@ flowchart TD
 
 > `cycle_config.pod_limit` (migration `00043`, default 1) is the admin-editable ceiling on active pod memberships per participant per cycle — one pod by default. It replaces the old hardcoded 2-pod cap and is enforced in the pod register routes (participant + admin); projects stay at one-per-cycle, guaranteed by the `one_active_project_per_cycle` partial unique index.
 
-> `cycle_config.invite_only` (migration `00104`, default `false`, `docs/ORG_CYCLES.md` §5a) switches a participant (`mode='open'`) cycle to admin-invited membership: the join ceremony, `POST …/agreement`, `POST …/interest` and `POST /api/pods/[id]/register` 403 anyone without a `registered`/`active` `cycle_enrollments` row (`rejectUninvited`, `lib/cycle/guards.ts`), the Join / Register prompts hide, and a cycle-only invitation (`invitations.cycle_id`, no `pod_id`) is the one way in — its fulfillment writes the enrollment directly, so invitees never sign `cycle_agreements`. Org cycles are invite-only by construction and ignore the flag.
+> `cycle_config.invite_only` (migration `00109`, default `false`, `docs/ORG_CYCLES.md` §5a) switches a participant (`mode='open'`) cycle to admin-invited membership: the join ceremony, `POST …/agreement`, `POST …/interest` and `POST /api/pods/[id]/register` 403 anyone without a `registered`/`active` `cycle_enrollments` row (`rejectUninvited`, `lib/cycle/guards.ts`), the Join / Register prompts hide, and a cycle-only invitation (`invitations.cycle_id`, no `pod_id`) is the one way in — its fulfillment writes the enrollment directly, so invitees never sign `cycle_agreements`. Org cycles are invite-only by construction and ignore the flag.
 
 > `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default 6 / 12) are the admin-editable cycle weeks the mid/end-cycle milestone Learning Logs open on. They drive `learning_logs.kind` = `milestone_7` / `milestone_13` (opaque legacy IDs from the old 13-week model, surfaced in the UI as "Mid-cycle" / "End-cycle"); the API server-derives which `kind` to write from the current cycle week against these values, else `weekly`. `log_due_at` / `log_gate_paused` (migration `00040`) are the weekly-gate stamp + grace toggle.
 
@@ -119,7 +119,7 @@ erDiagram
         smallint milestone_final_week
         timestamp log_due_at
         boolean log_gate_paused
-        boolean invite_only "self-serve registration off; admin invites only (00104)"
+        boolean invite_only "self-serve registration off; admin invites only (00109)"
         text theme_description
         timestamp problem_statement_open
         timestamp problem_statement_close
@@ -524,6 +524,104 @@ erDiagram
 
 ---
 
+## ERD — Ambassadors
+
+The Ambassador role (migration `00104`, [`docs/ambassadors/CLAUDE.md`](docs/ambassadors/CLAUDE.md)) — moved in from the static `ambassadors` prototype, where everything lived on the applicant's phone. The role grant itself is a `participant_roles` row (`role = 'ambassador'`, `lab_id` = the Lab whose coordinator confirmed them, `granted_by` = that coordinator or the inviter); the tables below carry the way in and the coordinator's work.
+
+```mermaid
+erDiagram
+    ambassador_applications {
+        int id PK
+        int participant_id FK "UNIQUE — one per person"
+        int lab_id FK "metros; NULL = HQ decides"
+        varchar status "started/pending/approved/declined/stepped_back"
+        timestamptz oriented_at
+        varchar quiz_version
+        smallint quiz_score
+        smallint quiz_total
+        timestamptz quiz_passed_at
+        varchar agreement_version
+        timestamptz agreement_accepted_at
+        varchar referred_by "free text"
+        int referred_by_participant_id FK "share link ?ref=handle"
+        int invite_id FK
+        timestamptz submitted_at
+        timestamptz decided_at
+        int decided_by FK
+        varchar decision_note
+        timestamptz ready_at "all five guide steps done"
+        timestamptz button_given_at
+        int button_given_by FK
+    }
+    ambassador_invites {
+        int id PK
+        varchar token UK "bearer secret, single-use"
+        varchar first_name
+        varchar last_name
+        varchar email "if set, must match the applicant"
+        varchar note
+        varchar inviter_name
+        int invited_by FK
+        int lab_id FK
+        int nomination_id FK
+        timestamptz expires_at "default now() + 30 days"
+        timestamptz accepted_at
+        int accepted_participant_id FK
+        timestamptz revoked_at
+        timestamptz approved_at "a second coordinator approved the invite (00106)"
+        int approved_by FK
+    }
+    ambassador_nominations {
+        int id PK
+        int nominator_id FK
+        int lab_id FK
+        varchar nominee_name
+        varchar how_known
+        varchar reason
+        varchar nominee_contact "only if they agreed"
+        varchar status "open/invited/declined"
+        int decided_by FK
+    }
+    ambassador_step_progress {
+        int participant_id PK
+        varchar step_id PK "labs/conversation/your-story/room/practice"
+        timestamptz done_at
+    }
+
+    participants ||--o| ambassador_applications : "applies"
+    participants ||--o{ ambassador_invites : "invites"
+    ambassador_invites |o--o| ambassador_applications : "pre-approves"
+    participants ||--o{ ambassador_nominations : "nominates"
+    ambassador_nominations |o--o| ambassador_invites : "becomes"
+    participants ||--o{ ambassador_step_progress : "reads"
+    metros ||--o{ ambassador_applications : "coordinates"
+    ambassador_applications ||--o{ ambassador_reviews : "reviewed by"
+    participants ||--o{ ambassador_reviews : "reviews"
+
+    ambassador_reviews {
+        int id PK
+        int application_id FK "→ ambassador_applications(id) ON DELETE CASCADE"
+        int reviewer_id FK "→ participants(id) ON DELETE SET NULL"
+        varchar decision "approve/decline"
+        varchar note "nullable, max 1000 — reviewers only, never the applicant"
+        varchar source "review/invite (a pre-approved invite's approval)"
+        timestamptz created_at
+        timestamptz superseded_at "nullable — set when the application is reopened"
+    }
+```
+
+**Lifecycle:** `started` (orientation part way) → `pending` (submitted, waiting for two reviews) → `approved` (role granted) or `declined`. `approved` → `stepped_back` revokes the role; a coordinator can reinstate them. A declined application can be reopened for a new review round.
+
+**Two reviewers (migration `00105`, `lib/ambassador/review.ts`):** `ambassador_reviews` holds one row per reviewer per round. Two approvals approve (and grant the role, `granted_by` = the reviewer whose approval settled it); two declines decline; a 1–1 split waits for an admin's third review, which decides. Nobody reviews their own application or one they referred (`referred_by_participant_id`). An invited applicant skips this (owner decision 2026-10-10, migration `00106`): the invite is reviewed instead. `ambassador_invites.approved_at` / `approved_by` record a different coordinator's approval; the link works before that but grants nothing. Once approved and the invitee has finished the quiz and agreement the application goes straight to `approved`, `decided_by` = the approver, with the approval kept as a `source = 'invite'` row for the record. Invites from before 00106 are backfilled as approved. Reopening sets `superseded_at` on the round's rows: they stay as history and stop counting (the partial unique index `uq_amb_reviews_active` allows one counting review per reviewer). A review-driven decline leaves `decision_note` empty: reviewer notes are internal. RLS: admin read only; writes go through `PATCH /api/ambassadors/applications/[id]` (`action: "review"`).
+
+**Also in `00104`:** `participant_roles.role` CHECK gains `ambassador`; `agreement_acceptances.doc` gains `ambassador` and `.source` gains `ambassador_flow` (the Ambassador Agreement's acceptance is written there, versioned).
+
+**Deliberately not stored:** the ambassador's 30-second story draft, their practice self-checks, and the names in "Who will you ask?" stay in the browser's localStorage. The names are third parties who agreed to nothing.
+
+**RLS:** self + admin read on applications, nominations and step progress; invites (bearer tokens) admin-only. All writes go through service-role routes under `app/api/ambassadors/`, which check the Lab scope (`requireLabAccess`: admin, or a lead of the row's Lab; `lab_id` NULL = admin only).
+
+---
+
 ## ERD — Public Content (the CMS)
 
 The public web's content tables (migration `00033_public_content.sql`), ported 1:1 from the onboarding-proto content directories (`events/ library/ labs/` data.js files — HANDOFF.md §4). These serve the public landing and the `/events/[slug]`, `/library/[slug]`, `/local-labs/[slug]` pages. Rows are seeded and refreshed idempotently by `00034_seed_public_content.sql` (slug-keyed upserts); edit content in the prototype's data.js first, then re-generate the seed.
@@ -614,7 +712,8 @@ erDiagram
         int lab_id FK "→ metros(id); NULL = global (00070)"
         varchar status "draft/published/archived"
         boolean pinned
-        timestamptz published_at
+        timestamptz published_at "go-live; future = scheduled (00108)"
+        timestamptz expires_at "auto-archive; NULL = never (00108)"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -726,6 +825,8 @@ erDiagram
 **Upskiller Spotlights (migration `00051`):** `spotlights` is the public `/stories` page (onboarding-proto's `stories.html`) plus its submission pipeline, in one table. A "Share your story" submission (public `POST /api/stories`, per-IP throttled) lands as a row with `status='submitted'` and only `name` + `story` filled; the Labs team enriches the editorial fields (`role`, `tag`, `tag_label`, `quote`, `grad`) and flips `status='published'` from `/admin/stories` (`PATCH /api/admin/stories/[id]`, which stamps `published_at` and derives a unique `slug` — the `#s-{slug}` deep-link contract). RLS is anon-SELECT-`published`-only (mirrors events/resources); every write is service-role. Launches empty — no auto-publish (owner decision, concierge review), the same empty-until-real posture the Library took in `00036`. `image_url` (migration `00052`) is an optional member headshot (a `/assets/...` static path or an absolute URL); when NULL the `/stories` card + landing story row fall back to the orb placeholder — the same image-or-orb pattern the content teasers use for events/resources.
 
 **Org announcements (migration `00070`):** `announcements` is the admin-authored org-news feed in the participant dashboard's right rail — a first-class content table alongside `spotlights`/`events`. `lab_id` follows the `cycles`/`workstreams` scope model (00062): `NULL` = global/org-wide, set = one local lab (`metros`); a member sees published rows that are global OR match their own `metro_id`. Lifecycle is `draft`→`published`→`archived` with a `pinned` float; publishing stamps `published_at` (once set, kept). Authoring is `/admin/announcements` (admins, any audience) and the `/lab/[slug]` lab workspace (lab leads, scoped to their lab) — both hit `POST /api/admin/announcements` + `PATCH`/`DELETE /api/admin/announcements/[id]`, now `withAuth` + `requireLabAccess()` (not admin-only): an admin posts anything incl. org-wide, a lab lead only their own lab (`lab_id` NULL stays admin-only). `author_participant_id` is nullable for institutional posts. RLS: authenticated SELECT of `published` rows (admins see every status for the review surface); writes `is_admin_or_owner() OR (lab_id IS NOT NULL AND is_lab_lead(lab_id))` (`is_lab_lead` added in `00071`, mirrors `is_admin()` over `participant_roles`). `updated_at` owned by the shared `set_updated_at()` trigger (00037).
+
+**Announcement scheduling + expiry (migration `00108`):** `published_at` doubles as the **go-live** time — a `published` row whose `published_at` is in the future is *scheduled* and stays out of the feed until then (the routes accept an explicit `published_at`; publishing without one still stamps `now()`). `expires_at` (new, nullable) **auto-archives** a post: `NULL` = never expires; the column default is `now() + 14 days` for new inserts, and the create route sends the same two-week default (or go-live + 14 days from the admin form when scheduled). The column was added before the default was set, so legacy rows stay `NULL` and never expire. Visibility is enforced at read time — `fetchAnnouncements()` and the tightened `announcements_select` policy both require `published_at <= now()` and `expires_at IS NULL OR expires_at > now()` — and the hourly `/api/cron/announcement-expiry` sweep flips expired rows to `archived` so the admin surface agrees. The routes reject an expiry at/before go-live, or publishing with an expiry already past (`lib/announcements/schedule.ts`, tested).
 
 **Saved items (migration `00050`):** `saved_items` is a member's hearted content — the "Saved" vertical on the authed `/learning` page (onboarding-proto's `userState.saved`). Polymorphic by slug: `(item_type ∈ {event, resource}, slug)` points at the stable, URL-matching slug (events + resources are seeded idempotently by slug — 00033/00034), so a saved row survives a re-seed and maps 1:1 to `/events/{slug}` · `/library/{slug}`. `UNIQUE(participant_id, item_type, slug)`. The toggle route `POST /api/saved` (session identity, service-role) validates the slug against a *published* item before saving. RLS is self-only for SELECT/INSERT/DELETE (`participant_id = current_participant_id()`).
 
@@ -934,6 +1035,11 @@ erDiagram
 | `projects` | Project Layer | Shortlisted solutions with external integrations |
 | `project_memberships` | Project Layer | Self-registration into projects (1 active/cycle) |
 | `invitations` | Invitations | Magic link invites sent by admins; one row per send |
+| `ambassador_applications` | Ambassadors | One per person: orientation (quiz, agreement), who brought them in, the reviewers' outcome, ready/button state (00104) |
+| `ambassador_invites` | Ambassadors | A coordinator's single-use invite link (00104), approved by a second coordinator before it grants the role (00106) |
+| `ambassador_nominations` | Ambassadors | An ambassador suggests someone; the coordinator invites or declines (00104) |
+| `ambassador_step_progress` | Ambassadors | Which of the guide's five steps a person has marked done (00104) |
+| `ambassador_reviews` | Ambassadors | One reviewer's approve/decline on an application; two decide it, an admin breaks a split (00105) |
 | `events` | Public Content | Public events/workshops (Luma-shaped cache; the source until live sync) |
 | `resources` | Public Content | Learning Library items (guides, recordings, templates, courses, playbooks) |
 | `metros` | Public Content | Local labs / cities — `active` or `waitlist`. `archived_at` (00081) = owner-archived (deactivated) lab; NULL = active. The default lab (`is_default`) is never archivable |

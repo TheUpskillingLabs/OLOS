@@ -126,17 +126,24 @@ const CYCLE_ANATOMY: [string, string, string][] = [
    labs) rendered from the content tables, ending in the open-source footer.
    The stories row and the survey CTA arrive with their stages. */
 export default async function LandingPage() {
-  const [{ signedIn, initials, avatarUrl }, events, resources, metros, recruitingCycle, spotlights] =
-    await Promise.all([
-      publicSession(),
-      getEvents(),
-      getResources(),
-      getMetros(),
-      getRecruitingCycle(createServiceClient()).catch(() => null),
-      getPublishedSpotlights(),
-    ]);
+  const service = createServiceClient();
+  const [
+    { signedIn, initials, avatarUrl },
+    events,
+    resources,
+    metros,
+    recruitingCycle,
+    spotlights,
+  ] = await Promise.all([
+    publicSession(),
+    getEvents(),
+    getResources(),
+    getMetros(),
+    getRecruitingCycle(service).catch(() => null),
+    getPublishedSpotlights(),
+  ]);
 
-  // Invite-only cycles (00104) are not recruited on the public landing — the
+  // Invite-only cycles (00109) are not recruited on the public landing — the
   // banner falls back to its "no cycle is open" state and the CTA to the
   // generic Join The Labs / dashboard links.
   const recruitingInviteOnly = recruitingCycle
@@ -152,16 +159,25 @@ export default async function LandingPage() {
 
   // The registration banner is driven by the recruiting cycle (the upcoming
   // cohort if one is open, else the running one). Signed-in members go straight
-  // to the join ceremony; signed-out visitors enter the funnel at /login. A
-  // signed-in member with no open cycle lands on their dashboard — never
-  // bounced back to /login (the old fail-open).
+  // to the join ceremony (it shows its own "closed" state when registration
+  // isn't open); signed-out visitors enter through the JOIN door
+  // (/login?intent=join) — plain /login tells an unknown Google account "no
+  // account" instead of registering it. A signed-in member with no open cycle
+  // lands on their dashboard — never bounced back to /login (the old fail-open).
+  const recruitingUpcoming = bannerCycle?.status === "upcoming";
+  const joinDoor = "/login?intent=join";
+  // "What's next" leads whenever no cycle is taking registrations: visitors
+  // see the internal cycle, the public workshops, and the next public kickoff
+  // — never "Join this cycle" for a cycle that can't take them. The copy is
+  // written out in the banner below for this quarter only.
+  const showWhatsNext = !recruitingUpcoming;
   const joinCycleHref = bannerCycle
     ? signedIn
       ? `/cycles/${bannerCycle.id}/join`
-      : "/login"
+      : joinDoor
     : signedIn
       ? "/dashboard"
-      : "/login";
+      : joinDoor;
   const bannerSeason = seasonYear(bannerCycle?.start_date ?? null);
   const bannerKickoff = bannerCycle?.start_date
     ? new Date(bannerCycle.start_date).toLocaleDateString("en-US", {
@@ -246,10 +262,10 @@ export default async function LandingPage() {
       >
         <div className="container">
           <SectionHead
-            eyebrow="Build Cycles · 4 per year"
-            heading="Join a Build Cycle, solve a real problem"
+            eyebrow="Build Cycles"
+            heading="Solve a real problem with a small team"
           />
-          {bannerCycle ? (
+          {bannerCycle && !showWhatsNext ? (
             <div className="cycle-banner s-cover grain on-dark">
               <Orb />
               <div className="cb-body">
@@ -266,9 +282,10 @@ export default async function LandingPage() {
                 <h3 className="t-h2">{bannerCycle.name}</h3>
                 {bannerKickoff && (
                   <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                    Kicks off {bannerKickoff} — twelve weeks, a group of curious
-                    peers learning AI by tackling problems worth caring about
-                    with solutions worth building.
+                    {recruitingUpcoming ? "Kicks off" : "Under way since"}{" "}
+                    {bannerKickoff} — a group of curious peers learning AI by
+                    tackling problems worth caring about with solutions worth
+                    building.
                   </p>
                 )}
                 {bannerCycle.mode === "open" && (
@@ -285,21 +302,33 @@ export default async function LandingPage() {
               </div>
             </div>
           ) : (
-            <div className="cycle-banner s-cover grain on-dark">
+            <div className="cycle-banner s-cover grain on-dark" id="whats-next">
               <Orb />
               <div className="cb-body">
-                <span className="cb-status">Next cycle coming soon</span>
+                <span className="cb-status">A new kind of Build Cycle</span>
                 <h3 className="t-h2" style={{ marginTop: 14 }}>
-                  No cycle is open right now
+                  This quarter, we&rsquo;re turning our method on ourselves
                 </h3>
                 <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
-                  The next Build Cycle is still being planned. Join The Labs and
-                  we&apos;ll tell you the moment registration opens.
+                  From Oct 13 to Dec 8 we&rsquo;re running an internal Build
+                  Cycle to strengthen the Labs&rsquo; foundation, so we can help
+                  even more people in 2027. Taken part in the Labs before?
+                  You&rsquo;re invited.
+                </p>
+                <p className="t-body" style={{ marginTop: 8, maxWidth: "52ch" }}>
+                  Our public workshops and meetups keep running, in person and
+                  online. Come learn, and bring a friend.
+                </p>
+                <p
+                  className="t-body"
+                  style={{ marginTop: 8, maxWidth: "52ch", fontWeight: 600 }}
+                >
+                  The first public Build Cycle of 2027 kicks off January 12.
                 </p>
               </div>
               <div className="cb-cta">
-                <Link className="btn btn-red btn-lg" href={joinCycleHref}>
-                  {signedIn ? "Go to your dashboard" : "Join The Labs"}
+                <Link className="btn btn-red btn-lg" href="/events">
+                  See workshops and events
                 </Link>
               </div>
             </div>

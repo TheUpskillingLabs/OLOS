@@ -1,5 +1,11 @@
 # Transfer Progress — OLOS dev vs. the roadmap
 
+> **Historical (bannered 2026-09-15).** This snapshot was assessed on 2026-07-05
+> through PR #157/#161; the repo is now past PR #389 and Phases 2–3 items listed as
+> open here (Learning destination, saved items, `/stories`, follows) have shipped.
+> The current assessment is [`docs/roadmap/2026-09-audit.md`](../roadmap/2026-09-audit.md);
+> the current plan is [`docs/roadmap/next-sprint.md`](../roadmap/next-sprint.md).
+
 **What this is:** a status snapshot of the prototype→OLOS transfer against
 `docs/audit/IMPROVEMENT_ROADMAP.md` (v2). Read the roadmap for the *why* of each
 item; this doc records *where we are*. Assessed 2026-07-05 against `dev` (through

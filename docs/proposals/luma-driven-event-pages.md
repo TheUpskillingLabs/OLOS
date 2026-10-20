@@ -3,7 +3,7 @@
 **Status:** phases 1 to 3 merged to dev 2026-07-31 (#335, which landed the first
 two commits only — the nested-link fix rides along with Phase 4). Phase 4
 (deleting the bespoke route) is the branch `chore/retire-hackathon-shadow-route`:
-the copy was migrated to Luma via `docs/hackathon-luma-about.md` and the route is
+the copy was migrated to Luma via `docs/archive/hackathon-luma-about.md` and the route is
 gone.
 **Date:** 2026-07-31
 
@@ -293,7 +293,7 @@ nobody. So:
   The gate above still applies to that PR, and only to it.
 
   Done on `chore/retire-hackathon-shadow-route`. The copy was converted to
-  Luma-editor markdown in `docs/hackathon-luma-about.md`, which is both the paste
+  Luma-editor markdown in `docs/archive/hackathon-luma-about.md`, which is both the paste
   source and the record of what the deleted file held. The stat row and the
   sponsor logo, which Luma cannot express, move to the row's editorial `stats`
   and `sponsors` columns via `scripts/ops/hackathon-editorial-fields.sql` — so

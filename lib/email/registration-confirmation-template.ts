@@ -1,18 +1,27 @@
+import { whatsNextMessage, type WhatsNextMessage } from "@/lib/cycles/whats-next";
+
 type RegistrationEmailProps = {
   firstName: string;
   cycleName?: string | null;
   cycleJoinUrl?: string | null;
+  /** The "What's next" message (lib/cycles/whats-next.ts), built on the
+      caller's cycle facts; defaults to the facts-free message. */
+  whatsNext?: WhatsNextMessage;
 };
+
+/* The no-cycle paragraph: the next kickoff, then what keeps running. Plain
+   text; the HTML wraps it. */
+function noCycleParagraph({ whatsNext }: RegistrationEmailProps): string {
+  const m = whatsNext ?? whatsNextMessage();
+  return `There is no public Build Cycle open right now. ${m.nextPublic} ${m.notChanging} The Learning Library is free to browse.`;
+}
 
 const SLACK_INVITE_URL =
   process.env.NEXT_PUBLIC_SLACK_INVITE_URL ??
   "https://join.slack.com/t/theupskillinglabs/shared_invite/zt-44hwu2dcz-VgHsBzuxUwJASbyxlqlmSQ";
 
-export function registrationConfirmationHtml({
-  firstName,
-  cycleName,
-  cycleJoinUrl,
-}: RegistrationEmailProps): string {
+export function registrationConfirmationHtml(props: RegistrationEmailProps): string {
+  const { firstName, cycleName, cycleJoinUrl } = props;
   const hasActiveCycle = cycleName && cycleJoinUrl;
 
   const bodyContent = hasActiveCycle
@@ -56,7 +65,7 @@ export function registrationConfirmationHtml({
         We received your registration to The Upskilling Labs.
       </p>
       <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:rgba(200,210,230,0.75);">
-        There is no Build Cycle currently open for new participants. We will email you when the next cycle opens, and you will be able to join from there.
+        ${noCycleParagraph(props)}
       </p>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(200,210,230,0.75);">
         Join us on Slack: <a href="${SLACK_INVITE_URL}" style="color:#00b8c8;">${SLACK_INVITE_URL}</a>
@@ -111,11 +120,8 @@ export function registrationConfirmationHtml({
 </html>`;
 }
 
-export function registrationConfirmationText({
-  firstName,
-  cycleName,
-  cycleJoinUrl,
-}: RegistrationEmailProps): string {
+export function registrationConfirmationText(props: RegistrationEmailProps): string {
+  const { firstName, cycleName, cycleJoinUrl } = props;
   if (cycleName && cycleJoinUrl) {
     return `Hello ${firstName},
 
@@ -140,7 +146,7 @@ If you didn't register, you can safely ignore this email.`;
 
 We received your registration to The Upskilling Labs.
 
-There is no Build Cycle currently open for new participants. We will email you when the next cycle opens, and you will be able to join from there.
+${noCycleParagraph(props)}
 
 Join us on Slack: ${SLACK_INVITE_URL}
 

@@ -10,6 +10,7 @@ import CyclePhaseIndicator from "../cycles/cycle-phase-indicator";
 import PodJoinSection from "./pod-join-section";
 import { type MilestoneContext } from "./learning-log-card";
 import { getCycleWeek } from "@/lib/cycle/week";
+import { whatsNextMessage } from "@/lib/cycles/whats-next";
 import { getCyclePhase, type CyclePhase } from "@/lib/cycle/phase";
 import {
   milestoneKindForWeek,
@@ -18,7 +19,7 @@ import {
 } from "@/lib/cycle/milestones";
 import { selectMemberCycles } from "@/lib/cycle/active";
 import { dashboardTasks } from "@/lib/tasks/tasks";
-import { SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
+import { EVENTS_ROW_SINCE_ISO, SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
 import {
   TaskList,
   ChecklistCard,
@@ -60,6 +61,8 @@ import LeadershipLogCard, {
 } from "./leadership-log-card";
 import { podNoun, moderatorNoun } from "@/lib/cycle/labels";
 import { effectiveUser } from "@/lib/auth/simulation";
+import { ambassadorLaunchBanner } from "@/lib/ambassador/banner";
+import { AmbassadorLaunchBanner } from "@/app/components/ambassador/launch-banner";
 
 type CycleStatus = "active" | "closed" | "draft";
 
@@ -246,7 +249,7 @@ export default async function DashboardPage() {
   const moderatesCurrentCycle = (activeModAssignmentCount ?? 0) > 0;
 
   // Pre-registered = signed the agreement OR holds an enrollment (an invitee
-  // on an invite-only cycle, 00104, is enrolled without ever signing). The
+  // on an invite-only cycle, 00109, is enrolled without ever signing). The
   // upcoming cycle's invite_only flag rides along for the register gate.
   let preRegisteredUpcoming = false;
   let upcomingInviteOnly = false;
@@ -496,7 +499,7 @@ export default async function DashboardPage() {
     : onboarding && upcomingCycle
       ? upcomingCycle
       : activeCycle;
-  // A 'registered' enrollment with no agreement is an invitee (00104 —
+  // A 'registered' enrollment with no agreement is an invitee (00109 —
   // invite fulfillment enrolls without the ceremony), so it counts as done;
   // otherwise they'd be nagged to sign an agreement they were told to skip.
   const registerDone =
@@ -510,7 +513,7 @@ export default async function DashboardPage() {
   // closes between pod-forming close and the active-join window, and again
   // after active-join ends. Gates the register task and the state card
   // below — members who already signed keep their confirmation regardless
-  // of the window. An invite-only cycle (00104) reads as closed to anyone
+  // of the window. An invite-only cycle (00109) reads as closed to anyone
   // not already in it.
   const inviteOnly = !registerCycle
     ? false
@@ -528,12 +531,21 @@ export default async function DashboardPage() {
   const slackRowVisible =
     !!participant.created_at &&
     Date.parse(participant.created_at) >= Date.parse(SLACK_ROW_SINCE_ISO);
+  // Same rule for the events row (shipped 2026-10-09).
+  const eventsRowVisible =
+    !!participant.created_at &&
+    Date.parse(participant.created_at) >= Date.parse(EVENTS_ROW_SINCE_ISO);
 
   // Pods-per-member is the cycle's admin-set limit (cycle_config.pod_limit,
   // default 1). The dashboard is optimized for the one-pod case but honors a
   // higher limit if an admin raises it.
   const podLimit =
     (activeCycleConfig as { pod_limit?: number } | null)?.pod_limit ?? 1;
+
+  // The Ambassador launch banner (lib/ambassador/launch.ts) — leads the
+  // center column in every dashboard state, above the task queue.
+  // Best effort: a failed read just means no banner this visit.
+  const ambassadorBannerPromise = ambassadorLaunchBanner(participant.id).catch(() => null);
 
   // The central task assembly (lib/tasks) — the one derivation of the
   // member's queue + checklist, replacing the three hand-built lists
@@ -544,6 +556,7 @@ export default async function DashboardPage() {
     profileDone,
     followsAnyone,
     slackRowVisible,
+    eventsRowVisible,
     slackInviteUrl: process.env.NEXT_PUBLIC_SLACK_INVITE_URL,
     activeCycle: activeCycle
       ? {
@@ -595,7 +608,7 @@ export default async function DashboardPage() {
     start_date: string | null;
     end_date: string | null;
   };
-  // An invite-only cycle (00104) shows the uninvited nothing at all — no
+  // An invite-only cycle (00109) shows the uninvited nothing at all — no
   // closed card, no task — while an enrolled invitee keeps the ordinary
   // confirmation above.
   const registerStateCard = (cycle: CycleCardData) =>
@@ -696,6 +709,8 @@ export default async function DashboardPage() {
     </div>
   );
 
+  const ambassadorBanner = await ambassadorBannerPromise;
+
   // The center column's shared scaffold. The Up-next queue (TaskList — the
   // same component on every breakpoint: snap strip on phones, 2-col grid on
   // md+) leads the column everywhere, behind only an unfinished checklist.
@@ -705,6 +720,9 @@ export default async function DashboardPage() {
   // and the composer lead — the LinkedIn feed-first posture.
   const centerColumn = (tasks: ReactNode, feed: ReactNode) => (
     <div className="dash-center">
+      {ambassadorBanner && (
+        <AmbassadorLaunchBanner variant={ambassadorBanner.variant} dismissKey={ambassadorBanner.dismissKey} />
+      )}
       {checklistIncomplete && checklistBlock}
       <TaskList
         tasks={taskData.queue}
@@ -935,8 +953,8 @@ export default async function DashboardPage() {
                 ) : (
                   <EmptyState
                     icon={Calendar}
-                    title="No cycle running right now"
-                    description="Check back soon for the next Build Cycle."
+                    title="No Build Cycle is running right now"
+                    description={`${whatsNextMessage().nextPublic} ${whatsNextMessage().notChanging}`}
                   />
                 ))}
               {leadershipSection}
