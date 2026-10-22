@@ -24,18 +24,24 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Added
 
-- Ambassador: coordinators and admins are told in a staff Slack channel when an application, an invite to approve, a split review or a ready-for-button ambassador is waiting. No personal details in the message; off unless `SLACK_NOTIFY_ENABLED=true`; needs `SLACK_BOT_TOKEN` and `SLACK_AMBASSADOR_CHANNEL_ID`.
-- Ambassador: open applications stay two-reviewer; an invite is instead approved by a second coordinator (migration 00106), after which finishing the quiz and agreement makes the invitee an ambassador, with no application review. The invite is claimed atomically so a link can't be used twice at once.
-- The Ambassador role moves in from the `ambassadors` prototype: the public program page
-  (`/get-involved/ambassador`, unlisted), the front door (`/ambassador/start`), the apply flow
-  (server-graded quiz, versioned Ambassador Agreement, pre-approved invites), the five-step guide
-  with practice cards, the presenter deck, nominations, a coordinator queue for Lab leads, and
-  dashboard tasks; migration `00104` (`docs/ambassadors/CLAUDE.md`) (#PR)
-- Ambassador launch: a dismissible banner at the top of the dashboard's center column announces the
-  program to every member who hasn't applied (and says "in review" once they have); applications are
-  decided by two reviewers who see the quiz result and agreement beside the applicant's OLOS record
-  (`/ambassador/coordinator/[id]`), with an admin breaking a split and an invite counting as one
-  approval; migration `00105` (#PR)
+- Invite-only participant cycles (migration `00109`, `cycle_config.invite_only`): an admin can close a
+  participant cycle to self-serve registration. Only members enrolled by an accepted cycle-only
+  invitation can reach the join ceremony, agreement, interest and pod registration; everyone else gets a
+  403 and sees no card for the cycle. Invitees are never sent to `/local-labs` for lacking an active Local
+  Lab. Org cycles ignore the flag. (#499)
+- "Get set up" checklist: a "View upcoming events and workshops" row linking to `/learning#events`, for
+  members created from 2026-10-09. Like the Slack row it is done once clicked and never re-pins the
+  checklist. (#494)
+- Announcements can be scheduled and expire on their own: admins and lab leads set a go-live date/time
+  (a future `published_at` schedules the post) and an expiration that auto-archives it. It defaults to
+  two weeks from creation, or from go-live when scheduled, and can be changed or set to never expire.
+  There is also an Archive button on drafts, scheduled and live posts. Members only see live posts (the feed query
+  plus a tightened select policy), and an hourly `/api/cron/announcement-expiry` sweep flips expired
+  rows to archived. Migration `00108`. (#490)
+
+### Changed
+
+- Homepage "What's next" banner: the copy is written out in the page for this quarter (internal cycle Oct 13 – Dec 8, public kickoff Jan 12, 2027) instead of built from cycle rows, and the "Taken part before? Join the internal cycle" link is removed. (#498)
 
 ### Fixed
 

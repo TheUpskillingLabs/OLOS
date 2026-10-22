@@ -6,6 +6,7 @@ import { parseBody, isErrorResponse } from "@/lib/api/request";
 import { parseIntParam } from "@/lib/api/params";
 import { cycleInterestSchema } from "@/lib/validations/cycle-interest";
 import { requireActiveLabMembership } from "@/lib/labs/membership";
+import { rejectUninvited } from "@/lib/cycle/guards";
 import type { AuthenticatedRequest } from "@/lib/auth/middleware";
 
 export const POST = withAuth(
@@ -57,6 +58,10 @@ export const POST = withAuth(
         { status: 400 }
       );
     }
+
+    // Invite-only participant cycles (00109): no self-serve interest either.
+    const uninvited = await rejectUninvited(supabase, cycleId, participantId);
+    if (uninvited) return uninvited;
 
     const body = await parseBody(request, cycleInterestSchema);
     if (isErrorResponse(body)) return body;

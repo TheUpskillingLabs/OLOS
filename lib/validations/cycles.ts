@@ -38,6 +38,9 @@ export const updateCycleConfigSchema = z.object({
   theme_description: z.string().max(4000).nullable().optional(),
   // Admin gate pause — cron skips paused cycles and clears stale stamps (00040).
   log_gate_paused: z.boolean().optional(),
+  // Invite-only registration (00109, docs/ORG_CYCLES.md §5a): self-serve
+  // join paths 403 anyone without an enrollment; admins invite instead.
+  invite_only: z.boolean().optional(),
   // Leadership Log pause — org cycles only (00069, docs/ORG_CYCLES.md §4a).
   leadership_log_gate_paused: z.boolean().optional(),
   // Phase markers — the config form has always sent these, but they were

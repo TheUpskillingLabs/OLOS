@@ -179,6 +179,45 @@ nothing automatically creates next quarter's org cycle or fires the
 per-workstream run creation on a schedule — an admin does both steps by
 hand, once per quarter, workstream by workstream.
 
+### 5a. Dogfooding on the participant track — invite-only open cycles (migration 00109)
+
+The org-mode cycle above is the *stripped-down* internal track: no formation
+windows, no ballots, workstreams instead of voted pods. When the team wants
+to run the **full** participant machinery on itself — problem statements,
+voting, pod formation, projects, the Friday Learning Log — with no external
+cohort (2026-Q4 dogfooding quarter), it does not build phases into org
+cycles; it runs the ordinary HQ participant (`mode='open'`) cycle and flips
+**`cycle_config.invite_only`** on (Admin → cycle → Configuration →
+Registration mode). Everything about the cycle stays the same except who can
+get in:
+
+- **Admins invite.** A cycle-only invitation (Admin → People → Invitations,
+  participant cycle picked, Pod left blank) is the only way in.
+  `fulfillInvitation` (`lib/auth/invitations.ts`) writes the
+  `cycle_enrollments` row on acceptance, so invitees **never sign the cycle
+  agreement** and never hit the D-10 registration window — the enrollment
+  *is* their registration. Every "has this member registered?" read
+  (dashboard register task, `/cycles` cards, the cycle page's Register CTA)
+  therefore counts a `registered`/`active` enrollment, not just a
+  `cycle_agreements` row.
+- **Self-serve is closed.** `rejectUninvited` (`lib/cycle/guards.ts`, beside
+  `rejectOrgCycle`) 403s anyone without an enrollment on the join ceremony,
+  `POST /api/cycles/[id]/agreement`, the legacy `…/interest` route, and
+  `POST /api/pods/[id]/register` (which never required an enrollment and
+  would otherwise be a side door). **The uninvited see nothing** (owner
+  rule): the landing banner and welcome email don't recruit for it, `/cycles`
+  hides it, its page and join route redirect to `/cycles` (admins may still
+  open the page), and the dashboard shows no card or task. Already-enrolled
+  invitees keep the ordinary "you're registered" confirmation.
+- **Independent of `mode='org'`.** Org cycles are invite-only by construction
+  and ignore the flag (`ORG_ALLOWED_CONFIG_KEYS` rejects it on PATCH). A lab
+  can still run its org cycle alongside; dual-enrolled members then file two
+  weekly logs (§4, Wed + Fri).
+
+Deliberately not done: lab-lead invites into the participant cycle (the lab
+invite form always targets a pod), and a general "pod register requires an
+enrollment" rule for open-registration cycles.
+
 ## 6. What is deliberately NOT done in this slice
 
 - **Not overloading `cycle_enrollments.tier`.** `tier` is `member`/

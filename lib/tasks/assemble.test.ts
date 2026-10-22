@@ -18,6 +18,7 @@ const baseInputs = (overrides: Partial<TaskInputs> = {}): TaskInputs => ({
   profileDone: false,
   followsAnyone: false,
   slackRowVisible: true,
+  eventsRowVisible: true,
   activeCycle: { id: 14, name: "Cycle 14" },
   registerCycle: null,
   registerOpen: false,
@@ -193,7 +194,7 @@ describe("assembleTasks — whats_next", () => {
 });
 
 describe("assembleTasks — checklist", () => {
-  it("is account housekeeping only: profile, follow, slack", () => {
+  it("is account housekeeping only: profile, follow, slack, events", () => {
     const rows = assembleTasks(baseInputs()).filter(
       (t) => t.surface === "checklist"
     );
@@ -201,6 +202,7 @@ describe("assembleTasks — checklist", () => {
       "setup:profile",
       "setup:follow",
       "setup:slack",
+      "setup:events",
     ]);
     expect(rows.every((t) => t.kind === "setup")).toBe(true);
   });
@@ -220,10 +222,28 @@ describe("assembleTasks — checklist", () => {
   });
 
   it("pre-Slack-row members never see the row", () => {
-    const rows = assembleTasks(baseInputs({ slackRowVisible: false })).filter(
+    const rows = assembleTasks(
+      baseInputs({ slackRowVisible: false, eventsRowVisible: false })
+    ).filter((t) => t.surface === "checklist");
+    expect(rows.map((t) => t.defId)).toEqual(["setup:profile", "setup:follow"]);
+  });
+
+  it("the events row links to /learning#events and is done once clicked", () => {
+    const row = (dismissed: string[]) =>
+      assembleTasks(baseInputs({ dismissedKeys: new Set(dismissed) })).find(
+        (t) => t.defId === "setup:events"
+      );
+    expect(row([])?.href).toBe("/learning#events");
+    expect(row([])?.advisory).toBe(true);
+    expect(row([])?.done).toBe(false);
+    expect(row([setupTaskKey("events")])?.done).toBe(true);
+  });
+
+  it("members created before the events row shipped never see it", () => {
+    const rows = assembleTasks(baseInputs({ eventsRowVisible: false })).filter(
       (t) => t.surface === "checklist"
     );
-    expect(rows.map((t) => t.defId)).toEqual(["setup:profile", "setup:follow"]);
+    expect(rows.map((t) => t.defId)).not.toContain("setup:events");
   });
 
   it("the whole checklist disappears once hidden via its key", () => {
