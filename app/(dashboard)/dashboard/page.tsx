@@ -18,6 +18,7 @@ import {
   type MilestoneWeeks,
 } from "@/lib/cycle/milestones";
 import { selectMemberCycles } from "@/lib/cycle/active";
+import { isInviteOnlyBlocked } from "@/lib/cycle/guards";
 import { dashboardTasks } from "@/lib/tasks/tasks";
 import { EVENTS_ROW_SINCE_ISO, SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
 import {
@@ -749,9 +750,17 @@ export default async function DashboardPage() {
   // The shared 3-panel scaffold — used by EVERY dashboard state now, not just
   // the engaged one. Left = identity + the groups you belong to (empty-friendly);
   // right = org news. memberships is fetched for all states (incl. onboarding).
+  // An invite-only cycle (00109) is not "yours" until you are enrolled in it:
+  // the uninvited see nothing of it, so it stays out of "Your groups" too.
+  const activeInviteOnly = (
+    activeCycleConfig as { invite_only?: boolean | null } | null
+  )?.invite_only;
+  const activeInviteOnlyHidden =
+    !!activeCycle &&
+    isInviteOnlyBlocked({ invite_only: activeInviteOnly ?? null }, enrollment ?? null);
   const memberships = await getParticipantMemberships(participant.id, {
     metroId: memberLabId,
-    activeCycle: activeCycle
+    activeCycle: activeCycle && !activeInviteOnlyHidden
       ? {
           id: activeCycle.id,
           name: activeCycle.name,
@@ -781,7 +790,10 @@ export default async function DashboardPage() {
         memberships={memberships}
         mode={activeCycle?.mode ?? null}
       />
-      <QuickLinks cycleId={activeCycle?.id} metroId={participant.metro_id} />
+      <QuickLinks
+        cycleId={activeInviteOnlyHidden ? undefined : activeCycle?.id}
+        metroId={participant.metro_id}
+      />
       {otherCycles.length > 0 && (
         <details className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
           <summary className="lbl cursor-pointer hover:text-charcoal">

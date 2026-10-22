@@ -24,6 +24,11 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Added
 
+- Invite-only participant cycles (migration `00109`, `cycle_config.invite_only`): an admin can close a
+  participant cycle to self-serve registration. Only members enrolled by an accepted cycle-only
+  invitation can reach the join ceremony, agreement, interest and pod registration; everyone else gets a
+  403 and sees no card for the cycle. Invitees are never sent to `/local-labs` for lacking an active Local
+  Lab. Org cycles ignore the flag. (#499)
 - "Get set up" checklist: a "View upcoming events and workshops" row linking to `/learning#events`, for
   members created from 2026-10-09. Like the Slack row it is done once clicked and never re-pins the
   checklist. (#494)
