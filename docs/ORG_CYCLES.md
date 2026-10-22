@@ -179,7 +179,7 @@ nothing automatically creates next quarter's org cycle or fires the
 per-workstream run creation on a schedule — an admin does both steps by
 hand, once per quarter, workstream by workstream.
 
-### 5a. Dogfooding on the participant track — invite-only open cycles (migration 00104)
+### 5a. Dogfooding on the participant track — invite-only open cycles (migration 00109)
 
 The org-mode cycle above is the *stripped-down* internal track: no formation
 windows, no ballots, workstreams instead of voted pods. When the team wants

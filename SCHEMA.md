@@ -40,7 +40,7 @@ flowchart TD
 
 > `cycle_config.pod_limit` (migration `00043`, default 1) is the admin-editable ceiling on active pod memberships per participant per cycle — one pod by default. It replaces the old hardcoded 2-pod cap and is enforced in the pod register routes (participant + admin); projects stay at one-per-cycle, guaranteed by the `one_active_project_per_cycle` partial unique index.
 
-> `cycle_config.invite_only` (migration `00104`, default `false`, `docs/ORG_CYCLES.md` §5a) switches a participant (`mode='open'`) cycle to admin-invited membership: the join ceremony, `POST …/agreement`, `POST …/interest` and `POST /api/pods/[id]/register` 403 anyone without a `registered`/`active` `cycle_enrollments` row (`rejectUninvited`, `lib/cycle/guards.ts`), the Join / Register prompts hide, and a cycle-only invitation (`invitations.cycle_id`, no `pod_id`) is the one way in — its fulfillment writes the enrollment directly, so invitees never sign `cycle_agreements`. Org cycles are invite-only by construction and ignore the flag.
+> `cycle_config.invite_only` (migration `00109`, default `false`, `docs/ORG_CYCLES.md` §5a) switches a participant (`mode='open'`) cycle to admin-invited membership: the join ceremony, `POST …/agreement`, `POST …/interest` and `POST /api/pods/[id]/register` 403 anyone without a `registered`/`active` `cycle_enrollments` row (`rejectUninvited`, `lib/cycle/guards.ts`), the Join / Register prompts hide, and a cycle-only invitation (`invitations.cycle_id`, no `pod_id`) is the one way in — its fulfillment writes the enrollment directly, so invitees never sign `cycle_agreements`. Org cycles are invite-only by construction and ignore the flag.
 
 > `cycle_config.milestone_mid_week` / `milestone_final_week` (migration `00047`, default 6 / 12) are the admin-editable cycle weeks the mid/end-cycle milestone Learning Logs open on. They drive `learning_logs.kind` = `milestone_7` / `milestone_13` (opaque legacy IDs from the old 13-week model, surfaced in the UI as "Mid-cycle" / "End-cycle"); the API server-derives which `kind` to write from the current cycle week against these values, else `weekly`. `log_due_at` / `log_gate_paused` (migration `00040`) are the weekly-gate stamp + grace toggle.
 
@@ -119,7 +119,7 @@ erDiagram
         smallint milestone_final_week
         timestamp log_due_at
         boolean log_gate_paused
-        boolean invite_only "self-serve registration off; admin invites only (00104)"
+        boolean invite_only "self-serve registration off; admin invites only (00109)"
         text theme_description
         timestamp problem_statement_open
         timestamp problem_statement_close

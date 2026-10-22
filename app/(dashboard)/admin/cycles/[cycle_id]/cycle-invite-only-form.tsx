@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Admin control for `cycle_config.invite_only` (migration 00104,
+ * Admin control for `cycle_config.invite_only` (migration 00109,
  * docs/ORG_CYCLES.md §5a). Participant cycles only — org cycles are
  * invite-only by construction. Same PATCH-and-refresh shape as
  * cycle-log-gate-form.tsx.

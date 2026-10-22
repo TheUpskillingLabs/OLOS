@@ -249,7 +249,7 @@ export default async function DashboardPage() {
   const moderatesCurrentCycle = (activeModAssignmentCount ?? 0) > 0;
 
   // Pre-registered = signed the agreement OR holds an enrollment (an invitee
-  // on an invite-only cycle, 00104, is enrolled without ever signing). The
+  // on an invite-only cycle, 00109, is enrolled without ever signing). The
   // upcoming cycle's invite_only flag rides along for the register gate.
   let preRegisteredUpcoming = false;
   let upcomingInviteOnly = false;
@@ -499,7 +499,7 @@ export default async function DashboardPage() {
     : onboarding && upcomingCycle
       ? upcomingCycle
       : activeCycle;
-  // A 'registered' enrollment with no agreement is an invitee (00104 —
+  // A 'registered' enrollment with no agreement is an invitee (00109 —
   // invite fulfillment enrolls without the ceremony), so it counts as done;
   // otherwise they'd be nagged to sign an agreement they were told to skip.
   const registerDone =
@@ -513,7 +513,7 @@ export default async function DashboardPage() {
   // closes between pod-forming close and the active-join window, and again
   // after active-join ends. Gates the register task and the state card
   // below — members who already signed keep their confirmation regardless
-  // of the window. An invite-only cycle (00104) reads as closed to anyone
+  // of the window. An invite-only cycle (00109) reads as closed to anyone
   // not already in it.
   const inviteOnly = !registerCycle
     ? false
@@ -603,7 +603,7 @@ export default async function DashboardPage() {
     start_date: string | null;
     end_date: string | null;
   };
-  // An invite-only cycle (00104) shows the uninvited nothing at all — no
+  // An invite-only cycle (00109) shows the uninvited nothing at all — no
   // closed card, no task — while an enrolled invitee keeps the ordinary
   // confirmation above.
   const registerStateCard = (cycle: CycleCardData) =>

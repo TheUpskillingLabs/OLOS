@@ -69,7 +69,7 @@ export default async function JoinCyclePage({
   // ceremony. Redirect before any interest/agreement UI renders.
   if (cycle.mode === "org") redirect("/cycles");
 
-  // Invite-only participant cycles (00104, docs/ORG_CYCLES.md §5a): an
+  // Invite-only participant cycles (00109, docs/ORG_CYCLES.md §5a): an
   // accepted admin invitation already enrolled the member, and invitees never
   // sign the agreement — so an enrolled member has nothing to sign here and
   // lands on the cycle page (the /cycles "You're registered — view details"

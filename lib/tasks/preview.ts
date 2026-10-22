@@ -183,7 +183,7 @@ export async function memberTaskPreview(
     upcomingInviteOnly = !!upcomingConfig?.invite_only;
   }
   // Mirrors app/(dashboard)/dashboard/page.tsx: a 'registered' enrollment
-  // without an agreement is an invitee (00104) and counts as done, and an
+  // without an agreement is an invitee (00109) and counts as done, and an
   // invite-only cycle reads as closed to anyone not already in it.
   const registerDone =
     onboarding && upcomingCycle

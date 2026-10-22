@@ -44,7 +44,7 @@ export async function rejectOrgCycle(
 const ENROLLED_STATUSES = new Set(["registered", "active"]);
 
 // Pure half of the invite-only gate (docs/ORG_CYCLES.md §5a, migration
-// 00104): a cycle flagged invite_only admits only members who already hold an
+// 00109): a cycle flagged invite_only admits only members who already hold an
 // enrollment, which an accepted admin invitation writes
 // (lib/auth/invitations.ts). Missing config (no row yet) reads as open.
 export function isInviteOnlyBlocked(

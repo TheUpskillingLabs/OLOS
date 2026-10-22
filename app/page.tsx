@@ -147,7 +147,7 @@ export default async function LandingPage() {
     getWhatsNextFacts(service),
   ]);
 
-  // Invite-only cycles (00104) are not recruited on the public landing — the
+  // Invite-only cycles (00109) are not recruited on the public landing — the
   // banner falls back to its "no cycle is open" state and the CTA to the
   // generic Join The Labs / dashboard links.
   const recruitingInviteOnly = recruitingCycle

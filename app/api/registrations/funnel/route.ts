@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     // Naive window columns are UTC instants (lib/cycles/lab-time.ts). An
-    // invite-only cycle (00104) never dangles a join link — invitees get
+    // invite-only cycle (00109) never dangles a join link — invitees get
     // in through their invitation link instead.
     const isOpen =
       !config?.invite_only &&

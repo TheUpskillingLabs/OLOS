@@ -82,7 +82,7 @@ export const POST = withAuth(
       }
     }
 
-    // Invite-only cycles (00104, docs/ORG_CYCLES.md §5a): signing is the
+    // Invite-only cycles (00109, docs/ORG_CYCLES.md §5a): signing is the
     // self-serve way in, so it is closed to anyone without an enrollment —
     // an accepted admin invitation is the only path that writes one.
     const uninvited = await rejectUninvited(supabase, cycleId, participantId);
