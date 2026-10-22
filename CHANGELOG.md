@@ -24,6 +24,11 @@ Groups: **Added · Changed · Fixed · Removed · Ops · Docs**. One line per PR
 
 ### Added
 
+- Invite-only participant cycles (migration `00109`, `cycle_config.invite_only`): an admin can close a
+  participant cycle to self-serve registration. Only members enrolled by an accepted cycle-only
+  invitation can reach the join ceremony, agreement, interest and pod registration; everyone else gets a
+  403 and sees no card for the cycle. Invitees are never sent to `/local-labs` for lacking an active Local
+  Lab. Org cycles ignore the flag. (#499)
 - Ambassador: coordinators and admins are told in a staff Slack channel when an application, an invite to approve, a split review or a ready-for-button ambassador is waiting. No personal details in the message; off unless `SLACK_NOTIFY_ENABLED=true`; needs `SLACK_BOT_TOKEN` and `SLACK_AMBASSADOR_CHANNEL_ID`.
 - Ambassador: open applications stay two-reviewer; an invite is instead approved by a second coordinator (migration 00106), after which finishing the quiz and agreement makes the invitee an ambassador, with no application review. The invite is claimed atomically so a link can't be used twice at once.
 - The Ambassador role moves in from the `ambassadors` prototype: the public program page
