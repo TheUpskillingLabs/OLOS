@@ -7,7 +7,9 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isAdmin, resolveUserRoles } from "@/lib/auth/roles";
+import { isInviteOnlyBlocked } from "@/lib/cycle/guards";
 import { StatCard, StatusBadge } from "@/app/components/ui";
 import { TaskRow } from "@/app/components/tasks";
 import { cycleInfoContent } from "@/lib/cycles/info";
@@ -72,7 +74,7 @@ export default async function CycleDetailPage({
     serviceClient
       .from("cycle_config")
       .select(
-        "theme_description, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+        "theme_description, invite_only, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
       )
       .eq("cycle_id", cycle.id)
       .single(),
@@ -99,15 +101,42 @@ export default async function CycleDetailPage({
         .maybeSingle()
     : { data: null };
 
+  // The viewer's enrollment in this cycle — feeds both the invite-only gate
+  // and the Register CTA below.
+  const { data: myEnrollment } = me
+    ? await serviceClient
+        .from("cycle_enrollments")
+        .select("status")
+        .eq("cycle_id", cycle.id)
+        .eq("participant_id", me.id)
+        .in("status", ["registered", "active"])
+        .maybeSingle()
+    : { data: null };
+
+  // Invite-only cycles (00109, docs/ORG_CYCLES.md §5a): the uninvited see
+  // nothing of the cycle — /cycles already hides it; a deep link lands back
+  // there. Enrolled invitees and admins (who run the cycle) pass.
+  const inviteOnly = !!(config as { invite_only?: boolean | null } | null)
+    ?.invite_only;
+  if (inviteOnly && isInviteOnlyBlocked({ invite_only: true }, myEnrollment)) {
+    const viewerIsAdmin = user
+      ? isAdmin(await resolveUserRoles(supabase, user.id))
+      : false;
+    if (!viewerIsAdmin) redirect("/cycles");
+  }
+
   // Register CTA (July 2026 feedback, running-list #1): the join flow accepts
   // active and upcoming cohorts, but this page had no way into it. Shown only
   // to signed-in members who haven't signed this cycle's agreement, while the
   // D-10 registration window is open. Org cycles are invite-only — never a
   // Register CTA.
+  // Invite-only cycles (00109) never show it either: invitees are already
+  // enrolled (no agreement to sign), and nobody else can register.
   let showRegisterCta = false;
   if (
     me &&
     cycle.mode !== "org" &&
+    !inviteOnly &&
     (cycle.status === "active" || cycle.status === "upcoming")
   ) {
     const { data: agreement } = await serviceClient
@@ -116,7 +145,7 @@ export default async function CycleDetailPage({
       .eq("cycle_id", cycle.id)
       .eq("participant_id", me.id)
       .maybeSingle();
-    if (!agreement) {
+    if (!agreement && !myEnrollment) {
       showRegisterCta = (await registrationWindow(serviceClient, cycle.id))
         .open;
     }

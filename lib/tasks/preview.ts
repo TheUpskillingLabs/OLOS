@@ -76,7 +76,7 @@ export async function memberTaskPreview(
       ? supabase
           .from("cycle_config")
           .select(
-            "pod_registration_open, pod_registration_close, pod_limit, problem_statement_open, problem_statement_close, voting_open, voting_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close"
+            "pod_registration_open, pod_registration_close, pod_limit, problem_statement_open, problem_statement_close, voting_open, voting_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, invite_only"
           )
           .eq("cycle_id", activeCycle.id)
           .maybeSingle()
@@ -157,20 +157,47 @@ export async function memberTaskPreview(
     onboarding && upcomingCycle ? upcomingCycle : activeCycle;
 
   let preRegisteredUpcoming = false;
+  let upcomingInviteOnly = false;
   if (onboarding && upcomingCycle) {
-    const { count } = await supabase
-      .from("cycle_agreements")
-      .select("id", { head: true, count: "exact" })
-      .eq("participant_id", participant.id)
-      .eq("cycle_id", upcomingCycle.id);
-    preRegisteredUpcoming = (count ?? 0) > 0;
+    const [{ count }, { data: upcomingEnrollment }, { data: upcomingConfig }] =
+      await Promise.all([
+        supabase
+          .from("cycle_agreements")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id),
+        supabase
+          .from("cycle_enrollments")
+          .select("status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id)
+          .in("status", ["registered", "active"])
+          .maybeSingle(),
+        supabase
+          .from("cycle_config")
+          .select("invite_only")
+          .eq("cycle_id", upcomingCycle.id)
+          .maybeSingle(),
+      ]);
+    preRegisteredUpcoming = (count ?? 0) > 0 || !!upcomingEnrollment;
+    upcomingInviteOnly = !!upcomingConfig?.invite_only;
   }
+  // Mirrors app/(dashboard)/dashboard/page.tsx: a 'registered' enrollment
+  // without an agreement is an invitee (00109) and counts as done, and an
+  // invite-only cycle reads as closed to anyone not already in it.
   const registerDone =
     onboarding && upcomingCycle
       ? preRegisteredUpcoming
-      : hasAgreement || enrollment?.status === "active";
+      : hasAgreement ||
+        enrollment?.status === "active" ||
+        enrollment?.status === "registered";
+  const inviteOnly = !registerCycleRow
+    ? false
+    : registerCycleRow.id === upcomingCycle?.id
+      ? upcomingInviteOnly
+      : !!activeCycleConfig?.invite_only;
   const regWindow =
-    registerCycleRow && !registerDone
+    registerCycleRow && !registerDone && !inviteOnly
       ? await registrationWindow(supabase, registerCycleRow.id)
       : null;
   const regOpen = registerDone || (regWindow?.open ?? false);

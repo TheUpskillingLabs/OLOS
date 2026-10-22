@@ -49,13 +49,23 @@ export default async function CyclesPage() {
   // "Open for registration" card must not show a bare "Register" CTA for a
   // cycle they're already in (July 2026 feedback). Same lookup the join
   // ceremony uses to open on the confirmation.
+  // Invitees (00109) hold a 'registered'/'active' enrollment with no
+  // agreement, so enrollments count too.
   const registeredCycleIds = new Set<number>();
   if (me?.id) {
-    const { data: agreements } = await serviceClient
-      .from("cycle_agreements")
-      .select("cycle_id")
-      .eq("participant_id", me.id);
+    const [{ data: agreements }, { data: enrollments }] = await Promise.all([
+      serviceClient
+        .from("cycle_agreements")
+        .select("cycle_id")
+        .eq("participant_id", me.id),
+      serviceClient
+        .from("cycle_enrollments")
+        .select("cycle_id")
+        .eq("participant_id", me.id)
+        .in("status", ["registered", "active"]),
+    ]);
     for (const a of agreements ?? []) registeredCycleIds.add(a.cycle_id);
+    for (const e of enrollments ?? []) registeredCycleIds.add(e.cycle_id);
   }
 
   // Local Labs are sub-cohorts of the single HQ participant cycle
@@ -123,19 +133,49 @@ export default async function CyclesPage() {
     regWindows.set(c.id, await registrationWindow(serviceClient, c.id));
   }
 
+  // Invite-only cycles (00109): an uninvited member gets no Register card at
+  // all (not even a "closed" one — there is nothing to wait for); an
+  // enrolled invitee keeps their "you're registered" card.
+  const inviteOnlyIds = new Set<number>();
+  {
+    const candidateIds = [
+      ...(activeCycle ? [activeCycle.id] : []),
+      ...upcomingCycles.map((c) => c.id),
+    ];
+    if (candidateIds.length > 0) {
+      const { data: inviteConfigs } = await serviceClient
+        .from("cycle_config")
+        .select("cycle_id")
+        .in("cycle_id", candidateIds)
+        .eq("invite_only", true);
+      for (const c of inviteConfigs ?? []) inviteOnlyIds.add(c.cycle_id);
+    }
+  }
+  const hiddenInviteOnly = (id: number) =>
+    inviteOnlyIds.has(id) && !registeredCycleIds.has(id);
+  // The running cycle's hero blocks (phase rail, open windows, Learning Log
+  // row, View cycle card) are gated the same way as the Register cards: an
+  // uninvited member sees nothing of an invite-only cycle, active or not.
+  const shownActiveCycle =
+    activeCycle && !hiddenInviteOnly(activeCycle.id) ? activeCycle : null;
+
   // The running cohort accepts registrations too (the join flow and the
   // dashboard both already allow it) — an unregistered member whose D-10
   // window is open gets a Register card here as well, not just the
   // read-only quick-link (July 2026 feedback, running-list #1).
   let activeCycleRegisterable = false;
-  if (activeCycle && !registeredCycleIds.has(activeCycle.id)) {
+  if (
+    activeCycle &&
+    !registeredCycleIds.has(activeCycle.id) &&
+    !inviteOnlyIds.has(activeCycle.id)
+  ) {
     const w = await registrationWindow(serviceClient, activeCycle.id);
     regWindows.set(activeCycle.id, w);
     activeCycleRegisterable = w.open;
   }
   const registerableCycles = [
     ...(activeCycle && activeCycleRegisterable ? [activeCycle] : []),
-    ...upcomingCycles,
+    ...upcomingCycles.filter((c) => !hiddenInviteOnly(c.id)),
   ];
   // Everything else, in the query's original start_date-descending order —
   // a single filter over `otherCycles` rather than two mode-partitioned
@@ -151,14 +191,14 @@ export default async function CyclesPage() {
   return (
     <div>
       {/* Phase timeline — the hero of the page */}
-      {activeCycle && activeCycleConfig && (
-        <CyclePhaseIndicator cycle={activeCycle} config={activeCycleConfig} />
+      {shownActiveCycle && activeCycleConfig && (
+        <CyclePhaseIndicator cycle={shownActiveCycle} config={activeCycleConfig} />
       )}
 
       {/* Open now — the active cycle's open windows, in the shared row
           grammar (the rail above is timeline-only; these are the cycle's
           state, with the same labels as the dashboard's task cards) */}
-      {openWindows.length > 0 && activeCycle && (
+      {openWindows.length > 0 && shownActiveCycle && (
         <div className="mb-8">
           <h2 className="lbl mb-4">Open now</h2>
           <div className="space-y-3">
@@ -169,7 +209,7 @@ export default async function CyclesPage() {
                   key={s.key}
                   state="open"
                   title={def.labels.action}
-                  href={`/cycles/${activeCycle.id}/${def.route}`}
+                  href={`/cycles/${shownActiveCycle.id}/${def.route}`}
                   closesAt={s.closesAt}
                 />
               );
@@ -179,7 +219,7 @@ export default async function CyclesPage() {
       )}
 
       {/* Learning Log — the weekly practice, framed calmly (it replaced the pulse check) */}
-      {activeCycle && (
+      {shownActiveCycle && (
         <div className="mb-4">
           <TaskRow
             title="Your weekly Learning Log"
@@ -196,16 +236,16 @@ export default async function CyclesPage() {
       )}
 
       {/* Active cycle quick-link */}
-      {activeCycle && (
+      {shownActiveCycle && (
         <Link
-          href={`/cycles/${activeCycle.id}`}
+          href={`/cycles/${shownActiveCycle.id}`}
           className="group mb-8 flex items-center justify-between rounded-card border border-teal/30 bg-teal/10 p-5 transition-colors duration-150 ease-out hover:border-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
         >
           <div>
-            <h2 className="t-h3 text-ink">{activeCycle.name}</h2>
+            <h2 className="t-h3 text-ink">{shownActiveCycle.name}</h2>
             <p className="mt-0.5 text-sm text-meta">
-              {fmtDateOnly(activeCycle.start_date)} &ndash;{" "}
-              {fmtDateOnly(activeCycle.end_date)}
+              {fmtDateOnly(shownActiveCycle.start_date)} &ndash;{" "}
+              {fmtDateOnly(shownActiveCycle.end_date)}
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold tracking-tight text-teal-deep">

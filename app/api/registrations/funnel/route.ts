@@ -230,15 +230,19 @@ export async function POST(request: NextRequest) {
   if (recruitingCycle) {
     const { data: config } = await supabase
       .from("cycle_config")
-      .select("pod_registration_open, pod_registration_close")
+      .select("pod_registration_open, pod_registration_close, invite_only")
       .eq("cycle_id", recruitingCycle.id)
       .maybeSingle();
 
-    // Naive window columns are UTC instants (lib/cycles/lab-time.ts).
-    const isOpen = windowOpen(
-      config?.pod_registration_open,
-      config?.pod_registration_close
-    );
+    // Naive window columns are UTC instants (lib/cycles/lab-time.ts). An
+    // invite-only cycle (00109) never dangles a join link — invitees get
+    // in through their invitation link instead.
+    const isOpen =
+      !config?.invite_only &&
+      windowOpen(
+        config?.pod_registration_open,
+        config?.pod_registration_close
+      );
 
     if (isOpen) {
       emailCycleName = recruitingCycle.name;

@@ -8,6 +8,7 @@ import { registrationWindow } from "@/lib/cycles/schedule";
 import CycleCeremony from "./ceremony";
 import { cycleInfoContent } from "@/lib/cycles/info";
 import { effectiveUser } from "@/lib/auth/simulation";
+import { isInviteOnlyBlocked } from "@/lib/cycle/guards";
 
 // The cycle registration ceremony (onboarding-proto: view-cycle-threshold →
 // FLOWS('cycle') → the Open Cycle Agreement signature → view-cycle-signed).
@@ -38,6 +39,40 @@ export default async function JoinCyclePage({
     .maybeSingle();
 
   if (!participant) redirect("/register");
+
+  // Invite-only participant cycles (00109, docs/ORG_CYCLES.md §5a): an
+  // accepted admin invitation already enrolled the member, and invitees never
+  // sign the agreement — so an enrolled member has nothing to sign here and
+  // lands on the cycle page (the /cycles "You're registered — view details"
+  // card links through this route), while an uninvited one sees nothing of
+  // the cycle at all (owner rule) and is sent back to /cycles, like an org
+  // cycle. The agreement route enforces the same rule server-side
+  // (rejectUninvited).
+  //
+  // Runs BEFORE the active-lab gate below: that gate steers self-serve
+  // registrants into a Local Lab, but an invitee was admitted by an admin and
+  // a member with no active lab (e.g. one who joined before Local Labs) must
+  // still reach their cycle instead of being bounced to /local-labs.
+  const [{ data: inviteConfig }, { data: myEnrollment }] = await Promise.all([
+    serviceClient
+      .from("cycle_config")
+      .select("invite_only")
+      .eq("cycle_id", cycleId)
+      .maybeSingle(),
+    serviceClient
+      .from("cycle_enrollments")
+      .select("status")
+      .eq("cycle_id", cycleId)
+      .eq("participant_id", participant.id)
+      .maybeSingle(),
+  ]);
+  if (inviteConfig?.invite_only) {
+    redirect(
+      isInviteOnlyBlocked(inviteConfig, myEnrollment)
+        ? "/cycles"
+        : `/cycles/${cycleId}`
+    );
+  }
 
   // Active-lab gate (docs/LOCAL_LABS.md — the membership spine): only members
   // of an ACTIVE Local Lab can register for a cycle. Waitlisted or lab-less

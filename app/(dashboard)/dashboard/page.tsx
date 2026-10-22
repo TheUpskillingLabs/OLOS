@@ -18,6 +18,7 @@ import {
   type MilestoneWeeks,
 } from "@/lib/cycle/milestones";
 import { selectMemberCycles } from "@/lib/cycle/active";
+import { isInviteOnlyBlocked } from "@/lib/cycle/guards";
 import { dashboardTasks } from "@/lib/tasks/tasks";
 import { SLACK_ROW_SINCE_ISO } from "@/lib/tasks/definitions";
 import {
@@ -132,7 +133,7 @@ export default async function DashboardPage() {
       ? serviceClient
           .from("cycle_config")
           .select(
-            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit, milestone_mid_week, milestone_final_week"
+            "phase_2_start, phase_3_start, problem_statement_open, problem_statement_close, voting_open, voting_close, pod_registration_open, pod_registration_close, solution_proposal_open, solution_proposal_close, solution_voting_open, solution_voting_close, project_registration_open, project_registration_close, pod_limit, milestone_mid_week, milestone_final_week, invite_only"
           )
           .eq("cycle_id", activeCycle.id)
           .single()
@@ -248,14 +249,34 @@ export default async function DashboardPage() {
     .in("cycles.status", ["active", "upcoming"]);
   const moderatesCurrentCycle = (activeModAssignmentCount ?? 0) > 0;
 
+  // Pre-registered = signed the agreement OR holds an enrollment (an invitee
+  // on an invite-only cycle, 00109, is enrolled without ever signing). The
+  // upcoming cycle's invite_only flag rides along for the register gate.
   let preRegisteredUpcoming = false;
+  let upcomingInviteOnly = false;
   if (upcomingCycle) {
-    const { count } = await serviceClient
-      .from("cycle_agreements")
-      .select("id", { head: true, count: "exact" })
-      .eq("participant_id", participant.id)
-      .eq("cycle_id", upcomingCycle.id);
-    preRegisteredUpcoming = (count ?? 0) > 0;
+    const [{ count }, { data: upcomingEnrollment }, { data: upcomingConfig }] =
+      await Promise.all([
+        serviceClient
+          .from("cycle_agreements")
+          .select("id", { head: true, count: "exact" })
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id),
+        serviceClient
+          .from("cycle_enrollments")
+          .select("status")
+          .eq("participant_id", participant.id)
+          .eq("cycle_id", upcomingCycle.id)
+          .in("status", ["registered", "active"])
+          .maybeSingle(),
+        serviceClient
+          .from("cycle_config")
+          .select("invite_only")
+          .eq("cycle_id", upcomingCycle.id)
+          .maybeSingle(),
+      ]);
+    preRegisteredUpcoming = (count ?? 0) > 0 || !!upcomingEnrollment;
+    upcomingInviteOnly = !!upcomingConfig?.invite_only;
   }
 
   // Determine pod registration window status. Naive window columns are UTC
@@ -479,18 +500,29 @@ export default async function DashboardPage() {
     : onboarding && upcomingCycle
       ? upcomingCycle
       : activeCycle;
+  // A 'registered' enrollment with no agreement is an invitee (00109 —
+  // invite fulfillment enrolls without the ceremony), so it counts as done;
+  // otherwise they'd be nagged to sign an agreement they were told to skip.
   const registerDone =
     onboarding && upcomingCycle
       ? preRegisteredUpcoming
-      : hasAgreement || enrollment?.status === "active";
+      : hasAgreement ||
+        enrollment?.status === "active" ||
+        enrollment?.status === "registered";
 
   // D-10 (docs/requirements/pod-registration.md): registration for a cohort
   // closes between pod-forming close and the active-join window, and again
   // after active-join ends. Gates the register task and the state card
   // below — members who already signed keep their confirmation regardless
-  // of the window.
+  // of the window. An invite-only cycle (00109) reads as closed to anyone
+  // not already in it.
+  const inviteOnly = !registerCycle
+    ? false
+    : registerCycle.id === upcomingCycle?.id
+      ? upcomingInviteOnly
+      : !!activeCycleConfig?.invite_only;
   const regWindow =
-    registerCycle && !registerDone
+    registerCycle && !registerDone && !inviteOnly
       ? await registrationWindow(serviceClient, registerCycle.id)
       : null;
   const regOpen = registerDone || (regWindow?.open ?? false);
@@ -572,10 +604,13 @@ export default async function DashboardPage() {
     start_date: string | null;
     end_date: string | null;
   };
+  // An invite-only cycle (00109) shows the uninvited nothing at all — no
+  // closed card, no task — while an enrolled invitee keeps the ordinary
+  // confirmation above.
   const registerStateCard = (cycle: CycleCardData) =>
     registerDone && onboarding && upcomingCycle ? (
       <CycleRegisterCard cycle={cycle} state="pre_registered" upcoming />
-    ) : !regOpen ? (
+    ) : inviteOnly ? null : !regOpen ? (
       <CycleRegisterCard
         cycle={cycle}
         state="closed"
@@ -710,9 +745,17 @@ export default async function DashboardPage() {
   // The shared 3-panel scaffold — used by EVERY dashboard state now, not just
   // the engaged one. Left = identity + the groups you belong to (empty-friendly);
   // right = org news. memberships is fetched for all states (incl. onboarding).
+  // An invite-only cycle (00109) is not "yours" until you are enrolled in it:
+  // the uninvited see nothing of it, so it stays out of "Your groups" too.
+  const activeInviteOnly = (
+    activeCycleConfig as { invite_only?: boolean | null } | null
+  )?.invite_only;
+  const activeInviteOnlyHidden =
+    !!activeCycle &&
+    isInviteOnlyBlocked({ invite_only: activeInviteOnly ?? null }, enrollment ?? null);
   const memberships = await getParticipantMemberships(participant.id, {
     metroId: memberLabId,
-    activeCycle: activeCycle
+    activeCycle: activeCycle && !activeInviteOnlyHidden
       ? {
           id: activeCycle.id,
           name: activeCycle.name,
@@ -742,7 +785,10 @@ export default async function DashboardPage() {
         memberships={memberships}
         mode={activeCycle?.mode ?? null}
       />
-      <QuickLinks cycleId={activeCycle?.id} metroId={participant.metro_id} />
+      <QuickLinks
+        cycleId={activeInviteOnlyHidden ? undefined : activeCycle?.id}
+        metroId={participant.metro_id}
+      />
       {otherCycles.length > 0 && (
         <details className="rounded-card border border-ink/10 bg-white p-5 shadow-card">
           <summary className="lbl cursor-pointer hover:text-charcoal">
